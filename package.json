@@ -1,0 +1,16 @@
+{
+  "name": "jsx-front-end",
+  "version": "0.0.1",
+  "description": "JSX Unbounded Front End",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -w -p tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Manish Vachharajani <manishv@unbounded.systems>",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "typescript": "^2.8.3"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx",
+    "jsxlib/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "target": "es6",
+    "jsx":"react",
+    "jsxFactory": "unbs.createElement",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,  
+    "sourceMap": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "isstream": [ "./unbs-typescript-types/isstream" ],
+      "strip-ansi": [ "./unbs-typescript-types/strip-ansi" ],
+      "slice-ansi": [ "./unbs-typescript-types/slice-ansi" ]
+    }
+  }
+}
