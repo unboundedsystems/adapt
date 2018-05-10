@@ -1,13 +1,15 @@
-declare namespace unbs {
-    namespace JSX {
-        interface IntrinsicElements {
-            test: object;
-        }
+import * as unbs from './unbs/index'
+
+class SvlsFunction extends unbs.Component<{}> {
+    constructor(props: {}) {
+        super(props);
+    }
+
+    build(): unbs.UNode {
+        return <unbs.Group></unbs.Group>
     }
 }
 
-namespace unbs {
-    function createElement(...x: any[]) { return {}; };
-}
+<SvlsFunction />
 
-<test></test>
+

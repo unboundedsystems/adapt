@@ -4,7 +4,7 @@
     "*.tsx",
     "test/**/*.ts",
     "test/**/*.tsx",
-    "jsxlib/**/*.ts"
+    "unbs/**/*.ts"
   ],
   "exclude": [
     "dist",
