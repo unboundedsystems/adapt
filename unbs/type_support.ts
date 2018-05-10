@@ -1,3 +1,4 @@
+// Generic stuff that should be put in a different library and open sourced
 export type ExcludeKeys<T, ToRemove> =
     { [K in Exclude<keyof T, ToRemove>]: T[K] };
 
@@ -34,3 +35,11 @@ export function asConsOrFunc<Args, Ret>(
     }
 
 }
+
+//Stuff specific to this library (unbs).
+export interface Children<C> {
+    children: C[];
+}
+
+export type ChildType<T> =
+    T extends Children<any> ? ExtractType<T, keyof Children<any>> : null;

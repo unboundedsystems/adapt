@@ -5,7 +5,7 @@ class SvlsFunction extends unbs.Component<{}> {
         super(props);
     }
 
-    build(): unbs.UNode {
+    build(): unbs.UnbsNode {
         return <unbs.Group></unbs.Group>
     }
 }
