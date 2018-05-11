@@ -1,4 +1,4 @@
-import * as unbs from './unbs/index'
+import * as unbs from '../src'
 
 class SvlsFunction extends unbs.Component<{}> {
     constructor(props: {}) {
@@ -10,6 +10,10 @@ class SvlsFunction extends unbs.Component<{}> {
     }
 }
 
-<SvlsFunction />
+describe('JSX createElement Tests', () => {
+    it('Should construct an element', async () => {
+        <unbs.Group />
+    });
+});
 
 

@@ -10,7 +10,7 @@ function mount<Props>(ctor: string |
     if (typeof ctor === "string") {
         switch (ctor) {
             case "group":
-                if (jsx.childrenAreUNodes(ctor, children)) {
+                if (jsx.childrenAreNodes(ctor, children)) {
                     return new jsx.Group({ children: children });
                 } else {
                     throw new TypeError("Children of group must be UNodes")

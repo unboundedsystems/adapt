@@ -4,13 +4,19 @@
   "description": "JSX Unbounded Front End",
   "main": "index.js",
   "scripts": {
+    "prepare": "npm run build",
+    "pretest": "npm run build",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --require 'source-map-support/register' --require should dist/test"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@types/mocha": "^5.2.0",
+    "mocha": "^5.1.1",
+    "should": "^13.2.1",
+    "source-map-support": "^0.5.5",
     "typescript": "^2.8.3"
   }
 }
