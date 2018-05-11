@@ -40,7 +40,7 @@ describe('JSX createElement Tests', () => {
 
     it('Element should have the correct componentType', () => {
         const element = <unbs.Group />;
-        should(element.componentType === unbs.Group);
+        should(element.componentType).equal(unbs.Group);
     });
 
     it('Should have the right props', () => {
