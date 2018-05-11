@@ -62,7 +62,7 @@ describe('JSX createElement Tests', () => {
 
 
             const childComponents = element.props.children.map(
-                (child: unbs.UnbsNode) => child.componentType);
+                (child) => child.componentType);
             should(childComponents).eql([Dummy, unbs.Group]);
         } else {
             throw new Error("Element does not have children: "
