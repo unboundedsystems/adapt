@@ -66,8 +66,12 @@ class UnbsNodeImpl implements UnbsNode {
         readonly componentType: any,
         readonly ctor: (props: AnyProps) => GenericComponent,
         readonly passedProps: AnyProps,
-        public children: any[]) {
+        children: any[]) {
+
         this.props = passedProps;
+        if (children.length > 0) {
+            this.props.children = children;
+        }
     }
 
     build(): never {
@@ -94,5 +98,5 @@ export function createElement<Props>(
         tySup.asConsOrFunc<PropsNoChildren, Component<PropsNoChildren>>(ctor);
     //props===null PropsNoChildren == {}
     let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsNodeImpl(ctor, normalizedCtor, props, children);
+    return new UnbsNodeImpl(ctor, normalizedCtor, fixedProps, children);
 }

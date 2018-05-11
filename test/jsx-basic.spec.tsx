@@ -1,6 +1,8 @@
-///<reference type=should>
-import * as unbs from '../src'
+import * as util from 'util';
+import * as unbs from '../src';
+
 import should = require('should');
+
 
 class SvlsFunction extends unbs.Component<{}> {
     constructor(props: {}) {
@@ -20,6 +22,10 @@ class Dummy extends unbs.Component<unbs.AnyProps> {
     build(): never {
         throw new Error("Cannot build Dummy component");
     }
+}
+
+function hasChildren(x: any): x is { children: unbs.UnbsNode[] } {
+    return x.children != null;
 }
 
 describe('JSX createElement Tests', () => {
@@ -42,15 +48,27 @@ describe('JSX createElement Tests', () => {
         should(element.props).eql({ x: 1, y: "foo" });
     });
 
-    /* it('Should have the right children', () => {
+    it('Should have the right children', () => {
         const element =
             <unbs.Group>
                 <Dummy />
                 <unbs.Group />
             </unbs.Group>;
 
-        should(element.props.children.length).equal(2);
-    }); */
+        if (hasChildren(element.props)) {
+            should(element.props.children).not.be.Null();
+            should(element.props.children).be.Array();
+            should(element.props.children.length).equal(2);
+
+
+            const childComponents = element.props.children.map(
+                (child: unbs.UnbsNode) => child.componentType);
+            should(childComponents).eql([Dummy, unbs.Group]);
+        } else {
+            throw new Error("Element does not have children: "
+                + util.inspect(element));
+        }
+    });
 });
 
 
