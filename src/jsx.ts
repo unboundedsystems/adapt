@@ -6,7 +6,8 @@ import { JSX } from './jsx_namespace';
 //This is broken, why does JSX.ElementClass correspond to both the type 
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
-export interface UnbsNode extends JSX.ElementClass {
+export interface UnbsNode {
+    readonly props: AnyProps;
     readonly componentType: any;
 }
 
@@ -72,10 +73,6 @@ class UnbsNodeImpl implements UnbsNode {
         if (children.length > 0) {
             this.props.children = children;
         }
-    }
-
-    build(): never {
-        throw new Error("Internal build method called.  Do not call build outside the library!");
     }
 }
 
