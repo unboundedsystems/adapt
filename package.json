@@ -13,10 +13,15 @@
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
+    "@types/node": "^8.10.14",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
     "typescript": "^2.8.3"
+  },
+  "dependencies": {
+    "lodash": "^4.17.10"
   }
 }

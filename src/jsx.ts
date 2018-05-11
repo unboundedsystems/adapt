@@ -1,8 +1,18 @@
+import * as ld from 'lodash';
+
 import * as tySup from './type_support';
 import { JSX } from './jsx_namespace';
 
+//This is broken, why does JSX.ElementClass correspond to both the type 
+//a Component construtor has to return and what createElement has to return?
+//I don't think React actually adheres to this constraint.
 export interface UnbsNode {
+    readonly props: AnyProps;
+    readonly componentType: any;
+}
 
+export function isNode(val: any): val is UnbsNode {
+    return val instanceof UnbsNodeImpl;
 }
 
 export abstract class Component<Props> {
@@ -12,7 +22,7 @@ export abstract class Component<Props> {
 }
 
 export interface GroupProps {
-    children?: JSX.Element[] | JSX.Element;
+    children?: UnbsNode[] | UnbsNode;
 }
 
 export class Group extends Component<GroupProps> {
@@ -21,7 +31,16 @@ export class Group extends Component<GroupProps> {
     }
 
     build(): UnbsNode {
-        return {}; //FIXME(manishv) call build on children here;
+        let children: UnbsNode[] = [];
+        if (this.props.children != null) {
+            if (ld.isArray(this.props.children)) {
+                children = this.props.children;
+            } else {
+                children = [this.props.children];
+            }
+        }
+        let args: any[] = [Group, this.props];
+        return createElement.apply(null, args.concat(children));
     }
 }
 
@@ -35,17 +54,26 @@ export function childrenAreNodes(ctor: string, children: any[]): children is JSX
     return false;
 }
 
-export interface GenericProps {
+export interface AnyProps {
     [key: string]: any
 }
 
-export type GenericComponent = Component<GenericProps>
+export type GenericComponent = Component<AnyProps>
 
 class UnbsNodeImpl implements UnbsNode {
+    readonly props: AnyProps;
+
     constructor(
-        readonly ctor: (props: GenericProps) => GenericComponent,
-        readonly passedProps: GenericProps,
-        public children: any[]) { }
+        readonly componentType: any,
+        readonly ctor: (props: AnyProps) => GenericComponent,
+        readonly passedProps: AnyProps,
+        children: any[]) {
+
+        this.props = passedProps;
+        if (children.length > 0) {
+            this.props.children = children;
+        }
+    }
 }
 
 export function createElement<Props>(
@@ -67,5 +95,5 @@ export function createElement<Props>(
         tySup.asConsOrFunc<PropsNoChildren, Component<PropsNoChildren>>(ctor);
     //props===null PropsNoChildren == {}
     let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsNodeImpl(normalizedCtor, props, children);
+    return new UnbsNodeImpl(ctor, normalizedCtor, fixedProps, children);
 }
