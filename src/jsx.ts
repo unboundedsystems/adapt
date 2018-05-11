@@ -53,19 +53,19 @@ export function childrenAreNodes(ctor: string, children: any[]): children is JSX
     return false;
 }
 
-export interface GenericProps {
+export interface AnyProps {
     [key: string]: any
 }
 
-export type GenericComponent = Component<GenericProps>
+export type GenericComponent = Component<AnyProps>
 
 class UnbsNodeImpl implements UnbsNode {
-    readonly props: GenericProps;
+    readonly props: AnyProps;
 
     constructor(
         readonly componentType: any,
-        readonly ctor: (props: GenericProps) => GenericComponent,
-        readonly passedProps: GenericProps,
+        readonly ctor: (props: AnyProps) => GenericComponent,
+        readonly passedProps: AnyProps,
         public children: any[]) {
         this.props = passedProps;
     }

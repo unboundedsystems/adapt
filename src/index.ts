@@ -4,5 +4,6 @@ export {
     Component,
     UnbsNode,
     Group,
+    AnyProps,
     isNode
 } from './jsx';
