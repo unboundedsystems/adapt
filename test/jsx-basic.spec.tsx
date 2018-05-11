@@ -1,4 +1,6 @@
+///<reference type=should>
 import * as unbs from '../src'
+import should = require('should');
 
 class SvlsFunction extends unbs.Component<{}> {
     constructor(props: {}) {
@@ -11,8 +13,13 @@ class SvlsFunction extends unbs.Component<{}> {
 }
 
 describe('JSX createElement Tests', () => {
-    it('Should construct an element', async () => {
+    it('Element should construct', async () => {
         <unbs.Group />
+    });
+
+    it('Element should have the correct type', () => {
+        const element = <unbs.Group />;
+        should(unbs.isNode(element)).be.True();
     });
 });
 

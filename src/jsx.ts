@@ -1,8 +1,17 @@
+import * as ld from 'lodash';
+
 import * as tySup from './type_support';
 import { JSX } from './jsx_namespace';
 
-export interface UnbsNode {
+//This is broken, why does JSX.ElementClass correspond to both the type 
+//a Component construtor has to return and what createElement has to return?
+//I don't think React actually adheres to this constraint.
+export interface UnbsNode extends JSX.ElementClass {
+    readonly componentType: any;
+}
 
+export function isNode(val: any): val is UnbsNode {
+    return val instanceof UnbsNodeImpl;
 }
 
 export abstract class Component<Props> {
@@ -12,7 +21,7 @@ export abstract class Component<Props> {
 }
 
 export interface GroupProps {
-    children?: JSX.Element[] | JSX.Element;
+    children?: UnbsNode[] | UnbsNode;
 }
 
 export class Group extends Component<GroupProps> {
@@ -21,7 +30,16 @@ export class Group extends Component<GroupProps> {
     }
 
     build(): UnbsNode {
-        return {}; //FIXME(manishv) call build on children here;
+        let children: UnbsNode[] = [];
+        if (this.props.children != null) {
+            if (ld.isArray(this.props.children)) {
+                children = this.props.children;
+            } else {
+                children = [this.props.children];
+            }
+        }
+        let args: any[] = [Group, this.props];
+        return createElement.apply(null, args.concat(children));
     }
 }
 
@@ -42,10 +60,19 @@ export interface GenericProps {
 export type GenericComponent = Component<GenericProps>
 
 class UnbsNodeImpl implements UnbsNode {
+    readonly props: GenericProps;
+
     constructor(
+        readonly componentType: any,
         readonly ctor: (props: GenericProps) => GenericComponent,
         readonly passedProps: GenericProps,
-        public children: any[]) { }
+        public children: any[]) {
+        this.props = passedProps;
+    }
+
+    build(): never {
+        throw new Error("Internal build method called.  Do not call build outside the library!");
+    }
 }
 
 export function createElement<Props>(
@@ -67,5 +94,5 @@ export function createElement<Props>(
         tySup.asConsOrFunc<PropsNoChildren, Component<PropsNoChildren>>(ctor);
     //props===null PropsNoChildren == {}
     let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsNodeImpl(normalizedCtor, props, children);
+    return new UnbsNodeImpl(ctor, normalizedCtor, props, children);
 }
