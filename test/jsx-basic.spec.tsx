@@ -9,7 +9,7 @@ class SvlsFunction extends unbs.Component<{}> {
         super(props);
     }
 
-    build(): unbs.UnbsNode {
+    build(): unbs.UnbsElement {
         return <unbs.Group></unbs.Group>
     }
 }
@@ -24,13 +24,13 @@ class Dummy extends unbs.Component<unbs.AnyProps> {
     }
 }
 
-function hasChildren(x: any): x is { children: unbs.UnbsNode[] } {
+function hasChildren(x: any): x is { children: unbs.UnbsElement[] } {
     return x.children != null;
 }
 
 
 describe('JSX SFC createElement Tests', () => {
-    function Component(props: any): unbs.UnbsNode {
+    function Component(props: any): unbs.UnbsElement {
         throw new Error("Test is not supposed to render");
     }
 

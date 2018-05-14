@@ -2,8 +2,11 @@ export * from './jsx_namespace';
 export {
     createElement,
     Component,
-    UnbsNode,
-    Group,
+    UnbsElement,
     AnyProps,
     isNode
 } from './jsx';
+
+export {
+    Group
+} from './builtin_components';
