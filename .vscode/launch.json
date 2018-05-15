@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Unit Tests",
+            "preLaunchTask": "build:watch",
+            "runtimeExecutable": "${workspaceFolder}/bin/node",
+            "runtimeArgs": [
+                "--nolazy",
+                "--inspect-brk=0.0.0.0:5858"
+            ],
+            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "args": [
+                "--no-timeouts",
+                "--opts",
+                "mocha.opts"
+            ],
+            "env":{
+                "DOCKER_ARGS": "-p5858:5858"
+            },
+            "address": "127.0.0.1",
+            "port": 5858,
+            "timeout": 60000,
+            "outFiles": [
+                "${workspaceRoot}/dist/**/*.js"
+            ],
+            //"console": "integratedTerminal",
+            "sourceMaps": true,
+            "smartStep": true,
+            "stopOnEntry": false,
+            "protocol": "inspector",
+            "autoAttachChildProcesses": true,
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/src"
+        }
+    ]
+}
