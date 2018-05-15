@@ -3,6 +3,7 @@ export {
     createElement,
     cloneElement,
     Component,
+    PrimitiveComponent,
     UnbsElement,
     AnyProps,
     isElement
