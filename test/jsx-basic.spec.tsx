@@ -3,17 +3,6 @@ import * as unbs from '../src';
 
 import should = require('should');
 
-
-class SvlsFunction extends unbs.Component<{}> {
-    constructor(props: {}) {
-        super(props);
-    }
-
-    build(): unbs.UnbsElement {
-        return <unbs.Group></unbs.Group>
-    }
-}
-
 class Dummy extends unbs.Component<unbs.AnyProps> {
     constructor(props: unbs.AnyProps) {
         super(props);
