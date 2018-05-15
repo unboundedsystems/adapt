@@ -1,3 +1,5 @@
+import * as util from 'util';
+
 import * as ld from 'lodash';
 
 import * as tySup from './type_support';
@@ -13,7 +15,7 @@ export interface UnbsElement {
 
 export type UnbsNode = UnbsElement | null;
 
-export function isNode(val: any): val is UnbsElement {
+export function isElement(val: any): val is UnbsElement {
     return val instanceof UnbsElementImpl;
 }
 
@@ -73,4 +75,27 @@ export function createElement<Props>(
     //props===null PropsNoChildren == {}
     let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
     return new UnbsElementImpl(ctor, fixedProps, children);
+}
+    if (typeof ctor === "string") {
+        throw new Error("createElement cannot called with string element type")
+    }
+
+    type PropsNoChildren =
+        tySup.ExcludeInterface<Props, tySup.Children<any>>;
+
+    //props===null PropsNoChildren == {}
+    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    return new UnbsElementImpl(ctor, fixedProps, children);
+}
+
+export function cloneElement(
+    element: UnbsElement,
+    props: AnyProps,
+    ...children: any[]): UnbsElement {
+
+    const newProps = {
+        ...element.props,
+        ...props
+    };
+    return new UnbsElementImpl(element.componentType, newProps, children);
 }

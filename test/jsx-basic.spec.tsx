@@ -28,6 +28,22 @@ function hasChildren(x: any): x is { children: unbs.UnbsElement[] } {
     return x.children != null;
 }
 
+function checkChildComponents(element: unbs.UnbsElement, ...children: any[]) {
+    should(element.props.children).not.Null();
+    should(element.props.children).be.Array();
+
+    const childComponents = element.props.children.map(
+        (child: any) => {
+            if (unbs.isElement(child)) {
+                return child.componentType;
+            } else {
+                return undefined;
+            }
+        }
+    )
+
+    should(childComponents).eql(children);
+}
 
 describe('JSX SFC createElement Tests', () => {
     function Component(props: any): unbs.UnbsElement {
@@ -40,7 +56,7 @@ describe('JSX SFC createElement Tests', () => {
 
     it('Should have the correct type', () => {
         const element = <Component />;
-        should(unbs.isNode(element)).True();
+        should(unbs.isElement(element)).True();
     });
 
     it('Should have the correct componentType', () => {
@@ -59,19 +75,8 @@ describe('JSX SFC createElement Tests', () => {
                 <Dummy />
                 <unbs.Group />
             </Component>
-        
-        if (hasChildren(element.props)) {
-            should(element.props.children).not.be.Null();
-            should(element.props.children).be.Array();
-            should(element.props.children.length).equal(2);
 
-            const childComponents = element.props.children.map(
-                (child) => child.componentType);
-            should(childComponents).eql([Dummy, unbs.Group]);
-        } else {
-            throw new Error("Element does not have children: "
-                + util.inspect(element));
-        }
+        checkChildComponents(element, Dummy, unbs.Group);
     });
 });
 
@@ -82,7 +87,7 @@ describe('JSX Class createElement Tests', () => {
 
     it('Element should have the correct type', () => {
         const element = <unbs.Group />;
-        should(unbs.isNode(element)).be.True();
+        should(unbs.isElement(element)).be.True();
     });
 
     it('Element should have the correct componentType', () => {
@@ -102,19 +107,33 @@ describe('JSX Class createElement Tests', () => {
                 <unbs.Group />
             </unbs.Group>;
 
-        if (hasChildren(element.props)) {
-            should(element.props.children).not.be.Null();
-            should(element.props.children).be.Array();
-            should(element.props.children.length).equal(2);
-
-            const childComponents = element.props.children.map(
-                (child) => child.componentType);
-            should(childComponents).eql([Dummy, unbs.Group]);
-        } else {
-            throw new Error("Element does not have children: "
-                + util.inspect(element));
-        }
+        checkChildComponents(element, Dummy, unbs.Group);
     });
 });
+
+describe('JSX cloneElement Tests', () => {
+    it('Should clone singleton elements', () => {
+        const element = unbs.cloneElement(<unbs.Group />, {});
+        should(element).not.Null();
+        should(unbs.isElement(element)).be.True();
+        should(element.componentType).equal(unbs.Group);
+    });
+
+    it('Should clone with new props', () => {
+        const element = unbs.cloneElement(<Dummy a={1} b={2} />,
+            { b: 4 });
+        should(element).not.Null();
+        should(element.props.a).equal(1);
+        should(element.props.b).equal(4);
+    });
+
+    it('Should clone with children', () => {
+        const element = unbs.cloneElement(<unbs.Group />, {},
+            <Dummy />, <unbs.Group />);
+
+        checkChildComponents(element, Dummy, unbs.Group);
+    });
+});
+
 
 

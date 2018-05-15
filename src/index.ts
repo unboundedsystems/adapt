@@ -1,10 +1,11 @@
 export * from './jsx_namespace';
 export {
     createElement,
+    cloneElement,
     Component,
     UnbsElement,
     AnyProps,
-    isNode
+    isElement
 } from './jsx';
 
 export {
