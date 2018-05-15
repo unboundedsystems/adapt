@@ -12,3 +12,7 @@ export {
 export {
     Group
 } from './builtin_components';
+
+export {
+    build
+} from './dom';

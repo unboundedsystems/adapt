@@ -82,8 +82,9 @@ export function createElement<Props>(
         tySup.ExcludeInterface<Props, tySup.Children<any>>;
 
     //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsElementImpl(ctor, fixedProps, children);
+    const fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    const flatChildren: any[] = ld.flatten(children);
+    return new UnbsElementImpl(ctor, fixedProps, flatChildren);
 }
 
 export function cloneElement(
