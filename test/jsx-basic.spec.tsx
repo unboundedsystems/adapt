@@ -3,6 +3,8 @@ import * as unbs from '../src';
 
 import should = require('should');
 
+import { checkChildComponents } from './testlib';
+
 class Dummy extends unbs.Component<unbs.AnyProps> {
     constructor(props: unbs.AnyProps) {
         super(props);
@@ -17,22 +19,7 @@ function hasChildren(x: any): x is { children: unbs.UnbsElement[] } {
     return x.children != null;
 }
 
-function checkChildComponents(element: unbs.UnbsElement, ...children: any[]) {
-    should(element.props.children).not.Null();
-    should(element.props.children).be.Array();
 
-    const childComponents = element.props.children.map(
-        (child: any) => {
-            if (unbs.isElement(child)) {
-                return child.componentType;
-            } else {
-                return undefined;
-            }
-        }
-    )
-
-    should(childComponents).eql(children);
-}
 
 describe('JSX SFC createElement Tests', () => {
     function Component(props: any): unbs.UnbsElement {
