@@ -25,15 +25,24 @@ export abstract class Component<Props> {
     abstract build(): UnbsNode;
 }
 
+export abstract class PrimitiveComponent<Props>
+    extends Component<Props> {
+
+    //There will be other methods here, right now we just do instanceof
+
+    build(): never {
+        throw new Error("Attempt to call build for primitive component: " +
+            util.inspect(this));
+    }
+}
+
+export function isPrimitive(component: Component<any>):
+    component is PrimitiveComponent<any> {
+    return component instanceof PrimitiveComponent;
+}
+
 export type FunctionComponentTyp<T> = (props: T) => UnbsNode;
 export type ClassComponentTyp<T> = new (props: T) => Component<T>;
-
-export function childrenAreNodes(ctor: string, children: any[]): children is JSX.Element[] {
-    if (ctor == "group") {
-        return true;
-    }
-    return false;
-}
 
 export interface AnyProps {
     [key: string]: any
@@ -65,17 +74,6 @@ export function createElement<Props>(
     props: tySup.ExcludeInterface<Props, tySup.Children<any>>,
     ...children: tySup.ChildType<Props>[]): UnbsElement {
 
-    if (typeof ctor === "string") {
-        throw new Error("createElement cannot called with string element type")
-    }
-
-    type PropsNoChildren =
-        tySup.ExcludeInterface<Props, tySup.Children<any>>;
-
-    //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsElementImpl(ctor, fixedProps, children);
-}
     if (typeof ctor === "string") {
         throw new Error("createElement cannot called with string element type")
     }
