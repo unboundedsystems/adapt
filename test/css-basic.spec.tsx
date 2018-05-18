@@ -19,7 +19,7 @@ describe('Selector matching', () => {
         const styles = css.parseStyles([css.style("Foo", () => null)]);
 
         const matcher = styles[0].match;
-        should(matcher([], <Dummy />)).False();
-        should(matcher([], <Foo />)).True();
+        should(matcher([<Dummy />])).False();
+        should(matcher([<Foo />])).True();
     });
-})
+});
