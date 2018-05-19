@@ -75,22 +75,6 @@ function matchFrag(
     return matcher(selFrag, path);
 }
 
-function notNull<T>(x: T | null): x is T {
-    return x != null;
-}
-
-function matchWithSelector(
-    selector: cssWhat.ParsedSelector,
-    path: jsx.UnbsElement[]): boolean {
-
-    for (const block of selector) {
-        if (matchBlock(block, path)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 function matchDescendant(
     selector: cssWhat.ParsedSelectorBlock,
     path: jsx.UnbsElement[]): boolean {
@@ -105,7 +89,7 @@ function matchDescendant(
     //and use that path up to that node as tryPath.  If it failse, 
     //use the next deepest, etc.  Not sure that saves much though because that is
     //what happens already, albiet through several function calls.
-    for (let i = 1; i < path.length - 1; i++) {
+    for (let i = 1; i < path.length; i++) {
         const tryPath = path.slice(0, -i);
         if (matchWithSelector([selector], tryPath)) {
             return true;
@@ -114,7 +98,19 @@ function matchDescendant(
     return false;
 }
 
-function matchBlock(
+function matchWithSelector(
+    selector: cssWhat.ParsedSelector,
+    path: jsx.UnbsElement[]): boolean {
+
+    for (const block of selector) {
+        if (matchWithBlock(block, path)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function matchWithBlock(
     selBlock: cssWhat.ParsedSelectorBlock,
     path: jsx.UnbsElement[]): boolean {
 
@@ -128,8 +124,10 @@ function matchBlock(
     } else {
         const [newPath, fragResult] = matchFrag(selFrag, path);
         if (!fragResult) return false;
-
-        return matchBlock(prefix, newPath);
+        if (newPath.length === 0) {
+            return false;
+        }
+        return matchWithBlock(prefix, newPath);
     }
 }
 
