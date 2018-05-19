@@ -26,7 +26,8 @@ interface matchConfigType {
 }
 
 const matchConfig: matchConfigType = {
-    "tag": matchTag
+    "tag": matchTag,
+    "child": matchChild
 }
 
 function last<T>(arr: T[]): [T[], T | null] {
@@ -44,13 +45,20 @@ function fragToString(frag: SelFrag): string {
 
 function matchTag(frag: SelFrag, path: jsx.UnbsElement[]):
     [jsx.UnbsElement[], boolean] {
-    if (frag.type != "tag") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
 
     const [_, elem] = last(path);
     if (elem == null) throw new Error("Internal error, null element");
 
     //FIXME(manishv) Need proper scoped naming here
     return [path, elem.componentType.name == frag.name];
+}
+
+function matchChild(frag: SelFrag, path: jsx.UnbsElement[]):
+    [jsx.UnbsElement[], boolean] {
+    if (frag.type !== "child") throw new Error("Internal Error: " + util.inspect(frag));
+    if (path.length < 1) return [path, false];
+    return [path.slice(0, -1), true];
 }
 
 function matchFrag(
@@ -69,37 +77,31 @@ function matchFrag(
 function notNull<T>(x: T | null): x is T {
     return x != null;
 }
-function matchBlock(
-    selBlock: cssWhat.ParsedSelectorBlock,
-    path: jsx.UnbsElement[]): [jsx.UnbsElement[], boolean] {
-
-    const results = selBlock.map((frag) => matchFrag(frag, path));
-    const matches = results.map((result) => result[1]).reduce((x, y) => x && y, true);
-
-    let newPath = path;
-    const newPaths = results.map((result) => result[0] === path ? null : path).filter(notNull);
-    if (newPaths.length > 1) {
-        throw new Error("Internal Error: Multiple new paths: " + path + util.inspect(selBlock));
-    }
-    if (newPaths.length == 1) {
-        newPath = newPaths[0];
-    }
-
-    return [newPath, matches];
-}
 
 function matchWithSelector(
     selector: cssWhat.ParsedSelector,
     path: jsx.UnbsElement[]): boolean {
 
-    const [prefix, selBlock] = last(selector);
-    if (selBlock == null) {
+    for (const block of selector) {
+        if(matchBlock(block, path)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function matchBlock(
+    selBlock: cssWhat.ParsedSelectorBlock,
+    path: jsx.UnbsElement[]): boolean {
+
+    const [prefix, selFrag] = last(selBlock);
+    if (selFrag == null) {
         return true; //Empty selector matches everything
     }
-    const [newPath, blockResult] = matchBlock(selBlock, path);
-    if (!blockResult) return false;
+    const [newPath, fragResult] = matchFrag(selFrag, path);
+    if (!fragResult) return false;
 
-    return matchWithSelector(prefix, newPath);
+    return matchBlock(prefix, newPath);
 }
 
 function buildStyle(rawStyle: RawStyle): Style {

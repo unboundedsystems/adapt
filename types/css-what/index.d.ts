@@ -28,7 +28,22 @@ declare namespace parser {
         ignoreCase: boolean;
     }
 
-    export type ParsedSelectorFrag = Tag | Universal | Pseudo | Attribute;
+    export interface Descendant {
+        type: 'descendant';
+    }
+
+    export interface Child {
+        type: 'child';
+    }
+
+    export type ParsedSelectorFrag =
+        | Tag
+        | Universal
+        | Pseudo
+        | Attribute
+        | Descendant
+        | Child;
+        
     export type ParsedSelectorBlock = ParsedSelectorFrag[];
     export type ParsedSelector = ParsedSelectorBlock[];
 }

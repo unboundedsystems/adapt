@@ -22,4 +22,16 @@ describe('Selector matching', () => {
         should(matcher([<Dummy />])).False();
         should(matcher([<Foo />])).True();
     });
+
+    it('Should Match Child', () => {
+        const styles = css.parseStyles([css.style("Dummy > Foo", () => null)]);
+
+        const dom = <Dummy><Foo /></Dummy>
+        const matchPath = [dom, dom.props.children[0]];
+        const noMatchPath = [dom];
+
+        const matcher = styles[0].match;
+        should(matcher(matchPath)).True();
+        should(matcher(noMatchPath)).False();
+    })
 });
