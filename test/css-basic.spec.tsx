@@ -10,7 +10,7 @@ describe('Selector Parsing', () => {
     it('Should Parse Tag Selector', () => {
         const styles = css.parseStyles([css.style("Foo", () => <Dummy />)]);
         should(styles.length).equal(1);
-        should(styles[0].sfc({})).eql(<Dummy />);
+        should(styles[0].sfc({ buildOrig: () => null })).eql(<Dummy />);
     });
 });
 

@@ -17,3 +17,17 @@ export function checkChildComponents(element: unbs.UnbsElement, ...children: any
 
     should(childComponents).eql(children);
 }
+
+export class Empty extends unbs.PrimitiveComponent<{ id: number }> { };
+
+export function MakeMakeEmpty(props: { id: number }) {
+    return <MakeEmpty id={props.id} />;
+}
+
+export function MakeEmpty(props: { id: number }) {
+    return <Empty id={props.id} />;
+}
+
+export function MakeGroup(props: { children: unbs.UnbsElement[] }) {
+    return <unbs.Group>{props.children}</unbs.Group>;
+}

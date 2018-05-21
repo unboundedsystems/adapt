@@ -6,7 +6,7 @@ import * as jsx from './jsx'
 
 export type Styles = Style[];
 
-export type SFC = (props: jsx.AnyProps) => jsx.UnbsNode;
+export type SFC = (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
 
 export interface Style {
     match(path: jsx.UnbsElement[]): boolean;

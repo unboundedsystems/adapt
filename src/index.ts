@@ -16,3 +16,10 @@ export {
 export {
     build
 } from './dom';
+
+export {
+    style,
+    Style,
+    Styles,
+    parseStyles
+} from './css';

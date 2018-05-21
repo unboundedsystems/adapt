@@ -3,21 +3,13 @@ import * as unbs from '../src';
 
 import should = require('should');
 
-import { checkChildComponents } from './testlib';
-
-class Empty extends unbs.PrimitiveComponent<{ id: number }> { };
-
-function MakeMakeEmpty(props: { id: number }) {
-    return <MakeEmpty id={props.id} />;
-}
-
-function MakeEmpty(props: { id: number }) {
-    return <Empty id={props.id} />;
-}
-
-function MakeGroup(props: { children: unbs.UnbsElement[] }) {
-    return <unbs.Group>{props.children}</unbs.Group>;
-}
+import {
+    checkChildComponents,
+    Empty,
+    MakeEmpty,
+    MakeMakeEmpty,
+    MakeGroup
+} from './testlib';
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
@@ -37,7 +29,7 @@ describe("DOM Basic Build Tests", () => {
         </MakeGroup>;
 
         const dom = unbs.build(orig, []);
-        if(dom == null) {
+        if (dom == null) {
             should(dom).not.Null();
             return;
         }
