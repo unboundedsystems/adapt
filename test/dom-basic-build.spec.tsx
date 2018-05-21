@@ -14,7 +14,7 @@ import {
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
         const orig = <unbs.Group />;
-        const dom = unbs.build(orig, []);
+        const dom = unbs.build(orig, null);
 
         should(unbs).not.Null();
         should(unbs.isElement(dom)).True();
@@ -28,7 +28,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty id={2} />
         </MakeGroup>;
 
-        const dom = unbs.build(orig, []);
+        const dom = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -43,7 +43,7 @@ describe("DOM Basic Build Tests", () => {
             <MakeMakeEmpty id={2} />
         </unbs.Group>
 
-        const dom = unbs.build(orig, []);
+        const dom = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -58,7 +58,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty id={2} />
         </unbs.Group>
 
-        const dom = unbs.build(orig, []);
+        const dom = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;

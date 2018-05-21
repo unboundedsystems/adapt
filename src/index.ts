@@ -18,8 +18,6 @@ export {
 } from './dom';
 
 export {
-    style,
     Style,
-    Styles,
-    parseStyles
+    rule
 } from './css';

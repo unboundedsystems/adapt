@@ -4,18 +4,21 @@ import cssWhat = require('css-what');
 
 import * as jsx from './jsx'
 
-export type Styles = Style[];
+export type StyleList = StyleRule[];
 
-export type SFC = (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
+export type SFC = (props: jsx.AnyProps) => jsx.UnbsNode;
 
-export interface Style {
+export type BuildOverride =
+    (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
+
+export interface StyleRule {
     match(path: jsx.UnbsElement[]): boolean;
-    sfc: SFC;
+    sfc: BuildOverride;
 }
 
 export interface RawStyle {
     selector: string;
-    build: SFC;
+    build: BuildOverride;
 }
 
 type SelFrag = cssWhat.ParsedSelectorFrag;
@@ -135,7 +138,7 @@ function validateSelector(selector: cssWhat.ParsedSelector) {
     return; //FIXME(manishv) Actuall validate CSS parse tree here
 }
 
-function buildStyle(rawStyle: RawStyle): Style {
+function buildStyle(rawStyle: RawStyle): StyleRule {
     const selector = cssWhat(rawStyle.selector, { xmlMode: true });
     validateSelector(selector);
     return {
@@ -145,15 +148,78 @@ function buildStyle(rawStyle: RawStyle): Style {
     }
 }
 
-export function style(selector: string, build: SFC): RawStyle {
+function style(selector: string, build: BuildOverride): RawStyle {
     return { selector, build };
 }
 
-export function parseStyles(styles: RawStyle[]): Styles {
-    const ret: Styles = [];
+function parseStyles(styles: RawStyle[]): StyleList {
+    const ret: StyleList = [];
     for (const style of styles) {
         ret.push(buildStyle(style));
     }
 
     return ret;
+}
+
+export type UnbsComponentConstructor =
+    new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps>;
+
+export interface StyleProps {
+    children: (SFC | string | UnbsComponentConstructor | Rule)[]
+}
+
+export class Rule {
+    constructor(readonly override: BuildOverride) { }
+}
+
+export function rule(override: BuildOverride) {
+    return new Rule(override);
+}
+
+function isRule(x: any): x is Rule {
+    return (typeof x === "object") && (x instanceof Rule);
+}
+
+function isStylesComponent(componentType: any):
+    componentType is (new (props: StyleProps) => Style) {
+    return componentType === Style;
+}
+
+export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
+    if(styleElem == null) {
+        return [];
+    }
+    
+    const stylesConstructor = styleElem.componentType;
+    if (!isStylesComponent(stylesConstructor)) {
+        throw new Error("Invalid Styles element: " + util.inspect(styleElem));
+    }
+
+    const props = styleElem.props as StyleProps;
+    let curSelector = "";
+    let rawStyles: RawStyle[] = [];
+    for (const child of props.children) {
+        if (typeof child === "function") {
+            curSelector = curSelector + child.name
+        } else if (typeof child === "string") {
+            curSelector += child;
+        } else if (isRule(child)) {
+            rawStyles.push(style(curSelector.trim(), child.override));
+            curSelector = "";
+        } else {
+            throw new Error("Unsupported child type in Styles: " + util.inspect(child));
+        }
+    }
+
+    if (curSelector !== "") {
+        throw new Error("Missing rule in final style");
+    }
+
+    return parseStyles(rawStyles);
+}
+
+export class Style extends jsx.Component<StyleProps> {
+    build(): null {
+        return null; //Don't output anything for styles if it makes it to DOM
+    }
 }

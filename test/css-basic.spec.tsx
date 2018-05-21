@@ -8,7 +8,8 @@ class Foo extends unbs.PrimitiveComponent<unbs.AnyProps> { }
 
 describe('Selector Parsing', () => {
     it('Should Parse Tag Selector', () => {
-        const styles = css.parseStyles([css.style("Foo", () => <Dummy />)]);
+        const styleTag = <css.Style>{Foo} {css.rule(() => <Dummy />)}</css.Style>;
+        const styles = css.buildStyles(styleTag);
         should(styles.length).equal(1);
         should(styles[0].sfc({ buildOrig: () => null })).eql(<Dummy />);
     });
@@ -25,18 +26,18 @@ function pathToLeaf(elem: unbs.UnbsElement): unbs.UnbsElement[] {
     return path;
 }
 
-function testStylePath(style: css.RawStyle,
+function testStylePath(style: unbs.UnbsElement,
     matchPath: unbs.UnbsElement[] | null,
     noMatchPath: unbs.UnbsElement[] | null) {
 
-    const styles = css.parseStyles([style]);
+    const styles = css.buildStyles(style);
     const matcher = styles[0].match;
 
     if (matchPath != null) should(matcher(matchPath)).True();
     if (noMatchPath != null) should(matcher(noMatchPath)).False();
 }
 
-function testStyleDom(style: css.RawStyle,
+function testStyleDom(style: unbs.UnbsElement,
     dom: unbs.UnbsElement | null,
     noMatchDom: unbs.UnbsElement | null) {
 
@@ -48,13 +49,13 @@ function testStyleDom(style: css.RawStyle,
 describe('Selector matching', () => {
     it('Should Match Single Tag', () => {
         testStylePath(
-            css.style("Foo", () => null),
+            <css.Style>{Foo} {css.rule(() => null)}</css.Style>,
             [<Foo />],
             [<Dummy />]);
     });
 
     it('Should Match Child', () => {
-        const style = css.style("Dummy > Foo", () => null);
+        const style = <css.Style>{Dummy} > {Foo} {css.rule(() => null)}</css.Style>;
         const dom = <Dummy><Foo /></Dummy>
         const matchPath = pathToLeaf(dom);
         const noMatchPath = [dom];
@@ -65,7 +66,9 @@ describe('Selector matching', () => {
     it('Should Match Descendant (direct single)', () => {
         const noMatchDom = <Foo />
         const dom = <Dummy><Foo /></Dummy>
-        testStyleDom(css.style("Dummy Foo", () => null), dom, noMatchDom);
+        testStyleDom(<css.Style>
+            {Dummy} {Foo} {css.rule(() => null)}
+        </css.Style>, dom, noMatchDom);
 
     });
 
@@ -77,6 +80,8 @@ describe('Selector matching', () => {
                 </unbs.Group>
             </unbs.Group>
         const dom = <Dummy>{noMatchDom}</Dummy>
-        testStyleDom(css.style("Dummy Foo", () => null), dom, noMatchDom);
+        testStyleDom(<css.Style>
+            {Dummy} {Foo} {css.rule(() => null)}
+        </css.Style>, dom, noMatchDom);
     });
 });

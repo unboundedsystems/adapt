@@ -53,7 +53,7 @@ function computeContentsNoOverride(element: UnbsElement): UnbsNode {
     return contents;
 }
 
-function findOverride(styles: css.Styles, path: UnbsElement[]) {
+function findOverride(styles: css.StyleList, path: UnbsElement[]) {
     const element = path[path.length - 1];
     if (element.props.cssMatched === true) {
         return null;
@@ -66,7 +66,7 @@ function findOverride(styles: css.Styles, path: UnbsElement[]) {
     return null;
 }
 
-function computeContents(path: UnbsElement[], styles: css.Styles): UnbsNode {
+function computeContents(path: UnbsElement[], styles: css.StyleList): UnbsNode {
     const override = findOverride(styles, path);
     const element = path[path.length - 1];
     const noOverride = (shallow: boolean = true) => {
@@ -80,7 +80,7 @@ function computeContents(path: UnbsElement[], styles: css.Styles): UnbsNode {
     return computeContentsNoOverride(element);
 }
 
-function mountAndBuildComponent(path: UnbsElement[], styles: css.Styles): UnbsNode {
+function mountAndBuildComponent(path: UnbsElement[], styles: css.StyleList): UnbsNode {
     const contents = computeContents(path, styles);
 
     if (contents != null) {
@@ -100,14 +100,17 @@ function notNull(x: any): boolean {
 }
 
 export function build(root: UnbsElement,
-    styles: css.Styles,
+    styles: UnbsElement | null,
     shallow: boolean = false): UnbsNode {
-    return realBuild([root], styles, shallow);
+
+    const styleList = css.buildStyles(styles);
+
+    return realBuild([root], styleList, shallow);
 }
 
 function realBuild(
     path: UnbsElement[],
-    styles: css.Styles,
+    styles: css.StyleList,
     shallow: boolean): UnbsNode {
 
     const newRoot = mountAndBuildComponent(path, styles);
