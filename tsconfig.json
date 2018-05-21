@@ -24,9 +24,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "isstream": [ "./unbs-typescript-types/isstream" ],
-      "strip-ansi": [ "./unbs-typescript-types/strip-ansi" ],
-      "slice-ansi": [ "./unbs-typescript-types/slice-ansi" ]
+      "css-what": [ "./types/css-what" ]
     }
   }
 }
