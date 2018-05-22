@@ -1,19 +1,19 @@
-import * as unbs from '../src';
+import * as unbs from "../src";
 
-import should = require('should');
+import should = require("should");
 
 import {
     checkChildComponents,
     Empty,
     MakeEmpty,
     MakeMakeEmpty,
-} from './testlib';
+} from "./testlib";
 
 describe("DOM CSS Build Tests", () => {
     it("Should replace empty primitive", () => {
         const orig = <unbs.Group />;
         const replace = <Empty id={1} />;
-        const styles = <unbs.Style>{unbs.Group} {unbs.rule(() => replace)}</unbs.Style>
+        const styles = <unbs.Style>{unbs.Group} {unbs.rule(() => replace)}</unbs.Style>;
 
         const dom = unbs.build(orig, styles);
 
@@ -26,7 +26,7 @@ describe("DOM CSS Build Tests", () => {
         const orig = <unbs.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
-        </unbs.Group>
+        </unbs.Group>;
         const replace = <MakeEmpty id={123} />;
         const styles = <unbs.Style>
             {MakeMakeEmpty} {unbs.rule((props) => {

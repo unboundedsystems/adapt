@@ -1,5 +1,5 @@
-import * as unbs from '../src';
-import * as should from 'should';
+import * as should from "should";
+import * as unbs from "../src";
 
 export function checkChildComponents(element: unbs.UnbsElement, ...children: any[]) {
     should(element.props.children).not.Null();
@@ -13,7 +13,7 @@ export function checkChildComponents(element: unbs.UnbsElement, ...children: any
                 return undefined;
             }
         }
-    )
+    );
 
     should(childComponents).eql(children);
 }

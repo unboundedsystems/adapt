@@ -1,4 +1,4 @@
-export * from './jsx_namespace';
+export * from "./jsx_namespace";
 export {
     createElement,
     cloneElement,
@@ -7,17 +7,17 @@ export {
     UnbsElement,
     AnyProps,
     isElement
-} from './jsx';
+} from "./jsx";
 
 export {
     Group
-} from './builtin_components';
+} from "./builtin_components";
 
 export {
     build
-} from './dom';
+} from "./dom";
 
 export {
     Style,
     rule
-} from './css';
+} from "./css";

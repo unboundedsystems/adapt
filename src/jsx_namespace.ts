@@ -1,4 +1,4 @@
-import { Component, UnbsElement } from './jsx';
+import { Component, UnbsElement } from "./jsx";
 
 export namespace JSX {
     export interface IntrinsicElements { }

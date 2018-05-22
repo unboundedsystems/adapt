@@ -1,8 +1,8 @@
-import * as util from 'util';
+import * as util from "util";
 
-import * as ld from 'lodash';
+import * as ld from "lodash";
 
-import * as tySup from './type_support';
+import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?

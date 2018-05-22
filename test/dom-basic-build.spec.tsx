@@ -1,13 +1,13 @@
-import * as unbs from '../src';
+import * as unbs from "../src";
 
-import should = require('should');
+import should = require("should");
 
 import {
     checkChildComponents,
     Empty,
-    MakeMakeEmpty,
-    MakeGroup
-} from './testlib';
+    MakeGroup,
+    MakeMakeEmpty
+} from "./testlib";
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
@@ -39,7 +39,7 @@ describe("DOM Basic Build Tests", () => {
         const orig = <unbs.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
-        </unbs.Group>
+        </unbs.Group>;
 
         const dom = unbs.build(orig, null);
         if (dom == null) {
@@ -54,7 +54,7 @@ describe("DOM Basic Build Tests", () => {
         const orig = <unbs.Group>
             <Empty id={1} />
             <Empty id={2} />
-        </unbs.Group>
+        </unbs.Group>;
 
         const dom = unbs.build(orig, null);
         if (dom == null) {
@@ -64,4 +64,4 @@ describe("DOM Basic Build Tests", () => {
         checkChildComponents(dom, Empty, Empty);
         should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
     });
-})
+});

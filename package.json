@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "lint": "tslint --project .",
+    "lint-and-fix": "tslint --project . --fix",
     "test": "mocha --require 'source-map-support/register' --require should dist/test"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
