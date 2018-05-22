@@ -17,7 +17,7 @@ describe('Selector Parsing', () => {
 
 function pathToLeaf(elem: unbs.UnbsElement): unbs.UnbsElement[] {
     should(unbs.isElement(elem)).True();
-    if ((elem.props.children == null) || (elem.props.children.length == 0)) {
+    if ((elem.props.children == null) || (elem.props.children.length === 0)) {
         return [elem];
     }
     should(elem.props.children.length).equal(1);

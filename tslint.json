@@ -1,0 +1,10 @@
+{
+    //"extends": "tslint:latest",
+    "rules": {
+        "triple-equals": [
+            true,
+            "allow-null-check",
+            "allow-undefined-check"
+        ]
+    }
+}

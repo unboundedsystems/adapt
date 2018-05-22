@@ -55,7 +55,7 @@ function matchTag(frag: SelFrag, path: jsx.UnbsElement[]):
     if (elem == null) throw new Error("Internal error, null element");
 
     //FIXME(manishv) Need proper scoped naming here
-    return [path, elem.componentType.name == frag.name];
+    return [path, elem.componentType.name === frag.name];
 }
 
 function matchChild(frag: SelFrag, path: jsx.UnbsElement[]):
@@ -120,7 +120,7 @@ function matchWithBlock(
         return true; //Empty selector matches everything
     }
 
-    if (selFrag.type == "descendant") {
+    if (selFrag.type === "descendant") {
         return matchDescendant(prefix, path);
     } else {
         const [newPath, fragResult] = matchFrag(selFrag, path);
