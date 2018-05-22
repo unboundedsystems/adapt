@@ -18,7 +18,7 @@ export function checkChildComponents(element: unbs.UnbsElement, ...children: any
     should(childComponents).eql(children);
 }
 
-export class Empty extends unbs.PrimitiveComponent<{ id: number }> { };
+export class Empty extends unbs.PrimitiveComponent<{ id: number }> { }
 
 export function MakeMakeEmpty(props: { id: number }) {
     return <MakeEmpty id={props.id} />;

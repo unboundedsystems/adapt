@@ -8,6 +8,7 @@
     "pretest": "npm run build",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
+    "lint": "tslint --project .",
     "test": "mocha --require 'source-map-support/register' --require should dist/test"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",

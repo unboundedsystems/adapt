@@ -4,7 +4,7 @@ import * as ld from 'lodash';
 
 import * as tySup from './type_support';
 
-//This is broken, why does JSX.ElementClass correspond to both the type 
+//This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
 export interface UnbsElement {
@@ -44,10 +44,10 @@ export type FunctionComponentTyp<T> = (props: T) => UnbsNode;
 export type ClassComponentTyp<T> = new (props: T) => Component<T>;
 
 export interface AnyProps {
-    [key: string]: any
+    [key: string]: any;
 }
 
-export type GenericComponent = Component<AnyProps>
+export type GenericComponent = Component<AnyProps>;
 
 export class UnbsElementImpl implements UnbsElement {
     readonly props: AnyProps;
@@ -74,7 +74,7 @@ export function createElement<Props>(
     ...children: tySup.ChildType<Props>[]): UnbsElement {
 
     if (typeof ctor === "string") {
-        throw new Error("createElement cannot called with string element type")
+        throw new Error("createElement cannot called with string element type");
     }
 
     type PropsNoChildren =

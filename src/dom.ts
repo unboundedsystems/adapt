@@ -53,7 +53,7 @@ function computeContents(path: UnbsElement[], styles: css.StyleList): UnbsNode {
     const override = findOverride(styles, path);
     const element = path[path.length - 1];
     const noOverride = (shallow: boolean = true) => {
-        let newPath = path.slice(0, -1);
+        const newPath = path.slice(0, -1);
         newPath.push(cloneElement(element, { cssMatched: true }));
         return realBuild(newPath, styles, shallow);
     };
@@ -112,7 +112,7 @@ function realBuild(
         return newRoot;
     }
 
-    //FIXME(manishv) Make this use an explicit stack 
+    //FIXME(manishv) Make this use an explicit stack
     //instead of recursion to avoid blowing the call stack
     //For deep DOMs
     if (children instanceof UnbsElementImpl) {

@@ -1,8 +1,8 @@
-import * as util from 'util';
+import * as util from "util";
 
-import cssWhat = require('css-what');
+import cssWhat = require("css-what");
 
-import * as jsx from './jsx'
+import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
@@ -12,8 +12,8 @@ export type BuildOverride =
     (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
 
 export interface StyleRule {
-    match(path: jsx.UnbsElement[]): boolean;
     sfc: BuildOverride;
+    match(path: jsx.UnbsElement[]): boolean;
 }
 
 export interface RawStyle {
@@ -23,23 +23,23 @@ export interface RawStyle {
 
 type SelFrag = cssWhat.ParsedSelectorFrag;
 
-interface matchConfigType {
+interface MatchConfigType {
     [type: string]: (frag: SelFrag,
         path: jsx.UnbsElement[]) => [jsx.UnbsElement[], boolean];
 }
 
-const matchConfig: matchConfigType = {
-    "tag": matchTag,
-    "child": matchChild,
-    "descendant": () => { throw new Error("Internal Error: should not get here"); }
-}
+const matchConfig: MatchConfigType = {
+    child: matchChild,
+    descendant: () => { throw new Error("Internal Error: should not get here"); },
+    tag: matchTag
+};
 
 function last<T>(arr: T[]): [T[], T | null] {
     if (arr.length <= 0) {
         return [[], null];
     }
-    const last = arr[arr.length - 1];
-    return [arr.slice(0, -1), last];
+    const lastElem = arr[arr.length - 1];
+    return [arr.slice(0, -1), lastElem];
 }
 
 function fragToString(frag: SelFrag): string {
@@ -85,9 +85,9 @@ function matchDescendant(
             util.inspect(selector));
     }
 
-    //Note(manishv) An optimization here is to find the deepest element in path 
+    //Note(manishv) An optimization here is to find the deepest element in path
     //that matches the next set of selectors up to the next descendant selector
-    //and use that path up to that node as tryPath.  If it failse, 
+    //and use that path up to that node as tryPath.  If it failse,
     //use the next deepest, etc.  Not sure that saves much though because that is
     //what happens already, albiet through several function calls.
     for (let i = 1; i < path.length; i++) {
@@ -143,10 +143,10 @@ function buildStyle(rawStyle: RawStyle): StyleRule {
         match: (path: jsx.UnbsElement[]) =>
             matchWithSelector(selector, path),
         sfc: rawStyle.build
-    }
+    };
 }
 
-function style(selector: string, build: BuildOverride): RawStyle {
+function makeStyle(selector: string, build: BuildOverride): RawStyle {
     return { selector, build };
 }
 
@@ -163,7 +163,7 @@ export type UnbsComponentConstructor =
     new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps>;
 
 export interface StyleProps {
-    children: (SFC | string | UnbsComponentConstructor | Rule)[]
+    children: (SFC | string | UnbsComponentConstructor | Rule)[];
 }
 
 export class Rule {
@@ -184,10 +184,10 @@ function isStylesComponent(componentType: any):
 }
 
 export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
-    if(styleElem == null) {
+    if (styleElem == null) {
         return [];
     }
-    
+
     const stylesConstructor = styleElem.componentType;
     if (!isStylesComponent(stylesConstructor)) {
         throw new Error("Invalid Styles element: " + util.inspect(styleElem));
@@ -195,14 +195,14 @@ export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
 
     const props = styleElem.props as StyleProps;
     let curSelector = "";
-    let rawStyles: RawStyle[] = [];
+    const rawStyles: RawStyle[] = [];
     for (const child of props.children) {
         if (typeof child === "function") {
-            curSelector = curSelector + child.name
+            curSelector = curSelector + child.name;
         } else if (typeof child === "string") {
             curSelector += child;
         } else if (isRule(child)) {
-            rawStyles.push(style(curSelector.trim(), child.override));
+            rawStyles.push(makeStyle(curSelector.trim(), child.override));
             curSelector = "";
         } else {
             throw new Error("Unsupported child type in Styles: " + util.inspect(child));

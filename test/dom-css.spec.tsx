@@ -35,14 +35,14 @@ describe("DOM CSS Build Tests", () => {
                 }
                 return props.buildOrig();
             })}
-        </unbs.Style>
+        </unbs.Style>;
 
-    const dom = unbs.build(orig, styles);
-    if (dom == null) {
-        should(dom).not.Null();
-        return;
-    }
-    checkChildComponents(dom, Empty, Empty);
-    should(dom.props.children).eql([<Empty id={123} />, <Empty id={2} />]);
-});
+        const dom = unbs.build(orig, styles);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Empty, Empty);
+        should(dom.props.children).eql([<Empty id={123} />, <Empty id={2} />]);
+    });
 });
