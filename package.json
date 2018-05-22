@@ -18,6 +18,7 @@
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
     "@types/node": "^8.10.14",
+    "@types/xmlbuilder": "0.0.32",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
@@ -26,6 +27,7 @@
   },
   "dependencies": {
     "css-what": "^2.1.0",
-    "lodash": "^4.17.10"
+    "lodash": "^4.17.10",
+    "xmlbuilder": "^10.0.0"
   }
 }
