@@ -25,7 +25,7 @@ type SelFrag = cssWhat.ParsedSelectorFrag;
 
 interface MatchConfigType {
     [type: string]: (frag: SelFrag,
-        path: jsx.UnbsElement[]) => [jsx.UnbsElement[], boolean];
+        path: jsx.UnbsElement[]) => { newPath: jsx.UnbsElement[], matched: boolean };
 }
 
 const matchConfig: MatchConfigType = {
@@ -34,12 +34,12 @@ const matchConfig: MatchConfigType = {
     tag: matchTag
 };
 
-function last<T>(arr: T[]): [T[], T | null] {
+function last<T>(arr: T[]): { prefix: T[], elem: T | null } {
     if (arr.length <= 0) {
-        return [[], null];
+        return { prefix: [], elem: null };
     }
     const lastElem = arr[arr.length - 1];
-    return [arr.slice(0, -1), lastElem];
+    return { prefix: arr.slice(0, -1), elem: lastElem };
 }
 
 function fragToString(frag: SelFrag): string {
@@ -47,22 +47,20 @@ function fragToString(frag: SelFrag): string {
     return util.inspect(frag);
 }
 
-function matchTag(frag: SelFrag, path: jsx.UnbsElement[]):
-    [jsx.UnbsElement[], boolean] {
+function matchTag(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.UnbsElement[], matched: boolean } {
     if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
 
-    const [, elem] = last(path);
+    const { elem } = last(path);
     if (elem == null) throw new Error("Internal error, null element");
 
     //FIXME(manishv) Need proper scoped naming here
-    return [path, elem.componentType.name === frag.name];
+    return { newPath: path, matched: elem.componentType.name === frag.name };
 }
 
-function matchChild(frag: SelFrag, path: jsx.UnbsElement[]):
-    [jsx.UnbsElement[], boolean] {
+function matchChild(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.UnbsElement[], matched: boolean } {
     if (frag.type !== "child") throw new Error("Internal Error: " + util.inspect(frag));
-    if (path.length < 1) return [path, false];
-    return [path.slice(0, -1), true];
+    if (path.length < 1) return { newPath: path, matched: false };
+    return { newPath: path.slice(0, -1), matched: true };
 }
 
 function matchFrag(
@@ -115,7 +113,7 @@ function matchWithBlock(
     selBlock: cssWhat.ParsedSelectorBlock,
     path: jsx.UnbsElement[]): boolean {
 
-    const [prefix, selFrag] = last(selBlock);
+    const { prefix, elem: selFrag } = last(selBlock);
     if (selFrag == null) {
         return true; //Empty selector matches everything
     }
@@ -123,8 +121,8 @@ function matchWithBlock(
     if (selFrag.type === "descendant") {
         return matchDescendant(prefix, path);
     } else {
-        const [newPath, fragResult] = matchFrag(selFrag, path);
-        if (!fragResult) return false;
+        const { newPath, matched } = matchFrag(selFrag, path);
+        if (!matched) return false;
         if (newPath.length === 0) {
             return false;
         }
