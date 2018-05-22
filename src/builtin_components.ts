@@ -1,5 +1,4 @@
-import * as ld from 'lodash';
-import { UnbsElement, Component, PrimitiveComponent } from './jsx';
+import { UnbsElement, PrimitiveComponent } from './jsx';
 
 export interface GroupProps {
     children?: UnbsElement[] | UnbsElement;

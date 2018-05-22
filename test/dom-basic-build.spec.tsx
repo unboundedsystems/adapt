@@ -1,4 +1,3 @@
-import * as util from 'util';
 import * as unbs from '../src';
 
 import should = require('should');
@@ -6,7 +5,6 @@ import should = require('should');
 import {
     checkChildComponents,
     Empty,
-    MakeEmpty,
     MakeMakeEmpty,
     MakeGroup
 } from './testlib';

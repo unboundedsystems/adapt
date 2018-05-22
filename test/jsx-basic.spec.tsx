@@ -1,4 +1,3 @@
-import * as util from 'util';
 import * as unbs from '../src';
 
 import should = require('should');
@@ -15,14 +14,8 @@ class Dummy extends unbs.Component<unbs.AnyProps> {
     }
 }
 
-function hasChildren(x: any): x is { children: unbs.UnbsElement[] } {
-    return x.children != null;
-}
-
-
-
 describe('JSX SFC createElement Tests', () => {
-    function Component(props: any): unbs.UnbsElement {
+    function Component(_props: any): unbs.UnbsElement {
         throw new Error("Test is not supposed to render");
     }
 

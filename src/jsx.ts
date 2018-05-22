@@ -3,7 +3,6 @@ import * as util from 'util';
 import * as ld from 'lodash';
 
 import * as tySup from './type_support';
-import { JSX } from './jsx_namespace';
 
 //This is broken, why does JSX.ElementClass correspond to both the type 
 //a Component construtor has to return and what createElement has to return?

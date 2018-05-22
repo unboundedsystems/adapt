@@ -1,4 +1,3 @@
-import * as util from 'util';
 import * as unbs from '../src';
 
 import should = require('should');
@@ -8,7 +7,6 @@ import {
     Empty,
     MakeEmpty,
     MakeMakeEmpty,
-    MakeGroup
 } from './testlib';
 
 describe("DOM CSS Build Tests", () => {

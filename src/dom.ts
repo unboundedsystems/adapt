@@ -1,5 +1,3 @@
-import * as util from 'util';
-
 import * as ld from 'lodash';
 
 import * as css from './css';
@@ -11,22 +9,7 @@ import {
     UnbsElementImpl,
     isPrimitive,
     cloneElement,
-    PrimitiveComponent
 } from './jsx';
-import * as tySup from './type_support';
-import { NOTFOUND } from 'dns';
-
-class BuildState {
-    root: UnbsNode;
-    work: (() => void)[] = [];
-    get done(): boolean {
-        return this.work.length === 0;
-    }
-}
-
-function elementIsImpl(element: UnbsElement): element is UnbsElementImpl {
-    return element instanceof UnbsElementImpl;
-}
 
 function computeContentsNoOverride(element: UnbsElement): UnbsNode {
     let component: Component<any> | null = null;

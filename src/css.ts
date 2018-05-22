@@ -51,7 +51,7 @@ function matchTag(frag: SelFrag, path: jsx.UnbsElement[]):
     [jsx.UnbsElement[], boolean] {
     if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
 
-    const [_, elem] = last(path);
+    const [, elem] = last(path);
     if (elem == null) throw new Error("Internal error, null element");
 
     //FIXME(manishv) Need proper scoped naming here
@@ -68,8 +68,6 @@ function matchChild(frag: SelFrag, path: jsx.UnbsElement[]):
 function matchFrag(
     selFrag: SelFrag,
     path: jsx.UnbsElement[]) {
-
-    const [_, elem] = last(path);
 
     const matcher = matchConfig[selFrag.type];
     if (matcher === undefined) {
@@ -134,7 +132,7 @@ function matchWithBlock(
     }
 }
 
-function validateSelector(selector: cssWhat.ParsedSelector) {
+function validateSelector(_selector: cssWhat.ParsedSelector) {
     return; //FIXME(manishv) Actuall validate CSS parse tree here
 }
 
