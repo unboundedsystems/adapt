@@ -21,3 +21,7 @@ export {
     Style,
     rule
 } from "./css";
+
+export {
+    serializeDom,
+} from "./dom_serialize";
