@@ -113,4 +113,26 @@ describe("DOM Shallow Build Tests", () => {
         }
         should(dom).eql(expected);
     });
+
+    /* it("Exper", () => {
+        const dom =
+            <MakeGroup>
+                <MakeMakeEmpty id={1} />
+                <MakeGroup>
+                    <MakeMakeEmpty id={2} />
+                    <MakeGroup>
+                        <MakeEmpty id={3} />
+                    </MakeGroup>
+                </MakeGroup>
+            </MakeGroup>;
+
+        for (let i = 0; i < 5; i++) {
+            const newDom = unbs.build(dom, null, { depth: i });
+            if (newDom == null) {
+                break;
+            }
+            // tslint:disable-next-line:no-console
+            console.log(unbs.serializeDom(newDom));
+        }
+    }); */
 });
