@@ -28,6 +28,6 @@ export function MakeEmpty(props: { id: number }) {
     return <Empty id={props.id} />;
 }
 
-export function MakeGroup(props: { children: unbs.UnbsElement[] }) {
+export function MakeGroup(props: { children?: unbs.UnbsElement[] | unbs.UnbsElement }) {
     return <unbs.Group>{props.children}</unbs.Group>;
 }

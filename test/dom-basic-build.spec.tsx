@@ -5,6 +5,7 @@ import should = require("should");
 import {
     checkChildComponents,
     Empty,
+    MakeEmpty,
     MakeGroup,
     MakeMakeEmpty
 } from "./testlib";
@@ -63,5 +64,53 @@ describe("DOM Basic Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+    });
+});
+
+describe("DOM Shallow Build Tests", () => {
+    it("Should respect shallow option", () => {
+        const body = <MakeEmpty id={1} />;
+        const orig = <MakeGroup>{body}</MakeGroup>;
+        const expected = <unbs.Group>{body}</unbs.Group>;
+
+        const dom = unbs.build(orig, null, { shallow: true });
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom).eql(expected);
+    });
+
+    it("Should respect depth 0 as no-op", () => {
+        const orig = <MakeMakeEmpty id={1} />;
+        const dom = unbs.build(orig, null, { depth: 0 });
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom).eql(orig);
+    });
+
+    it("Should respect depth option", () => {
+        const noChange = <unbs.Group>
+            <MakeEmpty id={1} />
+        </unbs.Group>;
+
+        const orig = <unbs.Group>
+            {noChange}
+            <MakeEmpty id={2} />
+        </unbs.Group>;
+
+        const expected = <unbs.Group>
+            {noChange}
+            <Empty id={2} />
+        </unbs.Group>;
+
+        const dom = unbs.build(orig, null, { depth: 2 });
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom).eql(expected);
     });
 });
