@@ -13,6 +13,7 @@ export type BuildOverride =
 
 export interface StyleRule {
     sfc: BuildOverride;
+    selector: string;
     match(path: jsx.UnbsElement[]): boolean;
 }
 
@@ -140,6 +141,7 @@ function buildStyle(rawStyle: RawStyle): StyleRule {
     return {
         match: (path: jsx.UnbsElement[]) =>
             matchWithSelector(selector, path),
+        selector: rawStyle.selector,
         sfc: rawStyle.build
     };
 }
