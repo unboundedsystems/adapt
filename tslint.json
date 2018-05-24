@@ -26,7 +26,7 @@
         "no-namespace": false,
         "no-unused-expression": false,
         "object-literal-sort-keys": [
-            true,
+            false,
             "match-declaration-order"
         ],
         "trailing-comma": false,
