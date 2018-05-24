@@ -1,9 +1,23 @@
-export * from './jsx_namespace';
+export * from "./jsx_namespace";
 export {
     createElement,
+    cloneElement,
     Component,
-    UnbsNode,
-    Group,
+    PrimitiveComponent,
+    UnbsElement,
     AnyProps,
-    isNode
-} from './jsx';
+    isElement
+} from "./jsx";
+
+export {
+    Group
+} from "./builtin_components";
+
+export {
+    build
+} from "./dom";
+
+export {
+    Style,
+    rule
+} from "./css";

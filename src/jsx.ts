@@ -1,18 +1,21 @@
-import * as ld from 'lodash';
+import * as util from "util";
 
-import * as tySup from './type_support';
-import { JSX } from './jsx_namespace';
+import * as ld from "lodash";
 
-//This is broken, why does JSX.ElementClass correspond to both the type 
+import * as tySup from "./type_support";
+
+//This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
-export interface UnbsNode {
+export interface UnbsElement {
     readonly props: AnyProps;
     readonly componentType: any;
 }
 
-export function isNode(val: any): val is UnbsNode {
-    return val instanceof UnbsNodeImpl;
+export type UnbsNode = UnbsElement | null;
+
+export function isElement(val: any): val is UnbsElement {
+    return val instanceof UnbsElementImpl;
 }
 
 export abstract class Component<Props> {
@@ -21,51 +24,36 @@ export abstract class Component<Props> {
     abstract build(): UnbsNode;
 }
 
-export interface GroupProps {
-    children?: UnbsNode[] | UnbsNode;
-}
+export abstract class PrimitiveComponent<Props>
+    extends Component<Props> {
 
-export class Group extends Component<GroupProps> {
-    constructor(props: GroupProps) {
-        super(props);
-    }
+    //There will be other methods here, right now we just do instanceof
 
-    build(): UnbsNode {
-        let children: UnbsNode[] = [];
-        if (this.props.children != null) {
-            if (ld.isArray(this.props.children)) {
-                children = this.props.children;
-            } else {
-                children = [this.props.children];
-            }
-        }
-        let args: any[] = [Group, this.props];
-        return createElement.apply(null, args.concat(children));
+    build(): never {
+        throw new Error("Attempt to call build for primitive component: " +
+            util.inspect(this));
     }
 }
 
-export type FunctionComponentTyp<T> = (props: T) => Component<T>;
+export function isPrimitive(component: Component<any>):
+    component is PrimitiveComponent<any> {
+    return component instanceof PrimitiveComponent;
+}
+
+export type FunctionComponentTyp<T> = (props: T) => UnbsNode;
 export type ClassComponentTyp<T> = new (props: T) => Component<T>;
 
-export function childrenAreNodes(ctor: string, children: any[]): children is JSX.Element[] {
-    if (ctor == "group") {
-        return true;
-    }
-    return false;
-}
-
 export interface AnyProps {
-    [key: string]: any
+    [key: string]: any;
 }
 
-export type GenericComponent = Component<AnyProps>
+export type GenericComponent = Component<AnyProps>;
 
-class UnbsNodeImpl implements UnbsNode {
+export class UnbsElementImpl implements UnbsElement {
     readonly props: AnyProps;
 
     constructor(
         readonly componentType: any,
-        readonly ctor: (props: AnyProps) => GenericComponent,
         readonly passedProps: AnyProps,
         children: any[]) {
 
@@ -83,17 +71,29 @@ export function createElement<Props>(
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
     props: tySup.ExcludeInterface<Props, tySup.Children<any>>,
-    ...children: tySup.ChildType<Props>[]): UnbsNode {
+    ...children: tySup.ChildType<Props>[]): UnbsElement {
 
     if (typeof ctor === "string") {
-        throw new Error("createElement cannot called with string element type")
+        throw new Error("createElement cannot called with string element type");
     }
 
     type PropsNoChildren =
         tySup.ExcludeInterface<Props, tySup.Children<any>>;
-    const normalizedCtor =
-        tySup.asConsOrFunc<PropsNoChildren, Component<PropsNoChildren>>(ctor);
+
     //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
-    return new UnbsNodeImpl(ctor, normalizedCtor, fixedProps, children);
+    const fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    const flatChildren: any[] = ld.flatten(children);
+    return new UnbsElementImpl(ctor, fixedProps, flatChildren);
+}
+
+export function cloneElement(
+    element: UnbsElement,
+    props: AnyProps,
+    ...children: any[]): UnbsElement {
+
+    const newProps = {
+        ...element.props,
+        ...props
+    };
+    return new UnbsElementImpl(element.componentType, newProps, children);
 }

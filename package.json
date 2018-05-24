@@ -8,6 +8,8 @@
     "pretest": "npm run build",
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
+    "lint": "tslint --project .",
+    "lint-and-fix": "tslint --project . --fix",
     "test": "mocha --require 'source-map-support/register' --require should dist/test"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
@@ -19,9 +21,11 @@
     "mocha": "^5.1.1",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
+    "tslint": "^5.10.0",
     "typescript": "^2.8.3"
   },
   "dependencies": {
+    "css-what": "^2.1.0",
     "lodash": "^4.17.10"
   }
 }
