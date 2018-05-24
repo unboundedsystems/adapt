@@ -25,3 +25,5 @@ export {
 export {
     serializeDom,
 } from "./dom_serialize";
+
+export * from "./dom_build_data_recorder";
