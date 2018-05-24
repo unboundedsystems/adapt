@@ -4,6 +4,7 @@
   "description": "JSX Unbounded Front End",
   "main": "index.js",
   "scripts": {
+    "prepush": "./bin/npm run lint",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "build": "tsc -p tsconfig.json",
@@ -19,6 +20,7 @@
     "@types/mocha": "^5.2.0",
     "@types/node": "^8.10.14",
     "@types/xmlbuilder": "0.0.32",
+    "husky": "^0.14.3",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
