@@ -114,7 +114,9 @@ export interface BuildOptions {
 const defaultBuildOptions = {
     depth: -1,
     shallow: false,
-    recorder: (_op: BuildOp) => { return; }
+    // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
+    // tslint:disable-next-line:object-literal-sort-keys
+    recorder: (_op: BuildOp) => { return; },
 };
 
 type BuildOptionsReq = Required<BuildOptions>;

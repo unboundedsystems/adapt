@@ -12,8 +12,8 @@ export type BuildOverride =
     (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
 
 export interface StyleRule {
-    sfc: BuildOverride;
     selector: string;
+    sfc: BuildOverride;
     match(path: jsx.UnbsElement[]): boolean;
 }
 
@@ -139,10 +139,10 @@ function buildStyle(rawStyle: RawStyle): StyleRule {
     const selector = cssWhat(rawStyle.selector, { xmlMode: true });
     validateSelector(selector);
     return {
-        match: (path: jsx.UnbsElement[]) =>
-            matchWithSelector(selector, path),
         selector: rawStyle.selector,
-        sfc: rawStyle.build
+        sfc: rawStyle.build,
+        match: (path: jsx.UnbsElement[]) =>
+            matchWithSelector(selector, path)
     };
 }
 
