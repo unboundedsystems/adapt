@@ -5,10 +5,12 @@ import * as unbs from "../src";
 import {
     build as unbsBuild,
     BuildOp,
+    BuildOpStep
 } from "../src";
 
 import {
-    Empty
+    Empty,
+    MakeEmpty
 } from "./testlib";
 
 describe("Build Data Recorder", () => {
@@ -21,26 +23,41 @@ describe("Build Data Recorder", () => {
         record.push(op);
     }
 
+    function matchRecord(ref: BuildOp[]) {
+        should(record).eql(ref);
+    }
+
     it("should start", () => {
         const dom = <Empty id={1} />;
         unbsBuild(dom, null, { recorder });
-        should(record[0]).eql({ type: "start", root: dom });
+        should(record[0]).deepEqual({ type: "start", root: dom });
     });
 
     it("should record step, elementBuilt", () => {
         const dom = <Empty id={1} />;
         const newElem = unbsBuild(dom, null, { recorder });
-        const record1 = record[1];
-        const record2 = record[2];
-        if (record1.type === "step") {
-            should(record1).eql({ type: "step", oldElem: dom, newElem, style: undefined });
-            should(record2).eql({
-                type: "elementBuilt",
+        matchRecord([
+            { type: "start", root: dom },
+            { type: "elementBuilt", oldElem: dom, newElem },
+            { type: "done", root: newElem }
+        ]);
+    });
+
+    it("should record step, step, elementBuild", () => {
+        const dom = <MakeEmpty id={1} />;
+        const newElem = unbsBuild(dom, null, { recorder });
+        const record1Out = (record[1] as BuildOpStep).newElem;
+        matchRecord([
+            { type: "start", root: dom },
+            {
+                type: "step",
                 oldElem: dom,
-                newElem: record1.newElem
-            });
-        } else {
-            should(record1.type).equal("step");
-        }
+                newElem: record1Out,
+                style: undefined
+            },
+            { type: "elementBuilt", oldElem: dom, newElem },
+            { type: "done", root: newElem }
+        ]);
+
     });
 });

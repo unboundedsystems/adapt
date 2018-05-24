@@ -16,7 +16,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 
-function computeContentsNoOverride(element: UnbsElement): UnbsNode {
+function computeContentsNoOverride(element: UnbsElement): { wasPrimitive: boolean, contents: UnbsNode } {
     let component: Component<any> | null = null;
     let contents: UnbsNode = null;
 
@@ -29,16 +29,22 @@ function computeContentsNoOverride(element: UnbsElement): UnbsNode {
     if (component != null) {
         if (isPrimitive(component)) {
             if (element.props.children != null) {
-                return cloneElement(element, {}, ...element.props.children);
+                return {
+                    wasPrimitive: true,
+                    contents: cloneElement(element, {}, ...element.props.children)
+                };
             } else {
-                return cloneElement(element, {});
+                return {
+                    wasPrimitive: true,
+                    contents: cloneElement(element, {})
+                };
             }
         } else {
             contents = component.build();
         }
     }
 
-    return contents;
+    return { wasPrimitive: false, contents };
 }
 
 function findOverride(styles: css.StyleList, path: UnbsElement[]) {
@@ -68,6 +74,7 @@ function computeContents(
         return realBuild(newPath, styles, options);
     };
 
+    let wasPrimitive = false;
     let newElem: UnbsNode = null;
     let style: css.StyleRule | undefined;
     if (overrideFound != null) {
@@ -75,10 +82,13 @@ function computeContents(
         style = overrideFound.style;
         newElem = override({ ...element.props, buildOrig: noOverride });
     } else {
-        newElem = computeContentsNoOverride(element);
+        const { wasPrimitive: prim, contents: elem } =
+            computeContentsNoOverride(element);
+        wasPrimitive = prim;
+        newElem = elem;
     }
 
-    options.recorder({ type: "step", oldElem: element, newElem, style });
+    if (!wasPrimitive) options.recorder({ type: "step", oldElem: element, newElem, style });
     return newElem;
 }
 
