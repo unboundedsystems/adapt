@@ -5,7 +5,8 @@ import * as unbs from "../src";
 import {
     build as unbsBuild,
     BuildOp,
-    BuildOpStep
+    BuildOpStep,
+    Group
 } from "../src";
 
 import {
@@ -23,8 +24,8 @@ describe("Build Data Recorder", () => {
         record.push(op);
     }
 
-    function matchRecord(ref: BuildOp[]) {
-        should(record).eql(ref);
+    function matchRecord(lrec: BuildOp[], ref: BuildOp[]) {
+        should(lrec).eql(ref);
     }
 
     it("should start", () => {
@@ -36,7 +37,7 @@ describe("Build Data Recorder", () => {
     it("should record step, elementBuilt", () => {
         const dom = <Empty id={1} />;
         const newElem = unbsBuild(dom, null, { recorder });
-        matchRecord([
+        matchRecord(record, [
             { type: "start", root: dom },
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }
@@ -47,7 +48,7 @@ describe("Build Data Recorder", () => {
         const dom = <MakeEmpty id={1} />;
         const newElem = unbsBuild(dom, null, { recorder });
         const record1Out = (record[1] as BuildOpStep).newElem;
-        matchRecord([
+        matchRecord(record, [
             { type: "start", root: dom },
             {
                 type: "step",
@@ -58,6 +59,30 @@ describe("Build Data Recorder", () => {
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }
         ]);
+    });
 
+    it("should record ascend, descend", () => {
+        const empty1 = <Empty id={1} />;
+        const empty2 = <Empty id={2} />;
+        const layer1 = <Group>{empty1}{empty2}</Group>;
+        const dom = <Group>{layer1}</Group>;
+
+        const newDom = unbsBuild(dom, null, { recorder });
+
+        if (newDom == null) {
+            should(newDom).not.Null();
+            return;
+        }
+
+        const filtered = record.filter((op) => (op.type === "descend") || (op.type === "ascend"));
+        matchRecord(filtered,
+            [
+                { type: "descend", descendFrom: dom, descendTo: layer1 },
+                { type: "descend", descendFrom: layer1, descendTo: empty1 },
+                { type: "ascend", ascendFrom: empty1, ascendTo: layer1 },
+                { type: "descend", descendFrom: layer1, descendTo: empty2 },
+                { type: "ascend", ascendFrom: empty2, ascendTo: layer1 },
+                { type: "ascend", ascendFrom: layer1, ascendTo: newDom }
+            ]);
     });
 });
