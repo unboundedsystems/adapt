@@ -11,7 +11,12 @@ import {
     UnbsNode,
 } from "./jsx";
 
-function computeContentsNoOverride(element: UnbsElement): UnbsNode {
+import {
+    BuildListener,
+    BuildOp,
+} from "./dom_build_data_recorder";
+
+function computeContentsNoOverride(element: UnbsElement): { wasPrimitive: boolean, contents: UnbsNode } {
     let component: Component<any> | null = null;
     let contents: UnbsNode = null;
 
@@ -24,16 +29,22 @@ function computeContentsNoOverride(element: UnbsElement): UnbsNode {
     if (component != null) {
         if (isPrimitive(component)) {
             if (element.props.children != null) {
-                return cloneElement(element, {}, ...element.props.children);
+                return {
+                    wasPrimitive: true,
+                    contents: cloneElement(element, {}, ...element.props.children)
+                };
             } else {
-                return cloneElement(element, {});
+                return {
+                    wasPrimitive: true,
+                    contents: cloneElement(element, {})
+                };
             }
         } else {
             contents = component.build();
         }
     }
 
-    return contents;
+    return { wasPrimitive: false, contents };
 }
 
 function findOverride(styles: css.StyleList, path: UnbsElement[]) {
@@ -43,7 +54,7 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
     }
     for (const style of styles.reverse()) {
         if (style.match(path)) {
-            return style.sfc;
+            return { style, override: style.sfc };
         }
     }
     return null;
@@ -54,17 +65,31 @@ function computeContents(
     styles: css.StyleList,
     options: BuildOptionsReq): UnbsNode {
 
-    const override = findOverride(styles, path);
+    const overrideFound = findOverride(styles, path);
     const element = path[path.length - 1];
     const noOverride = () => {
+        //FIXME(manishv) I believe this should be return computeContentsNoOverride(element);
         const newPath = path.slice(0, -1);
         newPath.push(cloneElement(element, { cssMatched: true }));
-        return pathBuild(newPath, styles, options);
+        return realBuild(newPath, styles, options);
     };
-    if (override != null) {
-        return override({ ...element.props, buildOrig: noOverride });
+
+    let wasPrimitive = false;
+    let newElem: UnbsNode = null;
+    let style: css.StyleRule | undefined;
+    if (overrideFound != null) {
+        const override = overrideFound.override;
+        style = overrideFound.style;
+        newElem = override({ ...element.props, buildOrig: noOverride });
+    } else {
+        const { wasPrimitive: prim, contents: elem } =
+            computeContentsNoOverride(element);
+        wasPrimitive = prim;
+        newElem = elem;
     }
-    return computeContentsNoOverride(element);
+
+    if (!wasPrimitive) options.recorder({ type: "step", oldElem: element, newElem, style });
+    return newElem;
 }
 
 function mountAndBuildComponent(
@@ -93,11 +118,15 @@ function notNull(x: any): boolean {
 export interface BuildOptions {
     depth?: number;
     shallow?: boolean;
+    recorder?: BuildListener;
 }
 
 const defaultBuildOptions = {
     depth: -1,
-    shallow: false
+    shallow: false,
+    // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
+    // tslint:disable-next-line:object-literal-sort-keys
+    recorder: (_op: BuildOp) => { return; },
 };
 
 type BuildOptionsReq = Required<BuildOptions>;
@@ -120,8 +149,20 @@ function atDepth(options: BuildOptionsReq, depth: number) {
 function pathBuild(
     path: UnbsElement[],
     styles: css.StyleList,
-    options?: BuildOptions) {
-    return realBuild(path, styles, { ...defaultBuildOptions, ...options });
+    optionsIn?: BuildOptions) {
+
+    const options = { ...defaultBuildOptions, ...optionsIn };
+    const root = path[path.length - 1];
+    options.recorder({ type: "start", root });
+    let ret = null;
+    try {
+        ret = realBuild(path, styles, options);
+    } catch (error) {
+        options.recorder({ type: "error", error });
+        throw error;
+    }
+    options.recorder({ type: "done", root: ret });
+    return ret;
 }
 
 function realBuild(
@@ -131,7 +172,9 @@ function realBuild(
 
     if (options.depth === 0) return path[0];
 
+    const oldElem = path[path.length - 1];
     const newRoot = mountAndBuildComponent(path, styles, options);
+    options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
 
     if (newRoot == null) {
         return newRoot;
@@ -150,18 +193,25 @@ function realBuild(
     //FIXME(manishv) Make this use an explicit stack
     //instead of recursion to avoid blowing the call stack
     //For deep DOMs
+    let childList: any[] = [];
     if (children instanceof UnbsElementImpl) {
-        newChildren = realBuild([...path, children], styles, options);
+        childList = [newChildren];
     } else if (ld.isArray(children)) {
-        newChildren = children.map((child) => {
-            if (child instanceof UnbsElementImpl) {
-                return realBuild([...path, child], styles, options);
-            } else {
-                return child;
-            }
-        });
-        newChildren = newChildren.filter(notNull);
+        childList = children;
     }
+
+    newChildren = childList.map((child) => {
+        if (child instanceof UnbsElementImpl) {
+            options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
+            const ret = realBuild([...path, child], styles, options);
+            options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
+            return ret;
+        } else {
+            return child;
+        }
+    });
+
+    newChildren = newChildren.filter(notNull);
 
     return cloneElement(newRoot, {}, ...newChildren);
 }

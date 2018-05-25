@@ -25,6 +25,10 @@
         ],
         "no-namespace": false,
         "no-unused-expression": false,
+        "object-literal-sort-keys": [
+            false,
+            "match-declaration-order"
+        ],
         "trailing-comma": false,
         "triple-equals": [
             true,
