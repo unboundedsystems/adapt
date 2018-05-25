@@ -49,13 +49,17 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
     return null;
 }
 
-function computeContents(path: UnbsElement[], styles: css.StyleList): UnbsNode {
+function computeContents(
+    path: UnbsElement[],
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsNode {
+
     const override = findOverride(styles, path);
     const element = path[path.length - 1];
-    const noOverride = (shallow: boolean = true) => {
+    const noOverride = () => {
         const newPath = path.slice(0, -1);
         newPath.push(cloneElement(element, { cssMatched: true }));
-        return realBuild(newPath, styles, shallow);
+        return pathBuild(newPath, styles, options);
     };
     if (override != null) {
         return override({ ...element.props, buildOrig: noOverride });
@@ -63,8 +67,12 @@ function computeContents(path: UnbsElement[], styles: css.StyleList): UnbsNode {
     return computeContentsNoOverride(element);
 }
 
-function mountAndBuildComponent(path: UnbsElement[], styles: css.StyleList): UnbsNode {
-    const contents = computeContents(path, styles);
+function mountAndBuildComponent(
+    path: UnbsElement[],
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsNode {
+
+    const contents = computeContents(path, styles, options);
 
     if (contents != null) {
         if (isPrimitive(contents.componentType.prototype)) {
@@ -72,7 +80,7 @@ function mountAndBuildComponent(path: UnbsElement[], styles: css.StyleList): Unb
         }
         const newPath = path.slice(0, -1);
         newPath.push(contents);
-        return mountAndBuildComponent(newPath, styles);
+        return mountAndBuildComponent(newPath, styles, options);
     } else {
         return null;
     }
@@ -82,27 +90,54 @@ function notNull(x: any): boolean {
     return x != null;
 }
 
+export interface BuildOptions {
+    depth?: number;
+    shallow?: boolean;
+}
+
+const defaultBuildOptions = {
+    depth: -1,
+    shallow: false
+};
+
+type BuildOptionsReq = Required<BuildOptions>;
+
 export function build(root: UnbsElement,
     styles: UnbsElement | null,
-    shallow: boolean = false): UnbsNode {
+    options?: BuildOptions): UnbsNode {
 
     const styleList = css.buildStyles(styles);
 
-    return realBuild([root], styleList, shallow);
+    return pathBuild([root], styleList, options);
+}
+
+function atDepth(options: BuildOptionsReq, depth: number) {
+    if (options.shallow) return true;
+    if (options.depth === -1) return false;
+    return depth >= options.depth;
+}
+
+function pathBuild(
+    path: UnbsElement[],
+    styles: css.StyleList,
+    options?: BuildOptions) {
+    return realBuild(path, styles, { ...defaultBuildOptions, ...options });
 }
 
 function realBuild(
     path: UnbsElement[],
     styles: css.StyleList,
-    shallow: boolean): UnbsNode {
+    options: BuildOptionsReq): UnbsNode {
 
-    const newRoot = mountAndBuildComponent(path, styles);
+    if (options.depth === 0) return path[0];
 
-    if (shallow) {
+    const newRoot = mountAndBuildComponent(path, styles, options);
+
+    if (newRoot == null) {
         return newRoot;
     }
 
-    if (newRoot == null) {
+    if (atDepth(options, path.length)) {
         return newRoot;
     }
 
@@ -116,11 +151,11 @@ function realBuild(
     //instead of recursion to avoid blowing the call stack
     //For deep DOMs
     if (children instanceof UnbsElementImpl) {
-        newChildren = realBuild([...path, children], styles, false);
+        newChildren = realBuild([...path, children], styles, options);
     } else if (ld.isArray(children)) {
         newChildren = children.map((child) => {
             if (child instanceof UnbsElementImpl) {
-                return realBuild([...path, child], styles, false);
+                return realBuild([...path, child], styles, options);
             } else {
                 return child;
             }

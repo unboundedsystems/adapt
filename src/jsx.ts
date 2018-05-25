@@ -50,17 +50,15 @@ export interface AnyProps {
 export type GenericComponent = Component<AnyProps>;
 
 export class UnbsElementImpl implements UnbsElement {
-    readonly props: AnyProps;
-
     constructor(
         readonly componentType: any,
-        readonly passedProps: AnyProps,
+        readonly props: AnyProps,
         children: any[]) {
 
-        this.props = passedProps;
         if (children.length > 0) {
             this.props.children = children;
         }
+        Object.freeze(this.props);
     }
 }
 
