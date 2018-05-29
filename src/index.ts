@@ -7,7 +7,9 @@ export {
     UnbsElement,
     AnyProps,
     isElement,
-    isPrimitiveElement
+    isPrimitiveElement,
+    RefObject,
+    createRef,
 } from "./jsx";
 
 export {
