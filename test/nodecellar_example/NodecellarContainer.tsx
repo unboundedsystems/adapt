@@ -1,13 +1,12 @@
 import * as unbs from "../../src";
 // tslint:disable-next-line:no-duplicate-imports
-import { Component, RefObject } from "../../src";
-import Compute from "./Compute";
+import { Component } from "../../src";
 import Container, { ImageId } from "./Container";
 
 export interface Props {
     mongoHostname: string;
     mongoPort: number;
-    host: RefObject<Compute>;
+    dockerHost: string;
 
     name?: string;
     ctrPort?: number;
@@ -26,36 +25,28 @@ export default class MongoContainer extends Component<Props> {
     };
 
     build() {
-        const {
-            mongoHostname,
-            mongoPort,
-            host,
-            name,
-            ctrPort,
-            port,
-            image,
-        } = this.props;
+        const props = this.props;
 
         return (
             <Container
-                name={name!}
-                host={host}
-                image={image!}
-                ports={[ ctrPort! ]}
+                name={props.name!}
+                dockerHost={props.dockerHost!}
+                image={props.image!}
+                ports={[ props.ctrPort! ]}
                 stdinOpen={true}
                 tty={true}
                 command="nodejs server.js"
                 environment={{
-                    NODECELLAR_PORT: ctrPort!.toString(),
-                    MONGO_PORT: mongoPort.toString(),
-                    MONGO_HOST: mongoHostname,
+                    NODECELLAR_PORT: props.ctrPort!.toString(),
+                    MONGO_PORT: props.mongoPort.toString(),
+                    MONGO_HOST: props.mongoHostname,
                 }}
                 links={{
-                    mongod: mongoHostname,
+                    mongod: props.mongoHostname,
                 }}
                 portBindings={{
                     // ctr port : host port
-                    [ctrPort!]: port!,
+                    [props.ctrPort!]: props.port!,
                 }}
             />
         );

@@ -22,15 +22,8 @@ export function isElement(val: any): val is UnbsElement {
     return val instanceof UnbsElementImpl;
 }
 
-export type Key = string | number;
-
-export interface ClassAttributes<T> {
-    key?: Key;
-    ref?: RefObject<T>;
-}
-
 export abstract class Component<Props> {
-    constructor(readonly props: Props & ClassAttributes<Component<Props>>) { }
+    constructor(readonly props: Props) { }
 
     abstract build(): UnbsNode;
 }
@@ -105,23 +98,13 @@ export class UnbsPrimitiveElementImpl extends UnbsElementImpl {
     }
 }
 
-export interface RefObject<T> {
-    readonly current: T | null;
-}
-
-export function createRef<T = any>(): RefObject<T> {
-    return {
-        current: null
-    };
-}
-
-export function createElement<Props, T extends UnbsElement>(
+export function createElement<Props>(
     ctor: string |
         FunctionComponentTyp<Props> |
         ClassComponentTyp<Props>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
-    props: tySup.ExcludeInterface<Props, tySup.Children<any>> & ClassAttributes<T>,
+    props: tySup.ExcludeInterface<Props, tySup.Children<any>>,
     ...children: tySup.ChildType<Props>[]): UnbsElement {
 
     if (typeof ctor === "string") {

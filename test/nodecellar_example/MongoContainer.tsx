@@ -1,11 +1,10 @@
 import * as unbs from "../../src";
 // tslint:disable-next-line:no-duplicate-imports
-import { Component, RefObject } from "../../src";
-import Compute from "./Compute";
+import { Component } from "../../src";
 import Container, { ImageId } from "./Container";
 
 export interface Props {
-    host: RefObject<Compute>;
+    dockerHost: string;
     name?: string;
     mongoCtrPort?: number;
     webStatusCtrPort?: number;
@@ -28,29 +27,21 @@ export default class MongoContainer extends Component<Props> {
     };
 
     build() {
-        const {
-            host,
-            name,
-            mongoCtrPort,
-            webStatusCtrPort,
-            mongoPort,
-            webStatusPort,
-            image
-        } = this.props;
+        const props = this.props;
 
         return (
             <Container
-                name={name!}
-                host={host}
-                image={image!}
-                ports={[mongoCtrPort!, webStatusCtrPort!]}
+                name={props.name!}
+                dockerHost={props.dockerHost}
+                image={props.image!}
+                ports={[props.mongoCtrPort!, props.webStatusCtrPort!]}
                 stdinOpen={true}
                 tty={true}
                 command="mongod --rest --httpinterface --smallfiles"
                 portBindings={{
                     // ctr port : host port
-                    [mongoCtrPort!]: mongoPort!,
-                    [webStatusCtrPort!]: webStatusPort!
+                    [props.mongoCtrPort!]: props.mongoPort!,
+                    [props.webStatusCtrPort!]: props.webStatusPort!
                 }}
             />
         );

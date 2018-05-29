@@ -1,5 +1,4 @@
-import { PrimitiveComponent, RefObject } from "../../src";
-import Compute from "./Compute";
+import { PrimitiveComponent } from "../../src";
 
 export type PortDescription = string | number;
 
@@ -28,7 +27,7 @@ export interface Links {
 
 export interface Props {
     name: string;
-    host: RefObject<Compute>;
+    dockerHost: string;
     image: ImageId;
 
     ports?: PortDescription[];
