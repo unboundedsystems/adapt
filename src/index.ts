@@ -6,7 +6,8 @@ export {
     PrimitiveComponent,
     UnbsElement,
     AnyProps,
-    isElement
+    isElement,
+    isPrimitiveElement
 } from "./jsx";
 
 export {

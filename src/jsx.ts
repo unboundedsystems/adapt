@@ -12,6 +12,10 @@ export interface UnbsElement {
     readonly componentType: any;
 }
 
+export interface UnbsPrimitiveElement extends UnbsElement {
+    updateState(state: any): void;
+}
+
 export type UnbsNode = UnbsElement | null;
 
 export function isElement(val: any): val is UnbsElement {
@@ -27,7 +31,7 @@ export abstract class Component<Props> {
 export abstract class PrimitiveComponent<Props>
     extends Component<Props> {
 
-    //There will be other methods here, right now we just do instanceof
+    updateState(_state: any) { return; }
 
     build(): never {
         throw new Error("Attempt to call build for primitive component: " +
@@ -40,8 +44,13 @@ export function isPrimitive(component: Component<any>):
     return component instanceof PrimitiveComponent;
 }
 
+export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement {
+    return isPrimitive(elem.componentType.prototype);
+}
+
 export type FunctionComponentTyp<T> = (props: T) => UnbsNode;
 export type ClassComponentTyp<T> = new (props: T) => Component<T>;
+export type PrimitiveClassComponentTyp<T> = new (props: T) => PrimitiveComponent<T>;
 
 export interface AnyProps {
     [key: string]: any;
@@ -59,6 +68,33 @@ export class UnbsElementImpl implements UnbsElement {
             this.props.children = children;
         }
         Object.freeze(this.props);
+    }
+}
+
+export class UnbsPrimitiveElementImpl extends UnbsElementImpl {
+    componentInstance?: PrimitiveComponent<AnyProps>;
+
+    constructor(
+        readonly componentType: new (props: AnyProps) => PrimitiveComponent<AnyProps>,
+        readonly props: AnyProps,
+        children: any[]
+    ) {
+        super(componentType, props, children);
+    }
+
+    updateState(state: any) {
+        if (this.componentInstance == null) {
+            this.componentInstance = new this.componentType(this.props);
+        }
+
+        this.componentInstance.updateState(state);
+        if (this.props.children == null) return;
+
+        for (const child of this.props.children) {
+            if (isPrimitiveElement(child)) {
+                child.updateState(state);
+            }
+        }
     }
 }
 
@@ -81,7 +117,14 @@ export function createElement<Props>(
     //props===null PropsNoChildren == {}
     const fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
     const flatChildren: any[] = ld.flatten(children);
-    return new UnbsElementImpl(ctor, fixedProps, flatChildren);
+    if (isPrimitive(ctor.prototype)) {
+        return new UnbsPrimitiveElementImpl(
+            ctor as PrimitiveClassComponentTyp<Props>,
+            fixedProps,
+            flatChildren);
+    } else {
+        return new UnbsElementImpl(ctor, fixedProps, flatChildren);
+    }
 }
 
 export function cloneElement(
@@ -93,5 +136,10 @@ export function cloneElement(
         ...element.props,
         ...props
     };
-    return new UnbsElementImpl(element.componentType, newProps, children);
+
+    if (isPrimitiveElement(element)) {
+        return new UnbsPrimitiveElementImpl(element.componentType, newProps, children);
+    } else {
+        return new UnbsElementImpl(element.componentType, newProps, children);
+    }
 }
