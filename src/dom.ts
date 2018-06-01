@@ -68,10 +68,7 @@ function computeContents(
     const overrideFound = findOverride(styles, path);
     const element = path[path.length - 1];
     const noOverride = () => {
-        //FIXME(manishv) I believe this should be return computeContentsNoOverride(element);
-        const newPath = path.slice(0, -1);
-        newPath.push(cloneElement(element, { cssMatched: true }));
-        return realBuild(newPath, styles, options);
+        return computeContentsNoOverride(element).contents;
     };
 
     let wasPrimitive = false;
@@ -80,7 +77,7 @@ function computeContents(
     if (overrideFound != null) {
         const override = overrideFound.override;
         style = overrideFound.style;
-        newElem = override({ ...element.props, buildOrig: noOverride });
+        newElem = override({ ...element.props, buildOrig: noOverride, origElement: element });
     } else {
         const { wasPrimitive: prim, contents: elem } =
             computeContentsNoOverride(element);
