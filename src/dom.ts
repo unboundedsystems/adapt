@@ -3,12 +3,15 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    ClassComponentTyp,
     cloneElement,
     Component,
+    FunctionComponentTyp,
     isPrimitive,
     UnbsElement,
     UnbsElementImpl,
     UnbsNode,
+    WithChildren,
 } from "./jsx";
 
 import {
@@ -16,14 +19,22 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 
-function computeContentsNoOverride(element: UnbsElement): { wasPrimitive: boolean, contents: UnbsNode } {
-    let component: Component<any> | null = null;
+function computeContentsNoOverride<P extends object>(
+    element: UnbsElement<P & WithChildren>): { wasPrimitive: boolean, contents: UnbsNode } {
+    let component: Component<P> | null = null;
     let contents: UnbsNode = null;
 
+    // The 'as any' below is due to open TS bugs/PR:
+    // https://github.com/Microsoft/TypeScript/pull/13288
+    const props: P = {
+        ...element.componentType.defaultProps as any,
+        ...element.props as any
+    };
+
     try {
-        contents = element.componentType(element.props);
+        contents = (element.componentType as FunctionComponentTyp<P>)(props);
     } catch (e) {
-        component = new element.componentType(element.props);
+        component = new (element.componentType as ClassComponentTyp<P>)(props);
     }
 
     if (component != null) {

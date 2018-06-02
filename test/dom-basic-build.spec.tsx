@@ -7,7 +7,8 @@ import {
     Empty,
     MakeEmpty,
     MakeGroup,
-    MakeMakeEmpty
+    MakeMakeEmpty,
+    WithDefaults
 } from "./testlib";
 
 describe("DOM Basic Build Tests", () => {
@@ -21,7 +22,7 @@ describe("DOM Basic Build Tests", () => {
         should(dom).eql(orig);
     });
 
-    it("Should substitue props.children as flat", () => {
+    it("Should substitute props.children as flat", () => {
         const orig = <MakeGroup>
             <Empty id={1} />
             <Empty id={2} />
@@ -64,6 +65,26 @@ describe("DOM Basic Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+    });
+
+    it("Should use defaultProps", () => {
+        const orig = <WithDefaults />;
+        const dom = unbs.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom.props.children).eql([<Empty id={100} />, <Empty id={200} />]);
+    });
+
+    it("Should override defaultProps", () => {
+        const orig = <WithDefaults prop1={1234} />;
+        const dom = unbs.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom.props.children).eql([<Empty id={1234} />, <Empty id={200} />]);
     });
 });
 

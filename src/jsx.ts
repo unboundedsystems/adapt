@@ -7,18 +7,19 @@ import * as tySup from "./type_support";
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
-export interface UnbsElement {
-    readonly props: AnyProps;
-    readonly componentType: any;
+export interface UnbsElement<P = AnyProps> {
+    readonly props: P;
+    readonly componentType: ComponentType<P>;
 }
 
-export interface UnbsPrimitiveElement extends UnbsElement {
+export interface UnbsPrimitiveElement<P> extends UnbsElement<P> {
+    readonly componentType: PrimitiveClassComponentTyp<P>;
     updateState(state: any): void;
 }
 
-export type UnbsNode = UnbsElement | null;
+export type UnbsNode = UnbsElement<AnyProps> | null;
 
-export function isElement(val: any): val is UnbsElement {
+export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
 }
 
@@ -44,25 +45,46 @@ export function isPrimitive(component: Component<any>):
     return component instanceof PrimitiveComponent;
 }
 
-export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement {
+export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<any> {
     return isPrimitive(elem.componentType.prototype);
 }
 
-export type FunctionComponentTyp<T> = (props: T) => UnbsNode;
-export type ClassComponentTyp<T> = new (props: T) => Component<T>;
-export type PrimitiveClassComponentTyp<T> = new (props: T) => PrimitiveComponent<T>;
+export interface ComponentStatic<P> {
+    defaultProps?: Partial<P>;
+}
+export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
+    (props: P): UnbsNode;
+}
+export interface ClassComponentTyp<P>  extends ComponentStatic<P> {
+    new (props: P): Component<P>;
+}
+export interface PrimitiveClassComponentTyp<P> extends ComponentStatic<P> {
+    new (props: P): PrimitiveComponent<P>;
+}
+
+export type ComponentType<P> =
+    FunctionComponentTyp<P> |
+    ClassComponentTyp<P> |
+    PrimitiveClassComponentTyp<P>;
 
 export interface AnyProps {
     [key: string]: any;
 }
 
+export interface WithChildren {
+    children?: any[];
+}
+
 export type GenericComponent = Component<AnyProps>;
 
-export class UnbsElementImpl implements UnbsElement {
+export class UnbsElementImpl<Props> implements UnbsElement {
+    readonly props: Props & WithChildren;
+
     constructor(
-        readonly componentType: any,
-        readonly props: AnyProps,
+        readonly componentType: ComponentType<Props>,
+        props: Props,
         children: any[]) {
+        this.props = props;
 
         if (children.length > 0) {
             this.props.children = children;
@@ -71,12 +93,12 @@ export class UnbsElementImpl implements UnbsElement {
     }
 }
 
-export class UnbsPrimitiveElementImpl extends UnbsElementImpl {
+export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
     componentInstance?: PrimitiveComponent<AnyProps>;
 
     constructor(
-        readonly componentType: new (props: AnyProps) => PrimitiveComponent<AnyProps>,
-        readonly props: AnyProps,
+        readonly componentType: PrimitiveClassComponentTyp<Props>,
+        props: Props,
         children: any[]
     ) {
         super(componentType, props, children);
