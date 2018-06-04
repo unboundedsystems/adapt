@@ -36,7 +36,7 @@ describe("Build Data Recorder", () => {
 
     it("should record step, elementBuilt", () => {
         const dom = <Empty id={1} />;
-        const newElem = unbsBuild(dom, null, { recorder });
+        const { contents: newElem } = unbsBuild(dom, null, { recorder });
         matchRecord(record, [
             { type: "start", root: dom },
             { type: "elementBuilt", oldElem: dom, newElem },
@@ -46,7 +46,7 @@ describe("Build Data Recorder", () => {
 
     it("should record step, step, elementBuild", () => {
         const dom = <MakeEmpty id={1} />;
-        const newElem = unbsBuild(dom, null, { recorder });
+        const { contents: newElem } = unbsBuild(dom, null, { recorder });
         const record1Out = (record[1] as BuildOpStep).newElem;
         matchRecord(record, [
             { type: "start", root: dom },
@@ -67,7 +67,7 @@ describe("Build Data Recorder", () => {
         const layer1 = <Group>{empty1}{empty2}</Group>;
         const dom = <Group>{layer1}</Group>;
 
-        const newDom = unbsBuild(dom, null, { recorder });
+        const { contents: newDom } = unbsBuild(dom, null, { recorder });
 
         if (newDom == null) {
             should(newDom).not.Null();

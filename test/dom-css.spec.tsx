@@ -15,7 +15,7 @@ describe("DOM CSS Build Tests", () => {
         const replace = <Empty id={1} />;
         const styles = <unbs.Style>{unbs.Group} {unbs.rule(() => replace)}</unbs.Style>;
 
-        const dom = unbs.build(orig, styles);
+        const { contents: dom } = unbs.build(orig, styles);
 
         should(unbs).not.Null();
         should(unbs.isElement(dom)).True();
@@ -29,15 +29,15 @@ describe("DOM CSS Build Tests", () => {
         </unbs.Group>;
         const replace = <MakeEmpty id={123} />;
         const styles = <unbs.Style>
-            {MakeMakeEmpty} {unbs.rule((props) => {
+            {MakeMakeEmpty} {unbs.rule((props, info) => {
                 if (props.id === 1) {
                     return replace;
                 }
-                return props.buildOrig();
+                return info.origBuild(props);
             })}
         </unbs.Style>;
 
-        const dom = unbs.build(orig, styles);
+        const { contents: dom } = unbs.build(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;

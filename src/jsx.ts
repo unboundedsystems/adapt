@@ -45,6 +45,17 @@ export function isPrimitive(component: Component<any>):
     return component instanceof PrimitiveComponent;
 }
 
+export type SFC = (props: AnyProps) => UnbsNode;
+
+export function isComponent(func: SFC | Component<any>):
+    func is Component<any> {
+    return func instanceof Component;
+}
+
+export function isAbstract(component: Component<any>) {
+    return isComponent(component) && !component.build;
+}
+
 export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<any> {
     return isPrimitive(elem.componentType.prototype);
 }

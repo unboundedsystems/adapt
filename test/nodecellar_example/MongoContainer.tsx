@@ -1,7 +1,5 @@
-import * as unbs from "../../src";
-// tslint:disable-next-line:no-duplicate-imports
-import { Component } from "../../src";
-import Container, { ImageId } from "./Container";
+import unbs, { Component } from "../../src";
+import Container, { ImageId } from "../../ulib/Container";
 
 export interface Props {
     dockerHost: string;

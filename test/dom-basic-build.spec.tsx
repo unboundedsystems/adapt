@@ -14,7 +14,7 @@ import {
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
         const orig = <unbs.Group />;
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
 
         should(unbs).not.Null();
         should(unbs.isElement(dom)).True();
@@ -28,7 +28,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty id={2} />
         </MakeGroup>;
 
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -43,7 +43,7 @@ describe("DOM Basic Build Tests", () => {
             <MakeMakeEmpty id={2} />
         </unbs.Group>;
 
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -58,7 +58,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty id={2} />
         </unbs.Group>;
 
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -69,7 +69,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should use defaultProps", () => {
         const orig = <WithDefaults />;
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -79,7 +79,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should override defaultProps", () => {
         const orig = <WithDefaults prop1={1234} />;
-        const dom = unbs.build(orig, null);
+        const { contents: dom } = unbs.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -94,7 +94,7 @@ describe("DOM Shallow Build Tests", () => {
         const orig = <MakeGroup>{body}</MakeGroup>;
         const expected = <unbs.Group>{body}</unbs.Group>;
 
-        const dom = unbs.build(orig, null, { shallow: true });
+        const { contents: dom } = unbs.build(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -104,7 +104,7 @@ describe("DOM Shallow Build Tests", () => {
 
     it("Should respect depth 0 as no-op", () => {
         const orig = <MakeMakeEmpty id={1} />;
-        const dom = unbs.build(orig, null, { depth: 0 });
+        const { contents: dom } = unbs.build(orig, null, { depth: 0 });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -127,7 +127,7 @@ describe("DOM Shallow Build Tests", () => {
             <Empty id={2} />
         </unbs.Group>;
 
-        const dom = unbs.build(orig, null, { depth: 2 });
+        const { contents: dom } = unbs.build(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;

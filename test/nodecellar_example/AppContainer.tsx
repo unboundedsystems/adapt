@@ -1,7 +1,5 @@
-import * as unbs from "../../src";
-// tslint:disable-next-line:no-duplicate-imports
-import { Component } from "../../src";
-import Container, { ImageId } from "./Container";
+import unbs, { Component } from "../../src";
+import Container, { ImageId } from "../../ulib/Container";
 
 export interface Props {
     mongoHostname: string;
@@ -14,7 +12,7 @@ export interface Props {
     image?: ImageId;
 }
 
-export default class MongoContainer extends Component<Props> {
+export default class AppContainer extends Component<Props> {
     static defaultProps = {
         name: "nodecellar",
         ctrPort: 8080,

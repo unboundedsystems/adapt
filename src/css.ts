@@ -6,10 +6,15 @@ import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
-export type SFC = (props: jsx.AnyProps) => jsx.UnbsNode;
-
-export type BuildOverride =
-    (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
+export interface StyleBuildInfo {
+    origBuild: jsx.SFC;
+    origElement: any;
+}
+export interface OverrideProps {
+    cssMatched?: boolean;
+}
+export type BuildOverride<P = jsx.AnyProps> =
+    (props: P & OverrideProps, info: StyleBuildInfo)  => jsx.UnbsNode;
 
 export interface StyleRule {
     selector: string;
@@ -158,20 +163,25 @@ function parseStyles(styles: RawStyle[]): StyleList {
 
     return ret;
 }
+export type AbstractComponentCtor
+    <P = jsx.AnyProps, T extends jsx.Component<P> = jsx.Component<P>> =
+    // tslint:disable-next-line:ban-types
+    Function & { prototype: T };
 
 export type UnbsComponentConstructor =
     new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps>;
 
 export interface StyleProps {
-    children: (SFC | string | UnbsComponentConstructor | Rule)[];
+    children: (AbstractComponentCtor | jsx.SFC | string |
+               UnbsComponentConstructor | Rule)[];
 }
 
-export class Rule {
-    constructor(readonly override: BuildOverride) { }
+export class Rule<P = jsx.AnyProps> {
+    constructor(readonly override: BuildOverride<P>) { }
 }
 
-export function rule(override: BuildOverride) {
-    return new Rule(override);
+export function rule<P = jsx.AnyProps>(override: BuildOverride<P>) {
+    return new Rule<P>(override);
 }
 
 function isRule(x: any): x is Rule {

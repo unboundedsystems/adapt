@@ -1,8 +1,6 @@
-import * as unbs from "../../src";
-// tslint:disable-next-line:no-duplicate-imports
-import { Component, Group } from "../../src";
+import unbs, { Component, Group } from "../../src";
+import NodecellarContainer from "./AppContainer";
 import MongoContainer from "./MongoContainer";
-import NodecellarContainer from "./NodecellarContainer";
 
 export interface Props {
     webPort?: number;

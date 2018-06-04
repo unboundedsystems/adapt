@@ -11,7 +11,11 @@ describe("Selector Parsing", () => {
         const styleTag = <css.Style>{Foo} {css.rule(() => <Dummy />)}</css.Style>;
         const styles = css.buildStyles(styleTag);
         should(styles.length).equal(1);
-        should(styles[0].sfc({ buildOrig: () => null })).eql(<Dummy />);
+        const info = {
+            origBuild: () => null,
+            origElement: null,
+        };
+        should(styles[0].sfc({}, info)).eql(<Dummy />);
     });
 });
 

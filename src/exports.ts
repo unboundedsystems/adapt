@@ -16,7 +16,9 @@ export {
 } from "./builtin_components";
 
 export {
-    build
+    build,
+    BuildOutput,
+    Message,
 } from "./dom";
 
 export {

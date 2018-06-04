@@ -1,4 +1,4 @@
-import { PrimitiveComponent } from "../src";
+import { Component } from "../src";
 
 export type PortDescription = string | number;
 
@@ -39,7 +39,7 @@ export interface Props {
     links?: Links;
 }
 
-export default class Container extends PrimitiveComponent<Props> {
+export default abstract class Container extends Component<Props> {
     static defaultProps = {
         ports: [],
         stdinOpen: false,
