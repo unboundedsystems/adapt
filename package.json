@@ -11,7 +11,7 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "test": "mocha --require 'source-map-support/register' --require should dist/test"
+    "test": "mocha --opts mocha.opts"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "license": "UNLICENSED",
