@@ -1,4 +1,4 @@
-import { PrimitiveComponent } from "../../src";
+import { PrimitiveComponent } from "../src";
 
 export type PortDescription = string | number;
 
