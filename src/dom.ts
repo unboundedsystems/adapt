@@ -19,6 +19,7 @@ import {
     BuildListener,
     BuildOp,
 } from "./dom_build_data_recorder";
+import { MustReplaceError } from "./error";
 
 export enum MessageType {
     warning = "warning",
@@ -40,6 +41,8 @@ function computeContentsNoOverride<P extends object>(
     let component: Component<P> | null = null;
     let contents: UnbsNode = null;
     const messages: Message[] = [];
+    let doClone = false;
+    let isPrim = false;
 
     // The 'as any' below is due to open TS bugs/PR:
     // https://github.com/Microsoft/TypeScript/pull/13288
@@ -51,12 +54,20 @@ function computeContentsNoOverride<P extends object>(
     try {
         contents = (element.componentType as FunctionComponentTyp<P>)(props);
     } catch (e) {
-        component = new (element.componentType as ClassComponentTyp<P>)(props);
+        if (e instanceof TypeError &&
+            /Class constructor .* cannot be invoked/.test(e.message)) {
+            // element.componentType is a class, not a function.
+            component = new (element.componentType as ClassComponentTyp<P>)(props);
+        } else if (e instanceof MustReplaceError) {
+            doClone = true;
+        } else {
+            throw e;
+        }
     }
 
     if (component != null) {
         const isAbs = isAbstract(component);
-        const isPrim = isPrimitive(component);
+        isPrim = isPrimitive(component);
         if (isAbs) {
             messages.push({
                 type: MessageType.warning,
@@ -65,21 +76,39 @@ function computeContentsNoOverride<P extends object>(
             });
         }
         if (isPrim || isAbs) {
-            if (element.props.children != null) {
-                return {
-                    wasPrimitive: isPrim,
-                    contents: cloneElement(element, {}, ...element.props.children),
-                    messages,
-                };
-            } else {
-                return {
-                    wasPrimitive: isPrim,
-                    contents: cloneElement(element, {}),
-                    messages,
-                };
-            }
+            doClone = true;
         } else {
-            contents = component.build();
+            try {
+                contents = component.build();
+            } catch (e) {
+                if (e instanceof MustReplaceError) {
+                    messages.push({
+                        type: MessageType.warning,
+                        content: `Component ${element.componentType.name} ` +
+                            `cannot be built with current props ` +
+                            `(build threw MustReplaceError)`
+                    });
+                    doClone = true;
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    if (doClone) {
+        if (element.props.children != null) {
+            return {
+                wasPrimitive: isPrim,
+                contents: cloneElement(element, {}, ...element.props.children),
+                messages,
+            };
+        } else {
+            return {
+                wasPrimitive: isPrim,
+                contents: cloneElement(element, {}),
+                messages,
+            };
         }
     }
 

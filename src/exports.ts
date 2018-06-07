@@ -31,3 +31,4 @@ export {
 } from "./dom_serialize";
 
 export * from "./dom_build_data_recorder";
+export * from "./error";

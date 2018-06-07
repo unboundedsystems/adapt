@@ -43,6 +43,8 @@ function collectProps(elem: UnbsElement) {
         if (propName === "children") continue;
 
         const prop = props[propName];
+        if (prop === undefined) continue;
+
         if (canBeShort(prop)) {
             shortProps[propName] = serializeShortPropVal(prop);
         } else {

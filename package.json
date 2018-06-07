@@ -30,6 +30,7 @@
   "dependencies": {
     "css-what": "^2.1.0",
     "lodash": "^4.17.10",
+    "ts-custom-error": "^2.2.1",
     "xmlbuilder": "^10.0.0"
   }
 }
