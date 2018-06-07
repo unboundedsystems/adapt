@@ -1,7 +1,7 @@
-import { PrimitiveComponent, UnbsElement } from "./jsx";
+import { PrimitiveComponent, UnbsNode } from "./jsx";
 
 export interface GroupProps {
-    children?: UnbsElement[] | UnbsElement;
+    children?: UnbsNode[] | UnbsNode;
 }
 
 export class Group extends PrimitiveComponent<GroupProps> { }

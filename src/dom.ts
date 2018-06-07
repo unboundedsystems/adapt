@@ -30,17 +30,32 @@ export interface Message {
     content: string;
 }
 
-interface ComputeContents {
-    wasPrimitive: boolean;
-    contents: UnbsNode;
-    messages: Message[];
+type CleanupFunc = () => void;
+class ComputeContents {
+    wasPrimitive = false;
+    contents: UnbsNode = null;
+    messages: Message[] = [];
+    cleanups: CleanupFunc[] = [];
+
+    combine(other: ComputeContents) {
+        this.messages.push(...other.messages);
+        this.cleanups.push(...other.cleanups);
+        other.messages = [];
+        other.cleanups = [];
+    }
+    cleanup() {
+        let clean: CleanupFunc | undefined;
+        do {
+            clean = this.cleanups.pop();
+            if (clean) clean();
+        } while (clean);
+    }
 }
 
 function computeContentsNoOverride<P extends object>(
     element: UnbsElement<P & WithChildren>): ComputeContents {
     let component: Component<P> | null = null;
-    let contents: UnbsNode = null;
-    const messages: Message[] = [];
+    const ret = new ComputeContents();
     let doClone = false;
     let isPrim = false;
 
@@ -52,7 +67,7 @@ function computeContentsNoOverride<P extends object>(
     };
 
     try {
-        contents = (element.componentType as FunctionComponentTyp<P>)(props);
+        ret.contents = (element.componentType as FunctionComponentTyp<P>)(props);
     } catch (e) {
         if (e instanceof TypeError &&
             /Class constructor .* cannot be invoked/.test(e.message)) {
@@ -69,7 +84,7 @@ function computeContentsNoOverride<P extends object>(
         const isAbs = isAbstract(component);
         isPrim = isPrimitive(component);
         if (isAbs) {
-            messages.push({
+            ret.messages.push({
                 type: MessageType.warning,
                 content: `Component ${element.componentType.name} is ` +
                     `abstract and has no build function`
@@ -79,10 +94,10 @@ function computeContentsNoOverride<P extends object>(
             doClone = true;
         } else {
             try {
-                contents = component.build();
+                ret.contents = component.build();
             } catch (e) {
                 if (e instanceof MustReplaceError) {
-                    messages.push({
+                    ret.messages.push({
                         type: MessageType.warning,
                         content: `Component ${element.componentType.name} ` +
                             `cannot be built with current props ` +
@@ -93,26 +108,20 @@ function computeContentsNoOverride<P extends object>(
                     throw e;
                 }
             }
+            if (component._cleanup) {
+                ret.cleanups.push(() =>
+                    component && component._cleanup && component._cleanup());
+            }
         }
     }
 
     if (doClone) {
-        if (element.props.children != null) {
-            return {
-                wasPrimitive: isPrim,
-                contents: cloneElement(element, {}, ...element.props.children),
-                messages,
-            };
-        } else {
-            return {
-                wasPrimitive: isPrim,
-                contents: cloneElement(element, {}),
-                messages,
-            };
-        }
+        ret.wasPrimitive = isPrim;
+        ret.contents = (element.props.children != null) ?
+            cloneElement(element, {}, ...element.props.children) :
+            cloneElement(element, {});
     }
-
-    return { wasPrimitive: false, contents, messages };
+    return ret;
 }
 
 function findOverride(styles: css.StyleList, path: UnbsElement[]) {
@@ -131,14 +140,14 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
 function computeContents(
     path: UnbsElement[],
     styles: css.StyleList,
-    options: BuildOptionsReq): BuildOutput {
+    options: BuildOptionsReq): ComputeContents {
 
+    const out = new ComputeContents();
     const overrideFound = findOverride(styles, path);
     const element = path[path.length - 1];
-    const messages: Message[] = [];
     const noOverride = () => {
         const ret = computeContentsNoOverride(element);
-        messages.push(...ret.messages);
+        out.combine(ret);
         return ret.contents;
     };
 
@@ -155,21 +164,28 @@ function computeContents(
         const ret = computeContentsNoOverride(element);
         wasPrimitive = ret.wasPrimitive;
         newElem = ret.contents;
-        messages.push(...ret.messages);
+        out.combine(ret);
     }
 
     if (!wasPrimitive) options.recorder({ type: "step", oldElem: element, newElem, style });
-    return { contents: newElem, messages };
+    out.contents = newElem;
+    return out;
 }
 
 function mountAndBuildComponent(
     path: UnbsElement[],
     styles: css.StyleList,
-    options: BuildOptionsReq): BuildOutput {
+    options: BuildOptionsReq): ComputeContents {
 
     const out = computeContents(path, styles, options);
 
     if (out.contents != null) {
+        if (Array.isArray(out.contents)) {
+            const comp = path[path.length - 1].componentType;
+            throw new Error(`Component build for ${comp.name} returned an ` +
+                `array. Components must return a single root element when ` +
+                `built.`);
+        }
         if (isPrimitive(out.contents.componentType.prototype)) {
             return out;
         }
@@ -180,11 +196,10 @@ function mountAndBuildComponent(
         const newPath = path.slice(0, -1);
         newPath.push(out.contents);
         const ret = mountAndBuildComponent(newPath, styles, options);
-        out.messages.push(...ret.messages);
-        return {...ret, messages: out.messages};
-    } else {
-        return out;
+        out.combine(ret);
+        out.contents = ret.contents;
     }
+    return out;
 }
 
 function notNull(x: any): boolean {
@@ -242,41 +257,37 @@ function pathBuild(
         throw error;
     }
     options.recorder({ type: "done", root: ret.contents });
-    return ret;
+    return {
+        contents: ret && ret.contents,
+        messages: (ret && ret.messages) || [],
+    };
 }
 
 function realBuild(
     path: UnbsElement[],
     styles: css.StyleList,
-    options: BuildOptionsReq): BuildOutput {
+    options: BuildOptionsReq): ComputeContents {
 
-    if (options.depth === 0) return { contents: path[0], messages: [] };
+    let out = new ComputeContents();
 
-    const oldElem = path[path.length - 1];
-    const { contents: newRoot, messages } = mountAndBuildComponent(path, styles, options);
-    options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
-
-    if (newRoot == null) {
-        return {
-            contents: newRoot,
-            messages
-        };
+    if (options.depth === 0) {
+        out.contents = path[0];
+        return out;
     }
 
-    if (atDepth(options, path.length)) {
-        return {
-            contents: newRoot,
-            messages
-        };
+    const oldElem = path[path.length - 1];
+    out = mountAndBuildComponent(path, styles, options);
+    const newRoot = out.contents;
+    options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
+
+    if (newRoot == null || atDepth(options, path.length)) {
+        return out;
     }
 
     const children = newRoot.props.children;
     let newChildren: any = null;
     if (children == null) {
-        return {
-            contents: newRoot,
-            messages
-        };
+        return out;
     }
 
     //FIXME(manishv) Make this use an explicit stack
@@ -294,7 +305,8 @@ function realBuild(
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
             const ret = realBuild([...path, child], styles, options);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
-            messages.push(...ret.messages);
+            ret.cleanup(); // Do lower level cleanups before combining msgs
+            out.combine(ret);
             return ret.contents;
         } else {
             return child;
@@ -303,8 +315,6 @@ function realBuild(
 
     newChildren = newChildren.filter(notNull);
 
-    return {
-        contents: cloneElement(newRoot, {}, ...newChildren),
-        messages
-    };
+    out.contents = cloneElement(newRoot, {}, ...newChildren);
+    return out;
 }

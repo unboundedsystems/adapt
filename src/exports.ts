@@ -32,3 +32,7 @@ export {
 
 export * from "./dom_build_data_recorder";
 export * from "./error";
+
+export {
+    createContext,
+} from "./context";
