@@ -4,9 +4,9 @@ import Compute, { ComputeProps } from "../../ulib/Compute";
 import Container, { ContainerProps } from "../../ulib/Container";
 import DockerHost, { DockerHostProps } from "../../ulib/DockerHost";
 
-import LocalCompute from "../../ulib/deploy/local/LocalCompute";
-import LocalContainer from "../../ulib/deploy/local/LocalContainer";
-import LocalDockerHost from "../../ulib/deploy/local/LocalDockerHost";
+import LocalCompute from "../../ulib/cloud/local/LocalCompute";
+import LocalContainer from "../../ulib/cloud/local/LocalContainer";
+import LocalDockerHost from "../../ulib/cloud/local/LocalDockerHost";
 
 const localStyle =
     <Style>

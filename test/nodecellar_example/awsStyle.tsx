@@ -4,10 +4,10 @@ import Compute, { ComputeProps } from "../../ulib/Compute";
 import Container, { ContainerProps } from "../../ulib/Container";
 import DockerHost, { DockerHostProps } from "../../ulib/DockerHost";
 
-import { AwsCredentialsProps, awsDefaultCredentialsContext } from "../../ulib/deploy/aws/credentials";
-import EC2Instance from "../../ulib/deploy/aws/EC2Instance";
-import LocalContainer from "../../ulib/deploy/local/LocalContainer";
-import LocalDockerHost from "../../ulib/deploy/local/LocalDockerHost";
+import { AwsCredentialsProps, awsDefaultCredentialsContext } from "../../ulib/cloud/aws/credentials";
+import EC2Instance from "../../ulib/cloud/aws/EC2Instance";
+import LocalContainer from "../../ulib/cloud/local/LocalContainer";
+import LocalDockerHost from "../../ulib/cloud/local/LocalDockerHost";
 
 const creds: AwsCredentialsProps = {
     awsAccessKeyId: "access key",
