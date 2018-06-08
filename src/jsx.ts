@@ -33,6 +33,10 @@ export abstract class Component<Props> {
     abstract build(): UnbsNode;
 }
 
+export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
+    Comp extends tySup.Constructor<Component<infer CProps>> ? CProps :
+    never;
+
 export abstract class PrimitiveComponent<Props>
     extends Component<Props> {
 
@@ -87,7 +91,7 @@ export interface AnyProps {
 }
 
 export interface WithChildren {
-    children?: any[];
+    children?: UnbsNode | UnbsNode[];
 }
 
 export type GenericComponent = Component<AnyProps>;
@@ -125,9 +129,13 @@ export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
         }
 
         this.componentInstance.updateState(state);
-        if (this.props.children == null) return;
+        if (this.props.children == null ||
+            !Array.isArray(this.props.children)) {
+            return;
+        }
 
         for (const child of this.props.children) {
+            if (child == null) continue;
             if (isPrimitiveElement(child)) {
                 child.updateState(state);
             }
@@ -179,4 +187,12 @@ export function cloneElement(
     } else {
         return new UnbsElementImpl(element.componentType, newProps, children);
     }
+}
+
+export function childrenToArray(
+    propsChildren: UnbsNode | UnbsNode[] | undefined): UnbsElement[] {
+    if (propsChildren == null) return [];
+    if (!Array.isArray(propsChildren)) return [propsChildren];
+
+    return propsChildren.filter((c) => c != null) as UnbsElement[];
 }

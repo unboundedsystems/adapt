@@ -1,4 +1,6 @@
-import unbs, { Component, Group } from "../../src";
+import unbs, { Component } from "../../src";
+import Compute from "../../ulib/Compute";
+import DockerHost from "../../ulib/DockerHost";
 import NodecellarContainer from "./AppContainer";
 import MongoContainer from "./MongoContainer";
 
@@ -16,14 +18,15 @@ export default class Nodecellar extends Component<Props> {
         webStatusPort: 8081,
         mongoHostname: "mongo",
         mongoPort: 27017,
-        dockerHost: "unix:///var/run/docker.sock",
     };
 
     build() {
         const props = this.props;
 
         return (
-            <Group>
+            <Compute>
+                <DockerHost />
+
                 <MongoContainer
                     name={props.mongoHostname}
                     mongoPort={props.mongoPort}
@@ -37,7 +40,7 @@ export default class Nodecellar extends Component<Props> {
                     mongoPort={props.mongoPort!}
                     dockerHost={props.dockerHost!}
                 />
-            </Group>
+            </Compute>
         );
     }
 }

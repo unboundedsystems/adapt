@@ -3,6 +3,7 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    childrenToArray,
     ClassComponentTyp,
     cloneElement,
     Component,
@@ -117,9 +118,8 @@ function computeContentsNoOverride<P extends object>(
 
     if (doClone) {
         ret.wasPrimitive = isPrim;
-        ret.contents = (element.props.children != null) ?
-            cloneElement(element, {}, ...element.props.children) :
-            cloneElement(element, {});
+        ret.contents =
+            cloneElement(element, {}, ...childrenToArray(element.props.children));
     }
     return ret;
 }

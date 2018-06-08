@@ -25,7 +25,7 @@ export interface Links {
     [internalName: string]: string;
 }
 
-export interface Props {
+export interface ContainerProps {
     name: string;
     dockerHost: string;
     image: ImageId;
@@ -39,7 +39,7 @@ export interface Props {
     links?: Links;
 }
 
-export default abstract class Container extends Component<Props> {
+export default abstract class Container extends Component<ContainerProps> {
     static defaultProps = {
         ports: [],
         stdinOpen: false,

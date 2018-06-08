@@ -8,7 +8,9 @@ export {
     UnbsNode,
     AnyProps,
     isElement,
-    isPrimitiveElement
+    isPrimitiveElement,
+    WithChildren,
+    PropsType,
 } from "./jsx";
 
 export {
@@ -34,5 +36,10 @@ export * from "./dom_build_data_recorder";
 export * from "./error";
 
 export {
+    Context,
     createContext,
 } from "./context";
+
+export {
+    Constructor,
+} from "./type_support";

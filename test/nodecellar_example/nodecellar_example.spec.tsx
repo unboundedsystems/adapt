@@ -16,7 +16,9 @@ import unbs, {
     UnbsElement,
     UnbsNode,
 } from "../../src";
-import LocalStyle from "./LocalStyle";
+
+import awsStyle from "./awsStyle";
+import localStyle from "./localStyle";
 import Nodecellar from "./Nodecellar";
 
 interface BuildState {
@@ -50,6 +52,8 @@ function buildLoop(initialState: any, root: UnbsElement, styles?: UnbsElement): 
         state = ld.cloneDeep(initialState);
         if ((out.contents != null) && isPrimitiveElement(out.contents)) {
             out.contents.updateState(state);
+            // tslint:disable-next-line:no-console
+            console.log("\n\nState:\n" + JSON.stringify(state, null, 2));
         }
     } while (!ld.isEqual(oldState, state));
     return {
@@ -72,7 +76,9 @@ function checkDom(dom: UnbsElement | null, xmlFilename: string) {
 
 describe("NodeCellar", () => {
 
-    it("Should build without style", () => {
+    it("Should build without style", function() {
+        // tslint:disable-next-line:no-console
+        console.log("TEST: ", this.test.title);
         const result = buildLoop({}, <Nodecellar />);
         checkDom(result.dom, "nodecellar_nostyle.xml");
 
@@ -83,11 +89,21 @@ describe("NodeCellar", () => {
         }
     });
 
-    it("Should build local style", () => {
-        const result = buildLoop({}, <Nodecellar />, LocalStyle);
+    it("Should build local style", function() {
         // tslint:disable-next-line:no-console
-        console.log(result.dom);
+        console.log("TEST: ", this.test.title);
+
+        const result = buildLoop({}, <Nodecellar />, localStyle);
         checkDom(result.dom, "nodecellar_local.xml");
+        result.messages.length.should.equal(0);
+    });
+
+    it("Should build AWS style", function() {
+        // tslint:disable-next-line:no-console
+        console.log("TEST: ", this.test.title);
+
+        const result = buildLoop({}, <Nodecellar />, awsStyle);
+        checkDom(result.dom, "nodecellar_aws.xml");
         result.messages.length.should.equal(0);
     });
 });

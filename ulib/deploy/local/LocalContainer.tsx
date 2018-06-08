@@ -1,5 +1,5 @@
 import { PrimitiveComponent } from "../../../src";
-import { Props } from "../../Container";
+import { ContainerProps } from "../../Container";
 
-export default class LocalContainer extends PrimitiveComponent<Props> {
+export default class LocalContainer extends PrimitiveComponent<ContainerProps> {
 }
