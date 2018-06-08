@@ -63,7 +63,7 @@ function buildLoop(initialState: any, root: UnbsElement, styles?: UnbsElement): 
      };
 }
 
-const outputDir = `${__dirname}/output`.replace(/\/dist/, "");
+const outputDir = `${__dirname}/results`.replace(/\/dist/, "");
 
 function checkDom(dom: UnbsElement | null, xmlFilename: string) {
     should(dom).not.be.Null();
@@ -83,9 +83,16 @@ describe("NodeCellar", () => {
         checkDom(result.dom, "nodecellar_nostyle.xml");
 
         // Make sure there are two warning messages in the build
-        result.messages.length.should.equal(2);
+        result.messages.length.should.equal(4);
         for (const m of result.messages) {
-            should(/Component Container is abstract/.test(m.content)).be.True();
+            switch (true) {
+                case /Component Container is abstract/.test(m.content):
+                case /Component Compute is abstract/.test(m.content):
+                case /Component DockerHost cannot be built/.test(m.content):
+                    continue;
+                default:
+                    throw new Error(`build message not expected: ${m.content}`);
+            }
         }
     });
 

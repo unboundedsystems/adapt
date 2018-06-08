@@ -1,0 +1,65 @@
+<unbs>
+  <Group>
+    <EC2InstanceNC>
+      <__props__>
+        <prop name="awsCredentials">{
+  "awsAccessKeyId": "access key",
+  "awsSecretAccessKey": "secret key"
+}</prop>
+        <prop name="imageId">"someimage"</prop>
+        <prop name="instanceType">"t2.micro"</prop>
+        <prop name="name">"docker-host"</prop>
+        <prop name="regionName">"us-west-2"</prop>
+        <prop name="cssMatched">true</prop>
+      </__props__>
+      <LocalDockerHost/>
+      <LocalContainer name="mongo">
+        <__props__>
+          <prop name="image">{
+  "repository": "mongo",
+  "tag": "3.1"
+}</prop>
+          <prop name="ports">[
+  27017,
+  28017
+]</prop>
+          <prop name="stdinOpen">true</prop>
+          <prop name="tty">true</prop>
+          <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
+          <prop name="portBindings">{
+  "27017": 27017,
+  "28017": 8081
+}</prop>
+          <prop name="cssMatched">true</prop>
+        </__props__>
+      </LocalContainer>
+      <LocalContainer>
+        <__props__>
+          <prop name="name">"nodecellar"</prop>
+          <prop name="image">{
+  "repository": "uric/nodecellar"
+}</prop>
+          <prop name="ports">[
+  8080
+]</prop>
+          <prop name="stdinOpen">true</prop>
+          <prop name="tty">true</prop>
+          <prop name="command">"nodejs server.js"</prop>
+          <prop name="environment">{
+  "NODECELLAR_PORT": "8080",
+  "MONGO_PORT": "27017",
+  "MONGO_HOST": "mongo"
+}</prop>
+          <prop name="links">{
+  "mongod": "mongo"
+}</prop>
+          <prop name="portBindings">{
+  "8080": 8080
+}</prop>
+          <prop name="cssMatched">true</prop>
+        </__props__>
+      </LocalContainer>
+    </EC2InstanceNC>
+  </Group>
+</unbs>
+
