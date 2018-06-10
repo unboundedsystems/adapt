@@ -1,8 +1,8 @@
-import { Component, UnbsNode } from "../src";
+import { Component, WithChildren } from "../src";
 
-export interface ComputeProps {
+export interface ComputeProps extends WithChildren {
     name?: string;
-    children?: UnbsNode | UnbsNode[];
+    ip?: string;
 }
 
 export default abstract class Compute extends Component<ComputeProps> {

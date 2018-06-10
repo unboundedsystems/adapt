@@ -2,6 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
+import { StyleRule } from "./css";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -12,9 +13,49 @@ export interface UnbsElement<P = AnyProps> {
     readonly componentType: ComponentType<P>;
 }
 
+class UniqueName {
+    names: Map<string, number> = new Map<string, number>();
+
+    get(name: string): string {
+        let unique = name;
+        let next = this.names.get(name);
+        if (next === undefined) {
+            next = 1;
+        } else {
+            unique += next.toString();
+            next++;
+        }
+        this.names.set(name, next);
+        return unique;
+    }
+}
+
+export class UpdateStateInfo {
+    private path: string[] = [];
+    private names: UniqueName[] = [];
+
+    get nodeName(): string {
+        return this.path.join(".");
+    }
+
+    pathPush(component: Component<AnyProps>) {
+        if (this.names.length <= this.path.length) {
+            this.names.push(new UniqueName());
+        }
+        // TODO: Allow components to make names for themselves
+        const compName = component.constructor.name;
+        const uniqueName = this.names[this.path.length].get(compName);
+        this.path.push(uniqueName);
+    }
+
+    pathPop() {
+        this.path.pop();
+    }
+}
+
 export interface UnbsPrimitiveElement<P> extends UnbsElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
-    updateState(state: any): void;
+    updateState(state: any, info: UpdateStateInfo): void;
 }
 
 export type UnbsNode = UnbsElement<AnyProps> | null;
@@ -40,7 +81,7 @@ export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
 export abstract class PrimitiveComponent<Props>
     extends Component<Props> {
 
-    updateState(_state: any) { return; }
+    updateState(_state: any, _info: UpdateStateInfo) { return; }
 
     build(): never {
         throw new Error("Attempt to call build for primitive component: " +
@@ -96,14 +137,31 @@ export interface WithChildren {
 
 export type GenericComponent = Component<AnyProps>;
 
+/**
+ * Keep track of which rules have matched for a set of props so that in the
+ * typical case, the same rule won't match the same component instance more
+ * than once.
+ *
+ * @interface MatchProps
+ */
+export interface MatchProps {
+    matched?: Set<StyleRule>;
+    stop?: boolean;
+}
+export const $cssMatch = Symbol.for("$cssMatch");
+export interface WithMatchProps {
+    [$cssMatch]?: MatchProps;
+}
+
 export class UnbsElementImpl<Props> implements UnbsElement {
-    readonly props: Props & WithChildren;
+    readonly props: Props & WithChildren & WithMatchProps;
 
     constructor(
         readonly componentType: ComponentType<Props>,
         props: Props,
         children: any[]) {
         this.props = props;
+        this.props[$cssMatch] = {}; // Add before freezing
 
         if (children.length > 0) {
             this.props.children = children;
@@ -123,22 +181,27 @@ export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
         super(componentType, props, children);
     }
 
-    updateState(state: any) {
+    updateState(state: any, info: UpdateStateInfo) {
         if (this.componentInstance == null) {
             this.componentInstance = new this.componentType(this.props);
         }
 
-        this.componentInstance.updateState(state);
-        if (this.props.children == null ||
-            !Array.isArray(this.props.children)) {
-            return;
-        }
-
-        for (const child of this.props.children) {
-            if (child == null) continue;
-            if (isPrimitiveElement(child)) {
-                child.updateState(state);
+        info.pathPush(this.componentInstance);
+        try {
+            this.componentInstance.updateState(state, info);
+            if (this.props.children == null ||
+                !Array.isArray(this.props.children)) {
+                return;
             }
+
+            for (const child of this.props.children) {
+                if (child == null) continue;
+                if (isPrimitiveElement(child)) {
+                    child.updateState(state, info);
+                }
+            }
+        } finally {
+            info.pathPop();
         }
     }
 }

@@ -11,6 +11,7 @@ export {
     isPrimitiveElement,
     WithChildren,
     PropsType,
+    UpdateStateInfo,
 } from "./jsx";
 
 export {
@@ -24,6 +25,7 @@ export {
 } from "./dom";
 
 export {
+    concatStyles,
     Style,
     rule
 } from "./css";
@@ -43,3 +45,5 @@ export {
 export {
     Constructor,
 } from "./type_support";
+
+export * from "./utils";

@@ -1,10 +1,11 @@
 <unbs>
-  <LocalCompute>
+  <CloudifyCompute install_agent="false">
     <__props__>
+      <prop name="cloudify_agent">{}</prop>
       <prop name="ip">"127.0.0.1"</prop>
     </__props__>
     <LocalDockerHost/>
-    <LocalContainer name="mongo">
+    <CloudifyContainer name="mongo">
       <__props__>
         <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
         <prop name="environment">{}</prop>
@@ -24,8 +25,8 @@
         <prop name="stdinOpen">true</prop>
         <prop name="tty">true</prop>
       </__props__>
-    </LocalContainer>
-    <LocalContainer>
+    </CloudifyContainer>
+    <CloudifyContainer>
       <__props__>
         <prop name="command">"nodejs server.js"</prop>
         <prop name="environment">{
@@ -49,7 +50,7 @@
         <prop name="stdinOpen">true</prop>
         <prop name="tty">true</prop>
       </__props__>
-    </LocalContainer>
-  </LocalCompute>
+    </CloudifyContainer>
+  </CloudifyCompute>
 </unbs>
 

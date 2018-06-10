@@ -3,9 +3,16 @@
     <DockerHost/>
     <Container name="mongo">
       <__props__>
+        <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
+        <prop name="environment">{}</prop>
         <prop name="image">{
   "repository": "mongo",
   "tag": "3.1"
+}</prop>
+        <prop name="links">{}</prop>
+        <prop name="portBindings">{
+  "27017": 27017,
+  "28017": 8081
 }</prop>
         <prop name="ports">[
   27017,
@@ -13,36 +20,31 @@
 ]</prop>
         <prop name="stdinOpen">true</prop>
         <prop name="tty">true</prop>
-        <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
-        <prop name="portBindings">{
-  "27017": 27017,
-  "28017": 8081
-}</prop>
       </__props__>
     </Container>
     <Container>
       <__props__>
-        <prop name="name">"nodecellar"</prop>
-        <prop name="image">{
-  "repository": "uric/nodecellar"
-}</prop>
-        <prop name="ports">[
-  8080
-]</prop>
-        <prop name="stdinOpen">true</prop>
-        <prop name="tty">true</prop>
         <prop name="command">"nodejs server.js"</prop>
         <prop name="environment">{
   "NODECELLAR_PORT": "8080",
   "MONGO_PORT": "27017",
   "MONGO_HOST": "mongo"
 }</prop>
+        <prop name="image">{
+  "repository": "uric/nodecellar"
+}</prop>
         <prop name="links">{
   "mongod": "mongo"
 }</prop>
+        <prop name="name">"nodecellar"</prop>
         <prop name="portBindings">{
   "8080": 8080
 }</prop>
+        <prop name="ports">[
+  8080
+]</prop>
+        <prop name="stdinOpen">true</prop>
+        <prop name="tty">true</prop>
       </__props__>
     </Container>
   </Compute>

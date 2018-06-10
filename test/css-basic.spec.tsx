@@ -89,3 +89,41 @@ describe("Selector matching", () => {
         </css.Style>, dom, noMatchDom);
     });
 });
+
+describe("concatStyles", () => {
+    it("Should return empty rules", () => {
+        const noRules = <css.Style>{[]}</css.Style>;
+
+        let ret = css.concatStyles();
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+        should(ret.props.children).be.Undefined();
+
+        ret = css.concatStyles(noRules);
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+        should(ret.props.children).be.Undefined();
+    });
+
+    it("Should concat rules", () => {
+        const rule1 =
+            <css.Style>
+                {Foo} {css.rule(() => null)}
+            </css.Style>;
+        const rule2 =
+            <css.Style>
+                {Dummy} {css.rule(() => null)}
+            </css.Style>;
+        const ruleInstance = new css.Rule(() => null);
+
+        const ret = css.concatStyles(rule1, rule2);
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+
+        should(ret.props.children).not.be.Undefined();
+        ret.props.children.should.eql([
+            Foo, " ", ruleInstance,
+            Dummy, " ", ruleInstance,
+        ]);
+    });
+});

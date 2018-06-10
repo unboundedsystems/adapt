@@ -10,14 +10,17 @@ import { resolve } from "path";
 import unbs, {
     build,
     BuildOutput,
+    concatStyles,
     isPrimitiveElement,
     Message,
     serializeDom,
     UnbsElement,
     UnbsNode,
+    UpdateStateInfo,
 } from "../../src";
 
 import awsStyle from "./awsStyle";
+import cloudifyStyle from "./cloudifyStyle";
 import localStyle from "./localStyle";
 import Nodecellar from "./Nodecellar";
 
@@ -51,7 +54,8 @@ function buildLoop(initialState: any, root: UnbsElement, styles?: UnbsElement): 
         oldState = state;
         state = ld.cloneDeep(initialState);
         if ((out.contents != null) && isPrimitiveElement(out.contents)) {
-            out.contents.updateState(state);
+            const info = new UpdateStateInfo();
+            out.contents.updateState(state, info);
             // tslint:disable-next-line:no-console
             console.log("\n\nState:\n" + JSON.stringify(state, null, 2));
         }
@@ -111,6 +115,17 @@ describe("NodeCellar", () => {
 
         const result = buildLoop({}, <Nodecellar />, awsStyle);
         checkDom(result.dom, "nodecellar_aws.xml");
+        result.messages.length.should.equal(0);
+    });
+
+    it("Should build local, deploy=cloudify", function() {
+        // tslint:disable-next-line:no-console
+        console.log("TEST: ", this.test.title);
+
+        const style = concatStyles(localStyle, cloudifyStyle);
+
+        const result = buildLoop({}, <Nodecellar />, style);
+        checkDom(result.dom, "nodecellar_cfylocal.xml");
         result.messages.length.should.equal(0);
     });
 });

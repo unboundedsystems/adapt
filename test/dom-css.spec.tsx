@@ -19,7 +19,7 @@ describe("DOM CSS Build Tests", () => {
 
         should(unbs).not.Null();
         should(unbs.isElement(dom)).True();
-        should(dom).equal(replace);
+        should(dom).eql(replace);
     });
 
     it("Should replace and simplify primitve", () => {

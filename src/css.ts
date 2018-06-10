@@ -10,11 +10,8 @@ export interface StyleBuildInfo {
     origBuild: jsx.SFC;
     origElement: any;
 }
-export interface OverrideProps {
-    cssMatched?: boolean;
-}
 export type BuildOverride<P = jsx.AnyProps> =
-    (props: P & OverrideProps, info: StyleBuildInfo)  => jsx.UnbsNode;
+    (props: P, info: StyleBuildInfo)  => jsx.UnbsNode;
 
 export interface StyleRule {
     selector: string;
@@ -230,4 +227,38 @@ export class Style extends jsx.Component<StyleProps> {
     build(): null {
         return null; //Don't output anything for styles if it makes it to DOM
     }
+}
+
+/**
+ * Concatenate all of the rules of the given Style elements
+ * together into a single Style element that contains all of the
+ * rules. Always returns a new Style element and does not modify
+ * the Style element parameters.
+ *
+ * @export
+ * @param {...jsx.UnbsElement[]} styles
+ *   Zero or more Style elements, each containing style rules.
+ * @returns {jsx.UnbsElement}
+ *   A new Style element containing the concatenation of all
+ *   of the rules from the passed in Style elements.
+ */
+export function concatStyles(
+    ...styles: jsx.UnbsElement[]
+): jsx.UnbsElement {
+
+    const rules: Rule[] = [];
+    for (const styleElem of styles) {
+        if (!isStylesComponent(styleElem.componentType)) {
+            throw new Error("Invalid Styles element: " +
+                            util.inspect(styleElem));
+        }
+        const kids = styleElem.props.children;
+        if (kids == null) continue;
+        if (!Array.isArray(kids)) {
+            throw new Error(`Invalid type for children of a Style ` +
+                            `element: ${typeof kids}`);
+        }
+        rules.push(...styleElem.props.children);
+    }
+    return jsx.createElement(Style, {}, rules);
 }

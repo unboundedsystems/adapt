@@ -3,6 +3,7 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    $cssMatch,
     childrenToArray,
     ClassComponentTyp,
     cloneElement,
@@ -14,6 +15,7 @@ import {
     UnbsElementImpl,
     UnbsNode,
     WithChildren,
+    WithMatchProps,
 } from "./jsx";
 
 import {
@@ -119,13 +121,46 @@ function computeContentsNoOverride<P extends object>(
     return ret;
 }
 
+function getCssMatched(props: WithMatchProps) {
+    let m = props[$cssMatch];
+    if (!m) {
+        m = props[$cssMatch] = {};
+    }
+    return m;
+}
+function hasMatched(props: WithMatchProps, rule: css.StyleRule) {
+    const m = getCssMatched(props);
+    return (m.matched && m.matched.has(rule)) === true;
+}
+function match(props: WithMatchProps, rule: css.StyleRule) {
+    const m = getCssMatched(props);
+    if (!m.matched) m.matched = new Set<css.StyleRule>();
+    m.matched.add(rule);
+}
+/**
+ * User API function that can be used in a style rule build function
+ * to mark the props such that NO additional style rule matches will
+ * take place for this set of props.
+ *
+ * @export
+ * @param {WithMatchProps} props
+ */
+export function finalMatch(props: WithMatchProps) {
+    const m = getCssMatched(props);
+    m.stop = true;
+}
+function isFinal(props: WithMatchProps) {
+    const m = props[$cssMatch];
+    return (m && m.stop) === true;
+}
+
 function findOverride(styles: css.StyleList, path: UnbsElement[]) {
     const element = path[path.length - 1];
-    if (element.props.cssMatched === true) {
-        return null;
-    }
+    if (isFinal(element.props)) return null;
+
     for (const style of styles.reverse()) {
-        if (style.match(path)) {
+        if (!hasMatched(element.props, style) && style.match(path)) {
+            match(element.props, style);
             return { style, override: style.sfc };
         }
     }
@@ -153,7 +188,7 @@ function computeContents(
         const override = overrideFound.override;
         style = overrideFound.style;
         newElem = override(
-            { ...element.props, cssMatched: true },
+            element.props,
             { origBuild: noOverride, origElement: element });
     } else {
         const ret = computeContentsNoOverride(element);
@@ -181,11 +216,7 @@ function mountAndBuildComponent(
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-        if (isPrimitive(out.contents.componentType.prototype)) {
-            return out;
-        }
         if (path.length > 0 && ld.isEqual(out.contents, path[path.length - 1])) {
-            // Contents didn't change, typically due to an abstract component
             return out;
         }
         const newPath = path.slice(0, -1);
