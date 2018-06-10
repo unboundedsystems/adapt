@@ -38,8 +38,7 @@ function collectProps(elem: UnbsElement) {
     const props = elem.props;
     const shortProps: PreparedProps = {};
     let longProps: PreparedProps | null = null;
-    for (const propName in props) {
-        if (!props.hasOwnProperty(propName)) continue;
+    for (const propName of Object.keys(props).sort()) {
         if (propName === "children") continue;
 
         const prop = props[propName];
