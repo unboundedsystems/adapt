@@ -60,20 +60,15 @@ function computeContentsNoOverride<P extends object>(
     let doClone = false;
     let isPrim = false;
 
-    // The 'as any' below is due to open TS bugs/PR:
-    // https://github.com/Microsoft/TypeScript/pull/13288
-    const props: P = {
-        ...element.componentType.defaultProps as any,
-        ...element.props as any
-    };
-
     try {
-        ret.contents = (element.componentType as FunctionComponentTyp<P>)(props);
+        ret.contents =
+            (element.componentType as FunctionComponentTyp<P>)(element.props);
     } catch (e) {
         if (e instanceof TypeError &&
             /Class constructor .* cannot be invoked/.test(e.message)) {
             // element.componentType is a class, not a function.
-            component = new (element.componentType as ClassComponentTyp<P>)(props);
+            component =
+                new (element.componentType as ClassComponentTyp<P>)(element.props);
         } else if (e instanceof MustReplaceError) {
             doClone = true;
         } else {

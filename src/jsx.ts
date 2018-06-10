@@ -160,7 +160,12 @@ export function createElement<Props>(
         tySup.ExcludeInterface<Props, tySup.Children<any>>;
 
     //props===null PropsNoChildren == {}
-    const fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    if (ctor.defaultProps) {
+        // The 'as any' below is due to open TS bugs/PR:
+        // https://github.com/Microsoft/TypeScript/pull/13288
+        fixedProps = { ...ctor.defaultProps as any, ...props as any };
+    }
     const flatChildren: any[] = ld.flatten(children);
     if (isPrimitive(ctor.prototype)) {
         return new UnbsPrimitiveElementImpl(
