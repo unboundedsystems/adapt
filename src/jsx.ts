@@ -134,6 +134,10 @@ export interface AnyProps {
 export interface WithChildren {
     children?: UnbsNode | UnbsNode[];
 }
+// Used internally for fully validated children array
+export interface WithChildrenArray {
+    children: UnbsElement[];
+}
 
 export type GenericComponent = Component<AnyProps>;
 
@@ -153,19 +157,24 @@ export interface WithMatchProps {
     [$cssMatch]?: MatchProps;
 }
 
-export class UnbsElementImpl<Props> implements UnbsElement {
-    readonly props: Props & WithChildren & WithMatchProps;
+export class UnbsElementImpl<Props> implements UnbsElement<Props> {
+    readonly props: Props & WithChildrenArray & Required<WithMatchProps>;
 
     constructor(
         readonly componentType: ComponentType<Props>,
         props: Props,
         children: any[]) {
-        this.props = props;
-        this.props[$cssMatch] = {}; // Add before freezing
+        this.props = {
+            ...props as any,
+            [$cssMatch]: {}
+        };
+        // Children passed as explicit parameter replace any on props
+        if (children.length > 0) this.props.children = children;
 
-        if (children.length > 0) {
-            this.props.children = children;
-        }
+        // Validate and flatten children. Ensure that children is always
+        // an array of non-null elements
+        this.props.children = ld.flatten(childrenToArray(this.props.children));
+
         Object.freeze(this.props);
     }
 }
@@ -227,16 +236,18 @@ export function createElement<Props>(
     if (ctor.defaultProps) {
         // The 'as any' below is due to open TS bugs/PR:
         // https://github.com/Microsoft/TypeScript/pull/13288
-        fixedProps = { ...ctor.defaultProps as any, ...props as any };
+        fixedProps = {
+            ...ctor.defaultProps as any,
+            ...props as any
+        };
     }
-    const flatChildren: any[] = ld.flatten(children);
     if (isPrimitive(ctor.prototype)) {
         return new UnbsPrimitiveElementImpl(
             ctor as PrimitiveClassComponentTyp<Props>,
             fixedProps,
-            flatChildren);
+            children);
     } else {
-        return new UnbsElementImpl(ctor, fixedProps, flatChildren);
+        return new UnbsElementImpl(ctor, fixedProps, children);
     }
 }
 
