@@ -12,10 +12,12 @@
     "node_modules"
   ],
   "compilerOptions": {
+    "alwaysStrict": true,
     "baseUrl": ".",
     "declaration": true,  
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
     "jsx":"react",
     "jsxFactory": "unbs.createElement",
     "lib": [
@@ -23,7 +25,10 @@
     ],
     "module": "commonjs",
     "moduleResolution": "node",
+    "noEmitOnError": true,
     "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "dist",
