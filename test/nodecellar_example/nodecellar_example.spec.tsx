@@ -15,7 +15,7 @@ import unbs, {
     Message,
     serializeDom,
     UnbsElement,
-    UnbsNode,
+    UnbsElementOrNull,
     UpdateStateInfo,
 } from "../../src";
 
@@ -25,7 +25,7 @@ import localStyle from "./localStyle";
 import Nodecellar from "./Nodecellar";
 
 interface BuildState {
-    dom: UnbsNode;
+    dom: UnbsElementOrNull;
     state: any;
     messages: Message[];
 }

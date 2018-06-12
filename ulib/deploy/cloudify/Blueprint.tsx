@@ -44,7 +44,7 @@ export function getBlueprintState(state: any): BlueprintState {
         throw new Error(`Unable to get blueprint from state of ${typeof state}`);
     }
     if (!state.cloudifyBlueprint) state.cloudifyBlueprint = {};
-    return new BlueprintState (state.cloudifyBlueprint);
+    return new BlueprintState(state.cloudifyBlueprint);
 }
 
 export interface Nodes {

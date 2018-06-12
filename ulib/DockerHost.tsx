@@ -2,7 +2,7 @@ import unbs, {
     Component,
     MustReplaceError,
     PrimitiveComponent,
-    UnbsNode
+    UnbsElementOrNull
 } from "../src";
 
 export interface ExternalDockerHostProps {
@@ -20,7 +20,7 @@ export interface DockerHostProps {
 }
 
 export default class DockerHost extends Component<DockerHostProps> {
-    build(): UnbsNode {
+    build(): UnbsElementOrNull {
         if (this.props.dockerHost) {
             return <ExternalDockerHost dockerHost={this.props.dockerHost} />;
         }

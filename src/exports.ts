@@ -5,7 +5,7 @@ export {
     Component,
     PrimitiveComponent,
     UnbsElement,
-    UnbsNode,
+    UnbsElementOrNull,
     AnyProps,
     isElement,
     isPrimitiveElement,

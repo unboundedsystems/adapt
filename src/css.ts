@@ -11,7 +11,7 @@ export interface StyleBuildInfo {
     origElement: any;
 }
 export type BuildOverride<P = jsx.AnyProps> =
-    (props: P, info: StyleBuildInfo)  => jsx.UnbsNode;
+    (props: P, info: StyleBuildInfo)  => jsx.UnbsElementOrNull;
 
 export interface StyleRule {
     selector: string;

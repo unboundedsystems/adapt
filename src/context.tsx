@@ -1,13 +1,17 @@
 import unbs, { Group } from "./index";
-import { Component, ComponentType, UnbsNode } from "./jsx";
+import {
+    Component,
+    ComponentType,
+    UnbsElementOrNull,
+    WithChildren,
+} from "./jsx";
 
-export interface ProviderProps<T> {
+export interface ProviderProps<T> extends WithChildren {
     value: T;
-    children?: UnbsNode | UnbsNode[];
 }
 
 export interface ConsumerProps<T> {
-    children: (value: T) => UnbsNode;
+    children: (value: T) => UnbsElementOrNull;
 }
 
 export type Provider<T> = ComponentType<ProviderProps<T>>;
@@ -35,7 +39,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
     }
 
     class ProviderImpl extends Component<ProviderProps<T>> {
-        build(): UnbsNode {
+        build(): UnbsElementOrNull {
             providerPush(this);
             return this.props.children ?
                 <Group>{this.props.children}</Group> :

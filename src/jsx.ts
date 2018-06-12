@@ -58,7 +58,7 @@ export interface UnbsPrimitiveElement<P> extends UnbsElement<P> {
     updateState(state: any, info: UpdateStateInfo): void;
 }
 
-export type UnbsNode = UnbsElement<AnyProps> | null;
+export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
 
 export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
@@ -71,7 +71,7 @@ export abstract class Component<Props> {
 
     constructor(readonly props: Props) { }
 
-    abstract build(): UnbsNode;
+    abstract build(): UnbsElementOrNull;
 }
 
 export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
@@ -94,7 +94,7 @@ export function isPrimitive(component: Component<any>):
     return component instanceof PrimitiveComponent;
 }
 
-export type SFC = (props: AnyProps) => UnbsNode;
+export type SFC = (props: AnyProps) => UnbsElementOrNull;
 
 export function isComponent(func: SFC | Component<any>):
     func is Component<any> {
@@ -113,7 +113,7 @@ export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
-    (props: P): UnbsNode;
+    (props: P): UnbsElementOrNull;
 }
 export interface ClassComponentTyp<P>  extends ComponentStatic<P> {
     new (props: P): Component<P>;
@@ -132,7 +132,7 @@ export interface AnyProps {
 }
 
 export interface WithChildren {
-    children?: UnbsNode | UnbsNode[];
+    children?: UnbsElementOrNull | UnbsElementOrNull[];
 }
 // Used internally for fully validated children array
 export interface WithChildrenArray {
@@ -269,7 +269,7 @@ export function cloneElement(
 }
 
 export function childrenToArray(
-    propsChildren: UnbsNode | UnbsNode[] | undefined): UnbsElement[] {
+    propsChildren: UnbsElementOrNull | UnbsElementOrNull[] | undefined): UnbsElement[] {
     if (propsChildren == null) return [];
     if (!Array.isArray(propsChildren)) return [propsChildren];
 

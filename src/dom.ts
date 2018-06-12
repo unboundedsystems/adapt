@@ -13,7 +13,7 @@ import {
     isPrimitive,
     UnbsElement,
     UnbsElementImpl,
-    UnbsNode,
+    UnbsElementOrNull,
     WithChildren,
     WithMatchProps,
 } from "./jsx";
@@ -36,7 +36,7 @@ export interface Message {
 type CleanupFunc = () => void;
 class ComputeContents {
     wasPrimitive = false;
-    contents: UnbsNode = null;
+    contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
 
@@ -182,7 +182,7 @@ function computeContents(
     };
 
     let wasPrimitive = false;
-    let newElem: UnbsNode = null;
+    let newElem: UnbsElementOrNull = null;
     let style: css.StyleRule | undefined;
     if (overrideFound != null) {
         const override = overrideFound.override;
@@ -249,7 +249,7 @@ const defaultBuildOptions = {
 type BuildOptionsReq = Required<BuildOptions>;
 
 export interface BuildOutput {
-    contents: UnbsNode;
+    contents: UnbsElementOrNull;
     messages: Message[];
 }
 export function build(root: UnbsElement,
