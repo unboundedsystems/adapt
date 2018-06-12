@@ -12,23 +12,26 @@
     "node_modules"
   ],
   "compilerOptions": {
-    "target": "es6",
-    "jsx":"react",
-    "jsxFactory": "unbs.createElement",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "baseUrl": ".",
     "declaration": true,  
-    "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "jsx":"react",
+    "jsxFactory": "unbs.createElement",
+    "lib": [
+      "es6"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
     "noImplicitAny": true,
-    "strictNullChecks": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "css-what": [ "./types/css-what" ]
-    }
+    },
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es6",
   }
 }
