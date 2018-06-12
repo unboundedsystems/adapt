@@ -1,6 +1,6 @@
 import {
+    filterProperties,
     PrimitiveComponent,
-    propertyFilter,
     UpdateStateInfo
 } from "../../../src";
 
@@ -15,14 +15,14 @@ export default class CloudifyContainer
 
     updateState(state: any, info: UpdateStateInfo) {
         const createParams: any =
-            propertyFilter(this.props,
+            filterProperties(this.props,
                            ["ports", "tty", "command", "environment"]);
         createParams.stdin_open = this.props.stdinOpen;
 
         const bp = getBlueprintState(state);
         bp.nodeTemplate(info.nodeName, {
             type: "cloudify.docker.Container",
-            properties: propertyFilter(this.props, [ "name", "image"]),
+            properties: filterProperties(this.props, [ "name", "image"]),
             interfaces: {
                 "cloudify.interfaces.lifecycle": {
                     create: {

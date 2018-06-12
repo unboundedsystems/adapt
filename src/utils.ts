@@ -5,7 +5,7 @@
  * @param propList An array of names of properties to copy.
  * @returns The newly created object that contains only the selected properties
  */
-export function propertyFilter<T extends object, K extends keyof T>(
+export function filterProperties<T extends object, K extends keyof T>(
     srcObj: T, propList: K[]
 ): Pick<T, K> {
     const destObj = Object.create(null);

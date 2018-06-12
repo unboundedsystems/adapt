@@ -1,6 +1,6 @@
 import {
+    filterProperties,
     PrimitiveComponent,
-    propertyFilter,
     UpdateStateInfo
 } from "../../../src";
 
@@ -38,7 +38,7 @@ export default class CloudifyCompute extends PrimitiveComponent<CloudifyComputeP
         const bp = getBlueprintState(state);
         bp.nodeTemplate(info.nodeName, {
             type: "cloudify.nodes.Compute",
-            properties: propertyFilter(this.props, [ "ip", "install_agent"]),
+            properties: filterProperties(this.props, [ "ip", "install_agent"]),
         });
     }
 }
