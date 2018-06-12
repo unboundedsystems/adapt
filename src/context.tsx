@@ -41,7 +41,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
                 <Group>{this.props.children}</Group> :
                 null;
         }
-        _cleanup = () => providerPop();
+        cleanup = () => providerPop();
     }
 
     class ConsumerImpl extends Component<ConsumerProps<T>> {

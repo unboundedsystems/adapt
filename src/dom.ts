@@ -106,9 +106,9 @@ function computeContentsNoOverride<P extends object>(
                     throw e;
                 }
             }
-            if (component._cleanup) {
+            if (component.cleanup) {
                 ret.cleanups.push(() =>
-                    component && component._cleanup && component._cleanup());
+                    component && component.cleanup && component.cleanup());
             }
         }
     }

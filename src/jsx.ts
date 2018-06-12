@@ -65,9 +65,9 @@ export function isElement(val: any): val is UnbsElement<AnyProps> {
 }
 
 export abstract class Component<Props> {
-    // Internal use: _cleanup gets called after build of this component's
+    // cleanup gets called after build of this component's
     // subtree has completed.
-    _cleanup?: (this: this) => void;
+    cleanup?: (this: this) => void;
 
     constructor(readonly props: Props) { }
 
