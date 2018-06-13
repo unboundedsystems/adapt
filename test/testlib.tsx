@@ -31,3 +31,23 @@ export function MakeEmpty(props: { id: number }) {
 export function MakeGroup(props: { children?: unbs.UnbsElement[] | unbs.UnbsElement }) {
     return <unbs.Group>{props.children}</unbs.Group>;
 }
+
+export interface WithDefaultsProps {
+    prop1?: number;
+    prop2?: number;
+}
+export class WithDefaults extends unbs.Component<WithDefaultsProps> {
+    static defaultProps = {
+        prop1: 100,
+        prop2: 200,
+    };
+
+    build() {
+        return (
+            <unbs.Group>
+                <Empty id={this.props.prop1!} />
+                <Empty id={this.props.prop2!} />
+            </unbs.Group>
+        );
+    }
+}

@@ -18,8 +18,10 @@ export function isClassWithoutNewError(e: Error, name = "\S+"): e is TypeError {
 
 //Stuff specific to this library (unbs).
 export interface Children<C> {
-    children: C[];
+    children: C | C[];
 }
 
 export type ChildType<T> =
     T extends Children<any> ? ExtractType<T, keyof Children<any>> : null;
+
+export type Constructor<T extends object> = (new (...args: any[]) => T);

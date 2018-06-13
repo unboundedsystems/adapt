@@ -62,3 +62,53 @@ export interface BuildOpError {
 }
 
 export type BuildListener = (op: BuildOp) => void;
+
+export function buildPrinter(): BuildListener {
+    let depth = 0;
+    function el(elem: UnbsElement | null) {
+        return elem ? elem.componentType.name : "null";
+    }
+
+    function i() {
+        return " ".repeat(depth * 2);
+    }
+
+    return function _buildPrinter(op: BuildOp) {
+
+        let msg = `BUILD [${op.type}]: `;
+        msg += " ".repeat(13 - op.type.length);
+
+        switch (op.type) {
+            case "start":
+                depth = 0;
+                msg += i() + `root: ${el(op.root)}`;
+                break;
+            case "step":
+                msg += i() + `${el(op.oldElem)} => ${el(op.newElem)}` +
+                    ` style: ${op.style ? op.style.selector : "none"}`;
+                break;
+            case "elementBuilt":
+                msg += i() + `${el(op.oldElem)} => ${el(op.newElem)}`;
+                break;
+            case "descend":
+                msg += i() + `${el(op.descendFrom)}.${el(op.descendTo)}`;
+                depth++;
+                break;
+            case "ascend":
+                depth--;
+                msg += i() + `${el(op.ascendTo)} <= ${el(op.ascendFrom)}`;
+                break;
+            case "elementDone":
+                msg += i() + `${el(op.elem)}`;
+                break;
+            case "done":
+                msg += i() + `root: ${el(op.root)}`;
+                break;
+            case "error":
+                msg += i() + op.error.toString();
+                break;
+        }
+        // tslint:disable-next-line:no-console
+        console.log(msg);
+    };
+}

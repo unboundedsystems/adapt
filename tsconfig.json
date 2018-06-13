@@ -2,6 +2,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "ulib/**/*.ts",
+    "ulib/**/*.tsx",
     "test/**/*.ts",
     "test/**/*.tsx",
   ],
@@ -10,23 +12,31 @@
     "node_modules"
   ],
   "compilerOptions": {
-    "target": "es6",
-    "jsx":"react",
-    "jsxFactory": "unbs.createElement",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "alwaysStrict": true,
+    "baseUrl": ".",
     "declaration": true,  
-    "sourceMap": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx":"react",
+    "jsxFactory": "unbs.createElement",
+    "lib": [
+      "es6"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
     "noImplicitAny": true,
-    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "css-what": [ "./types/css-what" ]
-    }
+    },
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es6",
   }
 }

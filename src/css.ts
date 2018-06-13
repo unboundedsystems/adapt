@@ -6,10 +6,12 @@ import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
-export type SFC = (props: jsx.AnyProps) => jsx.UnbsNode;
-
-export type BuildOverride =
-    (props: jsx.AnyProps & { buildOrig: () => jsx.UnbsNode }) => jsx.UnbsNode;
+export interface StyleBuildInfo {
+    origBuild: jsx.SFC;
+    origElement: any;
+}
+export type BuildOverride<P = jsx.AnyProps> =
+    (props: P, info: StyleBuildInfo)  => jsx.UnbsElementOrNull;
 
 export interface StyleRule {
     selector: string;
@@ -158,24 +160,66 @@ function parseStyles(styles: RawStyle[]): StyleList {
 
     return ret;
 }
+export type AbstractComponentCtor
+    <P = jsx.AnyProps, T extends jsx.Component<P> = jsx.Component<P>> =
+    // tslint:disable-next-line:ban-types
+    Function & { prototype: T };
 
 export type UnbsComponentConstructor =
     new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps>;
 
 export interface StyleProps {
-    children: (SFC | string | UnbsComponentConstructor | Rule)[];
+    children: (AbstractComponentCtor | jsx.SFC | string |
+               UnbsComponentConstructor | Rule)[];
 }
 
-export class Rule {
-    constructor(readonly override: BuildOverride) { }
+export class Rule<P = jsx.AnyProps> {
+    constructor(readonly override: BuildOverride<P>) { }
 }
 
-export function rule(override: BuildOverride) {
-    return new Rule(override);
+export function rule<P = jsx.AnyProps>(override: BuildOverride<P>) {
+    return new Rule<P>(override);
 }
 
 function isRule(x: any): x is Rule {
     return (typeof x === "object") && (x instanceof Rule);
+}
+
+function getCssMatched(props: jsx.WithMatchProps) {
+    let m = props[jsx.$cssMatch];
+    if (!m) {
+        m = props[jsx.$cssMatch] = {};
+    }
+    return m;
+}
+
+export function ruleHasMatched(props: jsx.WithMatchProps, r: StyleRule) {
+    const m = getCssMatched(props);
+    return (m.matched && m.matched.has(r)) === true;
+}
+
+export function ruleMatches(props: jsx.WithMatchProps, r: StyleRule) {
+    const m = getCssMatched(props);
+    if (!m.matched) m.matched = new Set<StyleRule>();
+    m.matched.add(r);
+}
+
+/**
+ * User API function that can be used in a style rule build function
+ * to mark the props such that NO additional style rule matches will
+ * take place for this set of props.
+ *
+ * @export
+ * @param {jsx.WithMatchProps} props
+ */
+export function ruleFinalMatch(props: jsx.WithMatchProps) {
+    const m = getCssMatched(props);
+    m.stop = true;
+}
+
+export function ruleIsFinal(props: jsx.WithMatchProps) {
+    const m = props[jsx.$cssMatch];
+    return (m && m.stop) === true;
 }
 
 function isStylesComponent(componentType: any):
@@ -220,4 +264,38 @@ export class Style extends jsx.Component<StyleProps> {
     build(): null {
         return null; //Don't output anything for styles if it makes it to DOM
     }
+}
+
+/**
+ * Concatenate all of the rules of the given Style elements
+ * together into a single Style element that contains all of the
+ * rules. Always returns a new Style element and does not modify
+ * the Style element parameters.
+ *
+ * @export
+ * @param {...jsx.UnbsElement[]} styles
+ *   Zero or more Style elements, each containing style rules.
+ * @returns {jsx.UnbsElement}
+ *   A new Style element containing the concatenation of all
+ *   of the rules from the passed in Style elements.
+ */
+export function concatStyles(
+    ...styles: jsx.UnbsElement[]
+): jsx.UnbsElement {
+
+    const rules: Rule[] = [];
+    for (const styleElem of styles) {
+        if (!isStylesComponent(styleElem.componentType)) {
+            throw new Error("Invalid Styles element: " +
+                            util.inspect(styleElem));
+        }
+        const kids = styleElem.props.children;
+        if (kids == null) continue;
+        if (!Array.isArray(kids)) {
+            throw new Error(`Invalid type for children of a Style ` +
+                            `element: ${typeof kids}`);
+        }
+        rules.push(...styleElem.props.children);
+    }
+    return jsx.createElement(Style, {}, rules);
 }

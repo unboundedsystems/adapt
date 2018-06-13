@@ -4,14 +4,15 @@
   "description": "JSX Unbounded Front End",
   "main": "index.js",
   "scripts": {
+    "clean": "rm -rf dist",
     "prepush": "./bin/npm run lint",
     "prepare": "npm run build",
     "pretest": "npm run build",
-    "build": "tsc -p tsconfig.json",
-    "build:watch": "tsc -w -p tsconfig.json",
+    "build": "npm run clean; tsc -p tsconfig.json",
+    "build:watch": "npm run clean; tsc -w -p tsconfig.json",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "test": "mocha --require 'source-map-support/register' --require should dist/test"
+    "test": "mocha --opts mocha.opts"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "license": "UNLICENSED",
@@ -19,10 +20,12 @@
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
     "@types/node": "^8.10.14",
+    "@types/sinon": "^5.0.1",
     "@types/xmlbuilder": "0.0.32",
     "husky": "^0.14.3",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
+    "sinon": "^6.0.0",
     "source-map-support": "^0.5.5",
     "tslint": "^5.10.0",
     "typescript": "^2.8.3"
@@ -30,6 +33,7 @@
   "dependencies": {
     "css-what": "^2.1.0",
     "lodash": "^4.17.10",
+    "ts-custom-error": "^2.2.1",
     "xmlbuilder": "^10.0.0"
   }
 }

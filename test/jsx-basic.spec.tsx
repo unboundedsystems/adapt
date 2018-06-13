@@ -35,7 +35,7 @@ describe("JSX SFC createElement Tests", () => {
 
     it("Should have the right props", () => {
         const element = <Component x={1} y="bar" />;
-        should(element.props).eql({ x: 1, y: "bar" });
+        should(element.props).eql({ x: 1, y: "bar", children: [] });
     });
 
     it("Should have the right children", () => {
@@ -46,6 +46,26 @@ describe("JSX SFC createElement Tests", () => {
             </Component>;
 
         checkChildComponents(element, Dummy, unbs.Group);
+    });
+
+    it("Should allow children as a prop", () => {
+        // One child
+        let element = <Component children={<Dummy />} />;
+        checkChildComponents(element, Dummy);
+
+        // Now two
+        const kids = [<unbs.Group />, <Dummy />];
+        element = <Component children={kids} />;
+        checkChildComponents(element, unbs.Group, Dummy);
+    });
+
+    it("Tag-wrapped children should override children as a prop", () => {
+        const element =
+            // @ts-ignore
+            <Component children={<Dummy />}>
+                <unbs.Group />
+            </Component>;
+        checkChildComponents(element, unbs.Group);
     });
 });
 
@@ -66,7 +86,7 @@ describe("JSX Class createElement Tests", () => {
 
     it("Should have the right props", () => {
         const element = <Dummy x={1} y="foo" />;
-        should(element.props).eql({ x: 1, y: "foo" });
+        should(element.props).eql({ x: 1, y: "foo", children: [] });
     });
 
     it("Should have the right children", () => {
@@ -77,6 +97,26 @@ describe("JSX Class createElement Tests", () => {
             </unbs.Group>;
 
         checkChildComponents(element, Dummy, unbs.Group);
+    });
+
+    it("Should allow children as a prop", () => {
+        // One child
+        let element = <unbs.Group children={<Dummy />} />;
+        checkChildComponents(element, Dummy);
+
+        // Now two
+        const kids = [<unbs.Group />, <Dummy />];
+        element = <unbs.Group children={kids} />;
+        checkChildComponents(element, unbs.Group, Dummy);
+    });
+
+    it("Tag-wrapped children should override children as a prop", () => {
+        const element =
+            // @ts-ignore
+            <unbs.Group children={<Dummy />}>
+                <unbs.Group />
+            </unbs.Group>;
+        checkChildComponents(element, unbs.Group);
     });
 });
 
@@ -102,4 +142,28 @@ describe("JSX cloneElement Tests", () => {
 
         checkChildComponents(element, Dummy, unbs.Group);
     });
+
+    it("Should clone children on original element", () => {
+        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
+                                          {});
+        checkChildComponents(element, Dummy);
+    });
+
+    it("Children on props should override children on original element", () => {
+        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
+                                          {children: [<unbs.Group />]});
+        checkChildComponents(element, unbs.Group);
+    });
+
+    it("Children as params should override orig and props", () => {
+        function Dummy2(_props: any): unbs.UnbsElement {
+            throw new Error("Test is not supposed to render");
+        }
+
+        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
+                                          {children: [<unbs.Group />]},
+                                          <Dummy2 />, <Dummy2 />);
+        checkChildComponents(element, Dummy2, Dummy2);
+    });
+
 });

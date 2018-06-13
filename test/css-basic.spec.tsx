@@ -11,7 +11,11 @@ describe("Selector Parsing", () => {
         const styleTag = <css.Style>{Foo} {css.rule(() => <Dummy />)}</css.Style>;
         const styles = css.buildStyles(styleTag);
         should(styles.length).equal(1);
-        should(styles[0].sfc({ buildOrig: () => null })).eql(<Dummy />);
+        const info = {
+            origBuild: () => null,
+            origElement: null,
+        };
+        should(styles[0].sfc({}, info)).eql(<Dummy />);
     });
 });
 
@@ -83,5 +87,43 @@ describe("Selector matching", () => {
         testStyleDom(<css.Style>
             {Dummy} {Foo} {css.rule(() => null)}
         </css.Style>, dom, noMatchDom);
+    });
+});
+
+describe("concatStyles", () => {
+    it("Should return empty rules", () => {
+        const noRules = <css.Style>{[]}</css.Style>;
+
+        let ret = css.concatStyles();
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+        should(ret.props.children).eql([]);
+
+        ret = css.concatStyles(noRules);
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+        should(ret.props.children).eql([]);
+    });
+
+    it("Should concat rules", () => {
+        const rule1 =
+            <css.Style>
+                {Foo} {css.rule(() => null)}
+            </css.Style>;
+        const rule2 =
+            <css.Style>
+                {Dummy} {css.rule(() => null)}
+            </css.Style>;
+        const ruleInstance = new css.Rule(() => null);
+
+        const ret = css.concatStyles(rule1, rule2);
+        should(ret).not.be.Null();
+        ret.componentType.should.equal(css.Style);
+
+        should(ret.props.children).not.be.Undefined();
+        ret.props.children.should.eql([
+            Foo, " ", ruleInstance,
+            Dummy, " ", ruleInstance,
+        ]);
     });
 });
