@@ -3,7 +3,6 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
-    $cssMatch,
     childrenToArray,
     ClassComponentTyp,
     cloneElement,
@@ -14,7 +13,6 @@ import {
     UnbsElementImpl,
     UnbsElementOrNull,
     WithChildren,
-    WithMatchProps,
 } from "./jsx";
 
 import { DomError } from "./builtin_components";
@@ -106,46 +104,13 @@ function computeContentsNoOverride<P extends object>(
     }
 }
 
-function getCssMatched(props: WithMatchProps) {
-    let m = props[$cssMatch];
-    if (!m) {
-        m = props[$cssMatch] = {};
-    }
-    return m;
-}
-function hasMatched(props: WithMatchProps, rule: css.StyleRule) {
-    const m = getCssMatched(props);
-    return (m.matched && m.matched.has(rule)) === true;
-}
-function match(props: WithMatchProps, rule: css.StyleRule) {
-    const m = getCssMatched(props);
-    if (!m.matched) m.matched = new Set<css.StyleRule>();
-    m.matched.add(rule);
-}
-/**
- * User API function that can be used in a style rule build function
- * to mark the props such that NO additional style rule matches will
- * take place for this set of props.
- *
- * @export
- * @param {WithMatchProps} props
- */
-export function finalMatch(props: WithMatchProps) {
-    const m = getCssMatched(props);
-    m.stop = true;
-}
-function isFinal(props: WithMatchProps) {
-    const m = props[$cssMatch];
-    return (m && m.stop) === true;
-}
-
 function findOverride(styles: css.StyleList, path: UnbsElement[]) {
     const element = path[path.length - 1];
-    if (isFinal(element.props)) return null;
+    if (css.ruleIsFinal(element.props)) return null;
 
     for (const style of styles.reverse()) {
-        if (!hasMatched(element.props, style) && style.match(path)) {
-            match(element.props, style);
+        if (!css.ruleHasMatched(element.props, style) && style.match(path)) {
+            css.ruleMatches(element.props, style);
             return { style, override: style.sfc };
         }
     }

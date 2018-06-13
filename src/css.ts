@@ -185,6 +185,43 @@ function isRule(x: any): x is Rule {
     return (typeof x === "object") && (x instanceof Rule);
 }
 
+function getCssMatched(props: jsx.WithMatchProps) {
+    let m = props[jsx.$cssMatch];
+    if (!m) {
+        m = props[jsx.$cssMatch] = {};
+    }
+    return m;
+}
+
+export function ruleHasMatched(props: jsx.WithMatchProps, r: StyleRule) {
+    const m = getCssMatched(props);
+    return (m.matched && m.matched.has(r)) === true;
+}
+
+export function ruleMatches(props: jsx.WithMatchProps, r: StyleRule) {
+    const m = getCssMatched(props);
+    if (!m.matched) m.matched = new Set<StyleRule>();
+    m.matched.add(r);
+}
+
+/**
+ * User API function that can be used in a style rule build function
+ * to mark the props such that NO additional style rule matches will
+ * take place for this set of props.
+ *
+ * @export
+ * @param {jsx.WithMatchProps} props
+ */
+export function ruleFinalMatch(props: jsx.WithMatchProps) {
+    const m = getCssMatched(props);
+    m.stop = true;
+}
+
+export function ruleIsFinal(props: jsx.WithMatchProps) {
+    const m = props[jsx.$cssMatch];
+    return (m && m.stop) === true;
+}
+
 function isStylesComponent(componentType: any):
     componentType is (new (props: StyleProps) => Style) {
     return componentType === Style;
