@@ -16,8 +16,11 @@ import unbs, {
     serializeDom,
     UnbsElement,
     UnbsElementOrNull,
-    UpdateStateInfo,
 } from "../../src";
+import {
+    KeyTracker,
+    UpdateStateInfo
+} from "../../src/keys";
 
 import awsStyle from "./awsStyle";
 import cloudifyStyle from "./cloudifyStyle";
@@ -54,8 +57,9 @@ function buildLoop(initialState: any, root: UnbsElement, styles?: UnbsElement): 
         oldState = state;
         state = ld.cloneDeep(initialState);
         if ((out.contents != null) && isPrimitiveElement(out.contents)) {
-            const info = new UpdateStateInfo();
-            out.contents.updateState(state, info);
+            const keys = new KeyTracker();
+            const info = new UpdateStateInfo(keys);
+            out.contents.updateState(state, keys, info);
             // tslint:disable-next-line:no-console
             console.log("\n\nState:\n" + JSON.stringify(state, null, 2));
         }

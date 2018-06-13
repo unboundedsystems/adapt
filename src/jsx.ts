@@ -2,6 +2,7 @@ import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
+import { KeyTracker, UpdateStateInfo } from "./keys";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -12,49 +13,9 @@ export interface UnbsElement<P = AnyProps> {
     readonly componentType: ComponentType<P>;
 }
 
-class UniqueName {
-    names: Map<string, number> = new Map<string, number>();
-
-    get(name: string): string {
-        let unique = name;
-        let next = this.names.get(name);
-        if (next === undefined) {
-            next = 1;
-        } else {
-            unique += next.toString();
-            next++;
-        }
-        this.names.set(name, next);
-        return unique;
-    }
-}
-
-export class UpdateStateInfo {
-    private path: string[] = [];
-    private names: UniqueName[] = [];
-
-    get nodeName(): string {
-        return this.path.join(".");
-    }
-
-    pathPush(component: Component<AnyProps>) {
-        if (this.names.length <= this.path.length) {
-            this.names.push(new UniqueName());
-        }
-        // TODO: Allow components to make names for themselves
-        const compName = component.constructor.name;
-        const uniqueName = this.names[this.path.length].get(compName);
-        this.path.push(uniqueName);
-    }
-
-    pathPop() {
-        this.path.pop();
-    }
-}
-
 export interface UnbsPrimitiveElement<P> extends UnbsElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
-    updateState(state: any, info: UpdateStateInfo): void;
+    updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
 
 export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
@@ -182,27 +143,28 @@ export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
         super(componentType, props, children);
     }
 
-    updateState(state: any, info: UpdateStateInfo) {
+    updateState(state: any, keys: KeyTracker, info: UpdateStateInfo) {
         if (this.componentInstance == null) {
             this.componentInstance = new this.componentType(this.props);
         }
 
-        info.pathPush(this.componentInstance);
-        try {
-            this.componentInstance.updateState(state, info);
-            if (this.props.children == null ||
-                !Array.isArray(this.props.children)) {
-                return;
-            }
+        keys.addKey(this.componentInstance);
+        this.componentInstance.updateState(state, info);
+        if (this.props.children == null ||
+            !Array.isArray(this.props.children)) {
+            return;
+        }
 
+        keys.pathPush();
+        try {
             for (const child of this.props.children) {
                 if (child == null) continue;
                 if (isPrimitiveElement(child)) {
-                    child.updateState(state, info);
+                    child.updateState(state, keys, info);
                 }
             }
         } finally {
-            info.pathPop();
+            keys.pathPop();
         }
     }
 }

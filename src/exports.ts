@@ -11,7 +11,6 @@ export {
     isPrimitiveElement,
     WithChildren,
     PropsType,
-    UpdateStateInfo,
 } from "./jsx";
 
 export {
@@ -42,6 +41,10 @@ export {
     Context,
     createContext,
 } from "./context";
+
+export {
+    UpdateStateInfo,
+} from "./keys";
 
 export {
     Constructor,
