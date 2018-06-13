@@ -1,7 +1,13 @@
-import * as unbs from "../src";
+import unbs, {
+    BuildNotImplemented,
+    Component,
+    UnbsElementOrNull,
+    WithChildren,
+} from "../src";
 
 import should = require("should");
 
+import { DomError } from "../src/builtin_components";
 import {
     checkChildComponents,
     Empty,
@@ -10,6 +16,11 @@ import {
     MakeMakeEmpty,
     WithDefaults
 } from "./testlib";
+
+interface AbstractProps extends WithChildren {
+    id: number;
+}
+class Abstract extends Component<AbstractProps> {}
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
@@ -85,6 +96,45 @@ describe("DOM Basic Build Tests", () => {
             return;
         }
         should(dom.props.children).eql([<Empty id={1234} />, <Empty id={200} />]);
+    });
+
+    it("Should insert DomError for abstract component", () => {
+        const orig =
+            <Abstract id={10}>
+                <Empty id={11} />
+            </Abstract>;
+        const res = unbs.build(orig, null);
+        const dom = res.contents;
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        dom.componentType.should.equal(Abstract);
+        checkChildComponents(dom, DomError, Empty);
+        should(dom.props.id).equal(10);
+        should(dom.props.children[0].props.message)
+            .match(/Component Abstract cannot be built/);
+    });
+
+    it("Should insert DomError for SFC that throws BuildNotImplemented", () => {
+        function SFCThrows(_props: AbstractProps): UnbsElementOrNull {
+            throw new BuildNotImplemented();
+        }
+        const orig =
+            <SFCThrows id={10}>
+                <Empty id={11} />
+            </SFCThrows>;
+        const res = unbs.build(orig, null);
+        const dom = res.contents;
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        dom.componentType.should.equal(SFCThrows);
+        checkChildComponents(dom, DomError, Empty);
+        should(dom.props.id).equal(10);
+        should(dom.props.children[0].props.message)
+            .match(/Component SFCThrows cannot be built/);
     });
 });
 

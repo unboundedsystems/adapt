@@ -7,9 +7,8 @@ import {
     childrenToArray,
     ClassComponentTyp,
     cloneElement,
-    Component,
+    createElement,
     FunctionComponentTyp,
-    isAbstract,
     isPrimitive,
     UnbsElement,
     UnbsElementImpl,
@@ -18,11 +17,12 @@ import {
     WithMatchProps,
 } from "./jsx";
 
+import { DomError } from "./builtin_components";
 import {
     BuildListener,
     BuildOp,
 } from "./dom_build_data_recorder";
-import { MustReplaceError } from "./error";
+import { BuildNotImplemented } from "./error";
 
 export enum MessageType {
     warning = "warning",
@@ -35,7 +35,7 @@ export interface Message {
 
 type CleanupFunc = () => void;
 class ComputeContents {
-    wasPrimitive = false;
+    buildDone = false;
     contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
@@ -55,70 +55,55 @@ class ComputeContents {
     }
 }
 
+function isClassConstructorError(err: any) {
+    return err instanceof TypeError && typeof err.message === "string" &&
+        /Class constructor .* cannot be invoked/.test(err.message);
+}
+
 function computeContentsNoOverride<P extends object>(
     element: UnbsElement<P & WithChildren>): ComputeContents {
-    let component: Component<P> | null = null;
     const ret = new ComputeContents();
-    let doClone = false;
-    let isPrim = false;
 
     try {
         ret.contents =
             (element.componentType as FunctionComponentTyp<P>)(element.props);
+        return ret;
+
     } catch (e) {
-        if (e instanceof TypeError &&
-            /Class constructor .* cannot be invoked/.test(e.message)) {
-            // element.componentType is a class, not a function.
-            component =
-                new (element.componentType as ClassComponentTyp<P>)(element.props);
-        } else if (e instanceof MustReplaceError) {
-            doClone = true;
-        } else {
-            throw e;
-        }
+        if (e instanceof BuildNotImplemented) return buildDone(true);
+        if (!isClassConstructorError(e)) throw e;
+        // element.componentType is a class, not a function. Fall through.
     }
 
-    if (component != null) {
-        const isAbs = isAbstract(component);
-        isPrim = isPrimitive(component);
-        if (isAbs) {
-            ret.messages.push({
-                type: MessageType.warning,
-                content: `Component ${element.componentType.name} is ` +
-                    `abstract and has no build function`
-            });
+    const component = new (element.componentType as ClassComponentTyp<P>)(element.props);
+
+    if (isPrimitive(component)) return buildDone(false);
+
+    try {
+        ret.contents = component.build();
+        if (component.cleanup) {
+            ret.cleanups.push(component.cleanup.bind(component));
         }
-        if (isPrim || isAbs) {
-            doClone = true;
-        } else {
-            try {
-                ret.contents = component.build();
-            } catch (e) {
-                if (e instanceof MustReplaceError) {
-                    ret.messages.push({
-                        type: MessageType.warning,
-                        content: `Component ${element.componentType.name} ` +
-                            `cannot be built with current props ` +
-                            `(build threw MustReplaceError)`
-                    });
-                    doClone = true;
-                } else {
-                    throw e;
-                }
-            }
-            if (component.cleanup) {
-                ret.cleanups.push(() =>
-                    component && component.cleanup && component.cleanup());
-            }
-        }
+        return ret;
+
+    } catch (e) {
+        if (e instanceof BuildNotImplemented) return buildDone(true);
+        throw e;
     }
 
-    if (doClone) {
-        ret.wasPrimitive = isPrim;
-        ret.contents =
-            cloneElement(element, {}, ...childrenToArray(element.props.children));
+    function buildDone(cantBuild: boolean) {
+        const kids = childrenToArray(element.props.children);
+        if (cantBuild) {
+            const message =
+                `Component ${element.componentType.name} cannot be ` +
+                `built with current props (build threw BuildNotImplemented)`;
+            ret.messages.push({ type: MessageType.warning, content: message });
+            kids.unshift(createElement(DomError, {message}));
+        }
+        ret.buildDone = true;
+        ret.contents = cloneElement(element, {}, ...kids);
+        return ret;
     }
-    return ret;
 }
 
 function getCssMatched(props: WithMatchProps) {
@@ -172,7 +157,7 @@ function computeContents(
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    const out = new ComputeContents();
+    let out = new ComputeContents();
     const overrideFound = findOverride(styles, path);
     const element = path[path.length - 1];
     const noOverride = () => {
@@ -181,24 +166,25 @@ function computeContents(
         return ret.contents;
     };
 
-    let wasPrimitive = false;
-    let newElem: UnbsElementOrNull = null;
     let style: css.StyleRule | undefined;
     if (overrideFound != null) {
         const override = overrideFound.override;
         style = overrideFound.style;
-        newElem = override(
+        out.contents = override(
             element.props,
             { origBuild: noOverride, origElement: element });
     } else {
-        const ret = computeContentsNoOverride(element);
-        wasPrimitive = ret.wasPrimitive;
-        newElem = ret.contents;
-        out.combine(ret);
+        out = computeContentsNoOverride(element);
     }
 
-    if (!wasPrimitive) options.recorder({ type: "step", oldElem: element, newElem, style });
-    out.contents = newElem;
+    if (!out.buildDone) {
+        options.recorder({
+            type: "step",
+            oldElem: element,
+            newElem: out.contents,
+            style
+        });
+    }
     return out;
 }
 
@@ -216,9 +202,8 @@ function mountAndBuildComponent(
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-        if (path.length > 0 && ld.isEqual(out.contents, path[path.length - 1])) {
-            return out;
-        }
+        if (out.buildDone) return out;
+
         const newPath = path.slice(0, -1);
         newPath.push(out.contents);
         const ret = mountAndBuildComponent(newPath, styles, options);

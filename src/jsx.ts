@@ -1,8 +1,7 @@
-import * as util from "util";
-
 import * as ld from "lodash";
 
 import { StyleRule } from "./css";
+import { BuildNotImplemented } from "./error";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -64,29 +63,26 @@ export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
 }
 
-export abstract class Component<Props> {
+export class Component<Props> {
     // cleanup gets called after build of this component's
     // subtree has completed.
     cleanup?: (this: this) => void;
 
     constructor(readonly props: Props) { }
 
-    abstract build(): UnbsElementOrNull;
+    build(): UnbsElementOrNull {
+        throw new BuildNotImplemented();
+    }
 }
 
 export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
     Comp extends tySup.Constructor<Component<infer CProps>> ? CProps :
     never;
 
-export abstract class PrimitiveComponent<Props>
+export class PrimitiveComponent<Props>
     extends Component<Props> {
 
     updateState(_state: any, _info: UpdateStateInfo) { return; }
-
-    build(): never {
-        throw new Error("Attempt to call build for primitive component: " +
-            util.inspect(this));
-    }
 }
 
 export function isPrimitive(component: Component<any>):
@@ -99,10 +95,6 @@ export type SFC = (props: AnyProps) => UnbsElementOrNull;
 export function isComponent(func: SFC | Component<any>):
     func is Component<any> {
     return func instanceof Component;
-}
-
-export function isAbstract(component: Component<any>) {
-    return isComponent(component) && !component.build;
 }
 
 export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<any> {
@@ -165,8 +157,8 @@ export class UnbsElementImpl<Props> implements UnbsElement<Props> {
         props: Props,
         children: any[]) {
         this.props = {
-            ...props as any,
-            [$cssMatch]: {}
+            [$cssMatch]: {},
+            ...props as any
         };
         // Children passed as explicit parameter replace any on props
         if (children.length > 0) this.props.children = children;

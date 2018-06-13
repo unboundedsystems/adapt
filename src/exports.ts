@@ -27,6 +27,7 @@ export {
 export {
     concatStyles,
     Style,
+    StyleBuildInfo,
     rule
 } from "./css";
 

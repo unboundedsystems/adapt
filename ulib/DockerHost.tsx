@@ -1,6 +1,6 @@
 import unbs, {
+    BuildNotImplemented,
     Component,
-    MustReplaceError,
     PrimitiveComponent,
     UnbsElementOrNull
 } from "../src";
@@ -25,6 +25,6 @@ export default class DockerHost extends Component<DockerHostProps> {
             return <ExternalDockerHost dockerHost={this.props.dockerHost} />;
         }
 
-        throw new MustReplaceError();
+        throw new BuildNotImplemented();
     }
 }

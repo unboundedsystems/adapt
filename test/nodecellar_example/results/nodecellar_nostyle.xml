@@ -1,6 +1,17 @@
 <unbs>
   <Compute>
-    <DockerHost/>
+    <DomError>
+      <__props__>
+        <prop name="message">"Component Compute cannot be built with current props (build threw BuildNotImplemented)"</prop>
+      </__props__>
+    </DomError>
+    <DockerHost>
+      <DomError>
+        <__props__>
+          <prop name="message">"Component DockerHost cannot be built with current props (build threw BuildNotImplemented)"</prop>
+        </__props__>
+      </DomError>
+    </DockerHost>
     <Container name="mongo">
       <__props__>
         <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
@@ -21,6 +32,11 @@
         <prop name="stdinOpen">true</prop>
         <prop name="tty">true</prop>
       </__props__>
+      <DomError>
+        <__props__>
+          <prop name="message">"Component Container cannot be built with current props (build threw BuildNotImplemented)"</prop>
+        </__props__>
+      </DomError>
     </Container>
     <Container>
       <__props__>
@@ -46,6 +62,11 @@
         <prop name="stdinOpen">true</prop>
         <prop name="tty">true</prop>
       </__props__>
+      <DomError>
+        <__props__>
+          <prop name="message">"Component Container cannot be built with current props (build threw BuildNotImplemented)"</prop>
+        </__props__>
+      </DomError>
     </Container>
   </Compute>
 </unbs>

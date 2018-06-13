@@ -90,8 +90,8 @@ describe("NodeCellar", () => {
         result.messages.length.should.equal(4);
         for (const m of result.messages) {
             switch (true) {
-                case /Component Container is abstract/.test(m.content):
-                case /Component Compute is abstract/.test(m.content):
+                case /Component Container cannot be built/.test(m.content):
+                case /Component Compute cannot be built/.test(m.content):
                 case /Component DockerHost cannot be built/.test(m.content):
                     continue;
                 default:
