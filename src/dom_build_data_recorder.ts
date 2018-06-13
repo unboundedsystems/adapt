@@ -91,18 +91,18 @@ export function buildPrinter(): BuildListener {
                 msg += i() + `${el(op.oldElem)} => ${el(op.newElem)}`;
                 break;
             case "descend":
+                msg += i() + `${el(op.descendFrom)}.${el(op.descendTo)}`;
                 depth++;
-                msg += i() + `${el(op.descendFrom)} => ${el(op.descendTo)}`;
                 break;
             case "ascend":
                 depth--;
-                msg += i() + `${el(op.ascendFrom)} => ${el(op.ascendTo)}`;
+                msg += i() + `${el(op.ascendTo)} <= ${el(op.ascendFrom)}`;
                 break;
             case "elementDone":
                 msg += i() + `${el(op.elem)}`;
                 break;
             case "done":
-                msg += i() + `${el(op.root)}`;
+                msg += i() + `root: ${el(op.root)}`;
                 break;
             case "error":
                 msg += i() + op.error.toString();
