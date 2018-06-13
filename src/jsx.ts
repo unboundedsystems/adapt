@@ -24,7 +24,7 @@ export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
 }
 
-export class Component<Props> {
+export abstract class Component<Props> {
     // cleanup gets called after build of this component's
     // subtree has completed.
     cleanup?: (this: this) => void;
@@ -40,8 +40,7 @@ export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
     Comp extends tySup.Constructor<Component<infer CProps>> ? CProps :
     never;
 
-export class PrimitiveComponent<Props>
-    extends Component<Props> {
+export abstract class PrimitiveComponent<Props> extends Component<Props> {
 
     updateState(_state: any, _info: UpdateStateInfo) { return; }
 }
