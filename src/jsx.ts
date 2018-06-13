@@ -118,6 +118,7 @@ export class UnbsElementImpl<Props> implements UnbsElement<Props> {
         children: any[]) {
         this.props = {
             [$cssMatch]: {},
+            // https://github.com/Microsoft/TypeScript/pull/13288
             ...props as any
         };
         // Children passed as explicit parameter replace any on props

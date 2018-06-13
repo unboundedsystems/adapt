@@ -96,7 +96,7 @@ function computeContentsNoOverride<P extends object>(
                 `Component ${element.componentType.name} cannot be ` +
                 `built with current props (build threw BuildNotImplemented)`;
             ret.messages.push({ type: MessageType.warning, content: message });
-            kids.unshift(createElement(DomError, {message}));
+            kids.unshift(createElement(DomError, {}, message));
         }
         ret.buildDone = true;
         ret.contents = cloneElement(element, {}, ...kids);

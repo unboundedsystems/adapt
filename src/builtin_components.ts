@@ -6,6 +6,6 @@ export interface GroupProps {
 export class Group extends PrimitiveComponent<GroupProps> { }
 
 export interface DomErrorProps {
-    message: string;
+    children: string;
 }
 export class DomError extends PrimitiveComponent<DomErrorProps> { }

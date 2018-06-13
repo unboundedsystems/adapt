@@ -112,7 +112,7 @@ describe("DOM Basic Build Tests", () => {
         dom.componentType.should.equal(Abstract);
         checkChildComponents(dom, DomError, Empty);
         should(dom.props.id).equal(10);
-        should(dom.props.children[0].props.message)
+        should(dom.props.children[0].props.children[0])
             .match(/Component Abstract cannot be built/);
     });
 
@@ -133,7 +133,7 @@ describe("DOM Basic Build Tests", () => {
         dom.componentType.should.equal(SFCThrows);
         checkChildComponents(dom, DomError, Empty);
         should(dom.props.id).equal(10);
-        should(dom.props.children[0].props.message)
+        should(dom.props.children[0].props.children[0])
             .match(/Component SFCThrows cannot be built/);
     });
 });
