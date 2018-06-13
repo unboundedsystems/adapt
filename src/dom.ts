@@ -68,14 +68,14 @@ function computeContentsNoOverride<P extends object>(
         return ret;
 
     } catch (e) {
-        if (e instanceof BuildNotImplemented) return buildDone(true);
+        if (e instanceof BuildNotImplemented) return buildDone(e);
         if (!isClassConstructorError(e)) throw e;
         // element.componentType is a class, not a function. Fall through.
     }
 
     const component = new (element.componentType as ClassComponentTyp<P>)(element.props);
 
-    if (isPrimitive(component)) return buildDone(false);
+    if (isPrimitive(component)) return buildDone();
 
     try {
         ret.contents = component.build();
@@ -85,16 +85,17 @@ function computeContentsNoOverride<P extends object>(
         return ret;
 
     } catch (e) {
-        if (e instanceof BuildNotImplemented) return buildDone(true);
+        if (e instanceof BuildNotImplemented) return buildDone(e);
         throw e;
     }
 
-    function buildDone(cantBuild: boolean) {
+    function buildDone(err?: Error) {
         const kids = childrenToArray(element.props.children);
-        if (cantBuild) {
-            const message =
+        if (err) {
+            let message =
                 `Component ${element.componentType.name} cannot be ` +
-                `built with current props (build threw BuildNotImplemented)`;
+                `built with current props`;
+            if (err.message) message += ": " + err.message;
             ret.messages.push({ type: MessageType.warning, content: message });
             kids.unshift(createElement(DomError, {}, message));
         }

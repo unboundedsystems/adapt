@@ -1,11 +1,11 @@
 <unbs>
   <Compute>
     <DomError>
-      <json>"Component Compute cannot be built with current props (build threw BuildNotImplemented)"</json>
+      <json>"Component Compute cannot be built with current props"</json>
     </DomError>
     <DockerHost>
       <DomError>
-        <json>"Component DockerHost cannot be built with current props (build threw BuildNotImplemented)"</json>
+        <json>"Component DockerHost cannot be built with current props"</json>
       </DomError>
     </DockerHost>
     <Container name="mongo">
@@ -29,7 +29,7 @@
         <prop name="tty">true</prop>
       </__props__>
       <DomError>
-        <json>"Component Container cannot be built with current props (build threw BuildNotImplemented)"</json>
+        <json>"Component Container cannot be built with current props"</json>
       </DomError>
     </Container>
     <Container>
@@ -57,7 +57,7 @@
         <prop name="tty">true</prop>
       </__props__>
       <DomError>
-        <json>"Component Container cannot be built with current props (build threw BuildNotImplemented)"</json>
+        <json>"Component Container cannot be built with current props"</json>
       </DomError>
     </Container>
   </Compute>
