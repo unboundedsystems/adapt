@@ -40,14 +40,15 @@ export class KeyTracker {
     private names: KeyNames[] = [];
     private depth = 0;
 
+    constructor() {
+        this.names.push(new KeyNames());
+    }
+
     lastKeyPath(): string {
         return this.path.join(".");
     }
 
     addKey(component: Component<AnyProps>) {
-        if (this.names.length <= this.depth) {
-            this.names.push(new KeyNames());
-        }
         // TODO: Allow components to make names for themselves
         const compName = component.constructor.name;
         const uniqueName = this.names[this.depth].getUnique(compName);
@@ -55,6 +56,7 @@ export class KeyTracker {
     }
 
     pathPush() {
+        this.names.push(new KeyNames());
         this.depth++;
     }
 
