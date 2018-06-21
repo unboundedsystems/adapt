@@ -1,5 +1,23 @@
+import { spawnSync } from "child_process";
+import * as path from "path";
 import * as should from "should";
 import * as unbs from "../src";
+
+export const pkgRootDir =
+    path.resolve(path.join(__dirname, "..", ".."));
+export const pkgTestDir = path.join(pkgRootDir, "test");
+
+export interface NpmOptions {
+    dir?: string;
+    packages?: string[];
+}
+export function npmInstall(options?: NpmOptions) {
+    const cwd = (options && options.dir) || process.cwd();
+    let args = ["install"];
+    if (options && options.packages) args = args.concat(options.packages);
+
+    spawnSync("npm", args, { cwd, stdio: "inherit" });
+}
 
 export function checkChildComponents(element: unbs.UnbsElement, ...children: any[]) {
     should(element.props.children).not.Null();
