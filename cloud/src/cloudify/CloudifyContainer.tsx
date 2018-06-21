@@ -2,15 +2,15 @@ import {
     filterProperties,
     PrimitiveComponent,
     UpdateStateInfo
-} from "../../../src";
+} from "@usys/adapt";
 
-import { ContainerProps } from "../../Container";
+import { ContainerProps } from "../Container";
 
 import { getBlueprintState } from "./Blueprint";
 
 export type CloudifyContainerProps = ContainerProps;
 
-export default class CloudifyContainer
+export class CloudifyContainer
     extends PrimitiveComponent<CloudifyContainerProps> {
 
     updateState(state: any, info: UpdateStateInfo) {

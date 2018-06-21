@@ -2,9 +2,9 @@ import {
     filterProperties,
     PrimitiveComponent,
     UpdateStateInfo
-} from "../../../src";
+} from "@usys/adapt";
 
-import { ComputeProps } from "../../Compute";
+import { ComputeProps } from "../Compute";
 
 import { getBlueprintState } from "./Blueprint";
 
@@ -33,7 +33,7 @@ export interface CloudifyComputeProps extends ComputeProps {
     cloudify_agent?: object;
 }
 
-export default class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps> {
+export class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps> {
     updateState(state: any, info: UpdateStateInfo) {
         const bp = getBlueprintState(state);
         bp.nodeTemplate(info.nodeName, {

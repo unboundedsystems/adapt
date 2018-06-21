@@ -3,7 +3,7 @@ import unbs, {
     Component,
     PrimitiveComponent,
     UnbsElementOrNull
-} from "../src";
+} from "@usys/adapt";
 
 export interface ExternalDockerHostProps {
     dockerHost: string;
@@ -19,7 +19,7 @@ export interface DockerHostProps {
     dockerHost?: string;
 }
 
-export default class DockerHost extends Component<DockerHostProps> {
+export class DockerHost extends Component<DockerHostProps> {
     build(): UnbsElementOrNull {
         if (this.props.dockerHost) {
             return <ExternalDockerHost dockerHost={this.props.dockerHost} />;
@@ -28,3 +28,4 @@ export default class DockerHost extends Component<DockerHostProps> {
         throw new BuildNotImplemented();
     }
 }
+export default DockerHost;

@@ -1,5 +1,5 @@
-import unbs from "../../../src";
-import { ComputeProps } from "../../Compute";
+import unbs from "@usys/adapt";
+import { ComputeProps } from "../Compute";
 import { withCredentials, WithCredentials } from "./credentials";
 
 export interface EC2Props extends ComputeProps, unbs.WithChildren {
@@ -13,5 +13,4 @@ class EC2InstanceNC extends unbs.PrimitiveComponent<EC2Props & WithCredentials> 
 }
 
 // tslint:disable-next-line:variable-name
-const EC2Instance = withCredentials(EC2InstanceNC);
-export default EC2Instance;
+export const EC2Instance = withCredentials(EC2InstanceNC);

@@ -1,4 +1,4 @@
-import { Component } from "../src";
+import { Component } from "@usys/adapt";
 
 export type PortDescription = string | number;
 
@@ -39,7 +39,7 @@ export interface ContainerProps {
     links?: Links;
 }
 
-export default abstract class Container extends Component<ContainerProps> {
+export abstract class Container extends Component<ContainerProps> {
     static defaultProps = {
         ports: [],
         stdinOpen: false,
@@ -49,3 +49,4 @@ export default abstract class Container extends Component<ContainerProps> {
         links: {},
     };
 }
+export default Container;

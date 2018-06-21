@@ -5,7 +5,7 @@ import unbs, {
     createContext,
     PropsType,
     WithChildren,
-} from "../../../src";
+} from "@usys/adapt";
 
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;

@@ -1,0 +1,56 @@
+{
+  "name": "@usys/cloud",
+  "version": "0.0.1",
+  "description": "Unbounded Adapt cloud component library",
+  "main": "./dist/src/index.js",
+  "typings": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "npm run clean; npm run _build",
+    "_build": "tsc -p tsconfig.json",
+    "build:watch": "npm run clean; npm run _build:watch",
+    "_build:watch": "tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "tslint --project .",
+    "lint-and-fix": "tslint --project . --fix",
+    "postinstall": "postinstall-build dist",
+    "prepush": "../bin/npm run lint",
+    "pretest": "npm run build",
+    "test": "mocha --opts mocha.opts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
+  },
+  "author": "Unbounded Systems",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://gitlab.com/unboundedsystems/adapt/issues"
+  },
+  "homepage": "https://gitlab.com/unboundedsystems/adapt",
+  "dependencies": {
+    "lodash": "^4.17.10",
+    "postinstall-build": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.109",
+    "@types/mocha": "^5.2.1",
+    "@types/node": "^10.3.2",
+    "@usys/adapt": "../adapt",
+    "husky": "^0.14.3",
+    "mocha": "^5.2.0",
+    "should": "^13.2.1",
+    "source-map-support": "^0.5.6",
+    "tslint": "^5.10.0",
+    "typescript": "^2.9.1"
+  },
+  "peerDependencies": {
+    "@usys/adapt": "*"
+  },
+  "buildDependencies": {
+    "@types/lodash": "^4.14.109",
+    "@types/node": "^10.3.2",
+    "should": "^13.2.1",
+    "source-map-support": "^0.5.6",
+    "typescript": "^2.9.1"
+  }
+}
