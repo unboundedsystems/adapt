@@ -22,6 +22,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmitOnError": true,
+    "noErrorTruncation": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
