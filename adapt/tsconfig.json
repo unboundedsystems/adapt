@@ -1,11 +1,7 @@
 {
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "ulib/**/*.ts",
-    "ulib/**/*.tsx",
-    "test/**/*.ts",
-    "test/**/*.tsx",
+    "src/**/*",
+    "test/**/*",
   ],
   "exclude": [
     "dist",

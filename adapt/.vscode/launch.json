@@ -10,7 +10,7 @@
             "request": "launch",
             "name": "Launch Unit Tests",
             "preLaunchTask": "build:watch",
-            "runtimeExecutable": "${workspaceFolder}/bin/node",
+            "runtimeExecutable": "${workspaceFolder}/../bin/node",
             "runtimeArgs": [
                 "--nolazy",
                 "--inspect-brk=0.0.0.0:5858"
@@ -44,7 +44,7 @@
             "request": "launch",
             "name": "Launch Unit Tests w/ Watch",
             "preLaunchTask": "build:watch",
-            "runtimeExecutable": "${workspaceFolder}/bin/node",
+            "runtimeExecutable": "${workspaceFolder}/../bin/node",
             "runtimeArgs": [
                 "--nolazy",
                 "--inspect-brk=0.0.0.0:5858"

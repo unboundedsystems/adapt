@@ -1,11 +1,12 @@
 {
-  "name": "jsx-front-end",
+  "name": "@usys/adapt",
   "version": "0.0.1",
-  "description": "JSX Unbounded Front End",
-  "main": "index.js",
+  "description": "Unbounded Adapt core library",
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "prepush": "./bin/npm run lint",
+    "prepush": "../bin/npm run lint",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "build": "npm run clean; tsc -p tsconfig.json",
@@ -16,6 +17,10 @@
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
+  },
   "devDependencies": {
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",

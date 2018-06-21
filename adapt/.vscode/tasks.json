@@ -6,13 +6,13 @@
         {
             "label": "build:watch",
             "type": "shell",
-            "command": "./bin/npm run build:watch",
+            "command": "../bin/npm run build:watch",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "isBackground": true,
-            "problemMatcher": "$tsc-watch"
+            "problemMatcher": "$tsc-watch",
         }
     ]
 }
