@@ -67,17 +67,6 @@ describe("Context basic tests", () => {
             should(dom).not.Null();
             return;
         }
-        const final =
-            <Group>
-                <Group>
-                    <Empty id={201} />
-                    <Empty id={101} />
-                </Group>
-                <Empty id={11} />
-            </Group>;
-        // tslint:disable-next-line:no-console
-        console.log(final);
-
         should(dom).eql(
             <Group>
                 <Group>
