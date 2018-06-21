@@ -23,10 +23,12 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^5.0.3",
+    "@types/indent-string": "^3.0.0",
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
     "@types/node": "^8.10.20",
     "@types/sinon": "^5.0.1",
+    "@types/type-name": "^1.0.27",
     "@types/xmlbuilder": "0.0.32",
     "fs-extra": "^6.0.1",
     "husky": "^0.14.3",
@@ -39,8 +41,11 @@
   },
   "dependencies": {
     "css-what": "^2.1.0",
+    "flush-write-stream": "^1.0.3",
+    "indent-string": "^3.2.0",
     "lodash": "^4.17.10",
     "ts-custom-error": "^2.2.1",
+    "type-name": "^2.0.2",
     "xmlbuilder": "^10.0.0"
   }
 }
