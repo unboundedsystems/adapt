@@ -27,7 +27,8 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    // Temporarily disabled
+    //"noUnusedParameters": true,
     "outDir": "dist",
     "paths": {
       "css-what": [ "./types/css-what" ]
