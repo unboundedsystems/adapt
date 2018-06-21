@@ -1,3 +1,5 @@
+export * from "./trace";
+
 /**
  * Create a new, empty object and copy only the selected properties from a
  * source object onto the new object.
