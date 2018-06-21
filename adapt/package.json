@@ -22,11 +22,13 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "devDependencies": {
+    "@types/fs-extra": "^5.0.3",
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
-    "@types/node": "^8.10.14",
+    "@types/node": "^8.10.20",
     "@types/sinon": "^5.0.1",
     "@types/xmlbuilder": "0.0.32",
+    "fs-extra": "^6.0.1",
     "husky": "^0.14.3",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
