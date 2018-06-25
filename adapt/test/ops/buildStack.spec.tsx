@@ -25,11 +25,11 @@ class Simple extends PrimitiveComponent<{}> {}
 unbs.stack("default", <Simple />);
 `;
 
-describe("buildStack Tests", () => {
+describe("buildStack Tests", function() {
+    this.timeout(20000);
     tmpdir.each("adapt-buildStack");
 
-    it("Should build a single file", function() {
-        this.timeout(10000);
+    it("Should build a single file", () => {
         fs.writeFileSync("index.tsx", simpleIndexTsx);
         fs.writeFileSync("package.json",
                          JSON.stringify(simplePackageJson, null, 2));
@@ -49,12 +49,12 @@ describe("buildStack Tests", () => {
     });
 });
 
-describe("buildStack Nodecellar example project", () => {
+describe("buildStack Nodecellar example project", function() {
+    this.timeout(20000);
     tmpdir.each("adapt-buildStack",
                 {copy: path.join(pkgRootDir, "test_projects", "nodecellar")});
 
-    it("Should build nodecellar demo", function() {
-        this.timeout(10000);
+    it("Should build nodecellar demo", () => {
 
         const packages = [
             "file:" + pkgRootDir,
