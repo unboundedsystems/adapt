@@ -15,10 +15,9 @@
  *    without specific prior written permission.
  */
 import * as fs from "fs";
-import { EOL } from "os";
-import { dirname, join, resolve, sep } from "path";
+import { dirname, resolve, sep } from "path";
 import * as ts from "typescript";
-import { trace, tracef } from "../utils/trace";
+import { trace, tracef } from "../utils";
 // tslint:disable-next-line:no-var-requires
 const typeName = require("type-name");
 
@@ -27,90 +26,118 @@ export let debugChainableHostsVerbose = false;
 if (debugChainableHostsVerbose) debugChainableHosts = true;
 export let debugDir = true;
 
-function canonicalPath(cwd: string, fileName: string): string {
-    return resolve(cwd, fileName);
+// tslint:disable:member-ordering
+
+// tslint:disable-next-line:ban-types
+type FunctionPropertyNames<T> = { [K in keyof T]: T[K] extends Function ? K : never }[keyof T];
+
+type InitCanonicalize<T> = { [K in keyof T]?: number };
+// Member function -> Which arg to canonicalize
+const initCanonicalize: InitCanonicalize<ChainableHost> = {
+    fileExists: 0,
+    directoryExists: 0,
+    readFile: 0,
+    getFileVersion: 0,
+    getSourceFile: 0,
+    writeFile: 0,
+    getDirectories: 0,
+    realFilename: 0,
+};
+
+const noop: any = undefined;
+
+function callSource(proto: object, propKey: string, desc: PropertyDescriptor) {
+    return {
+        ...desc,
+        value: function _toSource(this: ChainableHost, ...args: any[]) {
+            if (!this.source) throw new Error(`Internal Error: source for ${this.constructor.name} is null`);
+            return (this.source as any)[propKey].apply(this.source, args);
+        }
+    };
 }
 
-export class HostImplEnd {
+export abstract class ChainableHost implements ts.CompilerHost {
     public _id = "";
-    _fileExists(fileName: string): boolean {
-        return false;
-    }
-    _directoryExists(directoryName: string): boolean {
-        return false;
-    }
-    _readFile(fileName: string): string | undefined {
-        // @ts-ignore
-        return undefined;
-    }
-    _getFileVersion(fileName: string): string {
-        // @ts-ignore
-        return undefined;
-    }
-    _getSourceFile(fileName: string,
-                             languageVersion: ts.ScriptTarget,
-                             onError?: (message: string) => void):
-                             ts.SourceFile {
-        // @ts-ignore
-        return undefined;
-    }
-    _writeFile(path: string, data: string,
-                         writeByteOrderMark: boolean,
-                         onError?: (message: string) => void,
-                         sourceFiles?: ReadonlyArray<ts.SourceFile>): void {
-        throw new Error(`Base Compiler host is not writable`);
-    }
-    _useCaseSensitiveFileNames() {
-        return true;
-    }
-    _getCurrentDirectory(): string {
-        return "";
-    }
-    _getNewLine(): string {
-        return EOL;
-    }
-    _getDefaultLibFileName(options: ts.CompilerOptions): string {
-        return "lib.d.ts";
-    }
-    _getCancellationToken(): ts.CancellationToken {
-        // @ts-ignore
-        return null;
-    }
-    _getDirectories(path: string): string[] {
-        return [];
-    }
-    _resolveModuleName(modName: string, containingFile: string, runtime?: boolean):
-        ts.ResolvedModule {
-        // @ts-ignore
-        return { resolvedFileName: undefined };
-    }
-    _resolveModuleNames(moduleNames: string[], containingFile: string,
-                        reusedNames?: string[]): ts.ResolvedModule[] {
-        return moduleNames.map((modName) => {
-            return this._resolveModuleName(modName, containingFile, false);
-        });
-    }
-    _realFilename(fileName: string): string | undefined {
-        return undefined;
-    }
-    // Return a list of the files unique to this layer
-    _dir(): string[] {
-        return [];
-    }
-}
 
-// The internal side of the API
-export interface HostImpl extends HostImplEnd {}
+    // @ts-ignore - Cheat so we don't have to check for null everywhere
+    source: ChainableHost = null;
 
-// A CompilerHost implements both the internal and external sides of the API
-export interface CompilerHost extends ts.CompilerHost, HostImpl { }
+    constructor(readonly cwd: string) {
+        for (const key of Object.keys(initCanonicalize)) {
+            // @ts-ignore
+            this.canonicalizeFunc(key, initCanonicalize[key]);
+        }
+    }
 
-export abstract class ChainableHost implements CompilerHost {
-    public _id = "";
-    // @ts-ignore
-    protected source: HostImpl | ChainableHost = null;
+    @tracef(debugChainableHosts)
+    @callSource
+    directoryExists(directoryname: string): boolean { return noop; }
 
-    setSource(source: HostImpl | ChainableHost): void {
+    @tracef(debugChainableHosts)
+    @callSource
+    fileExists(fileName: string): boolean { return noop; }
+
+    @callSource
+    getCancellationToken(): ts.CancellationToken { return noop; }
+
+    @callSource
+    getDefaultLibFileName(options: ts.CompilerOptions): string { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    getDirectories(path: string): string[] { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    getFileVersion(fileName: string): string { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    getNewLine(): string { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    getSourceFile(fileName: string, languageVersion: ts.ScriptTarget,
+                  onError?: (message: string) => void): ts.SourceFile | undefined { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    readFile(fileName: string): string | undefined { return noop; }
+
+    /**
+     * Should be implemented by any Host that performs filename translation.
+     * Given a possibly "faked" or virtual filename, return the real filename
+     * that corresponds.
+     */
+    @callSource
+    realFilename(fileName: string): string | undefined { return noop; }
+
+    @callSource
+    resolveModuleName(modName: string, containingFile: string, runtime?: boolean):
+        ts.ResolvedModule | undefined { return noop; }
+
+    @callSource
+    resolveModuleNames(moduleNames: string[], containingFile: string,
+                         reusedNames?: string[]): ts.ResolvedModule[] { return noop; }
+
+    @callSource
+    useCaseSensitiveFileNames(): boolean { return noop; }
+
+    @tracef(debugChainableHosts)
+    @callSource
+    writeFile(fileName: string, data: string, writeByteOrderMark: boolean,
+                onError?: (message: string) => void,
+                sourceFiles?: ReadonlyArray<ts.SourceFile>): void { return noop; }
+
+    getCanonicalFileName(fileName: string) {
+        return resolve(this.getCurrentDirectory(), fileName);
+    }
+
+    getCurrentDirectory(): string {
+        return (this.source && this.source.getCurrentDirectory()) || this.cwd;
+    }
+
+    setSource(source: ChainableHost): void {
         if (this.source === null) {
             this.source = source;
         } else {
@@ -119,144 +146,9 @@ export abstract class ChainableHost implements CompilerHost {
                 `instance in multiple chains.`);
         }
     }
-    sourceChain(): ChainableHost {
-        if (isChainableHost(this.source)) {
-            return this.source;
-        }
-        throw new Error(`Host's source is not chainable`);
-    }
-    @tracef(debugChainableHosts)
-    fileExists(fileName: string): boolean {
-        fileName = this._getCanonicalFileName(fileName);
-        return this._fileExists(fileName);
-    }
-    _fileExists(fileName: string): boolean {
-        return this.source._fileExists(fileName);
-    }
-    @tracef(debugChainableHosts)
-    directoryExists(directoryName: string): boolean {
-        directoryName = this._getCanonicalFileName(directoryName);
-        return this._directoryExists(directoryName);
-    }
-    _directoryExists(directoryName: string): boolean {
-        return this.source._directoryExists(directoryName);
-    }
-    @tracef(debugChainableHosts)
-    getCurrentDirectory(): string {
-        return this._getCurrentDirectory();
-    }
-    _getCurrentDirectory(): string {
-        return this.source._getCurrentDirectory();
-    }
-    @tracef(debugChainableHosts)
-    readFile(fileName: string): string {
-        fileName = this._getCanonicalFileName(fileName);
-        // @ts-ignore
-        return this._readFile(fileName);
-    }
-    _readFile(fileName: string): string | undefined {
-        return this.source._readFile(fileName);
-    }
-    @tracef(debugChainableHosts)
-    getFileVersion(fileName: string): string {
-        fileName = this._getCanonicalFileName(fileName);
-        return this._getFileVersion(fileName);
-    }
-    _getFileVersion(fileName: string): string {
-        return this.source._getFileVersion(fileName);
-    }
-    @tracef(debugChainableHosts)
-    getSourceFile(fileName: string, languageVersion: ts.ScriptTarget,
-                  onError?: (message: string) => void): ts.SourceFile | undefined {
-        fileName = this._getCanonicalFileName(fileName);
-        return this._getSourceFile(fileName, languageVersion, onError);
-    }
-    // @ts-ignore
-    _getSourceFile(fileName: string, languageVersion: ts.ScriptTarget,
-                   onError?: (message: string) => void): ts.SourceFile | undefined {
-        return this.source._getSourceFile(fileName, languageVersion, onError);
-    }
-    @tracef(debugChainableHosts)
-    writeFile(path: string, data: string, writeByteOrderMark: boolean,
-              onError?: (message: string) => void,
-              sourceFiles?: ReadonlyArray<ts.SourceFile>): void {
-        path = this._getCanonicalFileName(path);
-        this._writeFile(path, data, writeByteOrderMark, onError, sourceFiles);
-    }
-    _writeFile(path: string, data: string, writeByteOrderMark: boolean,
-               onError?: (message: string) => void,
-               sourceFiles?: ReadonlyArray<ts.SourceFile>): void {
-        this.source._writeFile(path, data, writeByteOrderMark, onError,
-                               sourceFiles);
-    }
-    @tracef(debugChainableHostsVerbose)
-    getDirectories(path: string): string[] {
-        path = this._getCanonicalFileName(path);
-        return this._getDirectories(path);
-    }
-    _getDirectories(path: string): string[] {
-        return this.source._getDirectories(path);
-    }
-    resolveModuleName(modName: string, containingFile: string, runtime = false):
-        ts.ResolvedModule {
-        return this._resolveModuleName(modName, containingFile, runtime);
-    }
-    _resolveModuleName(modName: string, containingFile: string, runtime = false):
-        ts.ResolvedModule {
-        return this.source._resolveModuleName(modName, containingFile, runtime);
-    }
-    resolveModuleNames(moduleNames: string[], containingFile: string,
-                       reusedNames?: string[]): ts.ResolvedModule[] {
-        return this._resolveModuleNames(moduleNames, containingFile, reusedNames);
-    }
-    _resolveModuleNames(moduleNames: string[], containingFile: string,
-                        reusedNames?: string[]): ts.ResolvedModule[] {
-        return this.source._resolveModuleNames(moduleNames, containingFile,
-                                               reusedNames);
-    }
-    getDefaultLibFileName(options: ts.CompilerOptions): string {
-        return this._getDefaultLibFileName(options);
-    }
-    _getDefaultLibFileName(options: ts.CompilerOptions): string {
-        return this.source._getDefaultLibFileName(options);
-    }
-    getCancellationToken(): ts.CancellationToken {
-        return this._getCancellationToken();
-    }
-    _getCancellationToken(): ts.CancellationToken {
-        return this.source._getCancellationToken();
-    }
-    getCanonicalFileName(fileName: string) {
-        return this._getCanonicalFileName(fileName);
-    }
-    _getCanonicalFileName(fileName: string) {
-        return canonicalPath(this._getCurrentDirectory(), fileName);
-    }
-    useCaseSensitiveFileNames() {
-        return this._useCaseSensitiveFileNames();
-    }
-    _useCaseSensitiveFileNames(): boolean {
-        return this.source._useCaseSensitiveFileNames();
-    }
-    getNewLine(): string {
-        return this._getNewLine();
-    }
-    _getNewLine(): string {
-        return this.source._getNewLine();
-    }
-    realFilename(fileName: string): string | undefined {
-        fileName = this._getCanonicalFileName(fileName);
-        return this._realFilename(fileName);
-    }
-    /**
-     * Should be implemented by any Host that performs filename translation.
-     * Given a possibly "faked" or virtual filename, return the real filename
-     * that corresponds.
-     */
-    _realFilename(fileName: string): string | undefined {
-        return this.source._realFilename(fileName);
-    }
-    dir() {
+
+    dir(): string[] { return []; }
+    dirTrace() {
         const dflag = debugChainableHosts || debugDir;
         if (!dflag) return;
         // tslint:disable-next-line:no-this-assignment
@@ -264,29 +156,53 @@ export abstract class ChainableHost implements CompilerHost {
         while (true) {
             const objname = typeName(s) + s._id;
             trace(dflag, `\nFiles in ${objname}:`);
-            for (const f of s._dir()) {
+            for (const f of s.dir()) {
                 trace(dflag, `  ${f}`);
             }
-            if (!s.source || !isChainableHost(s.source)) break;
+            if (!s.source) break;
             s = s.source;
         }
     }
-    _dir(): string[] {
-        return [];
+
+    private canonicalizeFunc(funcName: FunctionPropertyNames<this>, argNo: number) {
+        const origFunc = this[funcName];
+        (this as any)[funcName] = function(this: ChainableHost, ...args: any[]) {
+            args[argNo] = resolve(this.getCurrentDirectory(), args[argNo]);
+            return (origFunc as any).apply(this, args);
+        };
     }
 }
 
-function isChainableHost(host: ChainableHost | HostImpl): host is ChainableHost {
-    return host && ((host as any).source !== undefined);
+export class HostFinal extends ChainableHost {
+    fileExists() { return false; }
+    directoryExists() { return false; }
+    getFileVersion() { return undefined as any; }
+    getSourceFile() { return undefined; }
+    useCaseSensitiveFileNames() { return true; }
+    getNewLine() { return "\n"; }
+    getDefaultLibFileName() { return "lib.d.ts"; }
+    resolveModuleName() { return {resolvedFileName: undefined} as any; }
+    getDirectories() { return []; }
+    readFile() { return undefined; }
+    getCancellationToken() { return null as any; }
+
+    resolveModuleNames(moduleNames: string[], containingFile: string) {
+        return moduleNames.map((modName) => {
+            return this.resolveModuleName();
+        });
+    }
+    realFilename() { return undefined; }
+    writeFile() { throw new Error(`Base Compiler host is not writable`); }
+    dir() { return []; }
 }
 
 export class FileSystemHost extends ChainableHost {
-    constructor(private rootDir: string, readonly cwd = process.cwd()) {
-        super();
+    constructor(private rootDir: string, cwd = process.cwd()) {
+        super(cwd);
         this.rootDir = fs.realpathSync(rootDir);
     }
 
-    _readDirectory(path: string, extensions?: ReadonlyArray<string>,
+    readDirectory(path: string, extensions?: ReadonlyArray<string>,
         excludes?: ReadonlyArray<string>,
         includes?: ReadonlyArray<string>, depth?: number): string[] {
         if (!this.allowed(path)) return [];
@@ -294,22 +210,18 @@ export class FileSystemHost extends ChainableHost {
                                     depth);
     }
 
-    _getCurrentDirectory(): string {
-        return this.cwd;
+    getDirectories(fileName: string) {
+        if (!this.allowed(fileName)) return [];
+        return ts.sys.getDirectories(fileName);
     }
 
-    _getDirectories(path: string): string[] {
-        if (!this.allowed(path)) return [];
-        return ts.sys.getDirectories(path);
-    }
-
-    _directoryExists(path: string): boolean {
+    directoryExists(path: string) {
         if (!this.allowed(path)) return false;
         return ts.sys.directoryExists(path);
     }
 
     @tracef(debugChainableHosts)
-    _readFile(path: string, encoding?: string): string | undefined {
+    readFile(path: string, encoding?: string) {
         if (!this.allowed(path)) return undefined;
         const contents = fs.readFileSync(path, encoding);
         if (contents) return contents.toString();
@@ -317,32 +229,22 @@ export class FileSystemHost extends ChainableHost {
     }
 
     @tracef(debugChainableHosts)
-    _getFileVersion(fileName: string): string {
+    getFileVersion(fileName: string) {
         try {
             const stats = fs.statSync(fileName);
             return stats.mtimeMs.toString();
         } catch (err) {
-            return this.source._getFileVersion(fileName);
+            return this.source.getFileVersion(fileName);
         }
     }
 
-    _fileExists(path: string): boolean {
-        return (this.allowed(path) && ts.sys.fileExists(path));
+    @tracef(debugChainableHosts)
+    fileExists(path: string) {
+        return this.allowed(path) && ts.sys.fileExists(path);
     }
-
-    _realFilename(fileName: string): string | undefined {
-        return fileName;
-    }
-
-    _writeFile(path: string, data: string, writeByteOrderMark: boolean,
-               onError?: (message: string) => void,
-               sourceFiles?: ReadonlyArray<ts.SourceFile>): void {
-        // tslint:disable-next-line:no-console
-        console.log(`WARNING: trying to write file ${path}`);
-    }
-
-    // Return a list of the files unique to this layer
-    _dir(): string[] {
+    realFilename(fileName: string) { return fileName; }
+    writeFile() { throw new Error(`FileSystemHost is not writable`); }
+    dir() {
         // We don't really want to list the whole filesystem.
         return [`File system at ${this.rootDir}`];
     }
@@ -370,17 +272,16 @@ export class MemoryHost extends ChainableHost {
     private files = new Map<string, MemFileVersion>();
     private dirs  = new Map<string, Set<string>>();
 
-    // @ts-ignore
-    constructor(private rootDir: string, readonly cwd = process.cwd()) {
-        super();
+    constructor(rootDir: string, cwd = process.cwd()) {
+        super(cwd);
         this.mkdirs(rootDir);
         this.mkdirs(cwd);
     }
 
     @tracef(debugChainableHosts)
-    _writeFile(path: string, data: string, writeByteOrderMark: boolean,
-               onError?: (message: string) => void,
-               sourceFiles?: ReadonlyArray<ts.SourceFile>): void {
+    writeFile(path: string, data: string, writeByteOrderMark: boolean,
+              onError?: (message: string) => void,
+              sourceFiles?: ReadonlyArray<ts.SourceFile>) {
 
         let f = this.files.get(path);
         if (f !== undefined) {
@@ -393,45 +294,42 @@ export class MemoryHost extends ChainableHost {
             // Set up directory
             const dir = dirname(path);
             this.mkdirs(dir);
-            // @ts-ignore
-            this.dirs.get(dir).add(path);
+            const dirSet = this.dirs.get(dir);
+            if (!dirSet) throw new Error(`Internal error: dir not found`);
+            dirSet.add(path);
         }
     }
 
     @tracef(debugChainableHosts)
-    _readFile(path: string, encoding?: string): string | undefined {
+    readFile(path: string, encoding?: string) {
         const f = this.files.get(path);
         if (f !== undefined) {
             return f.contents;
         }
-        return this.source._readFile(path);
+        return this.source.readFile(path);
     }
 
     @tracef(debugChainableHosts)
-    _getFileVersion(fileName: string): string {
+    getFileVersion(fileName: string) {
         const f = this.files.get(fileName);
         if (f !== undefined) {
             return f.version.toString();
         }
-        return this.source._getFileVersion(fileName);
+        return this.source.getFileVersion(fileName);
     }
 
-    _getCurrentDirectory(): string {
-        return this.cwd;
+    @tracef(debugChainableHosts)
+    fileExists(path: string) {
+        return (this.files.has(path) || super.fileExists(path));
     }
-
-    @tracef(debugChainableHostsVerbose)
-    _fileExists(path: string): boolean {
-        return (this.files.has(path) || super._fileExists(path));
-    }
-    @tracef(debugChainableHostsVerbose)
-    _directoryExists(directoryName: string): boolean {
+    @tracef(debugChainableHosts)
+    directoryExists(directoryName: string) {
         return this.dirs.has(directoryName) ||
-               super._directoryExists(directoryName);
+               this.source.directoryExists(directoryName);
     }
-    @tracef(debugChainableHostsVerbose)
-    _getDirectories(path: string): string[] {
-        const pdirs = super._getDirectories(path);
+    @tracef(debugChainableHosts)
+    getDirectories(path: string) {
+        const pdirs = this.source.getDirectories(path);
 
         if (!path.endsWith(sep)) {
             path += sep;
@@ -447,10 +345,7 @@ export class MemoryHost extends ChainableHost {
         return pdirs;
     }
 
-    // Return a list of the files unique to this layer
-    _dir(): string[] {
-        return Array.from(this.files.keys());
-    }
+    dir() { return Array.from(this.files.keys()); }
 
     private mkdirs(dir: string) {
         while (true) {
@@ -466,37 +361,17 @@ export class MemoryHost extends ChainableHost {
     }
 }
 
-export function chainHosts(lower: HostImpl | ChainableHost,
-                           ...upper: ChainableHost[]): ChainableHost {
-    if (upper.length < 1) throw new Error(`Must chain at least two hosts`);
-    upper[0].setSource(lower);
+export function chainHosts(...hosts: ChainableHost[]): ChainableHost {
+    if (hosts.length < 2) throw new Error(`Must chain at least two hosts`);
 
-    let i: number;
-    for (i = 1; i < upper.length; i++) {
-        upper[i].setSource(upper[i - 1]);
+    for (let i = 1; i < hosts.length; i++) {
+        hosts[i - 1].setSource(hosts[i]);
     }
-    return upper[i - 1];
+    return hosts[0];
 }
 
-export function MemFileHost(rootDir: string): ChainableHost {
-    return chainHosts(new HostImplEnd(),
-                      new FileSystemHost(rootDir),
-                      new MemoryHost(rootDir));
-}
-
-export function copyToHost(host: ChainableHost,
-                           src: string, dest: string) {
-    function walkSync(s: string, d: string) {
-        if (fs.statSync(s).isDirectory()) {
-            fs.readdirSync(s).forEach((file) => {
-                const fsrc = join(s, file);
-                const fdest = join(d, file);
-                walkSync(fsrc, fdest);
-            });
-        } else {
-            host.writeFile(d, fs.readFileSync(s).toString(), false);
-        }
-    }
-
-    walkSync(src, dest);
+export function MemFileHost(rootDir: string, cwd = process.cwd()): ChainableHost {
+    return chainHosts(new MemoryHost(rootDir, cwd),
+                      new FileSystemHost(rootDir, cwd),
+                      new HostFinal(cwd));
 }

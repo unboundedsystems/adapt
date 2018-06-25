@@ -95,7 +95,7 @@ export class VmModule {
     }
 
     @tracef(debugVm)
-    registerExt(ext: string, func: Function) {
+    registerExt(ext: string, func: (mod: VmModule, fileName: string) => void) {
         this._extensions[ext] = func;
     }
 
@@ -139,7 +139,11 @@ export class VmModule {
 
     @tracef(debugVm)
     private runJsModule(mod: VmModule, filename: string) {
-        return mod.runJs(this.host.readFile(filename), filename);
+        const contents = this.host.readFile(filename);
+        if (!contents) {
+            throw new Error(`Unable to find file contents for ${filename}`);
+        }
+        return mod.runJs(contents, filename);
     }
 
     @tracef(debugVm)

@@ -37,14 +37,15 @@ export function exec(rootFiles: string | string[], options: ExecOptions) {
                             `Compiler.rootFiles`);
         }
     } else {
-        const host = options.host || MemFileHost("/");
+        const host = options.host || MemFileHost("/", projectRoot);
         compiler = new Compiler(projectRoot, rootFiles, host);
     }
     const ccontext = new VmContext(context, tsDirname, tsBasename,
                                         compiler.host);
 
-    const jsText = compiler.compile(compiler.host.readFile(mainPath), mainPath,
-                                    ccontext.mainModule,
+    const contents = compiler.host.readFile(mainPath);
+    if (!contents) throw new Error(`Unable to read file ${mainPath}`);
+    const jsText = compiler.compile(contents, mainPath, ccontext.mainModule,
                                     options.lineOffset || 0);
 
     if (debugChainableHosts) {

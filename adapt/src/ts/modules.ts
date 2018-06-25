@@ -11,19 +11,23 @@ export class ModuleResolver extends ChainableHost {
     private cache: Map<string, ts.ResolvedModuleFull | null>;
 
     constructor(private compilerOptions: ts.CompilerOptions,
-                private moduleDirs: string[], chainHost?: ChainableHost, id?: string) {
-        super();
+                chainHost?: ChainableHost, id?: string) {
+        super((chainHost && chainHost.cwd) || "/");
         if (chainHost) this.setSource(chainHost);
         this.cache = new Map<string, ts.ResolvedModuleFull | null>();
         if (id) this._id = id;
     }
 
     @tracef(debugModuleResolution)
-    _resolveModuleNames(moduleNames: string[], containingFile: string,
-                        reusedNames?: string[]): ts.ResolvedModule[] {
+    resolveModuleNames(moduleNames: string[], containingFile: string,
+                       reusedNames?: string[]) {
         const resolved: ts.ResolvedModuleFull[] = [];
         for (const modName of moduleNames) {
-            resolved.push(this._resolveModuleName(modName, containingFile, false));
+            // NOTE: ts.CompilerHost allows returning undefined for a module, but
+            // ts.LanguageServiceHost does not. Fib a little here.
+            resolved.push(
+                this.resolveModuleName(modName, containingFile,
+                                       false) as ts.ResolvedModuleFull);
         }
         return resolved;
     }
@@ -35,74 +39,40 @@ export class ModuleResolver extends ChainableHost {
      * @param reusedNames
      */
     @tracef(debugModuleResolution)
-    _resolveModuleName(modName: string, containingFile: string, runtime: boolean):
-        ts.ResolvedModuleFull {
-        trace(debugModuleResolution,
-              `Trying to resolve ${modName}`);
+    resolveModuleName(modName: string, containingFile: string, runtime: boolean) {
+        trace(debugModuleResolution, `Trying to resolve ${modName}`);
         const fn = this.realFilename(containingFile);
         if (!fn) throw new Error(`Unable to get real filename for ${containingFile}`);
         containingFile = fn;
         const cacheKey = `${modName}\0${containingFile}\0${runtime}`;
         let mod = this.cache.get(cacheKey);
-        // @ts-ignore
+
         if (mod !== undefined) return mod === null ? undefined : mod;
 
-        mod = this.resolvePlugin(modName);
-        if (!mod) {
-            const r = ts.resolveModuleName(modName, containingFile,
-                                         this.compilerOptions, this);
-            if (r) {
-                mod = r.resolvedModule;
-                if (mod && mod.resolvedFileName) {
-                    // If the resolved name is a fake/translated name by
-                    // ModuleExtHost, like 'module.ts' when the actual file
-                    // is 'module.dom', get the actual file name.
-                    const realFile = this.realFilename(mod.resolvedFileName);
-                    if (realFile) mod.resolvedFileName = realFile;
-                }
-            }
+        const r = ts.resolveModuleName(modName, containingFile,
+                                       this.compilerOptions, this);
+        if (r) {
+            mod = r.resolvedModule;
 
             if (runtime) {
                 const resolved = mod && mod.resolvedFileName;
                 if (resolved && resolved.match(dtsRegex)) {
                     trace(debugModuleResolution,
-                          `Initially resolved to ${resolved}, but rejecting .d.ts ` +
-                          `file because runtime=true`);
+                        `Initially resolved to ${resolved}, but rejecting .d.ts ` +
+                        `file because runtime=true`);
                     mod = this.resolveJS(modName, containingFile);
                 }
             }
         }
+
         if (mod) {
             trace(debugModuleResolution, `Resolved to ${mod.resolvedFileName}`);
             this.cache.set(cacheKey, mod);
-        } else {
-            trace(debugModuleResolution, `FAILED to resolve ${modName}`);
-            this.cache.set(cacheKey, null);
-        }
-        // @ts-ignore
-        return mod;
-    }
-
-    resolvePlugin(modName: string): ts.ResolvedModuleFull | undefined {
-        // Plugins are neither relative modules nor absolute paths
-        if ((modName.charAt(0) === ".") || path.isAbsolute(modName)) {
-            return undefined;
+            return mod;
         }
 
-        for (const d of this.moduleDirs) {
-            const p = path.join(this.source._getCurrentDirectory(), d, modName);
-            const fname = p + ".ts";
-
-            if (this.source._fileExists(fname)) {
-                return { resolvedFileName: fname, extension: ts.Extension.Ts };
-            }
-            if (this.source._directoryExists(p)) {
-                const f = path.join(p, "index.dom");
-                if (this.source._fileExists(f)) {
-                    return { resolvedFileName: f, extension: ts.Extension.Ts };
-                }
-            }
-        }
+        trace(debugModuleResolution, `FAILED to resolve ${modName}`);
+        this.cache.set(cacheKey, null);
         return undefined;
     }
 

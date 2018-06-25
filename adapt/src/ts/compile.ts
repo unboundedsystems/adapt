@@ -89,19 +89,17 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
 
     constructor(public rootFiles: string[],
                 readonly compilerOptions: ts.CompilerOptions,
-                chainHost?: ChainableHost, id?: string,
+                chainHost: ChainableHost, id?: string,
                 public getProjectVersion?: () => string) {
-        super();
+        super(chainHost.cwd);
         this.cache = new Map<string, ILangCache>();
-        if (chainHost) this.setSource(chainHost);
+        this.setSource(chainHost);
         if (id) this._id = id;
     }
     getScriptFileNames = () => this.rootFiles;
     getScriptVersion = (filename: string) => this.getFileVersion(filename);
     getCompilationSettings = () => this.compilerOptions;
-    getDefaultLibFileName() {
-        return ts.getDefaultLibFilePath(this.compilerOptions);
-    }
+    getDefaultLibFileName() { return ts.getDefaultLibFilePath(this.compilerOptions); }
 
     cacheEntry(fileName: string) {
         const curVer = this.getScriptVersion(fileName);
@@ -122,7 +120,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
 
     @tracef(debugChainableHosts)
     getScriptSnapshot(fileName: string): ts.IScriptSnapshot | undefined {
-        fileName = this._getCanonicalFileName(fileName);
+        fileName = this.getCanonicalFileName(fileName);
         const c = this.cacheEntry(fileName);
         if (!c) return undefined;
 
@@ -136,8 +134,8 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
     }
 
     @tracef(debugChainableHosts)
-    _getSourceFile(fileName: string, languageVersion: ts.ScriptTarget,
-                   onError?: (message: string) => void): ts.SourceFile | undefined {
+    getSourceFile(fileName: string, languageVersion: ts.ScriptTarget,
+                  onError?: (message: string) => void) {
         const c = this.cacheEntry(fileName);
         if (!c) return undefined;
 
@@ -145,7 +143,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
         if (c.sourceFile) return c.sourceFile;
 
         // Does a lower layer have it?
-        c.sourceFile = this.source._getSourceFile(fileName, languageVersion,
+        c.sourceFile = this.source.getSourceFile(fileName, languageVersion,
                                                   onError);
         if (c.sourceFile !== undefined) return c.sourceFile;
 
@@ -159,7 +157,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
         return sf;
     }
     // Return a list of the files unique to this layer
-    _dir(): string[] {
+    dir() {
         const ret: string[] = [];
         for (const filename of this.cache.keys()) {
             const c = this.cache.get(filename);
@@ -185,7 +183,7 @@ export class Compiler {
     private _rootFiles: string[];
 
     constructor(projectRoot: string, rootFiles: string[],
-                chainHost: ChainableHost, moduleDirs: string[] = [],
+                chainHost: ChainableHost,
                 compilerOptions?: ts.CompilerOptions) {
         const finalOptions = {...compilerDefaults,
                               ...compilerOptions};
@@ -198,16 +196,12 @@ export class Compiler {
         this._rootFiles = rootFiles;
         this.baseHost = chainHost;
 
-        // Create two chains. One that includes pre-processing
-        this.primaryChain = new DomCompileHost(rootFiles, finalOptions, undefined,
+        const partialChain =
+            chainHosts(new ModuleResolver(finalOptions, undefined, "Prim"),
+                       chainHost);
+        this.primaryChain =
+            new DomCompileHost(rootFiles, finalOptions, partialChain,
                                                "Prim", verFunc);
-
-        // Note: last arg is the top of the chain
-        chainHosts(chainHost,
-                   //this.preprocHost,
-                   //new ModuleExtHost(extensions, null, "Prim"),
-                   new ModuleResolver(finalOptions, moduleDirs, undefined, "Prim"),
-                   this.primaryChain); // DomCompileHost
 
         this.service = ts.createLanguageService(this.primaryChain);
     }
@@ -287,7 +281,7 @@ export class Compiler {
 
     dir() {
         trace(debugChainableHosts, `\n*** Primary chain ***`);
-        this.primaryChain.dir();
+        this.primaryChain.dirTrace();
     }
 
     @tracef(debugChainableHosts || debugCompile)
