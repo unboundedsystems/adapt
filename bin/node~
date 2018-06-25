@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-IMAGE="node:8"
-CTR_ADD_PATH="/src/node_modules/.bin"
-BIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. "${BIN_DIR}/../../containit/containit.sh"

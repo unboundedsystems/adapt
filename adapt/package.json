@@ -1,0 +1,53 @@
+{
+  "name": "@usys/adapt",
+  "version": "0.0.1",
+  "description": "Unbounded Adapt core library",
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "prepush": "../bin/npm run lint",
+    "prepare": "npm run build",
+    "pretest": "npm run build",
+    "build": "npm run clean; tsc -p tsconfig.json",
+    "build:watch": "npm run clean; tsc -w -p tsconfig.json",
+    "lint": "tslint --project .",
+    "lint-and-fix": "tslint --project . --fix",
+    "test": "mocha --opts mocha.opts"
+  },
+  "author": "Manish Vachharajani <manishv@unbounded.systems>",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^5.0.3",
+    "@types/indent-string": "^3.0.0",
+    "@types/lodash": "^4.14.108",
+    "@types/mkdirp": "^0.5.2",
+    "@types/mocha": "^5.2.0",
+    "@types/node": "^8.10.20",
+    "@types/sinon": "^5.0.1",
+    "@types/type-name": "^1.0.27",
+    "@types/xmlbuilder": "0.0.32",
+    "fs-extra": "^6.0.1",
+    "husky": "^0.14.3",
+    "mocha": "^5.1.1",
+    "should": "^13.2.1",
+    "sinon": "^6.0.0",
+    "source-map-support": "^0.5.5",
+    "tslint": "^5.10.0",
+    "typescript": "^2.8.3"
+  },
+  "dependencies": {
+    "css-what": "^2.1.0",
+    "flush-write-stream": "^1.0.3",
+    "indent-string": "^3.2.0",
+    "lodash": "^4.17.10",
+    "mkdirp": "^0.5.1",
+    "ts-custom-error": "^2.2.1",
+    "type-name": "^2.0.2",
+    "xmlbuilder": "^10.0.0"
+  }
+}

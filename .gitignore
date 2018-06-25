@@ -1,9 +1,13 @@
 *.js
-*.map
-node_modules
 *.log
+*.map
+*~
+.DS_Store
+.nyc_output
+\#*
+\.\#*
+dist
+node_modules
 npm-debug.log.*
 output
-dist
-
 

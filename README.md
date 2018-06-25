@@ -1,1 +1,3 @@
-This is the jsx-front-end for the Unbounded Systems infrastructure description system.  It needs a better name.
+# Adapt
+This is the repo for the Unbounded Systems Adapt infrastructure description
+system.

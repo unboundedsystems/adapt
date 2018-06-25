@@ -1,0 +1,40 @@
+{
+  "include": [
+    "src/**/*",
+    "test/**/*",
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "alwaysStrict": true,
+    "baseUrl": ".",
+    "declaration": true,  
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx":"react",
+    "jsxFactory": "Adapt.createElement",
+    "lib": [
+      "es6"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noErrorTruncation": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    // Temporarily disabled
+    //"noUnusedParameters": true,
+    "outDir": "dist",
+    "paths": {
+      "css-what": [ "./types/css-what" ]
+    },
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es6",
+  }
+}

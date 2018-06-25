@@ -1,0 +1,15 @@
+{
+  "name": "import_module",
+  "version": "1.0.0",
+  "description": "Test project",
+  "main": "dist/index.js",
+  "scripts": {},
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "decamelize": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.10.20"
+  }
+}
