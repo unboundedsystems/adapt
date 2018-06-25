@@ -5,15 +5,12 @@ import * as path from "path";
 import { npmInstall, pkgRootDir } from "../testlib";
 
 import {
-    chainHosts,
     exec,
     execString,
-    FileSystemHost,
-    HostImplEnd,
-    MemoryHost
+    MemFileHost,
 } from "../../src/ts";
 
-const projDir = path.join(pkgRootDir, "test_projects");
+const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 describe("Exec basic tests", () => {
     it("Should execute a string", function() {
@@ -60,16 +57,14 @@ describe("Exec basic tests", () => {
 
 describe("Exec module tests", function() {
     this.timeout(10000);
-    const copyDir = path.resolve(projDir, "import_module");
+    const copyDir = path.resolve(projectsRoot, "import_module");
     tmpdir.each("adapt-buildStack", {copy: copyDir});
 
     it("Should import a node module", function() {
-        const rootDir = tmpdir.getTmpdir(this);
+        const projDir = tmpdir.getTmpdir(this);
         npmInstall();
-        const index = path.resolve(rootDir, "index.ts");
-        const host = chainHosts(new HostImplEnd(),
-                                new FileSystemHost("/", rootDir),
-                                new MemoryHost("/", rootDir));
+        const index = path.resolve(projDir, "index.ts");
+        const host = MemFileHost("/", projDir);
         const ret = exec(index, {host});
         should(ret).equal("test_camel");
     });

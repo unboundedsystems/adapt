@@ -19,11 +19,8 @@ import {
     Stack,
 } from "../stack";
 import {
-    chainHosts,
     exec,
-    FileSystemHost,
-    HostImplEnd,
-    MemoryHost
+    MemFileHost,
 } from "../ts";
 import { trace } from "../utils";
 
@@ -53,9 +50,7 @@ export function buildStack(fileName: string, stackName: string,
     const fileExt = path.extname(fileName);
     const importName = path.basename(fileName, fileExt);
 
-    const host = chainHosts(new HostImplEnd(),
-                            new FileSystemHost("/", projectRoot),
-                            new MemoryHost("/", projectRoot));
+    const host = MemFileHost("/", projectRoot);
     const context = Object.create(null);
 
     const wrapper = `
