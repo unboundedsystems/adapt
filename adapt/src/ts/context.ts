@@ -128,15 +128,6 @@ export class VmModule {
         }
     }
 
-    /*
-    private tryFile(requestPath: string) {
-        if (this.host.fileExists(requestPath)) {
-            return requestPath;
-        }
-        return undefined;
-    }
-    */
-
     @tracef(debugVm)
     private runJsModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);

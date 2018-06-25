@@ -36,15 +36,16 @@ export class ModuleResolver extends ChainableHost {
      * Resolve a single module name to a file path
      * @param modName The module name, as specified in import/require
      * @param containingFile The path to the file that contains the import
-     * @param reusedNames
+     * @param runnable Return a file that can be executed, which means either
+     *     a .js file or something that we know how to compile (ts, tsx).
      */
     @tracef(debugModuleResolution)
-    resolveModuleName(modName: string, containingFile: string, runtime: boolean) {
+    resolveModuleName(modName: string, containingFile: string, runnable: boolean) {
         trace(debugModuleResolution, `Trying to resolve ${modName}`);
         const fn = this.realFilename(containingFile);
         if (!fn) throw new Error(`Unable to get real filename for ${containingFile}`);
         containingFile = fn;
-        const cacheKey = `${modName}\0${containingFile}\0${runtime}`;
+        const cacheKey = `${modName}\0${containingFile}\0${runnable}`;
         let mod = this.cache.get(cacheKey);
 
         if (mod !== undefined) return mod === null ? undefined : mod;
@@ -54,13 +55,18 @@ export class ModuleResolver extends ChainableHost {
         if (r) {
             mod = r.resolvedModule;
 
-            if (runtime) {
+            if (runnable) {
                 const resolved = mod && mod.resolvedFileName;
+                // FIXME(mark): This isn't quite the right check. It *should*
+                // be anything we know how to run, which is .js or anything
+                // we know how to compile. But we don't have immediate access
+                // to which extensions we know how to compile... In practice,
+                // rejecting .d.ts is sufficient here.
                 if (resolved && resolved.match(dtsRegex)) {
                     trace(debugModuleResolution,
                         `Initially resolved to ${resolved}, but rejecting .d.ts ` +
-                        `file because runtime=true`);
-                    mod = this.resolveJS(modName, containingFile);
+                        `file because runnable=true`);
+                    mod = resolveJS(modName, containingFile, this);
                 }
             }
         }
@@ -83,39 +89,40 @@ export class ModuleResolver extends ChainableHost {
     trace(s: string) {
         trace(debugModuleResolution, s);
     }
+}
 
-    private resolveJS(modName: string,
-                      containingFile: string): ts.ResolvedModuleFull | null {
-        // The function is exported, but marked @internal
-        const resolveJS = (ts as any).resolveJavaScriptModule;
-        if (!resolveJS) {
-            trace(debugModuleResolution,
-                `No resolveJavaScriptModule function available`);
-            return null;
-        }
-
-        const jsFile = resolveJS(modName, path.dirname(containingFile), this);
-        if (!jsFile) {
-            trace(debugModuleResolution, `JavaScript file resolution failed`);
-            return null;
-        }
-
-        let ext: ts.Extension;
-        switch (path.extname(jsFile)) {
-            case ts.Extension.Js:
-                ext = ts.Extension.Js;
-                break;
-            case ts.Extension.Jsx:
-                ext = ts.Extension.Jsx;
-                break;
-            default:
-                throw new Error(`Module file extension ` +
-                                `'${path.extname(jsFile)}' not understood`);
-        }
-        return {
-            resolvedFileName: jsFile,
-            isExternalLibraryImport: true,
-            extension: ext,
-        };
+function resolveJS(modName: string, containingFile: string,
+                   host: ts.ModuleResolutionHost
+): ts.ResolvedModuleFull | null {
+    // The function is exported, but marked @internal
+    const tsResolve = (ts as any).resolveJavaScriptModule;
+    if (!tsResolve) {
+        trace(debugModuleResolution,
+            `No resolveJavaScriptModule function available`);
+        return null;
     }
+
+    const jsFile = tsResolve(modName, path.dirname(containingFile), host);
+    if (!jsFile) {
+        trace(debugModuleResolution, `JavaScript file resolution failed`);
+        return null;
+    }
+
+    let ext: ts.Extension;
+    switch (path.extname(jsFile)) {
+        case ts.Extension.Js:
+            ext = ts.Extension.Js;
+            break;
+        case ts.Extension.Jsx:
+            ext = ts.Extension.Jsx;
+            break;
+        default:
+            throw new Error(`Module file extension ` +
+                            `'${path.extname(jsFile)}' not understood`);
+    }
+    return {
+        resolvedFileName: jsFile,
+        isExternalLibraryImport: true,
+        extension: ext,
+    };
 }

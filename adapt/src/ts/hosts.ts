@@ -113,7 +113,7 @@ export abstract class ChainableHost implements ts.CompilerHost {
     realFilename(fileName: string): string | undefined { return noop; }
 
     @callSource
-    resolveModuleName(modName: string, containingFile: string, runtime?: boolean):
+    resolveModuleName(modName: string, containingFile: string, runnable?: boolean):
         ts.ResolvedModule | undefined { return noop; }
 
     @callSource
