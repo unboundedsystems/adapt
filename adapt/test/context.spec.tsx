@@ -1,5 +1,5 @@
 import * as should from "should";
-import unbs, { build, createContext, Group } from "../src";
+import Adapt, { build, createContext, Group } from "../src";
 
 import { DomError } from "../src/builtin_components";
 import { Empty } from "./testlib";

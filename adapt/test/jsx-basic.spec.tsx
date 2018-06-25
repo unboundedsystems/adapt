@@ -1,11 +1,11 @@
-import * as unbs from "../src";
+import * as Adapt from "../src";
 
 import should = require("should");
 
 import { checkChildComponents } from "./testlib";
 
-class Dummy extends unbs.Component<unbs.AnyProps> {
-    constructor(props: unbs.AnyProps) {
+class Dummy extends Adapt.Component<Adapt.AnyProps> {
+    constructor(props: Adapt.AnyProps) {
         super(props);
     }
 
@@ -15,7 +15,7 @@ class Dummy extends unbs.Component<unbs.AnyProps> {
 }
 
 describe("JSX SFC createElement Tests", () => {
-    function Component(_props: any): unbs.UnbsElement {
+    function Component(_props: any): Adapt.UnbsElement {
         throw new Error("Test is not supposed to render");
     }
 
@@ -25,7 +25,7 @@ describe("JSX SFC createElement Tests", () => {
 
     it("Should have the correct type", () => {
         const element = <Component />;
-        should(unbs.isElement(element)).True();
+        should(Adapt.isElement(element)).True();
     });
 
     it("Should have the correct componentType", () => {
@@ -42,10 +42,10 @@ describe("JSX SFC createElement Tests", () => {
         const element =
             <Component>
                 <Dummy />
-                <unbs.Group />
+                <Adapt.Group />
             </Component>;
 
-        checkChildComponents(element, Dummy, unbs.Group);
+        checkChildComponents(element, Dummy, Adapt.Group);
     });
 
     it("Should allow children as a prop", () => {
@@ -54,34 +54,34 @@ describe("JSX SFC createElement Tests", () => {
         checkChildComponents(element, Dummy);
 
         // Now two
-        const kids = [<unbs.Group />, <Dummy />];
+        const kids = [<Adapt.Group />, <Dummy />];
         element = <Component children={kids} />;
-        checkChildComponents(element, unbs.Group, Dummy);
+        checkChildComponents(element, Adapt.Group, Dummy);
     });
 
     it("Tag-wrapped children should override children as a prop", () => {
         const element =
             // @ts-ignore
             <Component children={<Dummy />}>
-                <unbs.Group />
+                <Adapt.Group />
             </Component>;
-        checkChildComponents(element, unbs.Group);
+        checkChildComponents(element, Adapt.Group);
     });
 });
 
 describe("JSX Class createElement Tests", () => {
     it("Element should construct", async () => {
-        <unbs.Group />;
+        <Adapt.Group />;
     });
 
     it("Element should have the correct type", () => {
-        const element = <unbs.Group />;
-        should(unbs.isElement(element)).be.True();
+        const element = <Adapt.Group />;
+        should(Adapt.isElement(element)).be.True();
     });
 
     it("Element should have the correct componentType", () => {
-        const element = <unbs.Group />;
-        should(element.componentType).equal(unbs.Group);
+        const element = <Adapt.Group />;
+        should(element.componentType).equal(Adapt.Group);
     });
 
     it("Should have the right props", () => {
@@ -91,45 +91,45 @@ describe("JSX Class createElement Tests", () => {
 
     it("Should have the right children", () => {
         const element =
-            <unbs.Group>
+            <Adapt.Group>
                 <Dummy />
-                <unbs.Group />
-            </unbs.Group>;
+                <Adapt.Group />
+            </Adapt.Group>;
 
-        checkChildComponents(element, Dummy, unbs.Group);
+        checkChildComponents(element, Dummy, Adapt.Group);
     });
 
     it("Should allow children as a prop", () => {
         // One child
-        let element = <unbs.Group children={<Dummy />} />;
+        let element = <Adapt.Group children={<Dummy />} />;
         checkChildComponents(element, Dummy);
 
         // Now two
-        const kids = [<unbs.Group />, <Dummy />];
-        element = <unbs.Group children={kids} />;
-        checkChildComponents(element, unbs.Group, Dummy);
+        const kids = [<Adapt.Group />, <Dummy />];
+        element = <Adapt.Group children={kids} />;
+        checkChildComponents(element, Adapt.Group, Dummy);
     });
 
     it("Tag-wrapped children should override children as a prop", () => {
         const element =
             // @ts-ignore
-            <unbs.Group children={<Dummy />}>
-                <unbs.Group />
-            </unbs.Group>;
-        checkChildComponents(element, unbs.Group);
+            <Adapt.Group children={<Dummy />}>
+                <Adapt.Group />
+            </Adapt.Group>;
+        checkChildComponents(element, Adapt.Group);
     });
 });
 
 describe("JSX cloneElement Tests", () => {
     it("Should clone singleton elements", () => {
-        const element = unbs.cloneElement(<unbs.Group />, {});
+        const element = Adapt.cloneElement(<Adapt.Group />, {});
         should(element).not.Null();
-        should(unbs.isElement(element)).be.True();
-        should(element.componentType).equal(unbs.Group);
+        should(Adapt.isElement(element)).be.True();
+        should(element.componentType).equal(Adapt.Group);
     });
 
     it("Should clone with new props", () => {
-        const element = unbs.cloneElement(<Dummy a={1} b={2} />,
+        const element = Adapt.cloneElement(<Dummy a={1} b={2} />,
             { b: 4 });
         should(element).not.Null();
         should(element.props.a).equal(1);
@@ -137,31 +137,31 @@ describe("JSX cloneElement Tests", () => {
     });
 
     it("Should clone with children", () => {
-        const element = unbs.cloneElement(<unbs.Group />, {},
-            <Dummy />, <unbs.Group />);
+        const element = Adapt.cloneElement(<Adapt.Group />, {},
+            <Dummy />, <Adapt.Group />);
 
-        checkChildComponents(element, Dummy, unbs.Group);
+        checkChildComponents(element, Dummy, Adapt.Group);
     });
 
     it("Should clone children on original element", () => {
-        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
+        const element = Adapt.cloneElement(<Adapt.Group><Dummy /></Adapt.Group>,
                                           {});
         checkChildComponents(element, Dummy);
     });
 
     it("Children on props should override children on original element", () => {
-        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
-                                          {children: [<unbs.Group />]});
-        checkChildComponents(element, unbs.Group);
+        const element = Adapt.cloneElement(<Adapt.Group><Dummy /></Adapt.Group>,
+                                          {children: [<Adapt.Group />]});
+        checkChildComponents(element, Adapt.Group);
     });
 
     it("Children as params should override orig and props", () => {
-        function Dummy2(_props: any): unbs.UnbsElement {
+        function Dummy2(_props: any): Adapt.UnbsElement {
             throw new Error("Test is not supposed to render");
         }
 
-        const element = unbs.cloneElement(<unbs.Group><Dummy /></unbs.Group>,
-                                          {children: [<unbs.Group />]},
+        const element = Adapt.cloneElement(<Adapt.Group><Dummy /></Adapt.Group>,
+                                          {children: [<Adapt.Group />]},
                                           <Dummy2 />, <Dummy2 />);
         checkChildComponents(element, Dummy2, Dummy2);
     });

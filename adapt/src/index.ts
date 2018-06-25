@@ -1,3 +1,3 @@
-import * as unbs from "./exports";
-export default unbs;
+import * as Adapt from "./exports";
+export default Adapt;
 export * from "./exports";

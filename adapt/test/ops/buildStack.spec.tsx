@@ -19,10 +19,10 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import unbs, { PrimitiveComponent } from "@usys/adapt";
+import Adapt, { PrimitiveComponent } from "@usys/adapt";
 
 class Simple extends PrimitiveComponent<{}> {}
-unbs.stack("default", <Simple />);
+Adapt.stack("default", <Simple />);
 `;
 
 describe("buildStack Tests", function() {

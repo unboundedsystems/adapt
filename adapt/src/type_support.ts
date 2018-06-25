@@ -16,7 +16,7 @@ export function isClassWithoutNewError(e: Error, name = "\S+"): e is TypeError {
     return (e instanceof TypeError && noInvokeExp.test(e.message));
 }
 
-//Stuff specific to this library (unbs).
+//Stuff specific to this library (Adapt).
 export interface Children<C> {
     children: C | C[];
 }

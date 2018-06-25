@@ -1,15 +1,15 @@
-import unbs from "@usys/adapt";
+import Adapt from "@usys/adapt";
 import { ComputeProps } from "../Compute";
 import { withCredentials, WithCredentials } from "./credentials";
 
-export interface EC2Props extends ComputeProps, unbs.WithChildren {
+export interface EC2Props extends ComputeProps, Adapt.WithChildren {
     imageId: string;
     instanceType: string;
     regionName: string;
     sshKeyName?: string;
 }
 
-class EC2InstanceNC extends unbs.PrimitiveComponent<EC2Props & WithCredentials> {
+class EC2InstanceNC extends Adapt.PrimitiveComponent<EC2Props & WithCredentials> {
 }
 
 // tslint:disable-next-line:variable-name

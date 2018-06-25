@@ -1,4 +1,4 @@
-import * as unbs from "../src";
+import * as Adapt from "../src";
 
 import should = require("should");
 import { fake } from "sinon";
@@ -12,33 +12,33 @@ import {
 
 describe("DOM CSS Build Tests", () => {
     it("Should replace empty primitive", () => {
-        const orig = <unbs.Group />;
+        const orig = <Adapt.Group />;
         const replace = <Empty id={1} />;
-        const styles = <unbs.Style>{unbs.Group} {unbs.rule(() => replace)}</unbs.Style>;
+        const styles = <Adapt.Style>{Adapt.Group} {Adapt.rule(() => replace)}</Adapt.Style>;
 
-        const { contents: dom } = unbs.build(orig, styles);
+        const { contents: dom } = Adapt.build(orig, styles);
 
-        should(unbs).not.Null();
-        should(unbs.isElement(dom)).True();
+        should(Adapt).not.Null();
+        should(Adapt.isElement(dom)).True();
         should(dom).eql(replace);
     });
 
     it("Should replace and simplify primitve", () => {
-        const orig = <unbs.Group>
+        const orig = <Adapt.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
-        </unbs.Group>;
+        </Adapt.Group>;
         const replace = <MakeEmpty id={123} />;
-        const styles = <unbs.Style>
-            {MakeMakeEmpty} {unbs.rule((props, info) => {
+        const styles = <Adapt.Style>
+            {MakeMakeEmpty} {Adapt.rule((props, info) => {
                 if (props.id === 1) {
                     return replace;
                 }
                 return info.origBuild(props);
             })}
-        </unbs.Style>;
+        </Adapt.Style>;
 
-        const { contents: dom } = unbs.build(orig, styles);
+        const { contents: dom } = Adapt.build(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -48,22 +48,22 @@ describe("DOM CSS Build Tests", () => {
     });
 
     it("Should process all matching rules once", () => {
-        const orig = <unbs.Group>
+        const orig = <Adapt.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
-        </unbs.Group>;
-        const action = (props: unbs.AnyProps, info: unbs.StyleBuildInfo) => {
+        </Adapt.Group>;
+        const action = (props: Adapt.AnyProps, info: Adapt.StyleBuildInfo) => {
             return info.origBuild(props);
         };
         const fakes = [ fake(action), fake(action), fake(action) ];
         const styles =
-            <unbs.Style>
-                {Empty} {unbs.rule(fakes[0])}
-                {Empty} {unbs.rule(fakes[1])}
-                {Empty} {unbs.rule(fakes[2])}
-            </unbs.Style>;
+            <Adapt.Style>
+                {Empty} {Adapt.rule(fakes[0])}
+                {Empty} {Adapt.rule(fakes[1])}
+                {Empty} {Adapt.rule(fakes[2])}
+            </Adapt.Style>;
 
-        const { contents: dom } = unbs.build(orig, styles);
+        const { contents: dom } = Adapt.build(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;

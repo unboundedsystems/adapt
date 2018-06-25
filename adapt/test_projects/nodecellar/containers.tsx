@@ -1,4 +1,4 @@
-import * as unbs from "@usys/adapt";
+import * as Adapt from "@usys/adapt";
 import * as cloud from "@usys/cloud";
 
 export interface AppProps {
@@ -12,7 +12,7 @@ export interface AppProps {
     image?: cloud.ImageId;
 }
 
-export class AppContainer extends unbs.Component<AppProps> {
+export class AppContainer extends Adapt.Component<AppProps> {
     static defaultProps = {
         name: "nodecellar",
         ctrPort: 8080,
@@ -61,7 +61,7 @@ export interface MongoProps {
     image?: cloud.ImageId;
 }
 
-export class MongoContainer extends unbs.Component<MongoProps> {
+export class MongoContainer extends Adapt.Component<MongoProps> {
     static defaultProps = {
         name: "mongod",
         mongoCtrPort: 27017,

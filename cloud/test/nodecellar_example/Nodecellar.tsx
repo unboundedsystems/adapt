@@ -1,4 +1,4 @@
-import unbs, { Component } from "@usys/adapt";
+import Adapt, { Component } from "@usys/adapt";
 import {
     Compute,
     DockerHost,

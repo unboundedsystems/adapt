@@ -1,4 +1,4 @@
-import unbs, { Style } from "@usys/adapt";
+import Adapt, { Style } from "@usys/adapt";
 
 import {
     Compute, ComputeProps,
@@ -9,16 +9,16 @@ import {
 
 const localStyle =
     <Style>
-        {Compute} {unbs.rule<ComputeProps>((props) => {
+        {Compute} {Adapt.rule<ComputeProps>((props) => {
             return <LocalCompute {...props}/>;
         })}
 
-        {DockerHost} {unbs.rule<DockerHostProps>((props, info) => {
+        {DockerHost} {Adapt.rule<DockerHostProps>((props, info) => {
             if (props.dockerHost) return info.origBuild(props);
             return <LocalDockerHost />;
         })}
 
-        {Container} {unbs.rule<ContainerProps>((props) => {
+        {Container} {Adapt.rule<ContainerProps>((props) => {
             return <LocalContainer {...props} />;
         })}
     </Style>;

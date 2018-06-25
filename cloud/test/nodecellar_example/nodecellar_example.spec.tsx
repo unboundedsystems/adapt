@@ -6,7 +6,7 @@ import should = require("should");
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-import unbs, {
+import Adapt, {
     build,
     serializeDom,
     UnbsElement,

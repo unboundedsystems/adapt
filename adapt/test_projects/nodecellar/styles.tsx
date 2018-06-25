@@ -1,4 +1,4 @@
-import * as unbs from "@usys/adapt";
+import * as Adapt from "@usys/adapt";
 import * as cloud from "@usys/cloud";
 
 const creds: cloud.AwsCredentialsProps = {
@@ -7,24 +7,24 @@ const creds: cloud.AwsCredentialsProps = {
 };
 
 export const localStyle =
-    <unbs.Style>
-        {cloud.Compute} {unbs.rule<cloud.ComputeProps>((props) => {
+    <Adapt.Style>
+        {cloud.Compute} {Adapt.rule<cloud.ComputeProps>((props) => {
             return <cloud.LocalCompute {...props}/>;
         })}
 
-        {cloud.DockerHost} {unbs.rule<cloud.DockerHostProps>((props, info) => {
+        {cloud.DockerHost} {Adapt.rule<cloud.DockerHostProps>((props, info) => {
             if (props.dockerHost) return info.origBuild(props);
             return <cloud.LocalDockerHost />;
         })}
 
-        {cloud.Container} {unbs.rule<cloud.ContainerProps>((props) => {
+        {cloud.Container} {Adapt.rule<cloud.ContainerProps>((props) => {
             return <cloud.LocalContainer {...props} />;
         })}
-    </unbs.Style>;
+    </Adapt.Style>;
 
 export const awsStyle =
-    <unbs.Style>
-        {cloud.Compute} {unbs.rule<cloud.ComputeProps>((props) => (
+    <Adapt.Style>
+        {cloud.Compute} {Adapt.rule<cloud.ComputeProps>((props) => (
             <cloud.awsDefaultCredentialsContext.Provider value={creds}>
                 <cloud.EC2Instance
                     imageId="someimage"
@@ -36,12 +36,12 @@ export const awsStyle =
             </cloud.awsDefaultCredentialsContext.Provider>
         ))}
 
-        {cloud.DockerHost} {unbs.rule<cloud.DockerHostProps>((props, info) => {
+        {cloud.DockerHost} {Adapt.rule<cloud.DockerHostProps>((props, info) => {
             if (props.dockerHost) return info.origBuild(props);
             return <cloud.LocalDockerHost />;
         })}
 
-        {cloud.Container} {unbs.rule<cloud.ContainerProps>((props) => {
+        {cloud.Container} {Adapt.rule<cloud.ContainerProps>((props) => {
             return <cloud.LocalContainer {...props} />;
         })}
-    </unbs.Style>;
+    </Adapt.Style>;

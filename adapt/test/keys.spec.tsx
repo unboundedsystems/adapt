@@ -1,7 +1,7 @@
 import * as should from "should";
 import { fake } from "sinon";
 
-import unbs, {
+import Adapt, {
     build,
     Group,
     isPrimitiveElement,

@@ -1,4 +1,4 @@
-import unbs, { Component } from "@usys/adapt";
+import Adapt, { Component } from "@usys/adapt";
 import { Compute, DockerHost } from "@usys/cloud";
 
 import { AppContainer, MongoContainer } from "./containers";
@@ -47,5 +47,5 @@ class Nodecellar extends Component<Props> {
 
 const app = <Nodecellar />;
 
-unbs.stack("dev", app, localStyle);
-unbs.stack("aws", app, awsStyle);
+Adapt.stack("dev", app, localStyle);
+Adapt.stack("aws", app, awsStyle);

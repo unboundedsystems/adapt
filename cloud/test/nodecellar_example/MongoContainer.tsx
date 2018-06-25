@@ -1,4 +1,4 @@
-import unbs, { Component } from "@usys/adapt";
+import Adapt, { Component } from "@usys/adapt";
 import { Container, ImageId } from "../../src";
 
 export interface Props {

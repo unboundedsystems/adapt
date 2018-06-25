@@ -101,7 +101,7 @@ function serializeElement(parent: xmlbuilder.XMLElementOrXMLNode, elem: UnbsElem
 }
 
 export function serializeDom(root: UnbsElement): string {
-    const doc = xmlbuilder.create("unbs");
+    const doc = xmlbuilder.create("Adapt");
     serializeElement(doc, root);
     doc.end({
         headless: true,

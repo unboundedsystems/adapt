@@ -1,4 +1,4 @@
-import unbs, {
+import Adapt, {
     BuildNotImplemented,
     Component,
     UnbsElementOrNull,
@@ -24,11 +24,11 @@ class Abstract extends Component<AbstractProps> {}
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
-        const orig = <unbs.Group />;
-        const { contents: dom } = unbs.build(orig, null);
+        const orig = <Adapt.Group />;
+        const { contents: dom } = Adapt.build(orig, null);
 
-        should(unbs).not.Null();
-        should(unbs.isElement(dom)).True();
+        should(Adapt).not.Null();
+        should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
         should(dom).eql(orig);
     });
@@ -39,22 +39,22 @@ describe("DOM Basic Build Tests", () => {
             <Empty id={2} />
         </MakeGroup>;
 
-        const { contents: dom } = unbs.build(orig, null);
+        const { contents: dom } = Adapt.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
-        should(dom.componentType).equal(unbs.Group);
+        should(dom.componentType).equal(Adapt.Group);
         should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
     });
 
     it("Should build recursively", () => {
-        const orig = <unbs.Group>
+        const orig = <Adapt.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
-        </unbs.Group>;
+        </Adapt.Group>;
 
-        const { contents: dom } = unbs.build(orig, null);
+        const { contents: dom } = Adapt.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -64,12 +64,12 @@ describe("DOM Basic Build Tests", () => {
     });
 
     it("Should pass through primitives with children", () => {
-        const orig = <unbs.Group>
+        const orig = <Adapt.Group>
             <Empty id={1} />
             <Empty id={2} />
-        </unbs.Group>;
+        </Adapt.Group>;
 
-        const { contents: dom } = unbs.build(orig, null);
+        const { contents: dom } = Adapt.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -80,7 +80,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should use defaultProps", () => {
         const orig = <WithDefaults />;
-        const { contents: dom } = unbs.build(orig, null);
+        const { contents: dom } = Adapt.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -90,7 +90,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should override defaultProps", () => {
         const orig = <WithDefaults prop1={1234} />;
-        const { contents: dom } = unbs.build(orig, null);
+        const { contents: dom } = Adapt.build(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -103,7 +103,7 @@ describe("DOM Basic Build Tests", () => {
             <Abstract id={10}>
                 <Empty id={11} />
             </Abstract>;
-        const res = unbs.build(orig, null);
+        const res = Adapt.build(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -124,7 +124,7 @@ describe("DOM Basic Build Tests", () => {
             <SFCThrows id={10}>
                 <Empty id={11} />
             </SFCThrows>;
-        const res = unbs.build(orig, null);
+        const res = Adapt.build(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -142,9 +142,9 @@ describe("DOM Shallow Build Tests", () => {
     it("Should respect shallow option", () => {
         const body = <MakeEmpty id={1} />;
         const orig = <MakeGroup>{body}</MakeGroup>;
-        const expected = <unbs.Group>{body}</unbs.Group>;
+        const expected = <Adapt.Group>{body}</Adapt.Group>;
 
-        const { contents: dom } = unbs.build(orig, null, { shallow: true });
+        const { contents: dom } = Adapt.build(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -154,7 +154,7 @@ describe("DOM Shallow Build Tests", () => {
 
     it("Should respect depth 0 as no-op", () => {
         const orig = <MakeMakeEmpty id={1} />;
-        const { contents: dom } = unbs.build(orig, null, { depth: 0 });
+        const { contents: dom } = Adapt.build(orig, null, { depth: 0 });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -163,21 +163,21 @@ describe("DOM Shallow Build Tests", () => {
     });
 
     it("Should respect depth option", () => {
-        const noChange = <unbs.Group>
+        const noChange = <Adapt.Group>
             <MakeEmpty id={1} />
-        </unbs.Group>;
+        </Adapt.Group>;
 
-        const orig = <unbs.Group>
+        const orig = <Adapt.Group>
             {noChange}
             <MakeEmpty id={2} />
-        </unbs.Group>;
+        </Adapt.Group>;
 
-        const expected = <unbs.Group>
+        const expected = <Adapt.Group>
             {noChange}
             <Empty id={2} />
-        </unbs.Group>;
+        </Adapt.Group>;
 
-        const { contents: dom } = unbs.build(orig, null, { depth: 2 });
+        const { contents: dom } = Adapt.build(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -198,12 +198,12 @@ describe("DOM Shallow Build Tests", () => {
             </MakeGroup>;
 
         for (let i = 0; i < 5; i++) {
-            const newDom = unbs.build(dom, null, { depth: i });
+            const newDom = Adapt.build(dom, null, { depth: i });
             if (newDom == null) {
                 break;
             }
             // tslint:disable-next-line:no-console
-            console.log(unbs.serializeDom(newDom));
+            console.log(Adapt.serializeDom(newDom));
         }
     }); */
 });

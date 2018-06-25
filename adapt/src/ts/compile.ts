@@ -27,7 +27,7 @@ const compilerDefaults: ts.CompilerOptions = {
     inlineSourceMap: true,
     allowJs: true,
     jsx: ts.JsxEmit.React,
-    jsxFactory: "unbs.createElement",
+    jsxFactory: "Adapt.createElement",
     //traceResolution: true,
 };
 

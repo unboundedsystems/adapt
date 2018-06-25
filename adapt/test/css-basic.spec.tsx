@@ -1,10 +1,10 @@
-import * as unbs from "../src";
+import * as Adapt from "../src";
 import * as css from "../src/css";
 
 import * as should from "should";
 
-class Dummy extends unbs.PrimitiveComponent<unbs.AnyProps> { }
-class Foo extends unbs.PrimitiveComponent<unbs.AnyProps> { }
+class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
+class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 
 describe("Selector Parsing", () => {
     it("Should Parse Tag Selector", () => {
@@ -19,8 +19,8 @@ describe("Selector Parsing", () => {
     });
 });
 
-function pathToLeaf(elem: unbs.UnbsElement): unbs.UnbsElement[] {
-    should(unbs.isElement(elem)).True();
+function pathToLeaf(elem: Adapt.UnbsElement): Adapt.UnbsElement[] {
+    should(Adapt.isElement(elem)).True();
     if ((elem.props.children == null) || (elem.props.children.length === 0)) {
         return [elem];
     }
@@ -30,9 +30,9 @@ function pathToLeaf(elem: unbs.UnbsElement): unbs.UnbsElement[] {
     return path;
 }
 
-function testStylePath(style: unbs.UnbsElement,
-    matchPath: unbs.UnbsElement[] | null,
-    noMatchPath: unbs.UnbsElement[] | null) {
+function testStylePath(style: Adapt.UnbsElement,
+    matchPath: Adapt.UnbsElement[] | null,
+    noMatchPath: Adapt.UnbsElement[] | null) {
 
     const styles = css.buildStyles(style);
     const matcher = styles[0].match;
@@ -41,9 +41,9 @@ function testStylePath(style: unbs.UnbsElement,
     if (noMatchPath != null) should(matcher(noMatchPath)).False();
 }
 
-function testStyleDom(style: unbs.UnbsElement,
-    dom: unbs.UnbsElement | null,
-    noMatchDom: unbs.UnbsElement | null) {
+function testStyleDom(style: Adapt.UnbsElement,
+    dom: Adapt.UnbsElement | null,
+    noMatchDom: Adapt.UnbsElement | null) {
 
     const matchPath = dom == null ? null : pathToLeaf(dom);
     const noMatchPath = noMatchDom == null ? null : pathToLeaf(noMatchDom);
@@ -78,11 +78,11 @@ describe("Selector matching", () => {
 
     it("Should Match Descendant (transitive single)", () => {
         const noMatchDom =
-            <unbs.Group>
-                <unbs.Group>
+            <Adapt.Group>
+                <Adapt.Group>
                     <Foo />
-                </unbs.Group>
-            </unbs.Group>;
+                </Adapt.Group>
+            </Adapt.Group>;
         const dom = <Dummy>{noMatchDom}</Dummy>;
         testStyleDom(<css.Style>
             {Dummy} {Foo} {css.rule(() => null)}

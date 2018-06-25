@@ -1,4 +1,4 @@
-<unbs>
+<Adapt>
   <Compute>
     <DomError>
       <json>"Component Compute cannot be built with current props"</json>
@@ -61,5 +61,5 @@
       </DomError>
     </Container>
   </Compute>
-</unbs>
+</Adapt>
 
