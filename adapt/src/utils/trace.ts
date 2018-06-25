@@ -67,9 +67,8 @@ export function tracef(enable: boolean) {
             };
         };
     } else {
-        return function noLog(target: object, _key: string, _val: any) {
-            return target;
-        };
+        // tslint:disable-next-line:no-empty
+        return function noLog(target: object, _key: string, _val: any) {};
     }
 }
 
