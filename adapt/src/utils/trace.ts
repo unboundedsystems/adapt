@@ -4,6 +4,9 @@ import { inspect } from "util";
 // tslint:disable-next-line:no-var-requires
 const writeStream = require("flush-write-stream");
 
+const argsTruncLen = 80;
+const returnTruncLen = 20;
+
 function trunc(s: string, max: number): string {
     if (s && s.length > max) {
         return s.slice(0, max) + "...";
@@ -53,14 +56,14 @@ export function tracef(enable: boolean) {
 
                     const fname = `${objname}.${propKey}`;
                     const a = args.map((arg) => {
-                        return trunc(simpleStringify(arg), 40);
+                        return trunc(simpleStringify(arg), argsTruncLen);
                     }).join();
                     log(`${fname}(${a})`);
 
                     nesting++;
                     const result = propDesc.value.apply(this, args);
                     nesting--;
-                    const r = trunc(simpleStringify(result), 20);
+                    const r = trunc(simpleStringify(result), returnTruncLen);
                     log(`${fname} => ${r}`);
                     return result;
                 }
