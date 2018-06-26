@@ -1,0 +1,2 @@
+ADAPT_DEPLOYMENT=test
+ADAPT_ETCD_EP=http://etcd:2379
