@@ -1,0 +1,21 @@
+{
+  "name": "test-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --opts mocha.opts"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/mocha": "^5.2.3",
+    "@types/node": "^8.10.20",
+    "etcd3": "^0.2.11",
+    "mocha": "^5.2.0",
+    "simple-git": "^1.96.0",
+    "source-map-support": "^0.5.6",
+    "ts-node": "^7.0.0",
+    "typescript": "^2.9.2"
+  }
+}
