@@ -7,6 +7,20 @@ chmod 600 /root/.ssh/id_rsa
 eval `ssh-agent` || exit 1
 ssh-add || exit 1
 
+for i in `seq 1 10`; do
+    git ls-remote --heads ssh://git@git-server/repo.git
+    if [ 0 = $? ]; then
+        break;
+    fi
+    echo "Waiting for git-server..."
+    sleep 1
+done
+
+if [ i = 10 ]; then
+    echo "Giving up on git-server"
+    exit 1
+fi
+
 git clone ssh://git@git-server/repo.git || exit 1
 
 cd repo
