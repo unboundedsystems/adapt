@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "cli"
+		},
+		{
+			"path": "dom-parser"
 		}
 	],
 	"settings": {}
