@@ -9,12 +9,10 @@
   "compilerOptions": {
     "alwaysStrict": true,
     "baseUrl": ".",
-    "declaration": true,  
+    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx":"react",
-    "jsxFactory": "unbs.createElement",
     "lib": [
       "es6"
     ],
@@ -29,5 +27,10 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es6",
+    "paths": {
+      "tmp-promise": [
+        "types/tmp-promise"
+      ]
+    }
   }
 }
