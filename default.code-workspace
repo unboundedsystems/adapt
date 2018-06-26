@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "adapt"
+		},
+		{
+			"path": "cloud"
+		},
+		{
+			"path": "cli"
+		}
+	],
+	"settings": {}
+}
