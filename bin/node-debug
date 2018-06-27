@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+# FIXME(mark): This script is a workaround for a VS Code bug where env
+# variables defined in launch.json aren't correctly passed into bash on
+# Windows. Delete this file and go back to using the plain "node" script
+# in launch.json when this is fixed:
+#   https://github.com/Microsoft/vscode/issues/38425
+DOCKER_ARGS+=" -p5858:5858"
+# Setting EXEC_CMD requires updated containit.sh
+EXEC_CMD="node"
+
+BIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. "${BIN_DIR}/node"

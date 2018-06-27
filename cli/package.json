@@ -46,7 +46,7 @@
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
   "license": "UNLICENSED",
   "oclif": {
-    "commands": "./dist/commands",
+    "commands": "./dist/src/commands",
     "bin": "adapt",
     "plugins": [
       "@oclif/plugin-help"
@@ -71,7 +71,7 @@
     "prepare": "npm run build",
     "prepush": "../bin/npm run lint && ../bin/npm run test",
     "pretest": "npm run build",
-    "test": "nyc mocha --opts test/mocha.opts",
+    "test": "nyc mocha --opts mocha.opts",
     "version": "oclif-dev readme && git add README.md"
   }
 }
