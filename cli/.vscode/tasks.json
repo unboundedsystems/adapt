@@ -7,6 +7,22 @@
             "label": "build:watch",
             "type": "shell",
             "command": "../bin/npm run build:watch",
+            "options": {
+                "shell": {
+                    "executable": "bash",
+                    // Ensure .bashrc runs by using -i. This allows for
+                    // user-specific stuff like DOCKER_HOST to be set.
+                    "args": [ "-ic" ]
+                }
+            },
+            "windows": {
+                "options": {
+                    "shell": {
+                        // Why won't Windows work without the .exe extension??
+                        "executable": "bash.exe",
+                    }
+                },
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
