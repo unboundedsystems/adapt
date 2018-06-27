@@ -8,12 +8,12 @@ services:
     volumes:
       - ./adapt_config:/home/git/config
       - ./adapt-git-server-test-id_rsa.pub:/home/git/.ssh/authorized_keys
-  git-client:
+  test-client:
     volumes:
       - ./adapt_config:/home/git/config
       - ./ssh_config:/root/.ssh/config
       - ./adapt-git-server-test-id_rsa:/root/.ssh/id_rsa
-      - ./test.sh:/home/git/test.sh
+      - ./test-client:/home/git/test-client
     build:
       context: .
       dockerfile: Dockerfile

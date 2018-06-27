@@ -1,10 +1,12 @@
 FROM alpine:3.7
 
+RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 RUN apk add --no-cache \
   openssh \
   git \
-  etcd-ctl
+  nodejs \
+  npm
 
 WORKDIR /home/git
 

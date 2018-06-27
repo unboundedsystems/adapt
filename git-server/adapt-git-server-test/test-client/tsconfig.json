@@ -1,0 +1,36 @@
+{
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+  ],
+  "exclude": [
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "alwaysStrict": true,
+    "baseUrl": ".",
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": [
+      "es6"
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es6",
+    "paths": {
+      "tmp-promise": [
+        "types/tmp-promise"
+      ]
+    }
+  }
+}
