@@ -7,12 +7,45 @@
             "label": "build:watch",
             "type": "shell",
             "command": "../bin/npm run build:watch",
+            "options": {
+                "shell": {
+                    "executable": "bash",
+                    // Ensure .bashrc runs by using -i. This allows for
+                    // user-specific stuff like DOCKER_HOST to be set.
+                    "args": [ "-ic" ]
+                }
+            },
+            "windows": {
+                "options": {
+                    "shell": {
+                        // Why won't Windows work without the .exe extension??
+                        "executable": "bash.exe",
+                    }
+                },
+            },
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "isBackground": true,
-            "problemMatcher": "$tsc-watch"
-        }
+            "problemMatcher": {
+                "owner": "typescript",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^([^\\s].*)\\((\\d+|\\d+,\\d+|\\d+,\\d+,\\d+,\\d+)\\):\\s+(error|warning|info)\\s+(TS\\d+)\\s*:\\s*(.*)$",
+                    "file": 1,
+                    "location": 2,
+                    "severity": 3,
+                    "code": 4,
+                    "message": 5
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^\\s*\\d{1,2}:\\d{1,2}:\\d{1,2}(?: AM| PM)? - File change detected\\. Starting incremental compilation\\.\\.\\.",
+                    "endsPattern": "Watching for file changes\\."
+                }
+            }
+
+        },
     ]
 }
