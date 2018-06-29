@@ -41,4 +41,5 @@ declare module "pacote" {
     }
 
     function manifest(spec: string, opts?: Options): Promise<Manifest>;
+    function extract(spec: string, dest: string, opts?: Options): Promise<void>;
 }
