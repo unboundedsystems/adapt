@@ -19,5 +19,7 @@
 			"path": "git-server"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.eol": "\n",
+	}
 }
