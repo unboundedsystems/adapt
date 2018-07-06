@@ -1,16 +1,19 @@
 import * as fs from "fs-extra";
-import * as os from "os";
 import * as pacote from "pacote";
 import * as path from "path";
 
 import * as npm from "../npm";
+import { mkdtmp } from "../utils";
 import { VersionString } from "./gen";
 
-// tslint:disable-next-line:no-var-requires
-const onExit = require("signal-exit");
+export interface Session {
+    cacheDir: string;
+    projectDir: string;
+    remove?: () => void;
+}
 
 export interface ProjectOptions {
-    cacheDir?: string;
+    session?: Session;
     progress?: boolean;
     loglevel?: npm.LogLevel;
 }
@@ -21,36 +24,31 @@ const defaultOptions: ProjectOptions = {
 
 export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     const finalOpts = { ...defaultOptions, ...projectOpts };
-    if (!finalOpts.cacheDir) {
-        finalOpts.cacheDir = await mkdtmp("adapt-cli-cache");
+    let removeSession = false;
+    let session = finalOpts.session;
+
+    if (!session) {
+        session = await tempSession();
+        removeSession = true;
     }
     const pacoteOpts = {
-        cache: finalOpts.cacheDir,
+        cache: session.cacheDir,
     };
     const manifest = await pacote.manifest(projectSpec, pacoteOpts);
-    const extDir = await mkdtmp("adapt-cli-extract");
-    await pacote.extract(projectSpec, extDir, pacoteOpts);
+    await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
 
     const npmOpts = {
-        dir: extDir,
+        dir: session.projectDir,
         progress: finalOpts.progress,
         loglevel: finalOpts.loglevel,
         packageLockOnly: true,
     };
     await npm.install(npmOpts);
 
-    const pkgLock = await npm.packageLock(extDir);
-    await fs.remove(extDir);
+    const pkgLock = await npm.packageLock(session.projectDir);
+    if (removeSession && session.remove) session.remove();
 
     return new Project(manifest, pkgLock, finalOpts);
-}
-
-async function mkdtmp(prefix: string): Promise<string> {
-    return fs.mkdtemp(path.join(os.tmpdir(), prefix + "-"))
-        .then((newDir) => {
-            onExit(() => fs.removeSync(newDir));
-            return newDir;
-        });
 }
 
 export class Project {
@@ -63,5 +61,17 @@ export class Project {
         const dep = this.packageLock.dependencies[pkgName];
         return dep ? dep.version : null;
     }
+}
 
+export async function tempSession(): Promise<Session> {
+    const dir = await mkdtmp("adapt-cli");
+    const cacheDir = path.join(dir, "cache");
+    const projectDir = path.join(dir, "project");
+    await fs.ensureDir(cacheDir);
+    await fs.ensureDir(projectDir);
+    return {
+        cacheDir,
+        projectDir,
+        remove: () => fs.removeSync(dir),
+    };
 }
