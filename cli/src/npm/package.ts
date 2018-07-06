@@ -12,8 +12,6 @@ const requiredProps = [
     "name",
     "version",
     "lockfileVersion",
-    "requires",
-    "dependencies",
 ];
 
 export interface Dependencies {
@@ -46,5 +44,8 @@ export async function packageLock(pkgRoot: string): Promise<PackageLock> {
     if (json.lockfileVersion !== 1) {
         throw new Error(errMsg + `unrecognized version ${json.lockfileVersion}`);
     }
+    if (!json.requires) json.requires = {};
+    if (!json.dependencies) json.dependencies = {};
+
     return json;
 }
