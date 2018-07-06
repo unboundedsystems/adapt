@@ -88,10 +88,55 @@ describe("Gen basic tests", () => {
 
     it("Should match genBasic", async () => {
         const proj = await loadProject(basicPackageJson);
-        const match = _getGen(proj, [genBasic]);
-        const mi = match.matchInfo;
-        expect(match.gen).equals(genBasic);
+        const gmatch = _getGen(proj, [genBasic]);
+        const mi = gmatch.matchInfo;
+        expect(gmatch.gen).equals(genBasic);
         expect(mi.matches).equals(true);
         expect(mi.ok.length).equals(2);
+    });
+
+    it("Should list missing packages", async () => {
+        const bad: any = cloneDeep(basicPackageJson);
+        bad.dependencies = {};
+        const proj = await loadProject(bad);
+        const gmatch = _getGen(proj, [genBasic]);
+
+        expect(gmatch.gen).equals(genBasic);
+        const mi = gmatch.matchInfo;
+        expect(mi.matches).equals(false);
+        expect(mi.ok.length).equals(0);
+        expect(mi.required).eql([
+            {
+                name: "@types/node",
+                message: "Package '@types/node' is not installed",
+            },
+            {
+                name: "typescript",
+                message: "Package 'typescript' is not installed",
+            }
+        ]);
+    });
+
+    it("Should list packages with incorrect version", async () => {
+        const bad: any = cloneDeep(basicPackageJson);
+        bad.dependencies = {
+            "typescript": "2.9.2",
+            "@types/node": "^6",
+        };
+        const newgen = cloneDeep(genBasic);
+        newgen.dependencies.typescript.allowed = "2.8.x";
+        const proj = await loadProject(bad);
+        const gmatch = _getGen(proj, [newgen]);
+
+        expect(gmatch.gen).equals(newgen);
+        const mi = gmatch.matchInfo;
+        expect(mi.matches).equals(false);
+        expect(mi.ok.length).equals(0);
+        expect(mi.required[0].name).equals("@types/node");
+        expect(mi.required[0].message).matches(
+            /Package '@types\/node' version '6.*?' does not meet required version range '>=8'/);
+        expect(mi.required[1].name).equals("typescript");
+        expect(mi.required[1].message).matches(
+            /Package 'typescript' version '2.9.2' does not meet required version range '2.8.x'/);
     });
 });
