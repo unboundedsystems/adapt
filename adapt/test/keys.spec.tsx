@@ -20,7 +20,7 @@ interface NodeNameSpyProps extends WithChildren {
     spy: any;
 }
 
-class NodeNameSpy extends PrimitiveComponent<NodeNameSpyProps> {
+class NodeNameSpy extends PrimitiveComponent<NodeNameSpyProps, {}> {
     updateState(_state: any, info: UpdateStateInfo) {
         this.props.spy(info.nodeName);
     }

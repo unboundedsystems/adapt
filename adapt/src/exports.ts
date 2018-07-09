@@ -7,6 +7,7 @@ export {
     UnbsElement,
     UnbsElementOrNull,
     AnyProps,
+    AnyState,
     isElement,
     isPrimitiveElement,
     WithChildren,

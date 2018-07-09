@@ -39,7 +39,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
     }
 
     // tslint:disable-next-line:no-shadowed-variable
-    class Provider extends Component<ProviderProps<T>> {
+    class Provider extends Component<ProviderProps<T>, {}> {
         build(): UnbsElementOrNull {
             const { children } = this.props;
             if (!children ||
@@ -58,7 +58,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
     }
 
     // tslint:disable-next-line:no-shadowed-variable
-    class Consumer extends Component<ConsumerProps<T>> {
+    class Consumer extends Component<ConsumerProps<T>, {}> {
         build() {
             const { children } = this.props;
             if (!children ||

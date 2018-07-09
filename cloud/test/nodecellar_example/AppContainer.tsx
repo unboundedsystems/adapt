@@ -12,7 +12,7 @@ export interface Props {
     image?: ImageId;
 }
 
-export default class AppContainer extends Component<Props> {
+export default class AppContainer extends Component<Props, {}> {
     static defaultProps = {
         name: "nodecellar",
         ctrPort: 8080,

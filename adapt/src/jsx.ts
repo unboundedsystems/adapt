@@ -13,8 +13,8 @@ export interface UnbsElement<P = AnyProps> {
     readonly componentType: ComponentType<P>;
 }
 
-export interface UnbsPrimitiveElement<P> extends UnbsElement<P> {
-    readonly componentType: PrimitiveClassComponentTyp<P>;
+export interface UnbsPrimitiveElement<P = AnyProps> extends UnbsElement<P> {
+    readonly componentType: PrimitiveClassComponentTyp<P, AnyState>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
 
@@ -24,7 +24,7 @@ export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
 }
 
-export abstract class Component<Props> {
+export abstract class Component<Props, State> {
     // cleanup gets called after build of this component's
     // subtree has completed.
     cleanup?: (this: this) => void;
@@ -36,24 +36,24 @@ export abstract class Component<Props> {
     }
 }
 
-export type PropsType<Comp extends tySup.Constructor<Component<any>>> =
-    Comp extends tySup.Constructor<Component<infer CProps>> ? CProps :
+export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
+    Comp extends tySup.Constructor<Component<infer CProps, any>> ? CProps :
     never;
 
-export abstract class PrimitiveComponent<Props> extends Component<Props> {
+export abstract class PrimitiveComponent<Props, State> extends Component<Props, State> {
 
     updateState(_state: any, _info: UpdateStateInfo) { return; }
 }
 
-export function isPrimitive(component: Component<any>):
-    component is PrimitiveComponent<any> {
+export function isPrimitive<P, S>(component: Component<P, S>):
+    component is PrimitiveComponent<P, S> {
     return component instanceof PrimitiveComponent;
 }
 
 export type SFC = (props: AnyProps) => UnbsElementOrNull;
 
-export function isComponent(func: SFC | Component<any>):
-    func is Component<any> {
+export function isComponent<P, S>(func: SFC | Component<P, S>):
+    func is Component<P, S> {
     return func instanceof Component;
 }
 
@@ -67,19 +67,23 @@ export interface ComponentStatic<P> {
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P): UnbsElementOrNull;
 }
-export interface ClassComponentTyp<P>  extends ComponentStatic<P> {
-    new (props: P): Component<P>;
+export interface ClassComponentTyp<P, S>  extends ComponentStatic<P> {
+    new (props: P): Component<P, S>;
 }
-export interface PrimitiveClassComponentTyp<P> extends ComponentStatic<P> {
-    new (props: P): PrimitiveComponent<P>;
+export interface PrimitiveClassComponentTyp<P, S> extends ComponentStatic<P> {
+    new (props: P): PrimitiveComponent<P, S>;
 }
 
 export type ComponentType<P> =
     FunctionComponentTyp<P> |
-    ClassComponentTyp<P> |
-    PrimitiveClassComponentTyp<P>;
+    ClassComponentTyp<P, AnyState> |
+    PrimitiveClassComponentTyp<P, AnyState>;
 
 export interface AnyProps {
+    [key: string]: any;
+}
+
+export interface AnyState {
     [key: string]: any;
 }
 
@@ -91,7 +95,7 @@ export interface WithChildrenArray {
     children: UnbsElement[];
 }
 
-export type GenericComponent = Component<AnyProps>;
+export type GenericComponent = Component<AnyProps, AnyState>;
 
 /**
  * Keep track of which rules have matched for a set of props so that in the
@@ -133,17 +137,17 @@ export class UnbsElementImpl<Props> implements UnbsElement<Props> {
 }
 
 export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
-    componentInstance?: PrimitiveComponent<AnyProps>;
+    componentInstance?: PrimitiveComponent<AnyProps, AnyState>;
 
     constructor(
-        readonly componentType: PrimitiveClassComponentTyp<Props>,
+        readonly componentType: PrimitiveClassComponentTyp<Props, AnyState>,
         props: Props,
         children: any[]
     ) {
         super(componentType, props, children);
     }
 
-    updateState(state: any, keys: KeyTracker, info: UpdateStateInfo) {
+    updateState(state: AnyState, keys: KeyTracker, info: UpdateStateInfo) {
         if (this.componentInstance == null) {
             this.componentInstance = new this.componentType(this.props);
         }
@@ -172,7 +176,7 @@ export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
 export function createElement<Props>(
     ctor: string |
         FunctionComponentTyp<Props> |
-        ClassComponentTyp<Props>,
+        ClassComponentTyp<Props, AnyState>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
     props: tySup.ExcludeInterface<Props, tySup.Children<any>>,
@@ -197,7 +201,7 @@ export function createElement<Props>(
     }
     if (isPrimitive(ctor.prototype)) {
         return new UnbsPrimitiveElementImpl(
-            ctor as PrimitiveClassComponentTyp<Props>,
+            ctor as PrimitiveClassComponentTyp<Props, AnyState>,
             fixedProps,
             children);
     } else {

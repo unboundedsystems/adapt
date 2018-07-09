@@ -1,5 +1,6 @@
 import {
     AnyProps,
+    AnyState,
     Component,
 } from "./jsx";
 
@@ -48,7 +49,7 @@ export class KeyTracker {
         return this.path.join(".");
     }
 
-    addKey(component: Component<AnyProps>) {
+    addKey(component: Component<AnyProps, AnyState>) {
         // TODO: Allow components to make names for themselves
         const compName = component.constructor.name;
         const uniqueName = this.names[this.depth].getUnique(compName);

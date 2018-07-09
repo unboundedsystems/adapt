@@ -11,7 +11,7 @@ export interface StyleBuildInfo {
     origElement: any;
 }
 export type BuildOverride<P = jsx.AnyProps> =
-    (props: P, info: StyleBuildInfo)  => jsx.UnbsElementOrNull;
+    (props: P, info: StyleBuildInfo) => jsx.UnbsElementOrNull;
 
 export interface StyleRule {
     selector: string;
@@ -161,16 +161,16 @@ function parseStyles(styles: RawStyle[]): StyleList {
     return ret;
 }
 export type AbstractComponentCtor
-    <P = jsx.AnyProps, T extends jsx.Component<P> = jsx.Component<P>> =
+    <P = jsx.AnyProps, S = jsx.AnyState, T extends jsx.Component<P, S> = jsx.Component<P, S>> =
     // tslint:disable-next-line:ban-types
     Function & { prototype: T };
 
 export type UnbsComponentConstructor =
-    new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps>;
+    new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps, jsx.AnyState>;
 
 export interface StyleProps {
     children: (AbstractComponentCtor | jsx.SFC | string |
-               UnbsComponentConstructor | Rule)[];
+        UnbsComponentConstructor | Rule)[];
 }
 
 export class Rule<P = jsx.AnyProps> {
@@ -260,7 +260,7 @@ export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
     return parseStyles(rawStyles);
 }
 
-export class Style extends jsx.Component<StyleProps> {
+export class Style extends jsx.Component<StyleProps, {}> {
     build(): null {
         return null; //Don't output anything for styles if it makes it to DOM
     }
@@ -287,13 +287,13 @@ export function concatStyles(
     for (const styleElem of styles) {
         if (!isStylesComponent(styleElem.componentType)) {
             throw new Error("Invalid Styles element: " +
-                            util.inspect(styleElem));
+                util.inspect(styleElem));
         }
         const kids = styleElem.props.children;
         if (kids == null) continue;
         if (!Array.isArray(kids)) {
             throw new Error(`Invalid type for children of a Style ` +
-                            `element: ${typeof kids}`);
+                `element: ${typeof kids}`);
         }
         rules.push(...styleElem.props.children);
     }

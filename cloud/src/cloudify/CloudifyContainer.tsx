@@ -11,7 +11,7 @@ import { getBlueprintState } from "./Blueprint";
 export type CloudifyContainerProps = ContainerProps;
 
 export class CloudifyContainer
-    extends PrimitiveComponent<CloudifyContainerProps> {
+    extends PrimitiveComponent<CloudifyContainerProps, {}> {
 
     updateState(state: any, info: UpdateStateInfo) {
         const createParams: any =

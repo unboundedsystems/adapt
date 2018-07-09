@@ -11,7 +11,7 @@ export interface Props {
     image?: ImageId;
 }
 
-export default class MongoContainer extends Component<Props> {
+export default class MongoContainer extends Component<Props, {}> {
     static defaultProps = {
         name: "mongod",
         mongoCtrPort: 27017,

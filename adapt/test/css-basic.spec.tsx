@@ -3,8 +3,8 @@ import * as css from "../src/css";
 
 import * as should from "should";
 
-class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
-class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
+class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps, {}> { }
+class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps, {}> { }
 
 describe("Selector Parsing", () => {
     it("Should Parse Tag Selector", () => {

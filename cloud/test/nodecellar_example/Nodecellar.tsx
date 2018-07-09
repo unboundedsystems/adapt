@@ -14,7 +14,7 @@ export interface Props {
     dockerHost?: string;
 }
 
-export default class Nodecellar extends Component<Props> {
+export default class Nodecellar extends Component<Props, {}> {
     static defaultProps = {
         webPort: 8080,
         webStatusPort: 8081,

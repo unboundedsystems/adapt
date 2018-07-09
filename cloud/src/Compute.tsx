@@ -5,6 +5,6 @@ export interface ComputeProps extends WithChildren {
     ip?: string;
 }
 
-export abstract class Compute extends Component<ComputeProps> {
+export abstract class Compute extends Component<ComputeProps, {}> {
 }
 export default Compute;

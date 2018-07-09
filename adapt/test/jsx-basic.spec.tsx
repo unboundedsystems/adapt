@@ -4,7 +4,7 @@ import should = require("should");
 
 import { checkChildComponents } from "./testlib";
 
-class Dummy extends Adapt.Component<Adapt.AnyProps> {
+class Dummy extends Adapt.Component<Adapt.AnyProps, {}> {
     constructor(props: Adapt.AnyProps) {
         super(props);
     }

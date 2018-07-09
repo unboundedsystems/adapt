@@ -20,7 +20,7 @@ import {
 interface AbstractProps extends WithChildren {
     id: number;
 }
-class Abstract extends Component<AbstractProps> {}
+class Abstract extends Component<AbstractProps, {}> {}
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {

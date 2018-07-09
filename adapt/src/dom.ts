@@ -3,6 +3,7 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    AnyState,
     childrenToArray,
     ClassComponentTyp,
     cloneElement,
@@ -73,7 +74,7 @@ function computeContentsNoOverride<P extends object>(
         // element.componentType is a class, not a function. Fall through.
     }
 
-    const component = new (element.componentType as ClassComponentTyp<P>)(element.props);
+    const component = new (element.componentType as ClassComponentTyp<P, AnyState>)(element.props);
 
     if (isPrimitive(component)) return buildDone();
 

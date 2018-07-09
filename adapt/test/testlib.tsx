@@ -36,7 +36,7 @@ export function checkChildComponents(element: Adapt.UnbsElement, ...children: an
     should(childComponents).eql(children);
 }
 
-export class Empty extends Adapt.PrimitiveComponent<{ id: number }> { }
+export class Empty extends Adapt.PrimitiveComponent<{ id: number }, {}> { }
 
 export function MakeMakeEmpty(props: { id: number }) {
     return <MakeEmpty id={props.id} />;
@@ -54,7 +54,7 @@ export interface WithDefaultsProps {
     prop1?: number;
     prop2?: number;
 }
-export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
+export class WithDefaults extends Adapt.Component<WithDefaultsProps, {}> {
     static defaultProps = {
         prop1: 100,
         prop2: 200,

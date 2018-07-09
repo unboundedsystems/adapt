@@ -1,4 +1,4 @@
-import { Component, UnbsElement } from "./jsx";
+import { AnyProps, AnyState, Component, UnbsElement } from "./jsx";
 
 export namespace JSX {
     export interface IntrinsicElements { }
@@ -9,6 +9,6 @@ export namespace JSX {
     export interface ElementChildrenAttribute {
         children: never;
     }
-    export type ElementClass = Component<any>;
+    export type ElementClass = Component<AnyProps, AnyState>;
     export type Element = UnbsElement;
 }

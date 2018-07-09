@@ -12,7 +12,7 @@ export interface AppProps {
     image?: cloud.ImageId;
 }
 
-export class AppContainer extends Adapt.Component<AppProps> {
+export class AppContainer extends Adapt.Component<AppProps, {}> {
     static defaultProps = {
         name: "nodecellar",
         ctrPort: 8080,
@@ -61,7 +61,7 @@ export interface MongoProps {
     image?: cloud.ImageId;
 }
 
-export class MongoContainer extends Adapt.Component<MongoProps> {
+export class MongoContainer extends Adapt.Component<MongoProps, {}> {
     static defaultProps = {
         name: "mongod",
         mongoCtrPort: 27017,
