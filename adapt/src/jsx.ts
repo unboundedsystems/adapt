@@ -3,17 +3,18 @@ import * as ld from "lodash";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { KeyTracker, UpdateStateInfo } from "./keys";
+import { computeStateUpdate, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
-export interface UnbsElement<P = AnyProps> {
+export interface UnbsElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
 }
 
-export interface UnbsPrimitiveElement<P = AnyProps> extends UnbsElement<P> {
+export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P, AnyState>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
@@ -24,12 +25,21 @@ export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
 }
 
-export abstract class Component<Props, State> {
+export abstract class Component<Props extends object, State extends object> {
+
+    readonly state: State;
+
     // cleanup gets called after build of this component's
     // subtree has completed.
     cleanup?: (this: this) => void;
+    private stateUpdates: Partial<State>[] = [];
 
     constructor(readonly props: Props) { }
+
+    setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
+        const upd = computeStateUpdate(this.state, this.props, stateUpdate);
+        this.stateUpdates.push(upd);
+    }
 
     build(): UnbsElementOrNull {
         throw new BuildNotImplemented();
@@ -40,19 +50,20 @@ export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
     Comp extends tySup.Constructor<Component<infer CProps, any>> ? CProps :
     never;
 
-export abstract class PrimitiveComponent<Props, State> extends Component<Props, State> {
+export abstract class PrimitiveComponent<Props extends object, State extends object>
+    extends Component<Props, State> {
 
     updateState(_state: any, _info: UpdateStateInfo) { return; }
 }
 
-export function isPrimitive<P, S>(component: Component<P, S>):
+export function isPrimitive<P extends object, S extends object>(component: Component<P, S>):
     component is PrimitiveComponent<P, S> {
     return component instanceof PrimitiveComponent;
 }
 
 export type SFC = (props: AnyProps) => UnbsElementOrNull;
 
-export function isComponent<P, S>(func: SFC | Component<P, S>):
+export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
     return func instanceof Component;
 }
@@ -67,14 +78,14 @@ export interface ComponentStatic<P> {
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P): UnbsElementOrNull;
 }
-export interface ClassComponentTyp<P, S>  extends ComponentStatic<P> {
-    new (props: P): Component<P, S>;
+export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
+    new(props: P): Component<P, S>;
 }
-export interface PrimitiveClassComponentTyp<P, S> extends ComponentStatic<P> {
-    new (props: P): PrimitiveComponent<P, S>;
+export interface PrimitiveClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
+    new(props: P): PrimitiveComponent<P, S>;
 }
 
-export type ComponentType<P> =
+export type ComponentType<P extends object> =
     FunctionComponentTyp<P> |
     ClassComponentTyp<P, AnyState> |
     PrimitiveClassComponentTyp<P, AnyState>;
@@ -113,7 +124,7 @@ export interface WithMatchProps {
     [$cssMatch]?: MatchProps;
 }
 
-export class UnbsElementImpl<Props> implements UnbsElement<Props> {
+export class UnbsElementImpl<Props extends object> implements UnbsElement<Props> {
     readonly props: Props & WithChildrenArray & Required<WithMatchProps>;
 
     constructor(
@@ -136,7 +147,7 @@ export class UnbsElementImpl<Props> implements UnbsElement<Props> {
     }
 }
 
-export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
+export class UnbsPrimitiveElementImpl<Props extends object> extends UnbsElementImpl<Props> {
     componentInstance?: PrimitiveComponent<AnyProps, AnyState>;
 
     constructor(
@@ -173,7 +184,7 @@ export class UnbsPrimitiveElementImpl<Props> extends UnbsElementImpl<Props> {
     }
 }
 
-export function createElement<Props>(
+export function createElement<Props extends object>(
     ctor: string |
         FunctionComponentTyp<Props> |
         ClassComponentTyp<Props, AnyState>,

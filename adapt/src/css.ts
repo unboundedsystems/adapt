@@ -161,7 +161,9 @@ function parseStyles(styles: RawStyle[]): StyleList {
     return ret;
 }
 export type AbstractComponentCtor
-    <P = jsx.AnyProps, S = jsx.AnyState, T extends jsx.Component<P, S> = jsx.Component<P, S>> =
+    <P extends object = jsx.AnyProps,
+    S extends object = jsx.AnyState,
+    T extends jsx.Component<P, S> = jsx.Component<P, S>> =
     // tslint:disable-next-line:ban-types
     Function & { prototype: T };
 
