@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 IMAGE="node:8"
-CTR_ADD_PATH="/src/node_modules/.bin"
-BIN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. "${BIN_DIR}/../containit/containit.sh"
+
+TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
+    PROJECT="${BASH_REMATCH[1]}"
+    if [ -n "${PROJECT}" ]; then
+        CTR_ADD_PATH="/src/${PROJECT}/node_modules/.bin"
+    fi
+fi
+
+. "${TOP_DIR}/containit/containit.sh"
