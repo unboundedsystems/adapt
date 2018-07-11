@@ -7,9 +7,8 @@
   "scripts": {
     "clean": "rm -rf dist",
     "prepush": "../bin/npm run lint",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "build": "npm run clean; tsc -p tsconfig.json",
+    "pretest": "make build",
+    "build": "tsc -p tsconfig.json",
     "build:watch": "npm run clean; tsc -w -p tsconfig.json",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",

@@ -5,16 +5,15 @@
   "main": "./dist/src/index.js",
   "typings": "./dist/src/index.d.ts",
   "scripts": {
-    "build": "npm run clean; npm run _build",
-    "_build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "build:watch": "npm run clean; npm run _build:watch",
     "_build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "postinstall": "postinstall-build dist",
+    "postinstall": "postinstall-build --only-as-dependency dist",
     "prepush": "../bin/npm run lint",
-    "pretest": "npm run build",
+    "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },
   "repository": {

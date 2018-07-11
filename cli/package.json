@@ -58,19 +58,16 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "scripts": {
-    "build": "npm run clean; npm run _build",
-    "_build": "tsc -p tsconfig.json",
-    "build:watch": "npm run clean; npm run _build:watch",
-    "_build:watch": "tsc -w -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "postinstall": "postinstall-build dist",
+    "postinstall": "postinstall-build --only-as-dependency dist",
     "postpack": "rm -f oclif.manifest.json",
-    "prepack": "rm -rf dist && tsc && oclif-dev manifest && oclif-dev readme",
-    "prepare": "npm run build",
+    "prepack": "make build && oclif-dev manifest && oclif-dev readme",
     "prepush": "../bin/npm run lint && ../bin/npm run test",
-    "pretest": "npm run build",
+    "pretest": "make build",
     "test": "nyc mocha --opts mocha.opts",
     "version": "oclif-dev readme && git add README.md"
   }
