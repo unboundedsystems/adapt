@@ -3,7 +3,7 @@ import * as should from "should";
 import * as state from "../src/state";
 
 describe("State Object Tests", () => {
-    let s: state.State;
+    let s: state.StateStore;
 
     beforeEach(() => {
         s = state.create();

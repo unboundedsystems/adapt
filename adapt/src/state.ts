@@ -1,17 +1,17 @@
 import { AnyState } from "./jsx";
 
-export interface State {
+export interface StateStore {
     setElementState(elem: BuildPath, data: any): void;
     elementState(elem: BuildPath): AnyState | null;
 }
 
-export function create(): State {
+export function create(): StateStore {
     return new StateImpl();
 }
 
 export type BuildPath = string[];
 
-class StateImpl implements State {
+class StateImpl implements StateStore {
     states = new Map<string, AnyState>();
 
     setElementState(elem: BuildPath, data: any) {
