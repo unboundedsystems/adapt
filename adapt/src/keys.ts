@@ -10,6 +10,16 @@ import {
     UnbsElement,
 } from "./jsx";
 
+export function setKey(elem: UnbsElement, key: string) {
+    if (Object.isFrozen(elem.props)) {
+        const newProps = Object.assign(ld.clone(elem.props), { key });
+        Object.freeze(newProps);
+        (elem as { props: AnyProps }).props = newProps;
+    } else {
+        elem.props.key = key;
+    }
+}
+
 export function assignKeys(siblingsIn: any | any[] | null | undefined) {
     const existingKeys = new KeyNames();
     const needsKeys: UnbsElement[] = [];
@@ -44,13 +54,7 @@ export function assignKeys(siblingsIn: any | any[] | null | undefined) {
     for (const elem of needsKeys) {
         const elemName = elem.componentType.name;
         const key = existingKeys.getUnique(elemName);
-        if (Object.isFrozen(elem.props)) {
-            const newProps = Object.assign(ld.clone(elem.props), { key });
-            Object.freeze(newProps);
-            (elem as { props: AnyProps }).props = newProps;
-        } else {
-            elem.props.key = key;
-        }
+        setKey(elem, key);
     }
 }
 

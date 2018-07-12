@@ -1,3 +1,5 @@
+import * as util from "util";
+
 import * as ld from "lodash";
 
 import * as css from "./css";
@@ -27,6 +29,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented } from "./error";
+import { assignKeys } from "./keys";
 
 export enum MessageType {
     warning = "warning",
@@ -43,7 +46,7 @@ class ComputeContents {
     contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
-    mountedElements: UnbsElement[];
+    mountedElements: UnbsElement[] = [];
 
     combine(other: ComputeContents) {
         this.messages.push(...other.messages);
@@ -102,17 +105,18 @@ function computeContentsNoOverride<P extends object>(
     }
 
     function buildDone(err?: Error) {
-        const kids = childrenToArray(element.props.children);
+        ret.buildDone = true;
+        ret.contents = element;
         if (err) {
+            const kids = childrenToArray(element.props.children);
             let message =
                 `Component ${element.componentType.name} cannot be ` +
                 `built with current props`;
             if (err.message) message += ": " + err.message;
             ret.messages.push({ type: MessageType.warning, content: message });
             kids.unshift(createElement(DomError, {}, message));
+            replaceChildren(element, kids);
         }
-        ret.buildDone = true;
-        ret.contents = cloneElement(element, {}, ...kids);
         return ret;
     }
 }
@@ -169,22 +173,45 @@ function computeContents(
     return out;
 }
 
+function mountElement(elem: UnbsElement, parentStateNamespace: StateNamespace): UnbsElement {
+    if (!isElementImpl(elem)) {
+        throw new Error("Elements must derive from ElementImpl");
+    }
+
+    if (elem.mounted) {
+        throw new Error("Cannot remount already mounted element");
+    }
+
+    let newKey: string | undefined = elem.props.key;
+    if (elem.props.key == null) {
+        const lastKey = ld.last(parentStateNamespace);
+        newKey = (lastKey == null) ? elem.componentType.name : lastKey;
+    }
+
+    elem = cloneElement(elem, { key: newKey }, elem.props.children);
+    if (!isElementImpl(elem)) {
+        throw new Error("Elements must derive from ElementImpl");
+    }
+
+    elem.mount(parentStateNamespace);
+    return elem;
+}
+
 function mountAndBuildComponent(
     path: UnbsElement[],
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    const elem = ld.last(path);
-    if (elem == null) {
+    const elemIn = ld.last(path);
+    if (elemIn == null) {
         throw new Error("Cannot mount empty path");
     }
 
+    const elem = mountElement(elemIn, parentStateNamespace);
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-
-    elem.mount(parentStateNamespace);
     const out = computeContents(path, styles, options);
     out.mountedElements.push(elem);
 
@@ -195,7 +222,10 @@ function mountAndBuildComponent(
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-        if (out.buildDone) return out;
+        if (out.buildDone) {
+            out.contents = mountElement(out.contents, elem.stateNamespace);
+            return out;
+        }
 
         const newPath = path.slice(0, -1);
         newPath.push(out.contents);
@@ -300,6 +330,10 @@ function realBuild(
         return out;
     }
 
+    if (!isElementImpl(newRoot)) {
+        throw new Error(`Internal Error: element is not ElementImpl: ${util.inspect(newRoot)}`);
+    }
+
     const children = newRoot.props.children;
     let newChildren: any = null;
     if (children == null) {
@@ -316,6 +350,7 @@ function realBuild(
         childList = children;
     }
 
+    assignKeys(childList);
     newChildren = childList.map((child) => {
         if (child instanceof UnbsElementImpl) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
@@ -331,6 +366,21 @@ function realBuild(
 
     newChildren = newChildren.filter(notNull);
 
-    out.contents = cloneElement(newRoot, {}, ...newChildren);
+    replaceChildren(newRoot, newChildren);
     return out;
+}
+
+function replaceChildren(elem: UnbsElement, children: any | any[] | undefined) {
+    if (children.length === 1) {
+        children = children[0];
+    }
+
+    if (Object.isFrozen(elem.props)) {
+        (elem as any).props = {
+            ...elem.props,
+            children
+        };
+    } else {
+        elem.props.children = children;
+    }
 }

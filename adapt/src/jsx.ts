@@ -4,7 +4,7 @@ import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
-import { assignKeys, KeyTracker, UpdateStateInfo } from "./keys";
+import { KeyTracker, UpdateStateInfo } from "./keys";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 
@@ -14,8 +14,6 @@ import * as tySup from "./type_support";
 export interface UnbsElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
-    readonly stateNamespace: StateNamespace;
-    readonly mounted: boolean;
 }
 
 export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsElement<P> {
@@ -107,11 +105,7 @@ export interface AnyState {
 }
 
 export interface WithChildren {
-    children?: UnbsElementOrNull | UnbsElementOrNull[];
-}
-// Used internally for fully validated children array
-export interface WithChildrenArray {
-    children: UnbsElement[];
+    children?: any | any[];
 }
 
 export type GenericComponent = Component<AnyProps, AnyState>;
@@ -133,7 +127,8 @@ export interface WithMatchProps {
 }
 
 export class UnbsElementImpl<Props extends object> implements UnbsElement<Props> {
-    readonly props: Props & WithChildrenArray & Required<WithMatchProps>;
+    readonly props: Props & WithChildren & Required<WithMatchProps>;
+
     stateNamespace: StateNamespace = [];
     mounted = false;
     component: GenericComponent | null;
@@ -153,7 +148,6 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         // Validate and flatten children. Ensure that children is always
         // an array of non-null elements
         this.props.children = ld.flatten(childrenToArray(this.props.children));
-        assignKeys(this.props.children);
         Object.freeze(this.props);
     }
 
@@ -173,7 +167,9 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
     postBuild(stateStore: StateStore) {
         if (this.component != null) {
             const updates = ((this.component as any) as { stateUpdates: AnyState[] }).stateUpdates;
-            applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
+            if (updates.length > 0) {
+                applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
+            }
         }
     }
 }

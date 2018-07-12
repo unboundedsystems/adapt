@@ -63,8 +63,8 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps, {}> {
     build() {
         return (
             <Adapt.Group>
-                <Empty id={this.props.prop1!} />
-                <Empty id={this.props.prop2!} />
+                <Empty key="1" id={this.props.prop1!} />
+                <Empty key="2" id={this.props.prop2!} />
             </Adapt.Group>
         );
     }

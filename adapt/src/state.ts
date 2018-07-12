@@ -2,7 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { AnyProps, AnyState, Component, UnbsElement } from "./jsx";
+import { AnyProps, AnyState, Component, isElementImpl, UnbsElement } from "./jsx";
 import { StateNamespace } from "./state";
 
 export interface StateStore {
@@ -79,6 +79,7 @@ export function applyStateUpdate<
 export function stateNamespaceForPath(path: UnbsElement[]): StateNamespace {
     const elem = ld.last(path);
     if (!elem) return [];
+    if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
     if (elem.mounted) {
         return elem.stateNamespace;
     } else {
