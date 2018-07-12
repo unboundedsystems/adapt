@@ -51,6 +51,14 @@ dist/.test_success: $(JS_FILES)
 	$(NPM) run test
 	touch $@
 
+lint: $(NPM_INSTALL_DONE) dist/.lint_success
+.PHONY: lint
+
+dist/.lint_success: $(TS_FILES)
+	$(NPM) run lint
+	touch $@
+
+
 NPM_PACK_DIR := dist/pack
 pack: build
 	rm -rf $(NPM_PACK_DIR)

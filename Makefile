@@ -36,7 +36,7 @@ PROJ_DIRS := $(patsubst %/, %, $(dir $(wildcard */Makefile)))
 # the targets created below are:
 #   adapt-build, adapt-test, cli-build, cli-test, etc.
 #
-SUBMAKE_TARGETS:=build test clean cleaner pack
+SUBMAKE_TARGETS:=build test clean cleaner pack lint
 
 $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 
@@ -53,6 +53,8 @@ clean: $(clean_submakes)
 cleaner: $(cleaner_submakes)
 
 pack: build $(pack_submakes)
+
+lint: setup $(lint_submakes)
 
 #
 # Build dependencies between directories

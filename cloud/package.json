@@ -12,7 +12,7 @@
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "postinstall": "postinstall-build --only-as-dependency dist",
-    "prepush": "../bin/npm run lint",
+    "prepush": "make lint",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },

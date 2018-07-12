@@ -6,7 +6,7 @@
   "typings": "dist/src/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "prepush": "../bin/npm run lint",
+    "prepush": "make lint",
     "pretest": "make build",
     "build": "tsc -p tsconfig.json",
     "build:watch": "npm run clean; tsc -w -p tsconfig.json",
