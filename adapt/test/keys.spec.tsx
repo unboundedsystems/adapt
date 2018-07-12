@@ -26,10 +26,40 @@ class NodeNameSpy extends PrimitiveComponent<NodeNameSpyProps, {}> {
     }
 }
 
+describe("Assign Keys", () => {
+    it("Should generate needed keys", () => {
+        const tree = <Group>
+            <Empty id={1} />
+            <Empty id={2} />
+        </Group>;
+
+        should(tree.props.children[0].props.key).equal("Empty");
+        should(tree.props.children[1].props.key).equal("Empty1");
+    });
+
+    it("Should not overwrite keys", () => {
+        const tree = <Group>
+            <Empty key="userDef" id={1} />
+            <Empty id={2} />
+        </Group>;
+
+        should(tree.props.children[0].props.key).equal("userDef");
+        should(tree.props.children[1].props.key).equal("Empty");
+    });
+
+    it("Should not overwrite keys", () => {
+        const tree = <Group>
+            <Empty id={2} />
+        </Group>;
+
+        should(tree.props.children[0].props.key).equal("Empty");
+    });
+});
+
 describe("KeyTracker", () => {
     it("Should generate unique keys for a base name", () => {
         const tracker = new KeyTracker();
-        const comp = new Empty({id: 1});
+        const comp = new Empty({ id: 1 });
 
         tracker.addKey(comp); // Depth 0
         tracker.lastKeyPath().should.equal("Empty");

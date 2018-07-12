@@ -1,8 +1,58 @@
+import * as util from "util";
+
+import * as ld from "lodash";
+
 import {
     AnyProps,
     AnyState,
     Component,
+    isElement,
+    UnbsElement,
 } from "./jsx";
+
+export function assignKeys(siblingsIn: any | any[] | null | undefined) {
+    const existingKeys = new KeyNames();
+    const needsKeys: UnbsElement[] = [];
+    const duplicateKeys: UnbsElement[] = [];
+
+    if (siblingsIn == null) return;
+    const siblings = ld.isArray(siblingsIn) ? siblingsIn : [siblingsIn];
+
+    for (const node of siblings) {
+        if (isElement(node)) {
+            if (("key" in node.props) && (node.props.key != null)) {
+                if (ld.isString(node.props.key)) {
+                    if (existingKeys.has(node.props.key)) {
+                        duplicateKeys.push(node);
+                    } else {
+                        existingKeys.add(node.props.key);
+                    }
+                } else {
+                    throw new Error(
+                        `children have non-string keys: ${node.componentType.name}: ${util.inspect(node.props.key)}`);
+                }
+            } else {
+                needsKeys.push(node);
+            }
+        }
+    }
+
+    if (duplicateKeys.length !== 0) {
+        throw new Error(`children have duplicate keys: ${util.inspect(duplicateKeys)}`);
+    }
+
+    for (const elem of needsKeys) {
+        const elemName = elem.componentType.name;
+        const key = existingKeys.getUnique(elemName);
+        if (Object.isFrozen(elem.props)) {
+            const newProps = Object.assign(ld.clone(elem.props), { key });
+            Object.freeze(newProps);
+            (elem as { props: AnyProps }).props = newProps;
+        } else {
+            elem.props.key = key;
+        }
+    }
+}
 
 /**
  * Stores the set of keys for a given group of sibling elements to keep

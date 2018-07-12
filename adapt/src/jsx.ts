@@ -4,7 +4,7 @@ import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
-import { KeyTracker, UpdateStateInfo } from "./keys";
+import { assignKeys, KeyTracker, UpdateStateInfo } from "./keys";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 
@@ -153,7 +153,7 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         // Validate and flatten children. Ensure that children is always
         // an array of non-null elements
         this.props.children = ld.flatten(childrenToArray(this.props.children));
-
+        assignKeys(this.props.children);
         Object.freeze(this.props);
     }
 
