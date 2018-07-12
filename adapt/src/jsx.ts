@@ -1,9 +1,11 @@
+import * as util from "util";
+
 import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { KeyTracker, UpdateStateInfo } from "./keys";
-import { computeStateUpdate, StateUpdater } from "./state";
+import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -12,6 +14,8 @@ import * as tySup from "./type_support";
 export interface UnbsElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
+    readonly stateNamespace: StateNamespace;
+    readonly mounted: boolean;
 }
 
 export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsElement<P> {
@@ -23,6 +27,10 @@ export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
 
 export function isElement(val: any): val is UnbsElement<AnyProps> {
     return val instanceof UnbsElementImpl;
+}
+
+export function isElementImpl(val: any): val is UnbsElementImpl<AnyProps> {
+    return isElement(val);
 }
 
 export abstract class Component<Props extends object, State extends object> {
@@ -126,6 +134,9 @@ export interface WithMatchProps {
 
 export class UnbsElementImpl<Props extends object> implements UnbsElement<Props> {
     readonly props: Props & WithChildrenArray & Required<WithMatchProps>;
+    stateNamespace: StateNamespace = [];
+    mounted = false;
+    component: GenericComponent | null;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -144,6 +155,26 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         this.props.children = ld.flatten(childrenToArray(this.props.children));
 
         Object.freeze(this.props);
+    }
+
+    mount(parentNamespace: StateNamespace) {
+        if (this.mounted) {
+            throw new Error("Cannot remount elements!");
+        }
+        if ("key" in this.props) {
+            const propsWithKey = this.props as Props & { key: string };
+            this.stateNamespace = [...parentNamespace, propsWithKey.key];
+        } else {
+            throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
+        }
+        this.mounted = true;
+    }
+
+    postBuild(stateStore: StateStore) {
+        if (this.component != null) {
+            const updates = ((this.component as any) as { stateUpdates: AnyState[] }).stateUpdates;
+            applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
+        }
     }
 }
 

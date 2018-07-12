@@ -1,26 +1,29 @@
+import * as util from "util";
+
 import * as ld from "lodash";
 
-import { AnyProps, AnyState, Component } from "./jsx";
+import { AnyProps, AnyState, Component, UnbsElement } from "./jsx";
+import { StateNamespace } from "./state";
 
 export interface StateStore {
-    setElementState(elem: BuildPath, data: any): void;
-    elementState(elem: BuildPath): AnyState | null;
+    setElementState(elem: StateNamespace, data: any): void;
+    elementState(elem: StateNamespace): AnyState | null;
 }
 
 export function create(): StateStore {
     return new StateImpl();
 }
 
-export type BuildPath = string[];
+export type StateNamespace = string[];
 
 class StateImpl implements StateStore {
     states = new Map<string, AnyState>();
 
-    setElementState(elem: BuildPath, data: any) {
+    setElementState(elem: StateNamespace, data: any) {
         this.states.set(JSON.stringify(elem), data);
     }
 
-    elementState(elem: BuildPath): AnyState | null {
+    elementState(elem: StateNamespace): AnyState | null {
         const ret = this.states.get(JSON.stringify(elem));
         if (ret == undefined) return null;
         return ret;
@@ -57,7 +60,7 @@ export function computeStateUpdate<P extends object = AnyProps,
 export function applyStateUpdate<
     P extends object = AnyProps,
     S extends object = AnyState>(
-        path: BuildPath,
+        path: StateNamespace,
         component: Component<P, S>,
         store: StateStore,
         update: Partial<S>) {
@@ -71,4 +74,14 @@ export function applyStateUpdate<
     const newState = { ...(prev as any), ...(update as any) };
     store.setElementState(path, newState);
     writableState(component).state = newState;
+}
+
+export function stateNamespaceForPath(path: UnbsElement[]): StateNamespace {
+    const elem = ld.last(path);
+    if (!elem) return [];
+    if (elem.mounted) {
+        return elem.stateNamespace;
+    } else {
+        throw new Error("Cannot compute state namespace for path with unmounted elements" + util.inspect(path));
+    }
 }

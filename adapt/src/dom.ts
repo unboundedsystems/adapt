@@ -9,12 +9,17 @@ import {
     cloneElement,
     createElement,
     FunctionComponentTyp,
+    isElementImpl,
     isPrimitive,
     UnbsElement,
     UnbsElementImpl,
     UnbsElementOrNull,
     WithChildren,
 } from "./jsx";
+
+import {
+    create as createStateStore, StateNamespace, stateNamespaceForPath, StateStore
+} from "./state";
 
 import { DomError } from "./builtin_components";
 import {
@@ -38,12 +43,15 @@ class ComputeContents {
     contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
+    mountedElements: UnbsElement[];
 
     combine(other: ComputeContents) {
         this.messages.push(...other.messages);
         this.cleanups.push(...other.cleanups);
+        this.mountedElements.push(...other.mountedElements);
         other.messages = [];
         other.cleanups = [];
+        other.mountedElements = [];
     }
     cleanup() {
         let clean: CleanupFunc | undefined;
@@ -75,6 +83,9 @@ function computeContentsNoOverride<P extends object>(
     }
 
     const component = new (element.componentType as ClassComponentTyp<P, AnyState>)(element.props);
+    if (isElementImpl(element)) {
+        element.component = component;
+    }
 
     if (isPrimitive(component)) return buildDone();
 
@@ -126,7 +137,10 @@ function computeContents(
 
     let out = new ComputeContents();
     const overrideFound = findOverride(styles, path);
-    const element = path[path.length - 1];
+    const element = ld.last(path);
+    if (element == null) {
+        throw new Error("Cannot compute contents for empty path");
+    }
     const noOverride = () => {
         const ret = computeContentsNoOverride(element);
         out.combine(ret);
@@ -157,10 +171,22 @@ function computeContents(
 
 function mountAndBuildComponent(
     path: UnbsElement[],
+    parentStateNamespace: StateNamespace,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
+    const elem = ld.last(path);
+    if (elem == null) {
+        throw new Error("Cannot mount empty path");
+    }
+
+    if (!isElementImpl(elem)) {
+        throw new Error("Elements must derive from ElementImpl");
+    }
+
+    elem.mount(parentStateNamespace);
     const out = computeContents(path, styles, options);
+    out.mountedElements.push(elem);
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
@@ -173,7 +199,7 @@ function mountAndBuildComponent(
 
         const newPath = path.slice(0, -1);
         newPath.push(out.contents);
-        const ret = mountAndBuildComponent(newPath, styles, options);
+        const ret = mountAndBuildComponent(newPath, elem.stateNamespace, styles, options);
         out.combine(ret);
         out.contents = ret.contents;
     }
@@ -188,6 +214,7 @@ export interface BuildOptions {
     depth?: number;
     shallow?: boolean;
     recorder?: BuildListener;
+    stateStore?: StateStore;
 }
 
 const defaultBuildOptions = {
@@ -196,6 +223,7 @@ const defaultBuildOptions = {
     // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
     // tslint:disable-next-line:object-literal-sort-keys
     recorder: (_op: BuildOp) => { return; },
+    stateStore: createStateStore(),
 };
 
 type BuildOptionsReq = Required<BuildOptions>;
@@ -227,22 +255,28 @@ function pathBuild(
     const options = { ...defaultBuildOptions, ...optionsIn };
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
-    let ret = null;
+    let result = null;
     try {
-        ret = realBuild(path, styles, options);
+        result = realBuild(path, null, styles, options);
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
     }
-    options.recorder({ type: "done", root: ret.contents });
+    options.recorder({ type: "done", root: result.contents });
+    result.mountedElements.map((elem) => {
+        if (isElementImpl(elem)) {
+            elem.postBuild(options.stateStore);
+        }
+    });
     return {
-        contents: ret && ret.contents,
-        messages: (ret && ret.messages) || [],
+        contents: result.contents,
+        messages: (result.messages) || [],
     };
 }
 
 function realBuild(
     path: UnbsElement[],
+    parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
@@ -253,8 +287,12 @@ function realBuild(
         return out;
     }
 
+    if (parentStateNamespace == null) {
+        parentStateNamespace = stateNamespaceForPath(path.slice(0, -1));
+    }
+
     const oldElem = path[path.length - 1];
-    out = mountAndBuildComponent(path, styles, options);
+    out = mountAndBuildComponent(path, parentStateNamespace, styles, options);
     const newRoot = out.contents;
     options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
 
@@ -281,7 +319,7 @@ function realBuild(
     newChildren = childList.map((child) => {
         if (child instanceof UnbsElementImpl) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = realBuild([...path, child], styles, options);
+            const ret = realBuild([...path, child], newRoot.stateNamespace, styles, options);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
