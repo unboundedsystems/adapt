@@ -14,7 +14,7 @@ function checkChildKeys(element: Adapt.UnbsElement, refKeys: string[]) {
 
     const children = childrenToArray(element.props.children);
     let i = 0;
-    for (const child in children) {
+    for (const child of children) {
         if (isElement(child)) {
             should(child.props.key).equal(refKeys[i]);
             i++;
@@ -89,7 +89,7 @@ describe("DOM Key Assignment Tests", () => {
             return;
         }
         should(dom.props.key).equal("Group");
-        const childKeys = ["MakeMakeEmpty", "Hello", "Empty1"];
+        const childKeys = ["MakeMakeEmpty-MakeEmpty-Empty", "Hello-Empty", "Empty"];
         checkChildKeys(dom, childKeys);
     });
 });

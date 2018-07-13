@@ -9,6 +9,7 @@ import {
     isElement,
     UnbsElement,
 } from "./jsx";
+import { StateNamespace } from "./state";
 
 export function setKey(elem: UnbsElement, key: string) {
     if (Object.isFrozen(elem.props)) {
@@ -20,7 +21,17 @@ export function setKey(elem: UnbsElement, key: string) {
     }
 }
 
-export function assignKeys(siblingsIn: any | any[] | null | undefined) {
+export function computeMountKey(elem: UnbsElement, parentStateNamespace: StateNamespace): string {
+    let newKey: string | undefined = elem.props.key;
+    if (newKey == null) {
+        const lastKey = ld.last(parentStateNamespace);
+        const name = elem.componentType.name;
+        newKey = (lastKey == null) ? name : `${lastKey}-${name}`;
+    }
+    return newKey;
+}
+
+export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined) {
     const existingKeys = new KeyNames();
     const needsKeys: UnbsElement[] = [];
     const duplicateKeys: UnbsElement[] = [];

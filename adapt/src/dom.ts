@@ -30,7 +30,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented } from "./error";
-import { assignKeys } from "./keys";
+import { assignKeysAtPlacement, computeMountKey } from "./keys";
 
 export enum MessageType {
     warning = "warning",
@@ -183,11 +183,7 @@ function mountElement(elem: UnbsElement, parentStateNamespace: StateNamespace): 
         throw new Error("Cannot remount already mounted element");
     }
 
-    let newKey: string | undefined = elem.props.key;
-    if (elem.props.key == null) {
-        const lastKey = ld.last(parentStateNamespace);
-        newKey = (lastKey == null) ? elem.componentType.name : lastKey;
-    }
+    const newKey = computeMountKey(elem, parentStateNamespace);
 
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
     if (!isElementImpl(elem)) {
@@ -196,6 +192,12 @@ function mountElement(elem: UnbsElement, parentStateNamespace: StateNamespace): 
 
     elem.mount(parentStateNamespace);
     return elem;
+}
+
+function subLastPathElem(path: UnbsElement[], elem: UnbsElement): UnbsElement[] {
+    const ret = path.slice(0, -1);
+    ret.push(elem);
+    return ret;
 }
 
 function mountAndBuildComponent(
@@ -213,23 +215,26 @@ function mountAndBuildComponent(
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-    const out = computeContents(path, styles, options);
+    const revisedPath = subLastPathElem(path, elem);
+
+    const out = computeContents(revisedPath, styles, options);
     out.mountedElements.push(elem);
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
-            const comp = path[path.length - 1].componentType;
+            const comp = elem.componentType;
             throw new Error(`Component build for ${comp.name} returned an ` +
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
         if (out.buildDone) {
-            out.contents = mountElement(out.contents, elem.stateNamespace);
+            if (out.contents !== elem) {
+                out.contents = mountElement(out.contents, elem.stateNamespace);
+            }
             return out;
         }
 
-        const newPath = path.slice(0, -1);
-        newPath.push(out.contents);
+        const newPath = subLastPathElem(path, out.contents);
         const ret = mountAndBuildComponent(newPath, elem.stateNamespace, styles, options);
         out.combine(ret);
         out.contents = ret.contents;
@@ -351,7 +356,7 @@ function realBuild(
         childList = children;
     }
 
-    assignKeys(childList);
+    assignKeysAtPlacement(childList);
     newChildren = childList.map((child) => {
         if (child instanceof UnbsElementImpl) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });

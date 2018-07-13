@@ -9,7 +9,7 @@ import Adapt, {
     WithChildren,
 } from "../src";
 import {
-    assignKeys,
+    assignKeysAtPlacement,
     KeyTracker,
     UpdateStateInfo,
 } from "../src/keys";
@@ -34,7 +34,7 @@ describe("Assign Keys", () => {
             <Empty id={2} />
         </Group>;
 
-        assignKeys(tree.props.children);
+        assignKeysAtPlacement(tree.props.children);
         should(tree.props.children[0].props.key).equal("Empty");
         should(tree.props.children[1].props.key).equal("Empty1");
     });
@@ -45,7 +45,7 @@ describe("Assign Keys", () => {
             <Empty id={2} />
         </Group>;
 
-        assignKeys(tree.props.children);
+        assignKeysAtPlacement(tree.props.children);
         should(tree.props.children[0].props.key).equal("userDef");
         should(tree.props.children[1].props.key).equal("Empty");
     });
@@ -55,7 +55,7 @@ describe("Assign Keys", () => {
             <Empty id={2} />
         </Group>;
 
-        assignKeys(tree.props.children);
+        assignKeysAtPlacement(tree.props.children);
         should(tree.props.children.props.key).equal("Empty");
     });
 });
