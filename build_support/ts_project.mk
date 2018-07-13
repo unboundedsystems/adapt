@@ -1,13 +1,16 @@
 #
 # Default Makefile for TypeScript projects.
 #
+
+# Always run inside Docker
+SCRIPT_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+include $(SCRIPT_DIR)/dockerize.mk
+ifeq ($(IN_DOCKER),true)
+
+
 all: test
 .PHONY: all
 
-#
-# Tools
-#
-NPM := $(abspath $(shell if [ -f /.dockerenv ]; then which npm; else echo ../bin/npm; fi; ))
 
 #
 # Files
@@ -27,7 +30,7 @@ build: $(NPM_INSTALL_DONE) $(JS_FILES)
 .PHONY: build
 
 $(NPM_INSTALL_DONE): package.json package-lock.json
-	$(NPM) install
+	npm install
 	touch $@
 
 clean:
@@ -39,21 +42,21 @@ cleaner: clean
 .PHONY: cleaner
 
 $(JS_FILES): $(NPM_INSTALL_DONE) $(TS_FILES) tsconfig.json
-	$(NPM) run build
+	npm run build
 
 
 test: build dist/.test_success
 .PHONY: test
 
 dist/.test_success: $(JS_FILES)
-	$(NPM) run test
+	npm run test
 	touch $@
 
 lint: $(NPM_INSTALL_DONE) dist/.lint_success
 .PHONY: lint
 
 dist/.lint_success: $(TS_FILES)
-	$(NPM) run lint
+	npm run lint
 	touch $@
 
 # No additional requirements for prepush besides test and lint (which are
@@ -65,5 +68,7 @@ NPM_PACK_DIR := dist/pack
 pack: build
 	rm -rf $(NPM_PACK_DIR)
 	mkdir $(NPM_PACK_DIR)
-	cd $(NPM_PACK_DIR) && $(NPM) pack ../..
+	cd $(NPM_PACK_DIR) && npm pack ../..
 .PHONY: pack
+
+endif # IN_DOCKER

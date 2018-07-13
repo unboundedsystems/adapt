@@ -1,3 +1,6 @@
+include build_support/dockerize.mk
+ifeq ($(IN_DOCKER),true)
+
 #
 # Default target
 #
@@ -60,3 +63,5 @@ setup: $(SETUP_TARGETS)
 
 containit/containit.sh:
 	git submodule update --init --recursive
+
+endif # IN_DOCKER
