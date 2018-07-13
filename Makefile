@@ -10,8 +10,7 @@ all: test
 include build_support/log.mk
 
 # Place for any module to add stuff to the setup target
-# Important: containit MUST be first
-SETUP_TARGETS := containit/containit.sh
+SETUP_TARGETS :=
 
 include build_support/git.mk
 include build_support/submake.mk
@@ -61,7 +60,6 @@ cli-build: cloud-build
 #
 setup: $(SETUP_TARGETS)
 
-containit/containit.sh:
-	git submodule update --init --recursive
 
 endif # IN_DOCKER
+
