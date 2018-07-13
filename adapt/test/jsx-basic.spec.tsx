@@ -35,7 +35,7 @@ describe("JSX SFC createElement Tests", () => {
 
     it("Should have the right props", () => {
         const element = <Component x={1} y="bar" />;
-        should(element.props).eql({ x: 1, y: "bar", children: [] });
+        should(element.props).eql({ x: 1, y: "bar" });
     });
 
     it("Should have the right children", () => {
@@ -86,7 +86,7 @@ describe("JSX Class createElement Tests", () => {
 
     it("Should have the right props", () => {
         const element = <Dummy x={1} y="foo" />;
-        should(element.props).eql({ x: 1, y: "foo", children: [] });
+        should(element.props).eql({ x: 1, y: "foo" });
     });
 
     it("Should have the right children", () => {

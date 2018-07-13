@@ -3,6 +3,7 @@ import * as ld from "lodash";
 import * as path from "path";
 import * as should from "should";
 import * as Adapt from "../src";
+import * as jsx from "../src/jsx";
 
 export const pkgRootDir =
     path.resolve(path.join(__dirname, "..", ".."));
@@ -21,10 +22,9 @@ export function npmInstall(options?: NpmOptions) {
 }
 
 export function checkChildComponents(element: Adapt.UnbsElement, ...children: any[]) {
-    should(element.props.children).not.Null();
-    should(element.props.children).be.Array();
+    const childArray = jsx.childrenToArray(element.props.children);
 
-    const childComponents = element.props.children.map(
+    const childComponents = childArray.map(
         (child: any) => {
             if (Adapt.isElement(child)) {
                 return child.componentType;
