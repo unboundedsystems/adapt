@@ -9,6 +9,7 @@ import Adapt, {
     WithChildren,
 } from "../src";
 import {
+    assignKeys,
     KeyTracker,
     UpdateStateInfo,
 } from "../src/keys";
@@ -33,6 +34,7 @@ describe("Assign Keys", () => {
             <Empty id={2} />
         </Group>;
 
+        assignKeys(tree.props.children);
         should(tree.props.children[0].props.key).equal("Empty");
         should(tree.props.children[1].props.key).equal("Empty1");
     });
@@ -43,16 +45,18 @@ describe("Assign Keys", () => {
             <Empty id={2} />
         </Group>;
 
+        assignKeys(tree.props.children);
         should(tree.props.children[0].props.key).equal("userDef");
         should(tree.props.children[1].props.key).equal("Empty");
     });
 
-    it("Should not overwrite keys", () => {
+    it("Should assign singleton child key", () => {
         const tree = <Group>
             <Empty id={2} />
         </Group>;
 
-        should(tree.props.children[0].props.key).equal("Empty");
+        assignKeys(tree.props.children);
+        should(tree.props.children.props.key).equal("Empty");
     });
 });
 
