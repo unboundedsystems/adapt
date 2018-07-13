@@ -1,5 +1,5 @@
 #
-# ts_project.mk
+# Default Makefile for TypeScript projects.
 #
 all: test
 .PHONY: all
@@ -9,8 +9,6 @@ all: test
 #
 NPM := $(abspath $(shell if [ -f /.dockerenv ]; then which npm; else echo ../bin/npm; fi; ))
 
-what:
-	@echo NPM: $(NPM)
 #
 # Files
 #
@@ -58,6 +56,10 @@ dist/.lint_success: $(TS_FILES)
 	$(NPM) run lint
 	touch $@
 
+# No additional requirements for prepush besides test and lint (which are
+# handled by the top level Makefile)
+prepush:
+.PHONY: prepush
 
 NPM_PACK_DIR := dist/pack
 pack: build

@@ -66,7 +66,6 @@
     "postinstall": "postinstall-build --only-as-dependency dist",
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "make build && oclif-dev manifest && oclif-dev readme",
-    "prepush": "make lint && make test",
     "pretest": "make build",
     "test": "nyc mocha --opts mocha.opts",
     "version": "oclif-dev readme && git add README.md"

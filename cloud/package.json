@@ -12,7 +12,6 @@
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "postinstall": "postinstall-build --only-as-dependency dist",
-    "prepush": "make lint",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },
@@ -35,7 +34,6 @@
     "@types/mocha": "^5.2.1",
     "@types/node": "^10.3.2",
     "@usys/adapt": "../adapt",
-    "husky": "^0.14.3",
     "mocha": "^5.2.0",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",

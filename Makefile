@@ -4,31 +4,19 @@
 all: test
 .PHONY: all
 
+include build_support/log.mk
 
-#
-# submake-target
-# Usage: $(eval $(call submake-target, target-name))
-# Given a target-name (ex: build), create a target with that suffix for
-# each directory in PROJ_DIRS. (ex: adapt-build, cli-build)
-#
-define submake-target =
-  # Example: build_submakes = adapt-build cli-build ...
-  $(1)_submakes = $(addsuffix -$(1),$(PROJ_DIRS))
+# Place for any module to add stuff to the setup target
+# Important: containit MUST be first
+SETUP_TARGETS := containit/containit.sh
 
-  # The mechanics for calling out to a sub-make for each kind of target
-  $$($(1)_submakes): %-$(1):
-	@$$(log) "$$(@:-$(1)=): $(1) START"
-	$$(MAKE) -C $$(@:-$(1)=) $(1)
-	@$$(log_success) "$$(@:-$(1)=): $(1) COMPLETE"
-  .PHONY: $$($(1)_submakes)
+include build_support/git.mk
+include build_support/submake.mk
 
-  # Declare target-name as phony target. Example: .PHONY: build
-  .PHONY: $(1)
-endef
 
-# List of directory names for all directories that have a Makefile
+# List of directory names for all directories that have a Makefile.
+# Ensures the trailing slash is removed.
 PROJ_DIRS := $(patsubst %/, %, $(dir $(wildcard */Makefile)))
-
 
 #
 # Submake targets
@@ -36,7 +24,7 @@ PROJ_DIRS := $(patsubst %/, %, $(dir $(wildcard */Makefile)))
 # the targets created below are:
 #   adapt-build, adapt-test, cli-build, cli-test, etc.
 #
-SUBMAKE_TARGETS:=build test clean cleaner pack lint
+SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush
 
 $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 
@@ -56,6 +44,8 @@ pack: build $(pack_submakes)
 
 lint: setup $(lint_submakes)
 
+prepush: test lint $(prepush_submakes)
+
 #
 # Build dependencies between directories
 #
@@ -66,26 +56,7 @@ cli-build: cloud-build
 #
 # Initial setup, mostly stuff for a newly cloned repo
 #
-setup: containit/containit.sh
+setup: $(SETUP_TARGETS)
 
 containit/containit.sh:
 	git submodule update --init --recursive
-
-
-#
-# Logging
-#
-
-# colors
-color_red = \033[01;31m
-color_green = \033[01;32m
-color_blue = \033[01;34m
-color_white = \033[01;37m
-color_bold = \033[1m
-color_clear = \033[m
-
-_log = printf "\n%b*****\n %s\n*****$(color_clear)\n\n"
-
-log =         $(_log) "$(color_blue)"
-log_success = $(_log) "$(color_green)"
-log_err =     $(_log) "$(color_red)"

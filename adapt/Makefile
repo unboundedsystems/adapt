@@ -1,1 +1,1 @@
-include ../ts_project.mk
+include ../build_support/ts_project.mk
