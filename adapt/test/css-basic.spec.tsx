@@ -24,8 +24,8 @@ function pathToLeaf(elem: Adapt.UnbsElement): Adapt.UnbsElement[] {
     if ((elem.props.children == null) || (elem.props.children.length === 0)) {
         return [elem];
     }
-    should(elem.props.children.length).equal(1);
-    const path = pathToLeaf(elem.props.children[0]);
+    should(elem.props.children).not.Array();
+    const path = pathToLeaf(elem.props.children);
     path.unshift(elem);
     return path;
 }
