@@ -265,7 +265,7 @@ export function cloneElement(
 }
 
 export function childrenToArray(
-    propsChildren: UnbsElementOrNull | UnbsElementOrNull[] | undefined): UnbsElement[] {
+    propsChildren: any | any[] | undefined): any[] {
     if (propsChildren == null) return [];
     if (!Array.isArray(propsChildren)) return [propsChildren];
 

@@ -1,17 +1,16 @@
 import Adapt, {
     BuildNotImplemented,
     Component,
-    isElement,
     UnbsElementOrNull,
     WithChildren,
 } from "../src";
 
-import * as ld from "lodash";
 import should = require("should");
 
 import { DomError } from "../src/builtin_components";
 import {
     checkChildComponents,
+    deepFilterElemsToPublic,
     Empty,
     MakeEmpty,
     MakeGroup,
@@ -24,40 +23,9 @@ interface AbstractProps extends WithChildren {
 }
 class Abstract extends Component<AbstractProps, {}> { }
 
-const publicElementFields = {
-    props: null,
-    componentType: null
-};
-
-function deepFilterElemsToPublic(o: any): any {
-    if (!ld.isObject(o)) return o;
-
-    if (ld.isArray(o)) {
-        return o.map((item) => deepFilterElemsToPublic(item));
-    }
-
-    if (isElement(o)) {
-        const filtered = ld.pickBy(o, (value: any, key: string) => {
-            return key in publicElementFields;
-        });
-
-        if (filtered.props != null) {
-            (filtered as any).props = deepFilterElemsToPublic(filtered.props);
-        }
-        return filtered;
-    }
-
-    const ret: { [key: string]: any } = {};
-    // tslint:disable-next-line:forin
-    for (const key in o) {
-        ret[key] = deepFilterElemsToPublic(o[key]);
-    }
-    return ret;
-}
-
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
-        const orig = <Adapt.Group key="root"/>;
+        const orig = <Adapt.Group key="root" />;
         const { contents: dom } = Adapt.build(orig, null);
 
         const ref = deepFilterElemsToPublic(orig);

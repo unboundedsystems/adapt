@@ -1,4 +1,5 @@
 import { spawnSync } from "child_process";
+import * as ld from "lodash";
 import * as path from "path";
 import * as should from "should";
 import * as Adapt from "../src";
@@ -68,4 +69,35 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps, {}> {
             </Adapt.Group>
         );
     }
+}
+
+export const publicElementFields = {
+    props: null,
+    componentType: null
+};
+
+export function deepFilterElemsToPublic(o: any): any {
+    if (!ld.isObject(o)) return o;
+
+    if (ld.isArray(o)) {
+        return o.map((item) => deepFilterElemsToPublic(item));
+    }
+
+    if (Adapt.isElement(o)) {
+        const filtered = ld.pickBy(o, (value: any, key: string) => {
+            return key in publicElementFields;
+        });
+
+        if (filtered.props != null) {
+            (filtered as any).props = deepFilterElemsToPublic(filtered.props);
+        }
+        return filtered;
+    }
+
+    const ret: { [key: string]: any } = {};
+    // tslint:disable-next-line:forin
+    for (const key in o) {
+        ret[key] = deepFilterElemsToPublic(o[key]);
+    }
+    return ret;
 }
