@@ -149,16 +149,16 @@ describe("DOM Basic Build Tests", () => {
 
 describe("DOM Shallow Build Tests", () => {
     it("Should respect shallow option", () => {
-        const body = <MakeEmpty id={1} />;
-        const orig = <MakeGroup>{body}</MakeGroup>;
-        const expected = <Adapt.Group>{body}</Adapt.Group>;
+        const body = <MakeEmpty key="body" id={1} />;
+        const orig = <MakeGroup key="orig">{body}</MakeGroup>;
+        const expected = deepFilterElemsToPublic(<Adapt.Group key="orig" >{body}</Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(expected);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
     it("Should respect depth 0 as no-op", () => {
@@ -172,26 +172,27 @@ describe("DOM Shallow Build Tests", () => {
     });
 
     it("Should respect depth option", () => {
-        const noChange = <Adapt.Group>
-            <MakeEmpty id={1} />
+        const noChange = <Adapt.Group key="noChange">
+            <MakeEmpty key="inner" id={1} />
         </Adapt.Group>;
 
-        const orig = <Adapt.Group>
+        const orig = <Adapt.Group key="root">
             {noChange}
-            <MakeEmpty id={2} />
+            <MakeEmpty key="outer" id={2} />
         </Adapt.Group>;
 
-        const expected = <Adapt.Group>
-            {noChange}
-            <Empty id={2} />
-        </Adapt.Group>;
+        const expected =
+            deepFilterElemsToPublic(<Adapt.Group key="root">
+                {noChange}
+                <Empty key="outer" id={2} />
+            </Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(expected);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
     /* it("Exper", () => {
