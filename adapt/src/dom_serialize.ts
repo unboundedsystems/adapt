@@ -2,6 +2,7 @@ import * as ld from "lodash";
 import * as xmlbuilder from "xmlbuilder";
 
 import { isElement, UnbsElement } from ".";
+import { childrenToArray } from "./jsx";
 
 interface PreparedProps {
     [key: string]: string;
@@ -70,12 +71,7 @@ function serializeChildren(
     node: xmlbuilder.XMLElementOrXMLNode,
     elem: UnbsElement): void {
 
-    let children: any[] = [];
-    if ((elem.props.children != null)
-        && ld.isArray(elem.props.children)
-        && (elem.props.children.length !== 0)) {
-        children = elem.props.children;
-    }
+    const children: any[] = childrenToArray(elem.props.children);
 
     for (const child of children) {
         if (isElement(child)) {

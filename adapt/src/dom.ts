@@ -13,6 +13,7 @@ import {
     FunctionComponentTyp,
     isElementImpl,
     isPrimitive,
+    simplifyChildren,
     UnbsElement,
     UnbsElementImpl,
     UnbsElementOrNull,
@@ -371,15 +372,7 @@ function realBuild(
 }
 
 function replaceChildren(elem: UnbsElement, children: any | any[] | undefined) {
-    if (ld.isArray(children)) {
-        children = children.filter((e) => e != null);
-
-        if (children.length === 0) {
-            children = undefined;
-        } else if (children.length === 1) {
-            children = children[0];
-        }
-    }
+    children = simplifyChildren(children);
 
     if (Object.isFrozen(elem.props)) {
         const childMerge = (children == null) ? undefined : { children };

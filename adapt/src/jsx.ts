@@ -147,20 +147,11 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         if (children.length > 0) this.props.children = children;
 
         // Validate and flatten children.
-        if (ld.isArray(this.props.children)) {
-            this.props.children = this.props.children.filter((e) => e != null);
-            if (this.props.children.length === 0) {
-                delete this.props.children;
-            } else if (this.props.children.length === 1) {
-                this.props.children = this.props.children[0];
-            } else {
-                this.props.children = ld.flatten(this.props.children);
-            }
-        } else {
-            if (this.props.children === undefined) {
-                delete this.props.children;
-            }
+        this.props.children = simplifyChildren(this.props.children);
+        if (this.props.children === undefined) {
+            delete this.props.children;
         }
+
         Object.freeze(this.props);
     }
 
@@ -277,10 +268,24 @@ export function cloneElement(
     }
 }
 
-export function childrenToArray(
-    propsChildren: any | any[] | undefined): any[] {
-    if (propsChildren == null) return [];
-    if (!Array.isArray(propsChildren)) return [propsChildren];
+export function childrenToArray(propsChildren: any | any[] | undefined): any[] {
+    const ret = simplifyChildren(propsChildren);
+    if (ret == null) return [];
+    if (!Array.isArray(ret)) return [ret];
+    return ret;
+}
 
-    return propsChildren.filter((c) => c != null);
+export function simplifyChildren(children: any | any[] | undefined): any | any[] | undefined {
+    if (ld.isArray(children)) {
+        const flatChildren = ld.flatten(children);
+        children = flatChildren.filter((e) => e != null);
+
+        if (children.length === 0) {
+            return undefined;
+        } else if (children.length === 1) {
+            return children[0];
+        }
+    }
+
+    return children;
 }
