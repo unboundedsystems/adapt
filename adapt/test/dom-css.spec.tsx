@@ -5,6 +5,7 @@ import { fake } from "sinon";
 
 import {
     checkChildComponents,
+    deepFilterElemsToPublic,
     Empty,
     MakeEmpty,
     MakeMakeEmpty,
@@ -12,7 +13,7 @@ import {
 
 describe("DOM CSS Build Tests", () => {
     it("Should replace empty primitive", () => {
-        const orig = <Adapt.Group />;
+        const orig = <Adapt.Group key="root" />;
         const replace = <Empty id={1} />;
         const styles = <Adapt.Style>{Adapt.Group} {Adapt.rule(() => replace)}</Adapt.Style>;
 
@@ -20,7 +21,8 @@ describe("DOM CSS Build Tests", () => {
 
         should(Adapt).not.Null();
         should(Adapt.isElement(dom)).True();
-        should(dom).eql(replace);
+        const expected = deepFilterElemsToPublic(<Empty id={1} key="root" />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
     it("Should replace and simplify primitve", () => {
@@ -44,7 +46,10 @@ describe("DOM CSS Build Tests", () => {
             return;
         }
         checkChildComponents(dom, Empty, Empty);
-        should(dom.props.children).eql([<Empty id={123} />, <Empty id={2} />]);
+        const expected = deepFilterElemsToPublic([
+            <Empty key="MakeMakeEmpty" id={123} />,
+            <Empty key="MakeMakeEmpty1" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(expected);
     });
 
     it("Should process all matching rules once", () => {
@@ -55,7 +60,7 @@ describe("DOM CSS Build Tests", () => {
         const action = (props: Adapt.AnyProps, info: Adapt.StyleBuildInfo) => {
             return info.origBuild(props);
         };
-        const fakes = [ fake(action), fake(action), fake(action) ];
+        const fakes = [fake(action), fake(action), fake(action)];
         const styles =
             <Adapt.Style>
                 {Empty} {Adapt.rule(fakes[0])}
@@ -69,7 +74,10 @@ describe("DOM CSS Build Tests", () => {
             return;
         }
         checkChildComponents(dom, Empty, Empty);
-        should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+        const expectedChildren = deepFilterElemsToPublic([
+            <Empty key="MakeMakeEmpty" id={1} />,
+            <Empty key="MakeMakeEmpty1" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(expectedChildren);
         fakes.forEach((f, i) => {
             const msg = `Failed for fake[${i}]`;
             f.callCount.should.equal(2, msg); // Once for each Empty
