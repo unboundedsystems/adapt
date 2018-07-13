@@ -137,6 +137,7 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         readonly componentType: ComponentType<Props>,
         props: Props,
         children: any[]) {
+
         this.props = {
             [$cssMatch]: {},
             // https://github.com/Microsoft/TypeScript/pull/13288
@@ -145,9 +146,21 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
         // Children passed as explicit parameter replace any on props
         if (children.length > 0) this.props.children = children;
 
-        // Validate and flatten children. Ensure that children is always
-        // an array of non-null elements
-        this.props.children = ld.flatten(childrenToArray(this.props.children));
+        // Validate and flatten children.
+        if (ld.isArray(this.props.children)) {
+            this.props.children = this.props.children.filter((e) => e != null);
+            if (this.props.children.length === 0) {
+                delete this.props.children;
+            } else if (this.props.children.length === 1) {
+                this.props.children = this.props.children[0];
+            } else {
+                this.props.children = ld.flatten(this.props.children);
+            }
+        } else {
+            if (this.props.children === undefined) {
+                delete this.props.children;
+            }
+        }
         Object.freeze(this.props);
     }
 
@@ -269,5 +282,5 @@ export function childrenToArray(
     if (propsChildren == null) return [];
     if (!Array.isArray(propsChildren)) return [propsChildren];
 
-    return propsChildren.filter((c) => c != null) as UnbsElement[];
+    return propsChildren.filter((c) => c != null);
 }

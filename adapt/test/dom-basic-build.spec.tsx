@@ -36,6 +36,22 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(ref);
     });
 
+    it("Should build single child", () => {
+        const orig = <MakeGroup>
+            <Empty key="a" id={1} />
+        </MakeGroup>;
+
+        const { contents: dom } = Adapt.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+
+        const ref = deepFilterElemsToPublic(<Empty key="a" id={1} />);
+        should(dom.componentType).equal(Adapt.Group);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+    });
+
     it("Should substitute props.children as flat", () => {
         const orig = <MakeGroup>
             <Empty key="a" id={1} />

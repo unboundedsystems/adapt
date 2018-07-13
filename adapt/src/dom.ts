@@ -345,7 +345,7 @@ function realBuild(
     //For deep DOMs
     let childList: any[] = [];
     if (children instanceof UnbsElementImpl) {
-        childList = [newChildren];
+        childList = [children];
     } else if (ld.isArray(children)) {
         childList = children;
     }
@@ -371,16 +371,28 @@ function realBuild(
 }
 
 function replaceChildren(elem: UnbsElement, children: any | any[] | undefined) {
-    if (children.length === 1) {
-        children = children[0];
+    if (ld.isArray(children)) {
+        children = children.filter((e) => e != null);
+
+        if (children.length === 0) {
+            children = undefined;
+        } else if (children.length === 1) {
+            children = children[0];
+        }
     }
 
     if (Object.isFrozen(elem.props)) {
+        const childMerge = (children == null) ? undefined : { children };
         (elem as any).props = {
             ...elem.props,
-            children
+            ...childMerge
         };
+        Object.freeze(elem.props);
     } else {
-        elem.props.children = children;
+        if (children == null) {
+            delete elem.props.children;
+        } else {
+            elem.props.children = children;
+        }
     }
 }
