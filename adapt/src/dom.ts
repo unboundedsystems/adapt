@@ -75,7 +75,8 @@ function isClassConstructorError(err: any) {
 }
 
 function computeContentsFromElement<P extends object>(
-    element: UnbsElement<P & WithChildren>): ComputeContents {
+    element: UnbsElement<P & WithChildren>,
+    state: StateStore): ComputeContents {
     const ret = new ComputeContents();
 
     try {
@@ -92,6 +93,10 @@ function computeContentsFromElement<P extends object>(
     const component = new (element.componentType as ClassComponentTyp<P, AnyState>)(element.props);
     if (isElementImpl(element)) {
         element.component = component;
+        const prevState = state.elementState(element.stateNamespace);
+        if (prevState != null) {
+            (component as any).state = prevState;
+        }
     }
 
     if (isPrimitive(component)) return buildDone();
@@ -150,7 +155,7 @@ function computeContents(
         return ret;
     }
 
-    const out = computeContentsFromElement(element);
+    const out = computeContentsFromElement(element, options.stateStore);
 
     options.recorder({
         type: "step",
@@ -302,7 +307,8 @@ export interface BuildOutput {
     contents: UnbsElementOrNull;
     messages: Message[];
 }
-export function build(root: UnbsElement,
+export function build(
+    root: UnbsElement,
     styles: UnbsElement | null,
     options?: BuildOptions): BuildOutput {
 

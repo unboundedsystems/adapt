@@ -71,9 +71,12 @@ export function applyStateUpdate<
     }
 
     // https://github.com/Microsoft/TypeScript/pull/13288
-    const newState = { ...(prev as any), ...(update as any) };
+    const newState: Partial<S> = ld.pickBy<S>(
+        { ...(prev as any), ...(update as any) },
+        (val) => val !== undefined);
+
     store.setElementState(path, newState);
-    writableState(component).state = newState;
+    writableState(component).state = newState as S; //FIXME(manishv) validate type of newState
 }
 
 export function stateNamespaceForPath(path: UnbsElement[]): StateNamespace {

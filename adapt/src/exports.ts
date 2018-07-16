@@ -56,3 +56,8 @@ export {
 } from "./type_support";
 
 export * from "./utils";
+
+export {
+    StateStore,
+    create as createStateStore
+} from "./state";
