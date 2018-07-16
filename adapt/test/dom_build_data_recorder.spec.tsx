@@ -56,7 +56,6 @@ describe("Build Data Recorder", () => {
                 type: "step",
                 oldElem: cloneElement(dom, { key: "MakeEmpty" }),
                 newElem: record1Out,
-                style: undefined
             },
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }

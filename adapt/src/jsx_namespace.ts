@@ -1,15 +1,11 @@
-import { AnyProps, AnyState, Component, UnbsElement } from "./jsx";
+import { AnyProps, AnyState, BuiltinProps, Component, UnbsElement } from "./jsx";
 
 export namespace JSX {
     export interface IntrinsicElements { }
 
-    export interface IntrinsicAttributes {
-        key?: string;
-    }
+    export type IntrinsicAttributes = BuiltinProps;
 
-    export interface IntrinsicClassAttributes<T> {
-        key?: string;
-    }
+    export type IntrinsicClassAttributes<T> = BuiltinProps;
 
     export interface ElementAttributesProperty {
         props: never;

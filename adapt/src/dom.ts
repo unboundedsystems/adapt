@@ -5,6 +5,7 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    AnyProps,
     AnyState,
     childrenToArray,
     ClassComponentTyp,
@@ -13,6 +14,7 @@ import {
     FunctionComponentTyp,
     isElementImpl,
     isPrimitive,
+    isPrimitiveElement,
     simplifyChildren,
     UnbsElement,
     UnbsElementImpl,
@@ -44,6 +46,7 @@ export interface Message {
 type CleanupFunc = () => void;
 class ComputeContents {
     buildDone = false;
+    buildErr = false;
     contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
@@ -71,7 +74,7 @@ function isClassConstructorError(err: any) {
         /Class constructor .* cannot be invoked/.test(err.message);
 }
 
-function computeContentsNoOverride<P extends object>(
+function computeContentsFromElement<P extends object>(
     element: UnbsElement<P & WithChildren>): ComputeContents {
     const ret = new ComputeContents();
 
@@ -109,6 +112,7 @@ function computeContentsNoOverride<P extends object>(
         ret.buildDone = true;
         ret.contents = element;
         if (err) {
+            ret.buildErr = true;
             const kids = childrenToArray(element.props.children);
             let message =
                 `Component ${element.componentType.name} cannot be ` +
@@ -137,59 +141,87 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
 
 function computeContents(
     path: UnbsElement[],
-    styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    let out = new ComputeContents();
-    const overrideFound = findOverride(styles, path);
     const element = ld.last(path);
     if (element == null) {
-        throw new Error("Cannot compute contents for empty path");
-    }
-    const noOverride = () => {
-        const ret = computeContentsNoOverride(element);
-        out.combine(ret);
-        return ret.contents;
-    };
-
-    let style: css.StyleRule | undefined;
-    if (overrideFound != null) {
-        const override = overrideFound.override;
-        style = overrideFound.style;
-        out.contents = override(
-            element.props,
-            { origBuild: noOverride, origElement: element });
-    } else {
-        out = computeContentsNoOverride(element);
+        const ret = new ComputeContents();
+        ret.buildDone = true;
+        return ret;
     }
 
-    if (!out.buildDone) {
-        options.recorder({
-            type: "step",
-            oldElem: element,
-            newElem: out.contents,
-            style
-        });
-    }
+    const out = computeContentsFromElement(element);
+
+    options.recorder({
+        type: "step",
+        oldElem: element,
+        newElem: out.contents
+    });
+
     return out;
 }
 
-function mountElement(elem: UnbsElement, parentStateNamespace: StateNamespace): UnbsElement {
-    if (!isElementImpl(elem)) {
-        throw new Error("Elements must derive from ElementImpl");
+function ApplyStyle(
+    props: {
+        override: css.BuildOverride<AnyProps>,
+        element: UnbsElement
+    }) {
+
+    const origBuild = () => {
+        return props.element;
+    };
+
+    return props.override(props.element.props, {
+        origBuild,
+        origElement: props.element
+    });
+}
+
+function doOverride(
+    path: UnbsElement[],
+    key: string,
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsElement {
+
+    const element = ld.last(path);
+    if (element == null) {
+        throw new Error("Cannot match null element to style rules for empty path");
     }
 
-    if (elem.mounted) {
-        throw new Error("Cannot remount already mounted element");
+    const overrideFound = findOverride(styles, path);
+
+    if (overrideFound != null) {
+        const { style, override } = overrideFound;
+        const newElem = createElement(ApplyStyle, { key, override, element });
+        options.recorder({
+            type: "step",
+            oldElem: element,
+            newElem,
+            style
+        });
+        return newElem;
+    } else {
+        return element;
+    }
+}
+
+function mountElement(
+    path: UnbsElement[],
+    parentStateNamespace: StateNamespace,
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsElement {
+
+    let elem = ld.last(path);
+    if (elem == null) {
+        throw new Error(`Cannot mount null element: ${path}`);
     }
 
     const newKey = computeMountKey(elem, parentStateNamespace);
-
+    elem = doOverride(path, newKey, styles, options);
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-
     elem.mount(parentStateNamespace);
     return elem;
 }
@@ -206,18 +238,21 @@ function mountAndBuildComponent(
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    const elemIn = ld.last(path);
-    if (elemIn == null) {
-        throw new Error("Cannot mount empty path");
-    }
-
-    const elem = mountElement(elemIn, parentStateNamespace);
-    if (!isElementImpl(elem)) {
+    const elem = mountElement(path, parentStateNamespace, styles, options);
+    if ((elem != null) && !isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
+
+    if (isPrimitiveElement(elem)) {
+        const ret = new ComputeContents();
+        ret.contents = elem;
+        ret.buildDone = true;
+        return ret;
+    }
+
     const revisedPath = subLastPathElem(path, elem);
 
-    const out = computeContents(revisedPath, styles, options);
+    const out = computeContents(revisedPath, options);
     out.mountedElements.push(elem);
 
     if (out.contents != null) {
@@ -227,10 +262,9 @@ function mountAndBuildComponent(
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-        if (out.buildDone) {
-            if (out.contents !== elem) {
-                out.contents = mountElement(out.contents, elem.stateNamespace);
-            }
+
+        //Ignore buildDone here because a style rule could cause the build to continue
+        if (out.buildErr) {
             return out;
         }
 

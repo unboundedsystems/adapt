@@ -100,6 +100,10 @@ export interface AnyProps {
     [key: string]: any;
 }
 
+export interface BuiltinProps {
+    key?: string;
+}
+
 export interface AnyState {
     [key: string]: any;
 }
@@ -221,7 +225,7 @@ export function createElement<Props extends object>(
         ClassComponentTyp<Props, AnyState>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
-    props: tySup.ExcludeInterface<Props, tySup.Children<any>>,
+    props: tySup.ExcludeInterface<Props, tySup.Children<any>> & BuiltinProps,
     ...children: tySup.ChildType<Props>[]): UnbsElement {
 
     if (typeof ctor === "string") {

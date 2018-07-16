@@ -75,8 +75,8 @@ describe("DOM CSS Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         const expectedChildren = deepFilterElemsToPublic([
-            <Empty key="MakeMakeEmpty-MakeEmpty-Empty" id={1} />,
-            <Empty key="MakeMakeEmpty1-MakeEmpty-Empty" id={2} />]);
+            <Empty key="MakeMakeEmpty-MakeEmpty-Empty-Empty-Empty-Empty" id={1} />,
+            <Empty key="MakeMakeEmpty1-MakeEmpty-Empty-Empty-Empty-Empty" id={2} />]);
         should(deepFilterElemsToPublic(dom.props.children)).eql(expectedChildren);
         fakes.forEach((f, i) => {
             const msg = `Failed for fake[${i}]`;
