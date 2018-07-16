@@ -81,7 +81,9 @@ describe("DOM Basic Build Tests", () => {
             return;
         }
         checkChildComponents(dom, Empty, Empty);
-        const ref = deepFilterElemsToPublic([<Empty key="a" id={1} />, <Empty key="b" id={2} />]);
+        const ref = deepFilterElemsToPublic([
+            <Empty key="a-MakeEmpty-Empty" id={1} />,
+            <Empty key="b-MakeEmpty-Empty" id={2} />]);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
@@ -167,7 +169,7 @@ describe("DOM Shallow Build Tests", () => {
     it("Should respect shallow option", () => {
         const body = <MakeEmpty key="body" id={1} />;
         const orig = <MakeGroup key="orig">{body}</MakeGroup>;
-        const expected = deepFilterElemsToPublic(<Adapt.Group key="orig" >{body}</Adapt.Group>);
+        const expected = deepFilterElemsToPublic(<Adapt.Group key="orig-Group" >{body}</Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { shallow: true });
         if (dom == null) {
@@ -200,7 +202,7 @@ describe("DOM Shallow Build Tests", () => {
         const expected =
             deepFilterElemsToPublic(<Adapt.Group key="root">
                 {noChange}
-                <Empty key="outer" id={2} />
+                <Empty key="outer-Empty" id={2} />
             </Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { depth: 2 });

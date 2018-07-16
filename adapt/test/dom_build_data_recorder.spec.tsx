@@ -6,6 +6,7 @@ import {
     build as AdaptBuild,
     BuildOp,
     BuildOpStep,
+    cloneElement,
     Group
 } from "../src";
 
@@ -53,7 +54,7 @@ describe("Build Data Recorder", () => {
             { type: "start", root: dom },
             {
                 type: "step",
-                oldElem: dom,
+                oldElem: cloneElement(dom, { key: "MakeEmpty" }),
                 newElem: record1Out,
                 style: undefined
             },

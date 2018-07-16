@@ -97,12 +97,12 @@ describe("concatStyles", () => {
         let ret = css.concatStyles();
         should(ret).not.be.Null();
         ret.componentType.should.equal(css.Style);
-        should(ret.props.children).eql([]);
+        should(ret.props.children).Undefined();
 
         ret = css.concatStyles(noRules);
         should(ret).not.be.Null();
         ret.componentType.should.equal(css.Style);
-        should(ret.props.children).eql([]);
+        should(ret.props.children).Undefined();
     });
 
     it("Should concat rules", () => {

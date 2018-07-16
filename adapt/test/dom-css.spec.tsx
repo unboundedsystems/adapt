@@ -21,7 +21,7 @@ describe("DOM CSS Build Tests", () => {
 
         should(Adapt).not.Null();
         should(Adapt.isElement(dom)).True();
-        const expected = deepFilterElemsToPublic(<Empty id={1} key="root" />);
+        const expected = deepFilterElemsToPublic(<Empty id={1} key="root-Empty" />);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
@@ -47,8 +47,8 @@ describe("DOM CSS Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         const expected = deepFilterElemsToPublic([
-            <Empty key="MakeMakeEmpty" id={123} />,
-            <Empty key="MakeMakeEmpty1" id={2} />]);
+            <Empty key="MakeMakeEmpty-MakeEmpty-Empty" id={123} />,
+            <Empty key="MakeMakeEmpty1-MakeEmpty-Empty" id={2} />]);
         should(deepFilterElemsToPublic(dom.props.children)).eql(expected);
     });
 
@@ -75,8 +75,8 @@ describe("DOM CSS Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         const expectedChildren = deepFilterElemsToPublic([
-            <Empty key="MakeMakeEmpty" id={1} />,
-            <Empty key="MakeMakeEmpty1" id={2} />]);
+            <Empty key="MakeMakeEmpty-MakeEmpty-Empty" id={1} />,
+            <Empty key="MakeMakeEmpty1-MakeEmpty-Empty" id={2} />]);
         should(deepFilterElemsToPublic(dom.props.children)).eql(expectedChildren);
         fakes.forEach((f, i) => {
             const msg = `Failed for fake[${i}]`;
