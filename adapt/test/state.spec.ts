@@ -7,7 +7,7 @@ describe("State Object Tests", () => {
 
     beforeEach(() => {
         s = state.create();
-    })
+    });
 
     it("Should retrieve only value set", () => {
         const ref = {};
