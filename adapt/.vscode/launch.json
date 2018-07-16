@@ -26,18 +26,25 @@
             },
             "address": "127.0.0.1",
             "port": 5858,
-            "timeout": 60000,
+            "timeout": 30000,
             "outFiles": [
-                "${workspaceRoot}/dist/**/*.js"
+                "${workspaceRoot}/dist/**/*.js",
+                "${workspaceRoot}/node_modules/**/*.js"
             ],
-            //"console": "integratedTerminal",
             "sourceMaps": true,
-            "smartStep": true,
+            "smartStep": false,
             "stopOnEntry": false,
             "protocol": "inspector",
             "autoAttachChildProcesses": true,
             "localRoot": "${workspaceFolder}",
-            "remoteRoot": "/src"
+            "remoteRoot": "/src/adapt",
+            "windows": {
+                // WSL incorrectly handles the path backslashes in
+                // ${workspaceFolder} if present. BUT, Mac won't allow a
+                // relative executable path like the one below.
+                "runtimeExecutable": "../bin/node-debug",
+                "useWSL": true
+            },
         },
         {
             "type": "node",
@@ -61,18 +68,25 @@
             },
             "address": "127.0.0.1",
             "port": 5858,
-            "timeout": 60000,
+            "timeout": 30000,
             "outFiles": [
-                "${workspaceRoot}/dist/**/*.js"
+                "${workspaceRoot}/dist/**/*.js",
+                "${workspaceRoot}/node_modules/**/*.js"
             ],
-            //"console": "integratedTerminal",
             "sourceMaps": true,
-            "smartStep": true,
+            "smartStep": false,
             "stopOnEntry": false,
             "protocol": "inspector",
             "autoAttachChildProcesses": true,
             "localRoot": "${workspaceFolder}",
-            "remoteRoot": "/src"
+            "remoteRoot": "/src/adapt",
+            "windows": {
+                // WSL incorrectly handles the path backslashes in
+                // ${workspaceFolder} if present. BUT, Mac won't allow a
+                // relative executable path like the one below.
+                "runtimeExecutable": "../bin/node-debug",
+                "useWSL": true
+            },
         }
     ]
 }
