@@ -22,7 +22,7 @@
     "@oclif/tslint": "^1",
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
-    "@types/node": "^8.10.14",
+    "@types/node": "^8.10.20",
     "@types/stream-buffers": "^3.0.2",
     "@types/xml2js": "^0.4.3",
     "@types/xmlbuilder": "0.0.32",
