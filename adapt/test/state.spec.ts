@@ -19,12 +19,12 @@ describe("State Object Tests", () => {
         const noVal = s.elementState(noKey);
 
         should(val).equal(ref); //===, not eql
-        should(noVal).Null();
+        should(noVal).Undefined();
     });
 
     it("Should return undefined for unknown keys", () => {
         const val = s.elementState(["Hi!"]);
-        should(val).Null();
+        should(val).Undefined();
     });
 
     it("Should return different values for different keys", () => {

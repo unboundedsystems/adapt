@@ -7,7 +7,7 @@ import { StateNamespace } from "./state";
 
 export interface StateStore {
     setElementState(elem: StateNamespace, data: any): void;
-    elementState(elem: StateNamespace): AnyState | null;
+    elementState(elem: StateNamespace): AnyState | undefined;
 }
 
 export function create(): StateStore {
@@ -23,10 +23,8 @@ class StateImpl implements StateStore {
         this.states.set(JSON.stringify(elem), data);
     }
 
-    elementState(elem: StateNamespace): AnyState | null {
-        const ret = this.states.get(JSON.stringify(elem));
-        if (ret == undefined) return null;
-        return ret;
+    elementState(elem: StateNamespace): AnyState | undefined {
+        return this.states.get(JSON.stringify(elem));
     }
 }
 
@@ -65,8 +63,8 @@ export function applyStateUpdate<
         store: StateStore,
         update: Partial<S>) {
 
-    let prev: S | {} | null = store.elementState(path) as S;
-    if (prev == null) {
+    let prev: S | {} | undefined = store.elementState(path) as S;
+    if (prev === undefined) {
         prev = ("state" in component) ? component.state : {};
     }
 
