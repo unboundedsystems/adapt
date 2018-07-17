@@ -1,3 +1,7 @@
+#
+# FIXME: Get a real build system instead of Make
+#
+
 include build_support/dockerize.mk
 ifeq ($(IN_DOCKER),true)
 

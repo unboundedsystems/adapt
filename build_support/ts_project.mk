@@ -34,7 +34,7 @@ $(NPM_INSTALL_DONE): package.json package-lock.json
 	touch $@
 
 clean:
-	rm -rf dist
+	npm run clean
 .PHONY: clean
 
 cleaner: clean
