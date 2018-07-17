@@ -1,0 +1,13 @@
+.gitignore text
+*.code-workspace text
+*.json text
+*.js text
+*.jsx text
+*.lock text
+Makefile text
+*.md text
+*.mk text
+*.sh text
+*.ts text
+*.tsx text
+*.xml text
