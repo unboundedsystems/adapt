@@ -1,6 +1,6 @@
 import * as should from "should";
 
-import Adapt, { Component, createStateStore, StateStore } from "../src";
+import Adapt, { Component, createStateStore, StateStore, AnyState } from "../src";
 
 import { Empty, MakeGroup } from "./testlib";
 

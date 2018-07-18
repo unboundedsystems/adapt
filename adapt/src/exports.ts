@@ -59,5 +59,5 @@ export * from "./utils";
 
 export {
     StateStore,
-    create as createStateStore
+    createStateStore
 } from "./state";

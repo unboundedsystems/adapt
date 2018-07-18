@@ -10,7 +10,7 @@ export interface StateStore {
     elementState(elem: StateNamespace): AnyState | undefined;
 }
 
-export function create(): StateStore {
+export function createStateStore(): StateStore {
     return new StateImpl();
 }
 

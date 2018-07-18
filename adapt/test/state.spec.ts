@@ -6,7 +6,7 @@ describe("State Object Tests", () => {
     let s: state.StateStore;
 
     beforeEach(() => {
-        s = state.create();
+        s = state.createStateStore();
     });
 
     it("Should retrieve only value set", () => {

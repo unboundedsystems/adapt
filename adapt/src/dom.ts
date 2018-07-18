@@ -23,7 +23,7 @@ import {
 } from "./jsx";
 
 import {
-    create as createStateStore, StateNamespace, stateNamespaceForPath, StateStore
+    createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
 import { DomError } from "./builtin_components";
