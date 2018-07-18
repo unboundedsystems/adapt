@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import * as path from "path";
 import * as should from "should";
 import * as tmpdir from "../mocha-tmpdir";
 
@@ -49,6 +48,10 @@ describe("buildStack Tests", function() {
     });
 });
 
+/*****
+ * FIXME(mark): This is a system test and needs moved to cli in an
+ * upcoming commit
+ *
 describe("buildStack Nodecellar example project", function() {
     this.timeout(20000);
     tmpdir.each("adapt-buildStack",
@@ -74,3 +77,4 @@ describe("buildStack Nodecellar example project", function() {
         should(el.componentInstance instanceof PrimitiveComponent).be.True();
     });
 });
+*/

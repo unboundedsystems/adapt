@@ -1,9 +1,7 @@
 {
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "test/**/*.ts",
-    "test/**/*.tsx",
+    "src/**/*",
+    "test/**/*",
   ],
   "exclude": [
     "dist",
@@ -33,8 +31,9 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es6",
-    "typeRoots": [ // Don't allow types to be pulled from parent directories
+    "typeRoots": [ // Only allow types to be pulled from specific directories
       "./node_modules/@types",
+      "../node_modules/@types",
     ]
   }
 }
