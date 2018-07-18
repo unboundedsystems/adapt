@@ -12,7 +12,7 @@ interface Props {
     dockerHost?: string;
 }
 
-class Nodecellar extends Component<Props> {
+class Nodecellar extends Component<Props, {}> {
     static defaultProps = {
         webPort: 8080,
         webStatusPort: 8081,

@@ -3,8 +3,8 @@ import * as css from "../src/css";
 
 import * as should from "should";
 
-class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
-class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
+class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps, {}> { }
+class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps, {}> { }
 
 describe("Selector Parsing", () => {
     it("Should Parse Tag Selector", () => {
@@ -24,8 +24,8 @@ function pathToLeaf(elem: Adapt.UnbsElement): Adapt.UnbsElement[] {
     if ((elem.props.children == null) || (elem.props.children.length === 0)) {
         return [elem];
     }
-    should(elem.props.children.length).equal(1);
-    const path = pathToLeaf(elem.props.children[0]);
+    should(elem.props.children).not.Array();
+    const path = pathToLeaf(elem.props.children);
     path.unshift(elem);
     return path;
 }
@@ -97,12 +97,12 @@ describe("concatStyles", () => {
         let ret = css.concatStyles();
         should(ret).not.be.Null();
         ret.componentType.should.equal(css.Style);
-        should(ret.props.children).eql([]);
+        should(ret.props.children).Undefined();
 
         ret = css.concatStyles(noRules);
         should(ret).not.be.Null();
         ret.componentType.should.equal(css.Style);
-        should(ret.props.children).eql([]);
+        should(ret.props.children).Undefined();
     });
 
     it("Should concat rules", () => {

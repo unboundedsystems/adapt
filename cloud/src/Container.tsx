@@ -39,7 +39,7 @@ export interface ContainerProps {
     links?: Links;
 }
 
-export abstract class Container extends Component<ContainerProps> {
+export abstract class Container extends Component<ContainerProps, {}> {
     static defaultProps = {
         ports: [],
         stdinOpen: false,

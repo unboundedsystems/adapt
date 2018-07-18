@@ -7,6 +7,7 @@ export {
     UnbsElement,
     UnbsElementOrNull,
     AnyProps,
+    AnyState,
     isElement,
     isPrimitiveElement,
     WithChildren,
@@ -55,3 +56,8 @@ export {
 } from "./type_support";
 
 export * from "./utils";
+
+export {
+    StateStore,
+    createStateStore
+} from "./state";

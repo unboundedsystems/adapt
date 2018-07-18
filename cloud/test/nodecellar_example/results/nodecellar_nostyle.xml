@@ -1,10 +1,22 @@
 <Adapt>
   <Compute>
+    <__props__>
+      <prop name="key">"Nodecellar-Compute"</prop>
+    </__props__>
     <DomError>
+      <__props__>
+        <prop name="key">"DomError"</prop>
+      </__props__>
       <json>"Component Compute cannot be built with current props"</json>
     </DomError>
     <DockerHost>
+      <__props__>
+        <prop name="key">"DockerHost"</prop>
+      </__props__>
       <DomError>
+        <__props__>
+          <prop name="key">"DomError"</prop>
+        </__props__>
         <json>"Component DockerHost cannot be built with current props"</json>
       </DomError>
     </DockerHost>
@@ -16,6 +28,7 @@
   "repository": "mongo",
   "tag": "3.1"
 }</prop>
+        <prop name="key">"MongoContainer-Container"</prop>
         <prop name="links">{}</prop>
         <prop name="portBindings">{
   "27017": 27017,
@@ -29,6 +42,9 @@
         <prop name="tty">true</prop>
       </__props__>
       <DomError>
+        <__props__>
+          <prop name="key">"DomError"</prop>
+        </__props__>
         <json>"Component Container cannot be built with current props"</json>
       </DomError>
     </Container>
@@ -43,6 +59,7 @@
         <prop name="image">{
   "repository": "uric/nodecellar"
 }</prop>
+        <prop name="key">"AppContainer-Container"</prop>
         <prop name="links">{
   "mongod": "mongo"
 }</prop>
@@ -57,6 +74,9 @@
         <prop name="tty">true</prop>
       </__props__>
       <DomError>
+        <__props__>
+          <prop name="key">"DomError"</prop>
+        </__props__>
         <json>"Component Container cannot be built with current props"</json>
       </DomError>
     </Container>

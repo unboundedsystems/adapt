@@ -5,6 +5,8 @@ import {
     UnbsElementOrNull,
 } from "./jsx";
 
+import * as ld from "lodash";
+
 export interface ProviderProps<T> {
     value: T;
     children: UnbsElementOrNull; // Must be single child
@@ -42,17 +44,12 @@ export function createContext<T>(defaultValue: T): Context<T> {
     class Provider extends Component<ProviderProps<T>> {
         build(): UnbsElementOrNull {
             const { children } = this.props;
-            if (!children ||
-                !Array.isArray(children) ||
-                children.length > 1) {
+            if ((children == null) || Array.isArray(children)) {
                 throw new BuildNotImplemented(`A context Provider may only have a single child`);
             }
             providerPush(this);
 
-            // FIXME: Broken because this.props.children is
-            // currently ALWAYS an array.
-            const kidsArray: UnbsElementOrNull[] = children as any;
-            return kidsArray.length ? kidsArray[0] : null;
+            return children;
         }
         cleanup = () => providerPop();
     }
@@ -61,12 +58,10 @@ export function createContext<T>(defaultValue: T): Context<T> {
     class Consumer extends Component<ConsumerProps<T>> {
         build() {
             const { children } = this.props;
-            if (!children ||
-                !Array.isArray(children) ||
-                children.length !== 1) {
+            if ((children == null) || Array.isArray(children) || !ld.isFunction(children)) {
                 throw new BuildNotImplemented(`Children of a context Consumer must be a single function`);
             }
-            return (this.props.children as any)[0](currentVal());
+            return this.props.children(currentVal());
         }
     }
 

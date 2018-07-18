@@ -6,10 +6,12 @@ import {
     build as AdaptBuild,
     BuildOp,
     BuildOpStep,
+    cloneElement,
     Group
 } from "../src";
 
 import {
+    deepFilterElemsToPublic,
     Empty,
     MakeEmpty
 } from "./testlib";
@@ -25,7 +27,7 @@ describe("Build Data Recorder", () => {
     }
 
     function matchRecord(lrec: BuildOp[], ref: BuildOp[]) {
-        should(lrec).eql(ref);
+        should(deepFilterElemsToPublic(lrec)).eql(deepFilterElemsToPublic(ref));
     }
 
     it("should start", () => {
@@ -52,9 +54,8 @@ describe("Build Data Recorder", () => {
             { type: "start", root: dom },
             {
                 type: "step",
-                oldElem: dom,
+                oldElem: cloneElement(dom, { key: "MakeEmpty" }),
                 newElem: record1Out,
-                style: undefined
             },
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }
@@ -62,10 +63,10 @@ describe("Build Data Recorder", () => {
     });
 
     it("should record ascend, descend", () => {
-        const empty1 = <Empty id={1} />;
-        const empty2 = <Empty id={2} />;
-        const layer1 = <Group>{empty1}{empty2}</Group>;
-        const dom = <Group>{layer1}</Group>;
+        const empty1 = <Empty key="empty1" id={1} />;
+        const empty2 = <Empty key="empty2" id={2} />;
+        const layer1 = <Group key="layer1">{empty1}{empty2}</Group>;
+        const dom = <Group key="root">{layer1}</Group>;
 
         const { contents: newDom } = AdaptBuild(dom, null, { recorder });
 

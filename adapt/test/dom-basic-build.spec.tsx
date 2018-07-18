@@ -10,6 +10,7 @@ import should = require("should");
 import { DomError } from "../src/builtin_components";
 import {
     checkChildComponents,
+    deepFilterElemsToPublic,
     Empty,
     MakeEmpty,
     MakeGroup,
@@ -20,23 +21,24 @@ import {
 interface AbstractProps extends WithChildren {
     id: number;
 }
-class Abstract extends Component<AbstractProps> {}
+class Abstract extends Component<AbstractProps> { }
 
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
-        const orig = <Adapt.Group />;
+        const orig = <Adapt.Group key="root" />;
         const { contents: dom } = Adapt.build(orig, null);
+
+        const ref = deepFilterElemsToPublic(orig);
 
         should(Adapt).not.Null();
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
-        should(dom).eql(orig);
+        should(deepFilterElemsToPublic(dom)).eql(ref);
     });
 
-    it("Should substitute props.children as flat", () => {
+    it("Should build single child", () => {
         const orig = <MakeGroup>
-            <Empty id={1} />
-            <Empty id={2} />
+            <Empty key="a" id={1} />
         </MakeGroup>;
 
         const { contents: dom } = Adapt.build(orig, null);
@@ -44,14 +46,33 @@ describe("DOM Basic Build Tests", () => {
             should(dom).not.Null();
             return;
         }
+
+        const ref = deepFilterElemsToPublic(<Empty key="a" id={1} />);
         should(dom.componentType).equal(Adapt.Group);
-        should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+    });
+
+    it("Should substitute props.children as flat", () => {
+        const orig = <MakeGroup>
+            <Empty key="a" id={1} />
+            <Empty key="b" id={2} />
+        </MakeGroup>;
+
+        const { contents: dom } = Adapt.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+
+        const ref = deepFilterElemsToPublic([<Empty key="a" id={1} />, <Empty key="b" id={2} />]);
+        should(dom.componentType).equal(Adapt.Group);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
     it("Should build recursively", () => {
         const orig = <Adapt.Group>
-            <MakeMakeEmpty id={1} />
-            <MakeMakeEmpty id={2} />
+            <MakeMakeEmpty key="a" id={1} />
+            <MakeMakeEmpty key="b" id={2} />
         </Adapt.Group>;
 
         const { contents: dom } = Adapt.build(orig, null);
@@ -60,13 +81,16 @@ describe("DOM Basic Build Tests", () => {
             return;
         }
         checkChildComponents(dom, Empty, Empty);
-        should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+        const ref = deepFilterElemsToPublic([
+            <Empty key="a-MakeEmpty-Empty" id={1} />,
+            <Empty key="b-MakeEmpty-Empty" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
     it("Should pass through primitives with children", () => {
         const orig = <Adapt.Group>
-            <Empty id={1} />
-            <Empty id={2} />
+            <Empty key="1" id={1} />
+            <Empty key="2" id={2} />
         </Adapt.Group>;
 
         const { contents: dom } = Adapt.build(orig, null);
@@ -75,7 +99,8 @@ describe("DOM Basic Build Tests", () => {
             return;
         }
         checkChildComponents(dom, Empty, Empty);
-        should(dom.props.children).eql([<Empty id={1} />, <Empty id={2} />]);
+        const ref = deepFilterElemsToPublic([<Empty key="1" id={1} />, <Empty key="2" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
     it("Should use defaultProps", () => {
@@ -85,7 +110,8 @@ describe("DOM Basic Build Tests", () => {
             should(dom).not.Null();
             return;
         }
-        should(dom.props.children).eql([<Empty id={100} />, <Empty id={200} />]);
+        const ref = deepFilterElemsToPublic([<Empty key="1" id={100} />, <Empty key="2" id={200} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
     it("Should override defaultProps", () => {
@@ -95,7 +121,8 @@ describe("DOM Basic Build Tests", () => {
             should(dom).not.Null();
             return;
         }
-        should(dom.props.children).eql([<Empty id={1234} />, <Empty id={200} />]);
+        const ref = deepFilterElemsToPublic([<Empty key="1" id={1234} />, <Empty key="2" id={200} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
     it("Should insert DomError for abstract component", () => {
@@ -112,7 +139,7 @@ describe("DOM Basic Build Tests", () => {
         dom.componentType.should.equal(Abstract);
         checkChildComponents(dom, DomError, Empty);
         should(dom.props.id).equal(10);
-        should(dom.props.children[0].props.children[0])
+        should(dom.props.children[0].props.children)
             .match(/Component Abstract cannot be built/);
     });
 
@@ -133,23 +160,23 @@ describe("DOM Basic Build Tests", () => {
         dom.componentType.should.equal(SFCThrows);
         checkChildComponents(dom, DomError, Empty);
         should(dom.props.id).equal(10);
-        should(dom.props.children[0].props.children[0])
+        should(dom.props.children[0].props.children)
             .match(/Component SFCThrows cannot be built/);
     });
 });
 
 describe("DOM Shallow Build Tests", () => {
     it("Should respect shallow option", () => {
-        const body = <MakeEmpty id={1} />;
-        const orig = <MakeGroup>{body}</MakeGroup>;
-        const expected = <Adapt.Group>{body}</Adapt.Group>;
+        const body = <MakeEmpty key="body" id={1} />;
+        const orig = <MakeGroup key="orig">{body}</MakeGroup>;
+        const expected = deepFilterElemsToPublic(<Adapt.Group key="orig-Group" >{body}</Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(expected);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
     it("Should respect depth 0 as no-op", () => {
@@ -163,26 +190,27 @@ describe("DOM Shallow Build Tests", () => {
     });
 
     it("Should respect depth option", () => {
-        const noChange = <Adapt.Group>
-            <MakeEmpty id={1} />
+        const noChange = <Adapt.Group key="noChange">
+            <MakeEmpty key="inner" id={1} />
         </Adapt.Group>;
 
-        const orig = <Adapt.Group>
+        const orig = <Adapt.Group key="root">
             {noChange}
-            <MakeEmpty id={2} />
+            <MakeEmpty key="outer" id={2} />
         </Adapt.Group>;
 
-        const expected = <Adapt.Group>
-            {noChange}
-            <Empty id={2} />
-        </Adapt.Group>;
+        const expected =
+            deepFilterElemsToPublic(<Adapt.Group key="root">
+                {noChange}
+                <Empty key="outer-Empty" id={2} />
+            </Adapt.Group>);
 
         const { contents: dom } = Adapt.build(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(expected);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
     /* it("Exper", () => {

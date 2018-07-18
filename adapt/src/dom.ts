@@ -1,19 +1,30 @@
+import * as util from "util";
+
 import * as ld from "lodash";
 
 import * as css from "./css";
 
 import {
+    AnyProps,
+    AnyState,
     childrenToArray,
     ClassComponentTyp,
     cloneElement,
     createElement,
     FunctionComponentTyp,
+    isElementImpl,
     isPrimitive,
+    isPrimitiveElement,
+    simplifyChildren,
     UnbsElement,
     UnbsElementImpl,
     UnbsElementOrNull,
     WithChildren,
 } from "./jsx";
+
+import {
+    createStateStore, StateNamespace, stateNamespaceForPath, StateStore
+} from "./state";
 
 import { DomError } from "./builtin_components";
 import {
@@ -21,6 +32,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented } from "./error";
+import { assignKeysAtPlacement, computeMountKey } from "./keys";
 
 export enum MessageType {
     warning = "warning",
@@ -34,15 +46,19 @@ export interface Message {
 type CleanupFunc = () => void;
 class ComputeContents {
     buildDone = false;
+    buildErr = false;
     contents: UnbsElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
+    mountedElements: UnbsElement[] = [];
 
     combine(other: ComputeContents) {
         this.messages.push(...other.messages);
         this.cleanups.push(...other.cleanups);
+        this.mountedElements.push(...other.mountedElements);
         other.messages = [];
         other.cleanups = [];
+        other.mountedElements = [];
     }
     cleanup() {
         let clean: CleanupFunc | undefined;
@@ -58,8 +74,9 @@ function isClassConstructorError(err: any) {
         /Class constructor .* cannot be invoked/.test(err.message);
 }
 
-function computeContentsNoOverride<P extends object>(
-    element: UnbsElement<P & WithChildren>): ComputeContents {
+function computeContentsFromElement<P extends object>(
+    element: UnbsElement<P & WithChildren>,
+    state: StateStore): ComputeContents {
     const ret = new ComputeContents();
 
     try {
@@ -73,7 +90,14 @@ function computeContentsNoOverride<P extends object>(
         // element.componentType is a class, not a function. Fall through.
     }
 
-    const component = new (element.componentType as ClassComponentTyp<P>)(element.props);
+    const component = new (element.componentType as ClassComponentTyp<P, AnyState>)(element.props);
+    if (isElementImpl(element)) {
+        element.component = component;
+        const prevState = state.elementState(element.stateNamespace);
+        if (prevState != null) {
+            (component as any).state = prevState;
+        }
+    }
 
     if (isPrimitive(component)) return buildDone();
 
@@ -90,17 +114,19 @@ function computeContentsNoOverride<P extends object>(
     }
 
     function buildDone(err?: Error) {
-        const kids = childrenToArray(element.props.children);
+        ret.buildDone = true;
+        ret.contents = element;
         if (err) {
+            ret.buildErr = true;
+            const kids = childrenToArray(element.props.children);
             let message =
                 `Component ${element.componentType.name} cannot be ` +
                 `built with current props`;
             if (err.message) message += ": " + err.message;
             ret.messages.push({ type: MessageType.warning, content: message });
             kids.unshift(createElement(DomError, {}, message));
+            replaceChildren(element, kids);
         }
-        ret.buildDone = true;
-        ret.contents = cloneElement(element, {}, ...kids);
         return ret;
     }
 }
@@ -120,59 +146,135 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
 
 function computeContents(
     path: UnbsElement[],
-    styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    let out = new ComputeContents();
-    const overrideFound = findOverride(styles, path);
-    const element = path[path.length - 1];
-    const noOverride = () => {
-        const ret = computeContentsNoOverride(element);
-        out.combine(ret);
-        return ret.contents;
-    };
-
-    let style: css.StyleRule | undefined;
-    if (overrideFound != null) {
-        const override = overrideFound.override;
-        style = overrideFound.style;
-        out.contents = override(
-            element.props,
-            { origBuild: noOverride, origElement: element });
-    } else {
-        out = computeContentsNoOverride(element);
+    const element = ld.last(path);
+    if (element == null) {
+        const ret = new ComputeContents();
+        ret.buildDone = true;
+        return ret;
     }
 
-    if (!out.buildDone) {
+    const out = computeContentsFromElement(element, options.stateStore);
+
+    options.recorder({
+        type: "step",
+        oldElem: element,
+        newElem: out.contents
+    });
+
+    return out;
+}
+
+function ApplyStyle(
+    props: {
+        override: css.BuildOverride<AnyProps>,
+        element: UnbsElement
+    }) {
+
+    const origBuild = () => {
+        return props.element;
+    };
+
+    return props.override(props.element.props, {
+        origBuild,
+        origElement: props.element
+    });
+}
+
+function doOverride(
+    path: UnbsElement[],
+    key: string,
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsElement {
+
+    const element = ld.last(path);
+    if (element == null) {
+        throw new Error("Cannot match null element to style rules for empty path");
+    }
+
+    const overrideFound = findOverride(styles, path);
+
+    if (overrideFound != null) {
+        const { style, override } = overrideFound;
+        const newElem = createElement(ApplyStyle, { key, override, element });
         options.recorder({
             type: "step",
             oldElem: element,
-            newElem: out.contents,
+            newElem,
             style
         });
+        return newElem;
+    } else {
+        return element;
     }
-    return out;
+}
+
+function mountElement(
+    path: UnbsElement[],
+    parentStateNamespace: StateNamespace,
+    styles: css.StyleList,
+    options: BuildOptionsReq): UnbsElement {
+
+    let elem = ld.last(path);
+    if (elem == null) {
+        throw new Error(`Cannot mount null element: ${path}`);
+    }
+
+    const newKey = computeMountKey(elem, parentStateNamespace);
+    elem = doOverride(path, newKey, styles, options);
+    elem = cloneElement(elem, { key: newKey }, elem.props.children);
+    if (!isElementImpl(elem)) {
+        throw new Error("Elements must derive from ElementImpl");
+    }
+    elem.mount(parentStateNamespace);
+    return elem;
+}
+
+function subLastPathElem(path: UnbsElement[], elem: UnbsElement): UnbsElement[] {
+    const ret = path.slice(0, -1);
+    ret.push(elem);
+    return ret;
 }
 
 function mountAndBuildComponent(
     path: UnbsElement[],
+    parentStateNamespace: StateNamespace,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
-    const out = computeContents(path, styles, options);
+    const elem = mountElement(path, parentStateNamespace, styles, options);
+    if ((elem != null) && !isElementImpl(elem)) {
+        throw new Error("Elements must derive from ElementImpl");
+    }
+
+    if (isPrimitiveElement(elem)) {
+        const ret = new ComputeContents();
+        ret.contents = elem;
+        ret.buildDone = true;
+        return ret;
+    }
+
+    const revisedPath = subLastPathElem(path, elem);
+
+    const out = computeContents(revisedPath, options);
+    out.mountedElements.push(elem);
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
-            const comp = path[path.length - 1].componentType;
+            const comp = elem.componentType;
             throw new Error(`Component build for ${comp.name} returned an ` +
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-        if (out.buildDone) return out;
 
-        const newPath = path.slice(0, -1);
-        newPath.push(out.contents);
-        const ret = mountAndBuildComponent(newPath, styles, options);
+        //Ignore buildDone here because a style rule could cause the build to continue
+        if (out.buildErr) {
+            return out;
+        }
+
+        const newPath = subLastPathElem(path, out.contents);
+        const ret = mountAndBuildComponent(newPath, elem.stateNamespace, styles, options);
         out.combine(ret);
         out.contents = ret.contents;
     }
@@ -187,6 +289,7 @@ export interface BuildOptions {
     depth?: number;
     shallow?: boolean;
     recorder?: BuildListener;
+    stateStore?: StateStore;
 }
 
 const defaultBuildOptions = {
@@ -195,6 +298,7 @@ const defaultBuildOptions = {
     // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
     // tslint:disable-next-line:object-literal-sort-keys
     recorder: (_op: BuildOp) => { return; },
+    stateStore: createStateStore(),
 };
 
 type BuildOptionsReq = Required<BuildOptions>;
@@ -203,7 +307,8 @@ export interface BuildOutput {
     contents: UnbsElementOrNull;
     messages: Message[];
 }
-export function build(root: UnbsElement,
+export function build(
+    root: UnbsElement,
     styles: UnbsElement | null,
     options?: BuildOptions): BuildOutput {
 
@@ -226,22 +331,28 @@ function pathBuild(
     const options = { ...defaultBuildOptions, ...optionsIn };
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
-    let ret = null;
+    let result = null;
     try {
-        ret = realBuild(path, styles, options);
+        result = realBuild(path, null, styles, options);
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
     }
-    options.recorder({ type: "done", root: ret.contents });
+    options.recorder({ type: "done", root: result.contents });
+    result.mountedElements.map((elem) => {
+        if (isElementImpl(elem)) {
+            elem.postBuild(options.stateStore);
+        }
+    });
     return {
-        contents: ret && ret.contents,
-        messages: (ret && ret.messages) || [],
+        contents: result.contents,
+        messages: (result.messages) || [],
     };
 }
 
 function realBuild(
     path: UnbsElement[],
+    parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
 
@@ -252,13 +363,21 @@ function realBuild(
         return out;
     }
 
+    if (parentStateNamespace == null) {
+        parentStateNamespace = stateNamespaceForPath(path.slice(0, -1));
+    }
+
     const oldElem = path[path.length - 1];
-    out = mountAndBuildComponent(path, styles, options);
+    out = mountAndBuildComponent(path, parentStateNamespace, styles, options);
     const newRoot = out.contents;
     options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
 
     if (newRoot == null || atDepth(options, path.length)) {
         return out;
+    }
+
+    if (!isElementImpl(newRoot)) {
+        throw new Error(`Internal Error: element is not ElementImpl: ${util.inspect(newRoot)}`);
     }
 
     const children = newRoot.props.children;
@@ -272,15 +391,16 @@ function realBuild(
     //For deep DOMs
     let childList: any[] = [];
     if (children instanceof UnbsElementImpl) {
-        childList = [newChildren];
+        childList = [children];
     } else if (ld.isArray(children)) {
         childList = children;
     }
 
+    assignKeysAtPlacement(childList);
     newChildren = childList.map((child) => {
         if (child instanceof UnbsElementImpl) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = realBuild([...path, child], styles, options);
+            const ret = realBuild([...path, child], newRoot.stateNamespace, styles, options);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
@@ -292,6 +412,25 @@ function realBuild(
 
     newChildren = newChildren.filter(notNull);
 
-    out.contents = cloneElement(newRoot, {}, ...newChildren);
+    replaceChildren(newRoot, newChildren);
     return out;
+}
+
+function replaceChildren(elem: UnbsElement, children: any | any[] | undefined) {
+    children = simplifyChildren(children);
+
+    if (Object.isFrozen(elem.props)) {
+        const childMerge = (children == null) ? undefined : { children };
+        (elem as any).props = {
+            ...elem.props,
+            ...childMerge
+        };
+        Object.freeze(elem.props);
+    } else {
+        if (children == null) {
+            delete elem.props.children;
+        } else {
+            elem.props.children = children;
+        }
+    }
 }

@@ -2,8 +2,13 @@
   <LocalCompute>
     <__props__>
       <prop name="ip">"127.0.0.1"</prop>
+      <prop name="key">"Nodecellar-Compute-LocalCompute"</prop>
     </__props__>
-    <LocalDockerHost/>
+    <LocalDockerHost>
+      <__props__>
+        <prop name="key">"DockerHost-LocalDockerHost"</prop>
+      </__props__>
+    </LocalDockerHost>
     <LocalContainer name="mongo">
       <__props__>
         <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
@@ -12,6 +17,7 @@
   "repository": "mongo",
   "tag": "3.1"
 }</prop>
+        <prop name="key">"MongoContainer-Container-LocalContainer"</prop>
         <prop name="links">{}</prop>
         <prop name="portBindings">{
   "27017": 27017,
@@ -36,6 +42,7 @@
         <prop name="image">{
   "repository": "uric/nodecellar"
 }</prop>
+        <prop name="key">"AppContainer-Container-LocalContainer"</prop>
         <prop name="links">{
   "mongod": "mongo"
 }</prop>

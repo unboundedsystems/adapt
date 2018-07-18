@@ -1,7 +1,9 @@
 import { spawnSync } from "child_process";
+import * as ld from "lodash";
 import * as path from "path";
 import * as should from "should";
 import * as Adapt from "../src";
+import * as jsx from "../src/jsx";
 
 export const pkgRootDir =
     path.resolve(path.join(__dirname, "..", ".."));
@@ -20,10 +22,9 @@ export function npmInstall(options?: NpmOptions) {
 }
 
 export function checkChildComponents(element: Adapt.UnbsElement, ...children: any[]) {
-    should(element.props.children).not.Null();
-    should(element.props.children).be.Array();
+    const childArray = jsx.childrenToArray(element.props.children);
 
-    const childComponents = element.props.children.map(
+    const childComponents = childArray.map(
         (child: any) => {
             if (Adapt.isElement(child)) {
                 return child.componentType;
@@ -36,7 +37,7 @@ export function checkChildComponents(element: Adapt.UnbsElement, ...children: an
     should(childComponents).eql(children);
 }
 
-export class Empty extends Adapt.PrimitiveComponent<{ id: number }> { }
+export class Empty extends Adapt.PrimitiveComponent<{ id: number }, {}> { }
 
 export function MakeMakeEmpty(props: { id: number }) {
     return <MakeEmpty id={props.id} />;
@@ -63,9 +64,40 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
     build() {
         return (
             <Adapt.Group>
-                <Empty id={this.props.prop1!} />
-                <Empty id={this.props.prop2!} />
+                <Empty key="1" id={this.props.prop1!} />
+                <Empty key="2" id={this.props.prop2!} />
             </Adapt.Group>
         );
     }
+}
+
+export const publicElementFields = {
+    props: null,
+    componentType: null
+};
+
+export function deepFilterElemsToPublic(o: any): any {
+    if (!ld.isObject(o)) return o;
+
+    if (ld.isArray(o)) {
+        return o.map((item) => deepFilterElemsToPublic(item));
+    }
+
+    if (Adapt.isElement(o)) {
+        const filtered = ld.pickBy(o, (value: any, key: string) => {
+            return key in publicElementFields;
+        });
+
+        if (filtered.props != null) {
+            (filtered as any).props = deepFilterElemsToPublic(filtered.props);
+        }
+        return filtered;
+    }
+
+    const ret: { [key: string]: any } = {};
+    // tslint:disable-next-line:forin
+    for (const key in o) {
+        ret[key] = deepFilterElemsToPublic(o[key]);
+    }
+    return ret;
 }

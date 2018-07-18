@@ -27,7 +27,7 @@ export const awsDefaultCredentialsContext = awsCredentialsContext({
 });
 
 export function withCredentials<
-    W extends Constructor<Component<any>>>(
+    W extends Constructor<Component<any, any>>>(
     // tslint:disable-next-line:variable-name
     Wrapped: W, Ctx: AwsCredentialsContext = awsDefaultCredentialsContext
 ) {
