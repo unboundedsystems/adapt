@@ -6,7 +6,7 @@ import { AnyProps, AnyState, Component, isElementImpl, UnbsElement } from "./jsx
 import { StateNamespace } from "./state";
 
 export interface StateStore {
-    setElementState(elem: StateNamespace, data: AnyState): void;
+    setElementState(elem: StateNamespace, data: AnyState | undefined): void;
     elementState(elem: StateNamespace): AnyState | undefined;
 }
 
@@ -19,8 +19,13 @@ export type StateNamespace = string[];
 class StateImpl implements StateStore {
     states = new Map<string, AnyState>();
 
-    setElementState(elem: StateNamespace, data: AnyState) {
-        this.states.set(JSON.stringify(elem), data);
+    setElementState(elem: StateNamespace, data: AnyState | undefined) {
+        const key = JSON.stringify(elem);
+        if (data === undefined) {
+            this.states.delete(key);
+        } else {
+            this.states.set(key, data);
+        }
     }
 
     elementState(elem: StateNamespace): AnyState | undefined {

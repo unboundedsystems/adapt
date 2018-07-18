@@ -44,4 +44,17 @@ describe("State Object Tests", () => {
         should(val2).equal(ref2);
         should(val2).not.equal(ref1);
     });
+
+    it("Should delete elements when set to undefined", () => {
+        const ref = {};
+        const key = ["foo", "bar"];
+
+        s.setElementState(key, ref);
+        const val = s.elementState(key);
+        should(val).equal(ref); //===, not eql
+
+        s.setElementState(key, undefined);
+        const noVal = s.elementState(key);
+        should(noVal).Undefined();
+    });
 });
