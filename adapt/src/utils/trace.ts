@@ -28,6 +28,7 @@ const traceWritable = writeStream(
         cb();
     });
 // An instance of Console that indents its output according to nesting level
+// tslint:disable-next-line:no-console
 const _console = new console.Console(traceWritable);
 
 function log(...args: any[]) {

@@ -1,0 +1,14 @@
+{
+    "private": true,
+    "workspaces": {
+        "packages": [
+            "adapt",
+            "cloud",
+            "cli"
+        ],
+        "nohoist": [
+            "**/@types/chai"
+        ]
+    }
+}
+
