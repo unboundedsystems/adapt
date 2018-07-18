@@ -8,19 +8,53 @@ import { StateNamespace } from "./state";
 export interface StateStore {
     setElementState(elem: StateNamespace, data: AnyState | undefined): void;
     elementState(elem: StateNamespace): AnyState | undefined;
+    serialize(): string;
 }
 
-export function createStateStore(): StateStore {
-    return new StateImpl();
+function namespaceToKey(ns: StateNamespace): string {
+    return JSON.stringify(ns);
+}
+
+function keyToNamespace(key: string): StateNamespace {
+    try {
+        return JSON.parse(key);
+    } catch (e) {
+        if (ld.isError(e)) {
+            throw new Error("Illegal key: " + e.message);
+        } else {
+            throw new Error("Illegal key");
+        }
+    }
+}
+
+export function createStateStore(json?: string): StateStore {
+    const ret = new StateStoreImpl();
+    if (json != null) {
+        const init = JSON.parse(json);
+        for (const key in init) {
+            if (!init.hasOwnProperty(key)) continue;
+
+            const ns = keyToNamespace(key);
+            const val = init[key];
+            if (ld.isObject(val)) {
+                ret.setElementState(ns, val);
+            } else if (init[key] === undefined) {
+                //Do nothing
+            } else {
+                throw new Error(`Illegal state in store json: ${key} => ${util.inspect(init[key])}`);
+            }
+        }
+    }
+    return ret;
 }
 
 export type StateNamespace = string[];
 
-class StateImpl implements StateStore {
+class StateStoreImpl implements StateStore {
     states = new Map<string, AnyState>();
 
     setElementState(elem: StateNamespace, data: AnyState | undefined) {
-        const key = JSON.stringify(elem);
+        const key = namespaceToKey(elem);
         if (data === undefined) {
             this.states.delete(key);
         } else {
@@ -29,7 +63,15 @@ class StateImpl implements StateStore {
     }
 
     elementState(elem: StateNamespace): AnyState | undefined {
-        return this.states.get(JSON.stringify(elem));
+        return this.states.get(namespaceToKey(elem));
+    }
+
+    serialize(): string {
+        const ret: AnyState = {};
+        this.states.forEach((elem, key) => {
+            ret[key] = elem;
+        });
+        return JSON.stringify(ret);
     }
 }
 
