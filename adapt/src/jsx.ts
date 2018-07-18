@@ -31,7 +31,7 @@ export function isElementImpl(val: any): val is UnbsElementImpl<AnyProps> {
     return isElement(val);
 }
 
-export abstract class Component<Props extends object, State extends object> {
+export abstract class Component<Props extends object = {}, State extends object = {}> {
 
     readonly state: State;
 
@@ -74,7 +74,7 @@ export function isComponent<P extends object, S extends object>(func: SFC | Comp
     return func instanceof Component;
 }
 
-export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<any> {
+export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<AnyProps> {
     return isPrimitive(elem.componentType.prototype);
 }
 

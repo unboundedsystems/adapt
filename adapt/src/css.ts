@@ -262,7 +262,7 @@ export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
     return parseStyles(rawStyles);
 }
 
-export class Style extends jsx.Component<StyleProps, {}> {
+export class Style extends jsx.Component<StyleProps> {
     build(): null {
         return null; //Don't output anything for styles if it makes it to DOM
     }

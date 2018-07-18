@@ -55,7 +55,7 @@ export interface WithDefaultsProps {
     prop1?: number;
     prop2?: number;
 }
-export class WithDefaults extends Adapt.Component<WithDefaultsProps, {}> {
+export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
     static defaultProps = {
         prop1: 100,
         prop2: 200,
