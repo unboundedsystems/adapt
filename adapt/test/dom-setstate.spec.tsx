@@ -1,6 +1,6 @@
 import * as should from "should";
 
-import Adapt, { Component, createStateStore, StateStore, AnyState } from "../src";
+import Adapt, { AnyState, Component, createStateStore, StateStore } from "../src";
 
 import { Empty, MakeGroup } from "./testlib";
 
@@ -10,7 +10,7 @@ interface StateUpdaterProps {
     prevObserver?: (prev: any) => void;
 }
 
-class StateUpdater extends Component<StateUpdaterProps, any> {
+class StateUpdater extends Component<StateUpdaterProps, AnyState> {
     //Override protections from Component so constructor can write initialState.
     readonly state: any;
 
