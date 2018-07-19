@@ -38,7 +38,7 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
 
     const npmOpts = {
-        dir: session.projectDir,
+        cwd: session.projectDir,
         progress: finalOpts.progress,
         loglevel: finalOpts.loglevel,
         packageLockOnly: true,
