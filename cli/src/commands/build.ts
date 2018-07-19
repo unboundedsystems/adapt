@@ -1,44 +1,94 @@
 import { Command, flags } from "@oclif/command";
+import * as fs from "fs-extra";
+import Listr = require("listr");
+import * as path from "path";
 
-export default class DomCommand extends Command {
-    static description = "Build the DOM for a description file";
+import { getGen, load, ProjectOptions, Session } from "../proj";
 
-    /*
+const cantBuild = "This project cannot be built.\n";
+
+export default class BuildCommand extends Command {
+    static description = "Build the DOM for a project";
+
     static examples = [
-        `$ adapt hello
-hello world from ./src/hello.ts!
+        `
+  Build the default project description file, index.tsx:
+    $ adapt build
+  Build with alternate root file:
+    $ adapt build somefile.tsx
 `,
     ];
-    */
 
     static flags = {
-        help: flags.help({char: "h"}),
-        // flag with a value (-n, --name=VALUE)
-        name: flags.string({char: "n", description: "name to print"}),
-        // flag with no value (-f, --force)
-        force: flags.boolean({char: "f"}),
+        registry: flags.string({
+            description: "URL of alternate NPM registry to use",
+        })
     };
 
     static args = [
         {
-            name: "file",
-            required: true,
-            description: "Description file to process",
+            name: "projectFile",
+            required: false,
+            description: "Project description file to build (.ts or .tsx)",
+            default: "index.tsx",
         },
     ];
 
     async run() {
         // tslint:disable-next-line:no-shadowed-variable
-        //const {args, flags} = this.parse(DomCommand);
+        const { args, flags } = this.parse(BuildCommand);
+        const { projectFile } = args;
+        const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
-        this.log(`hello world`);
-
-        /*
-        const name = flags.name || "world";
-        this.log(`hello ${name} from ./src/commands/hello.ts`);
-        if (args.file && flags.force) {
-            this.log(`you input --force and --file: ${args.file}`);
+        if (! await fs.pathExists(projectFile)) {
+            this.error(`Project file '${projectFile}' does not exist`);
         }
-        */
+        const projectDir = path.resolve(path.dirname(projectFile));
+
+        await fs.ensureDir(cacheDir);
+
+        const session: Session = {
+            cacheDir,
+            projectDir,
+        };
+        const projOpts: ProjectOptions = {
+            session,
+        };
+
+        if (flags.registry) projOpts.registry = flags.registry;
+
+        const tasks = new Listr([
+            {
+                title: "Validating project",
+                task: () => load(projectDir, projOpts).then((project) => {
+                    const gen = getGen(project);
+                    if (!gen.matchInfo.matches) {
+                        this.error(cantBuild +
+                            `The following updates must be made:\n` +
+                            gen.matchInfo.required.map(
+                                (ui) => "  " + ui.message).join("\n"));
+                    }
+                })
+                .catch((err) => {
+                    if (err.code === "ENOPACKAGEJSON") {
+                        this.error(cantBuild +
+                            `The directory '${projectDir}' does not contain a ` +
+                            `package.json file`);
+                    }
+                    throw err;
+                })
+            },
+            {
+                title: "Building project",
+                task: () => Promise.resolve(),
+            }
+        ]);
+
+        try {
+            await tasks.run();
+        } catch (err) {
+            this.error(err);
+        }
     }
+
 }

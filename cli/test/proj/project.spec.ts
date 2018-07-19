@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
+import { npmLocalProxyOpts } from "../common/config";
 import { sourceDir } from "../testlib";
 import * as tmpdir from "../testlib/mocha-tmpdir";
-import { npmLocalProxyOpts } from "../common/config";
 
 import * as proj from "../../src/proj/project";
 
