@@ -3,6 +3,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { sourceDir } from "../testlib";
 import * as tmpdir from "../testlib/mocha-tmpdir";
+import { npmLocalProxyOpts } from "../common/config";
 
 import * as proj from "../../src/proj/project";
 
@@ -107,5 +108,21 @@ describe("Project basic tests", function() {
 
     it("Should fail with bad package name", async () => {
         return expect(proj.load("XXXBADPACKAGE", projOpts)).to.be.rejectedWith("404 Not Found: XXXBADPACKAGE");
+    });
+
+    it("Should load from alternate registry", async () => {
+        const opts = { ...npmLocalProxyOpts, ...projOpts };
+        // FIXME(mark): Once we actually publish @usys/cloud publicly, this
+        // test is no longer a great test. Change the package to something
+        // that we know is definitely only present in the local registry.
+        const p = await proj.load("@usys/cloud@0.0.1", opts);
+        expect(p).to.be.an("object");
+        expect(p.manifest.name).equal("@usys/cloud");
+        expect(p.manifest.version).equal("0.0.1");
+        expect(p.manifest.dependencies["@usys/adapt"]).equal("0.0.1");
+
+        const lock = p.packageLock;
+        expect(lock.name).equal("@usys/cloud");
+        expect(lock.version).equal("0.0.1");
     });
 });

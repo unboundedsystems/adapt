@@ -13,12 +13,14 @@ export interface Session {
 }
 
 export interface ProjectOptions {
-    session?: Session;
-    progress?: boolean;
     loglevel?: npm.LogLevel;
+    progress?: boolean;
+    registry?: string;
+    session?: Session;
 }
 
 const defaultOptions: ProjectOptions = {
+    loglevel: "warn",
     progress: true,
 };
 
@@ -31,18 +33,31 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
         session = await tempSession();
         removeSession = true;
     }
-    const pacoteOpts = {
+    session.projectDir = path.resolve(session.projectDir);
+
+    const pacoteOpts: pacote.Options = {
         cache: session.cacheDir,
     };
-    const manifest = await pacote.manifest(projectSpec, pacoteOpts);
-    await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
+    if (finalOpts.registry) pacoteOpts.registry = finalOpts.registry;
 
-    const npmOpts = {
+    const manifest = await pacote.manifest(projectSpec, pacoteOpts);
+
+    let inPlace = false;
+    if (isLocal(projectSpec)) {
+        projectSpec = path.resolve(projectSpec);
+        if (projectSpec === session.projectDir) inPlace = true;
+    }
+
+    if (!inPlace) await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
+
+    const npmOpts: npm.InstallOptions = {
         cwd: session.projectDir,
-        progress: finalOpts.progress,
         loglevel: finalOpts.loglevel,
         packageLockOnly: true,
+        progress: finalOpts.progress,
     };
+    if (finalOpts.registry) npmOpts.registry = finalOpts.registry;
+
     await npm.install(npmOpts);
 
     const pkgLock = await npm.packageLock(session.projectDir);
@@ -61,6 +76,10 @@ export class Project {
         const dep = this.packageLock.dependencies[pkgName];
         return dep ? dep.version : null;
     }
+}
+
+function isLocal(filename: string) {
+    return (filename.startsWith(".") || filename.startsWith("/"));
 }
 
 export async function tempSession(): Promise<Session> {
