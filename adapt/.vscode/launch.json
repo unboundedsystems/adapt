@@ -15,7 +15,7 @@
                 "--nolazy",
                 "--inspect-brk=0.0.0.0:5858"
             ],
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
                 "--no-timeouts",
                 "--opts",
@@ -56,7 +56,7 @@
                 "--nolazy",
                 "--inspect-brk=0.0.0.0:5858"
             ],
-            "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+            "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
                 "--no-timeouts",
                 "--watch",
