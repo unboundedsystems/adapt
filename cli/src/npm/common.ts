@@ -8,6 +8,7 @@ export interface CommonOptions {
     cwd?: string;
     loglevel?: LogLevel;
     progress?: boolean;
+    registry?: string;
 }
 
 export const commonDefaults: CommonOptions = {
