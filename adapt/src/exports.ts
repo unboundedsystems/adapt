@@ -61,3 +61,11 @@ export {
     StateStore,
     createStateStore
 } from "./state";
+
+export {
+    buildStack,
+} from "./ops";
+
+export {
+    CompileError,
+} from "./ts";

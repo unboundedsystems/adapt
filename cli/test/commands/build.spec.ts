@@ -35,6 +35,10 @@ async function createProject(pkgJson: any, tsFile: string,
     await fs.outputFile(tsFilename, tsFile);
 }
 
+function fakeWindowSize() {
+    return [80, 40];
+}
+
 describe("Build basic tests", () => {
     tmpdir.each("adapt-cli-test-build");
 
@@ -42,13 +46,39 @@ describe("Build basic tests", () => {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .stub(process.stdout, "isTTY", true) // Ensure TTY-flavored output on stdout
+    .stub(process.stdout, "isTTY", false) // Turn off progress, etc
     .stdout()
     .stderr()
-    .command(["build", "--registry", localRegistryUrl])
+    .command(["build", "--registry", localRegistryUrl, "dev"])
+
     .it("Should build basic default filename", (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Building project [completed]");
+        expect(ctx.stdout).contains(`DOM for stack 'dev':
+<Adapt>
+  <Root key="Root">
+    <__props__>
+      <prop name="store">{}</prop>
+    </__props__>
+  </Root>
+</Adapt>`);
+    });
+
+    test
+    .do(async () => {
+        await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    })
+    .stub(process.stdout, "isTTY", true) // Ensure TTY-flavored output on stdout
+    .stub(process.stdout, "getWindowSize", fakeWindowSize)
+    .stdout()
+    .stderr()
+    .command(["build", "--registry", localRegistryUrl, "dev"])
+
+    .it("Should build basic with TTY output", (ctx) => {
         expect(ctx.stdout).contains("✔ Validating project");
         expect(ctx.stdout).contains("✔ Building project");
+        expect(ctx.stderr).equals("");
     });
 });
 
@@ -58,7 +88,7 @@ describe("Build negative tests", () => {
     test
     .stdout()
     .stderr()
-    .command(["build", "doesntexist"])
+    .command(["build", "--rootFile", "doesntexist", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -73,7 +103,7 @@ describe("Build negative tests", () => {
     })
     .stdout()
     .stderr()
-    .command(["build", "test.ts"])
+    .command(["build", "--rootFile", "test.ts", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
