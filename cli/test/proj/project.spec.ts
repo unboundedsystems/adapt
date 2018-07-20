@@ -85,7 +85,8 @@ describe("Project basic tests", function() {
         expect(p.manifest.dependencies.typescript).equal("^2.9.2");
     });
 
-    it("Should get a github package", async () => {
+    it("Should get a github package", async function() {
+        this.timeout(40000);
         const p = await proj.load("sindresorhus/decamelize#v1.2.0", projOpts);
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("decamelize");
