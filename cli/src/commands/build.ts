@@ -44,7 +44,7 @@ export default class BuildCommand extends Command {
         const { stackName } = args;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
-        if (!flags.rootFile) throw new Error(`Internal error: rootFile cannot be null`);
+        if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
         const projectFile = path.resolve(flags.rootFile);
 
         if (! await fs.pathExists(projectFile)) {

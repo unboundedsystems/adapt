@@ -3,7 +3,11 @@ import * as pacote from "pacote";
 import * as path from "path";
 
 import * as npm from "../npm";
-import { ValidationError, verifyBuildState } from "../types/adapt_shared";
+import {
+    ValidationError,
+    verifyAdaptModule,
+    verifyBuildState
+} from "../types/adapt_shared";
 import { mkdtmp } from "../utils";
 import { VersionString } from "./gen";
 
@@ -111,12 +115,15 @@ export class Project {
             // don't want to have a dependency on @usys/adapt.
 
             // tslint:disable-next-line:no-implicit-dependencies
-            const adapt: any = await require("@usys/adapt");
+            const adapt = verifyAdaptModule(await require("@usys/adapt"));
 
             try {
-                const ret: any = adapt.buildStack(rootFile, stackName, {},
-                                                  { rootDir: projectDir });
-                const buildState = verifyBuildState(ret);
+                const buildState =
+                    verifyBuildState(adapt.buildStack(rootFile, stackName, {},
+                                                      { rootDir: projectDir }));
+                if (buildState.dom == null) {
+                    throw new Error(`buildStack returned null dom`);
+                }
                 return adapt.serializeDom(buildState.dom);
             } catch (err) {
                 if (err instanceof adapt.CompileError) {

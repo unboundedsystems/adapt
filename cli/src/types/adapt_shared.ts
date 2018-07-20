@@ -11,6 +11,47 @@ export class ValidationError extends CustomError {
     }
 }
 
+/*
+ * Types related to AdaptModule
+ */
+export interface AdaptModule {
+    CompileError: Constructor<Error>;
+
+    buildStack(fileName: string, stackName: string,
+        initialState: any, options?: BuildOptions): BuildState;
+    serializeDom(root: UnbsElement): string;
+
+}
+
+export function verifyAdaptModule(val: any): AdaptModule {
+    if (val == null) throw new ValidationError("AdaptModule", "value is null");
+
+    if (val.buildStack == null) throw new ValidationError("AdaptModule", "buildStack missing");
+    if (typeof val.buildStack !== "function") throw new ValidationError("AdaptModule", "buildStack not a function");
+
+    return val as AdaptModule;
+}
+
+/*
+ * General types
+ */
+export type Constructor<T extends object> = (new (...args: any[]) => T);
+export interface AnyProps {
+    [key: string]: any;
+}
+export interface UnbsElement<P extends object = AnyProps> {
+    readonly props: P;
+    readonly componentType: any;
+}
+export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
+
+/*
+ * Types related to adapt.buildStack
+ */
+export interface BuildOptions {
+    rootDir?: string;
+}
+
 export enum MessageType {
     warning = "warning",
     error = "error",
@@ -22,7 +63,7 @@ export interface Message {
 }
 
 export interface BuildState {
-    dom: any;
+    dom: UnbsElementOrNull;
     state: any;
     messages: Message[];
 }

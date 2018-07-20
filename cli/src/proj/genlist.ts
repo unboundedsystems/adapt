@@ -10,8 +10,8 @@ const gen0: Gen = {
     name: "gen0",
     match: matchDeps,
     dependencies: {
-        "@types/node": { allowed: ">=8", preferred: "^8"},
-        "typescript": { allowed: ">=2.8", preferred: "^2.9.2" },
+        "@types/node": { allowed: "^8", preferred: "^8"},
+        "typescript": { allowed: ">=2.9", preferred: "^2.9.2" },
         "@usys/adapt": { allowed: "*", preferred: "*" },
     },
 };
