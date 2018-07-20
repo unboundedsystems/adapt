@@ -1,5 +1,6 @@
+--require test/testlib/init.js
 --require source-map-support/register
 --recursive
 --reporter spec
---timeout 5000
+--timeout 15000
 dist/test

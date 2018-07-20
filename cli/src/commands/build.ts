@@ -1,44 +1,112 @@
 import { Command, flags } from "@oclif/command";
+import * as fs from "fs-extra";
+import Listr = require("listr");
+import * as path from "path";
 
-export default class DomCommand extends Command {
-    static description = "Build the DOM for a description file";
+import { getGen, load, Project, ProjectOptions, Session } from "../proj";
 
-    /*
+const cantBuild = "This project cannot be built.\n";
+
+export default class BuildCommand extends Command {
+    static description = "Build the DOM for a project";
+
     static examples = [
-        `$ adapt hello
-hello world from ./src/hello.ts!
+        `
+  Build the stack named "dev" from the default project description file, index.tsx:
+    $ adapt build dev
+
+  Build the stack named "dev" from an alternate description file:
+    $ adapt build --rootFile somefile.tsx dev
 `,
     ];
-    */
 
     static flags = {
-        help: flags.help({char: "h"}),
-        // flag with a value (-n, --name=VALUE)
-        name: flags.string({char: "n", description: "name to print"}),
-        // flag with no value (-f, --force)
-        force: flags.boolean({char: "f"}),
+        registry: flags.string({
+            description: "URL of alternate NPM registry to use",
+        }),
+        rootFile: flags.string({
+            description: "Project description file to build (.ts or .tsx)",
+            default: "index.tsx",
+        })
     };
 
     static args = [
         {
-            name: "file",
+            name: "stackName",
             required: true,
-            description: "Description file to process",
         },
     ];
 
     async run() {
+        const log = this.log;
         // tslint:disable-next-line:no-shadowed-variable
-        //const {args, flags} = this.parse(DomCommand);
+        const { args, flags } = this.parse(BuildCommand);
+        const { stackName } = args;
+        const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
-        this.log(`hello world`);
+        if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
+        const projectFile = path.resolve(flags.rootFile);
 
-        /*
-        const name = flags.name || "world";
-        this.log(`hello ${name} from ./src/commands/hello.ts`);
-        if (args.file && flags.force) {
-            this.log(`you input --force and --file: ${args.file}`);
+        if (! await fs.pathExists(projectFile)) {
+            this.error(`Project file '${flags.rootFile}' does not exist`);
         }
-        */
+        const projectDir = path.dirname(projectFile);
+
+        await fs.ensureDir(cacheDir);
+
+        const session: Session = {
+            cacheDir,
+            projectDir,
+        };
+        const projOpts: ProjectOptions = {
+            session,
+        };
+
+        if (flags.registry) projOpts.registry = flags.registry;
+
+        // Task context items
+        let project: Project | null = null;
+
+        const tasks = new Listr([
+            {
+                title: "Validating project",
+                task: async () => {
+                    try {
+                        project = await load(projectDir, projOpts);
+                        const gen = getGen(project);
+                        if (!gen.matchInfo.matches) {
+                            this.error(cantBuild +
+                                `The following updates must be made:\n` +
+                                gen.matchInfo.required.map(
+                                    (ui) => "  " + ui.message).join("\n"));
+                        }
+                    } catch (err) {
+                        if (err.code === "ENOPACKAGEJSON") {
+                            this.error(cantBuild +
+                                `The directory '${projectDir}' does not contain a ` +
+                                `package.json file`);
+                        }
+                        throw err;
+                    }
+                },
+            },
+            {
+                title: "Building project",
+                task: async () => {
+                    if (project == null) {
+                        throw new Error(`Internal error: project cannot be null`);
+                    }
+                    const domString = await project.build(projectFile, stackName);
+                    log(`DOM for stack '${stackName}':\n` + domString);
+                }
+            }
+        ]);
+
+        try {
+            await tasks.run();
+        } catch (err) {
+            this.error(err);
+        }
     }
+
 }
