@@ -20,7 +20,7 @@ const simplePackageJson = {
 const simpleIndexTsx = `
 import Adapt, { PrimitiveComponent } from "@usys/adapt";
 
-class Simple extends PrimitiveComponent<{}, {}> {}
+class Simple extends PrimitiveComponent<{}> {}
 Adapt.stack("default", <Simple />);
 `;
 

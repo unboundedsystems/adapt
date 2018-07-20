@@ -2,7 +2,7 @@ import * as Adapt from "../src";
 
 import * as should from "should";
 
-class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps, Adapt.AnyState> { }
+class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 
 //FIXME(manishv)  All the serialization tests should parse XML and check for
 //semantic equivalence, not string equivalance.

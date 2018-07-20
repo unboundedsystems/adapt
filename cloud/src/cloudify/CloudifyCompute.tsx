@@ -33,7 +33,7 @@ export interface CloudifyComputeProps extends ComputeProps {
     cloudify_agent?: object;
 }
 
-export class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps, {}> {
+export class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps> {
     updateState(state: any, info: UpdateStateInfo) {
         const bp = getBlueprintState(state);
         bp.nodeTemplate(info.nodeName, {

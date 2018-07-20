@@ -9,7 +9,7 @@ export interface EC2Props extends ComputeProps, Adapt.WithChildren {
     sshKeyName?: string;
 }
 
-class EC2InstanceNC extends Adapt.PrimitiveComponent<EC2Props & WithCredentials, {}> {
+class EC2InstanceNC extends Adapt.PrimitiveComponent<EC2Props & WithCredentials> {
 }
 
 // tslint:disable-next-line:variable-name
