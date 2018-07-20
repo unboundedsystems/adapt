@@ -2,5 +2,5 @@
 --require source-map-support/register
 --recursive
 --reporter spec
---timeout 15000
+--timeout 30000
 dist/test

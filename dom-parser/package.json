@@ -1,31 +1,20 @@
 {
-  "name": "adapt-back-end",
-  "description": "Unbounded Adapt Front End",
+  "name": "@usys/dom-parser",
+  "description": "Unbounded Adapt DOM Parser",
   "version": "0.0.1",
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "dependencies": {
-    "@oclif/command": "^1",
-    "@oclif/config": "^1",
-    "@oclif/errors": "^1",
-    "@oclif/parser": "^3",
-    "@oclif/plugin-help": "^2",
-    "css-what": "^2.1.0",
     "lodash": "^4.17.10",
-    "oclif": "^1.8.5",
-    "simple-git": "^1.96.0",
     "stream-buffers": "^3.0.2",
     "ts-custom-error": "^2.2.1",
-    "xml2js": "^0.4.19",
-    "xmlbuilder": "^10.0.0"
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {
-    "@oclif/tslint": "^1",
     "@types/lodash": "^4.14.108",
     "@types/mocha": "^5.2.0",
     "@types/node": "^8.10.20",
     "@types/stream-buffers": "^3.0.2",
     "@types/xml2js": "^0.4.3",
-    "@types/xmlbuilder": "0.0.32",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
@@ -42,12 +31,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:watch": "tsc -w -p tsconfig.json",
+    "build:watch": "npm run clean; tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "prepare": "npm run build",
+    "prepare": "make build",
     "prepush": "../bin/npm run lint",
-    "pretest": "npm run build",
+    "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   }
 }

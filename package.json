@@ -4,7 +4,8 @@
         "packages": [
             "adapt",
             "cloud",
-            "cli"
+            "cli",
+            "dom-parser"
         ],
         "nohoist": [
             "**/@types/chai",
