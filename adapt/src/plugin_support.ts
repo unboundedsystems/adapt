@@ -23,8 +23,12 @@ export interface Plugin {
     finish(): Promise<void>;
 }
 
+export interface PluginManagerStartOptions {
+    log: (...args: any[]) => void;
+}
+
 export interface PluginManager {
-    start(dom: UnbsElement): Promise<void>;
+    start(dom: UnbsElement, options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Promise<void>;
     act(dryRun: boolean): Promise<void>;
@@ -49,24 +53,22 @@ function logErrors(results: { action: Action, err?: any }[], logger: (e: string)
     }
 }
 
-//FIXME(manishv) Add arguments to plugin manager for custom logging
-// tslint:disable-next-line:no-console
-const tmpLog = console.log;
-
 class PluginManagerImpl implements PluginManager {
     private plugins: Plugin[];
-    private dom: UnbsElement | null | undefined;
-    private actions: Action[] | undefined;
+    private dom?: UnbsElement | null;
+    private actions?: Action[];
+    private log?: (...args: any[]) => void;
 
     constructor(config: PluginConfig) {
         this.plugins = config.plugins;
     }
 
-    async start(dom: UnbsElement | null) {
+    async start(dom: UnbsElement | null, options: PluginManagerStartOptions) {
         this.dom = dom;
+        this.log = options.log;
 
-        const options = { log: tmpLog }; //FIXME(manishv) have a per-plugin log here
-        const waitingFor = this.plugins.map((plugin) => plugin.start(options));
+        const loptions = { log: options.log }; //FIXME(manishv) have a per-plugin log here
+        const waitingFor = this.plugins.map((plugin) => plugin.start(loptions));
         await Promise.all(waitingFor);
     }
 
@@ -87,8 +89,11 @@ class PluginManagerImpl implements PluginManager {
 
     async act(dryRun: boolean) {
         const actions = this.actions;
+        const log = this.log;
         if (actions == undefined) throw new Error("Must call analyze before act");
-        actions.map((action) => tmpLog(`Doing ${action.description}...`));
+        if (log == undefined) throw new Error("Must call start before act");
+
+        actions.map((action) => log(`Doing ${action.description}...`));
         if (!dryRun) {
             const rawResults = await when.settle<void>(actions.map((action) => action.act()));
             const results = ld.zipWith(actions, rawResults,
@@ -99,12 +104,13 @@ class PluginManagerImpl implements PluginManager {
                         return { action: act };
                     }
                 });
-            logErrors(results, (err: any) => tmpLog(err));
+            logErrors(results, (err: any) => log(err));
         }
     }
 
     async finish() {
         this.dom = undefined;
         this.actions = undefined;
+        this.log = undefined;
     }
 }
