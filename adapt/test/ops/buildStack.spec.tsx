@@ -25,7 +25,7 @@ Adapt.stack("default", <Simple />);
 `;
 
 describe("buildStack Tests", function() {
-    this.timeout(20000);
+    this.timeout(30000);
     tmpdir.each("adapt-buildStack");
 
     it("Should build a single file", () => {
