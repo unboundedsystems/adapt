@@ -28,6 +28,7 @@
     "@types/node": "^8.10.20",
     "@types/sinon": "^5.0.1",
     "@types/type-name": "^1.0.27",
+    "@types/when": "^2.4.31",
     "@types/xmlbuilder": "0.0.32",
     "fs-extra": "^6.0.1",
     "mocha": "^5.1.1",
@@ -45,6 +46,7 @@
     "mkdirp": "^0.5.1",
     "ts-custom-error": "^2.2.1",
     "type-name": "^2.0.2",
+    "when": "^3.7.8",
     "xmlbuilder": "^10.0.0"
   }
 }
