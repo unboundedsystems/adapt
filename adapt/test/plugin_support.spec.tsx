@@ -89,6 +89,7 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(false);
+        await mgr.finish();
         should(spy.callCount).equal(5);
         should(spy.getCall(0).args[0]).equal("start");
         should(spy.getCall(1).args).eql(["observe", dom]);
@@ -105,6 +106,7 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(true);
+        await mgr.finish();
         should(spy.callCount).equal(3);
         should(spy.getCall(0).args[0]).equal("start");
         should(spy.getCall(1).args).eql(["observe", dom]);
@@ -114,4 +116,26 @@ describe("Plugin Support Basic Tests", () => {
         should(contents).match(/action2/);
     });
 
+    it("Should not allow illegal call sequences", async () => {
+        await mgr.start(dom, { log: logger });
+        should(() => mgr.analyze()).throw();
+        await should(mgr.act(false)).rejectedWith(Error);
+        await should(mgr.finish()).rejectedWith(Error);
+
+        await mgr.observe();
+        await should(mgr.act(false)).rejectedWith(Error);
+        await should(mgr.finish()).rejectedWith(Error);
+
+        await mgr.analyze();
+        await mgr.act(true); //dry run
+        await mgr.act(false);
+        await mgr.finish();
+    });
+
+    it("Should allow finish without acting", async () => {
+        await mgr.start(dom, { log: logger });
+        await mgr.observe();
+        await mgr.analyze();
+        await mgr.finish();
+    });
 });
