@@ -1,10 +1,9 @@
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import * as should from "should";
 import * as tmpdir from "../mocha-tmpdir";
 
 import { npmInstall, pkgRootDir } from "../testlib";
 
-import { PrimitiveComponent, UnbsPrimitiveElementImpl } from "../../src/jsx";
 import { buildStack } from "../../src/ops/buildStack";
 
 const simplePackageJson = {
@@ -28,23 +27,23 @@ describe("buildStack Tests", function() {
     this.timeout(30000);
     tmpdir.each("adapt-buildStack");
 
-    it("Should build a single file", () => {
-        fs.writeFileSync("index.tsx", simpleIndexTsx);
-        fs.writeFileSync("package.json",
-                         JSON.stringify(simplePackageJson, null, 2));
+    it("Should build a single file", async () => {
+        await fs.writeFile("index.tsx", simpleIndexTsx);
+        await fs.writeFile("package.json",
+                           JSON.stringify(simplePackageJson, null, 2));
 
         npmInstall();
 
-        const out = buildStack("index.tsx", "default", {});
+        const bs = buildStack("index.tsx", "default", "{}");
 
-        if (out.dom == null) {
-            should(out.dom).not.be.Null();
-            return;
-        }
-        should(out.dom instanceof UnbsPrimitiveElementImpl).be.True();
-        const el = out.dom as UnbsPrimitiveElementImpl<any>;
-        should(el.componentInstance instanceof PrimitiveComponent).be.True();
-        should(el.componentInstance!.constructor.name).equal("Simple");
+        should(bs.messages.length).equal(0);
+        should(bs.domXml).equal(
+`<Adapt>
+  <Simple key="Simple"/>
+</Adapt>
+`);
+
+        should(bs.stateJson).equal("{}");
     });
 });
 

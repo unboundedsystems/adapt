@@ -6,7 +6,7 @@ import * as npm from "../npm";
 import {
     ValidationError,
     verifyAdaptModule,
-    verifyBuildState
+    verifyBuildState,
 } from "../types/adapt_shared";
 import { mkdtmp } from "../utils";
 import { VersionString } from "./gen";
@@ -96,7 +96,7 @@ export class Project {
         return dep ? dep.version : null;
     }
 
-    async build(rootFile: string, stackName: string) {
+    async build(rootFile: string, stackName: string, stateInputJson: string) {
         const projectDir = this.options.session.projectDir;
 
         await npm.install(npmInstallOptions(this.options));
@@ -118,13 +118,9 @@ export class Project {
             const adapt = verifyAdaptModule(await require("@usys/adapt"));
 
             try {
-                const buildState =
-                    verifyBuildState(adapt.buildStack(rootFile, stackName, {},
-                                                      { rootDir: projectDir }));
-                if (buildState.dom == null) {
-                    throw new Error(`buildStack returned null dom`);
-                }
-                return adapt.serializeDom(buildState.dom);
+                return verifyBuildState(
+                    adapt.buildStack(rootFile, stackName, stateInputJson,
+                                     { rootDir: projectDir }));
             } catch (err) {
                 if (err instanceof adapt.CompileError) {
                     // tslint:disable-next-line:no-console

@@ -3,9 +3,19 @@ import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
 
-import { getGen, load, Project, ProjectOptions, Session } from "../proj";
+import {
+    createStateHistoryDir,
+    getGen,
+    load,
+    Project,
+    ProjectOptions,
+    Session,
+    StateHistory,
+} from "../proj";
 
 const cantBuild = "This project cannot be built.\n";
+
+export const defaultStateHistoryDir = "./state_history";
 
 export default class BuildCommand extends Command {
     static description = "Build the DOM for a project";
@@ -27,7 +37,14 @@ export default class BuildCommand extends Command {
         rootFile: flags.string({
             description: "Project description file to build (.ts or .tsx)",
             default: "index.tsx",
-        })
+        }),
+        stateHistory: flags.string({
+            description: "Directory where state sequences will be stored",
+            default: defaultStateHistoryDir,
+        }),
+        init: flags.boolean({
+            description: "Initialize a new state history directory if it doesn't exist",
+        }),
     };
 
     static args = [
@@ -38,13 +55,15 @@ export default class BuildCommand extends Command {
     ];
 
     async run() {
-        const log = this.log;
         // tslint:disable-next-line:no-shadowed-variable
         const { args, flags } = this.parse(BuildCommand);
         const { stackName } = args;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
         if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
+        // NOTE(mark): Why doesn't oclif set the boolean to false?
+        if (flags.init === undefined) flags.init = false;
+
         const projectFile = path.resolve(flags.rootFile);
 
         if (! await fs.pathExists(projectFile)) {
@@ -65,9 +84,28 @@ export default class BuildCommand extends Command {
         if (flags.registry) projOpts.registry = flags.registry;
 
         // Task context items
-        let project: Project | null = null;
+        // NOTE: TypeScript 2.9 has trouble doing control flow analysis when
+        // assignments to these occur in callbacks, like below. Workaround
+        // is adding undefined to the types and NOT initializing them.
+        // See: https://github.com/Microsoft/TypeScript/issues/24445 and
+        // https://github.com/Microsoft/TypeScript/issues/11498
+        let project: Project | undefined;
+        let history: StateHistory | undefined;
+        let initState: string | undefined;
 
         const tasks = new Listr([
+            {
+                title: "Opening state history",
+                task: async () => {
+                    if (flags.stateHistory == null) {
+                        throw new Error(`Internal error: stateHistory cannot be null`);
+                    }
+                    history = await createStateHistoryDir(flags.stateHistory, flags.init);
+
+                    const stored = await history.lastState();
+                    initState = stored.stateJson;
+                },
+            },
             {
                 title: "Validating project",
                 task: async () => {
@@ -96,8 +134,15 @@ export default class BuildCommand extends Command {
                     if (project == null) {
                         throw new Error(`Internal error: project cannot be null`);
                     }
-                    const domString = await project.build(projectFile, stackName);
-                    log(`DOM for stack '${stackName}':\n` + domString);
+                    if (history == null) {
+                        throw new Error(`Internal error: history cannot be null`);
+                    }
+                    if (initState == null) {
+                        throw new Error(`Internal error: initState cannot be null`);
+                    }
+                    const buildState = await project.build(projectFile, stackName,
+                                                           initState);
+                    await history.appendState(buildState);
                 }
             }
         ]);
@@ -105,6 +150,7 @@ export default class BuildCommand extends Command {
         try {
             await tasks.run();
         } catch (err) {
+            if (history != null) history.revert();
             this.error(err);
         }
     }
