@@ -1,6 +1,7 @@
 import Adapt, {
     BuildNotImplemented,
     Component,
+    PrimitiveComponent,
     UnbsElementOrNull,
     WithChildren,
 } from "../src";
@@ -23,6 +24,13 @@ interface AbstractProps extends WithChildren {
 }
 class Abstract extends Component<AbstractProps> { }
 
+class AlwaysErrorPrimitive extends PrimitiveComponent<{}> {
+    constructor(props: {}) {
+        throw new Error("Always error instantiated!");
+        super(props);
+    }
+}
+
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
         const orig = <Adapt.Group key="root" />;
@@ -34,6 +42,26 @@ describe("DOM Basic Build Tests", () => {
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
         should(deepFilterElemsToPublic(dom)).eql(ref);
+    });
+
+    it("Should validate primitive component", () => {
+        const orig = <AlwaysErrorPrimitive key="root" />;
+        const { contents: dom } = Adapt.build(orig, null);
+
+        should(Adapt.isElement(dom)).True();
+        should(dom).not.equal(orig);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        const domError = dom.props.children;
+        if (domError == null) {
+            should(domError).not.Null();
+            should(domError).not.Undefined();
+            return;
+        }
+        should(domError.componentType).equal(DomError);
+        should(domError.props.children).match(/Always error instantiated/);
     });
 
     it("Should build single child", () => {

@@ -74,6 +74,15 @@ function isClassConstructorError(err: any) {
         /Class constructor .* cannot be invoked/.test(err.message);
 }
 
+function makeDomError(element: UnbsElement, err: Error): { domError: UnbsElement<{}>, message: string } {
+    let message =
+        `Component ${element.componentType.name} cannot be ` +
+        `built with current props`;
+    if (err.message) message += ": " + err.message;
+    const domError = createElement(DomError, {}, message);
+    return { domError, message };
+}
+
 function computeContentsFromElement<P extends object>(
     element: UnbsElement<P & WithChildren>,
     state: StateStore): ComputeContents {
@@ -119,12 +128,9 @@ function computeContentsFromElement<P extends object>(
         if (err) {
             ret.buildErr = true;
             const kids = childrenToArray(element.props.children);
-            let message =
-                `Component ${element.componentType.name} cannot be ` +
-                `built with current props`;
-            if (err.message) message += ": " + err.message;
+            const { domError, message } = makeDomError(element, err);
             ret.messages.push({ type: MessageType.warning, content: message });
-            kids.unshift(createElement(DomError, {}, message));
+            kids.unshift(domError);
             replaceChildren(element, kids);
         }
         return ret;
@@ -237,6 +243,17 @@ function subLastPathElem(path: UnbsElement[], elem: UnbsElement): UnbsElement[] 
     return ret;
 }
 
+function validateComponent(elem: UnbsElement) {
+    if (!isPrimitiveElement(elem)) throw new Error("Internal Error: can only validate primitive components");
+    try {
+        new elem.componentType(elem.props);
+    } catch (err) {
+        const kids = childrenToArray(elem.props.children);
+        kids.unshift(makeDomError(elem, err).domError);
+        replaceChildren(elem, kids);
+    }
+}
+
 function mountAndBuildComponent(
     path: UnbsElement[],
     parentStateNamespace: StateNamespace,
@@ -249,6 +266,7 @@ function mountAndBuildComponent(
     }
 
     if (isPrimitiveElement(elem)) {
+        validateComponent(elem);
         const ret = new ComputeContents();
         ret.contents = elem;
         ret.buildDone = true;
