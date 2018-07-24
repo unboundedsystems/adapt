@@ -1,5 +1,5 @@
 import * as fs from "fs-extra";
-import { padStart } from "lodash";
+import { last, padStart } from "lodash";
 import * as moment from "moment";
 import * as path from "path";
 
@@ -112,16 +112,15 @@ class StateHistoryDir {
 
     async lastState(): Promise<HistoryEntry> {
         const info = this.getInfo();
-        const len = info.stateDirs.length;
-        if (len === 0) {
+        const lastDir = last(info.stateDirs);
+        if (lastDir === undefined) {
             return {
                 domXml: "",
                 stateJson: "{}",
             };
         }
 
-        const last = info.stateDirs[len - 1];
-        const dirName = path.join(this.rootDir, last);
+        const dirName = path.join(this.rootDir, lastDir);
 
         const domXml = await fs.readFile(path.join(dirName, domFilename));
         const stateJson = await fs.readFile(path.join(dirName, stateFilename));
@@ -145,16 +144,15 @@ class StateHistoryDir {
 
     private nextDirName(): string {
         const info = this.getInfo();
+        const lastDir = last(info.stateDirs);
 
         let nextSeq: number;
 
-        const len = info.stateDirs.length;
-        if (len === 0) {
+        if (lastDir === undefined) {
             nextSeq = 0;
         } else {
-            const last = info.stateDirs[len - 1];
-            const matches = last.match(/^\d+/);
-            if (matches == null) throw new Error(`stateDir entry '${last}' is invalid`);
+            const matches = lastDir.match(/^\d+/);
+            if (matches == null) throw new Error(`stateDir entry '${lastDir}' is invalid`);
             nextSeq = parseInt(matches[0], 10) + 1;
         }
         const seqStr = padStart(nextSeq.toString(10), 5, "0");
