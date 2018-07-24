@@ -27,11 +27,16 @@ export interface PluginManagerStartOptions {
     log: (...args: any[]) => void;
 }
 
+export interface ActionResult {
+    action: Action;
+    err?: any;
+}
+
 export interface PluginManager {
     start(dom: UnbsElement, options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Promise<void>;
-    act(dryRun: boolean): Promise<void>;
+    act(dryRun: boolean): Promise<ActionResult[]>;
     finish(): Promise<void>;
 }
 
@@ -39,18 +44,10 @@ export function createPluginManager(config: PluginConfig): PluginManager {
     return new PluginManagerImpl(config);
 }
 
-function logErrors(results: { action: Action, err?: any }[], logger: (e: string) => void) {
-    let hadErrors = false;
-    for (const result of results) {
-        if (result.err !== undefined) {
-            logger(`--Error during ${result.action.description}`);
-            logger(result.err);
-            hadErrors = true;
-        }
-    }
-    if (hadErrors) {
-        logger("----------");
-    }
+function logError(action: Action, err: any, logger: (e: string) => void) {
+    logger(`--Error during ${action.description}`);
+    logger(err);
+    logger(`----------`);
 }
 
 class PluginManagerImpl implements PluginManager {
@@ -94,8 +91,19 @@ class PluginManagerImpl implements PluginManager {
         if (log == undefined) throw new Error("Must call start before act");
 
         actions.map((action) => log(`Doing ${action.description}...`));
-        if (!dryRun) {
-            const rawResults = await when.settle<void>(actions.map((action) => action.act()));
+        if (dryRun) {
+            return actions.map((action) => ({ action }));
+        } else {
+            const wrappedActions = actions.map(async (action) => {
+                try {
+                    await action.act();
+                } catch (e) {
+                    logError(action, e, (m) => log(m));
+                    throw e;
+                }
+            });
+
+            const rawResults = await when.settle<void>(wrappedActions);
             const results = ld.zipWith(actions, rawResults,
                 (act: Action, result: when.Descriptor<void>) => {
                     if (result.state === "rejected") {
@@ -104,7 +112,8 @@ class PluginManagerImpl implements PluginManager {
                         return { action: act };
                     }
                 });
-            logErrors(results, (err: any) => log(err));
+
+            return results;
         }
     }
 
