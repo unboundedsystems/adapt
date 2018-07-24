@@ -17,10 +17,8 @@ export class ValidationError extends CustomError {
 export interface AdaptModule {
     CompileError: Constructor<Error>;
 
-    buildStack(fileName: string, stackName: string,
-        initialState: any, options?: BuildOptions): BuildState;
-    serializeDom(root: UnbsElement): string;
-
+    buildStack(fileName: string, stackName: string, initialStateJson: string,
+               options?: BuildOptions): BuildState;
 }
 
 export function verifyAdaptModule(val: any): AdaptModule {
@@ -36,14 +34,6 @@ export function verifyAdaptModule(val: any): AdaptModule {
  * General types
  */
 export type Constructor<T extends object> = (new (...args: any[]) => T);
-export interface AnyProps {
-    [key: string]: any;
-}
-export interface UnbsElement<P extends object = AnyProps> {
-    readonly props: P;
-    readonly componentType: any;
-}
-export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
 
 /*
  * Types related to adapt.buildStack
@@ -63,12 +53,12 @@ export interface Message {
 }
 
 export interface BuildState {
-    dom: UnbsElementOrNull;
-    state: any;
+    domXml: string;
+    stateJson: string;
     messages: Message[];
 }
 
-export function isMessage(m: any): m is Message {
+export function verifyMessage(m: any): Message {
     if (m == null) throw new ValidationError("Message", "value is null");
     if (m.type !== "warning" && m.type !== "error") {
         throw new ValidationError("Message", "bad type property");
@@ -76,19 +66,24 @@ export function isMessage(m: any): m is Message {
     if (typeof m.content !== "string") {
         throw new ValidationError("Message", "content is not string");
     }
-    return true;
+    return m as Message;
+}
+
+export function verifyMessages(val: any): Message[] {
+    if (val == null) throw new ValidationError("Message[]", "value is null");
+    if (typeof val.length !== "number") throw new ValidationError("Message[]", "length is invalid");
+    for (const m of val) {
+        verifyMessage(m);
+    }
+
+    return val as Message[];
 }
 
 export function verifyBuildState(val: any): BuildState {
     if (val == null) throw new ValidationError("BuildState", "value is null");
-    if (val.dom == null) throw new ValidationError("BuildState", "dom missing");
-    if (val.state == null) throw new ValidationError("BuildState", "state missing");
-    if (val.messages == null) throw new ValidationError("BuildState", "messages missing");
-    if (!Array.isArray(val.messages)) throw new ValidationError("BuildState", "messages not an array");
-
-    for (const m of val.messages) {
-        isMessage(m);
-    }
+    if (typeof val.domXml !== "string") throw new ValidationError("BuildState", "domXml is invalid");
+    if (typeof val.stateJson !== "string") throw new ValidationError("BuildState", "stateJson is invalid");
+    verifyMessages(val.messages);
 
     return val as BuildState;
 }
