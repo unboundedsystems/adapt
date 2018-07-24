@@ -16,7 +16,8 @@ export {
 } from "./jsx";
 
 export {
-    Group
+    Group,
+    DomError
 } from "./builtin_components";
 
 export {
