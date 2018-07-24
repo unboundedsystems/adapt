@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+#
+# Runs an interactive bash shell in a container set up to have the Adapt CLI
+# use a local NPM registry with the latest built version of our NPM modules
+# loaded.
+#
+# FIXME(mark): Most of this code is copied from containit, which sucks.
+# We can't use containit as-is without finding a way to run a background
+# command before exec-ing the final interactive bash process.
+
+IMAGE="node:8"
+
+TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+CTR_ADD_PATH="/src/node_modules/.bin"
+
+if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
+    PROJECT="${BASH_REMATCH[1]}"
+    if [ -n "${PROJECT}" ]; then
+        CTR_ADD_PATH="/src/${PROJECT}/node_modules/.bin:${CTR_ADD_PATH}"
+    fi
+fi
+
+# Returns the absolute path to a file, without any sym links.
+# OSX and some other *nix platforms do not have realpath by default
+realPath() {
+    unset -v CDPATH
+    local BASE="$(basename "$1")"
+    pushd "$(dirname "$1")" >/dev/null
+    local LINK="$(readlink "$BASE")"
+    while [ "$LINK" ]; do
+        cd "$(dirname "$LINK")"
+        LINK="$(readlink "$BASE")"
+    done
+    REALPATH="$(pwd -P)"
+
+    case $BASE in
+        .)
+            # Don't append BASE to the path
+            ;;
+        ..)
+            # Remove one directory from the path
+            REALPATH="$(dirname "$REALPATH")"
+            ;;
+        *)
+            REALPATH="${REALPATH}/${BASE}"
+            ;;
+    esac
+    popd >/dev/null
+    echo "$REALPATH"
+}
+
+# Returns the relative path from $1 to $2
+# Both arguments MUST be absolute paths (beginning with /)
+relativePath() {
+  local source="$1"
+  local target="$2"
+
+  local commonPart="$source"
+  local result=""
+
+  while [[ "${target#$commonPart}" == "${target}" ]]; do
+    # no match, means that candidate common part is not correct
+    # go up one level (reduce common part)
+    commonPart="$(dirname "$commonPart")"
+    # and record that we went back, with correct / handling
+    if [[ -z "$result" ]]; then
+      result=".."
+    else
+      result="../$result"
+    fi
+  done
+
+  if [[ "$commonPart" == "/" ]]; then
+    # special case for root (no common path)
+    result="$result/"
+  fi
+
+  # since we now have identified the common part,
+  # compute the non-common part
+  local forwardPart="${target#$commonPart}"
+
+  # and now stick all parts together
+  if [[ -n "$result" ]] && [[ -n "$forwardPart" ]]; then
+    result="$result$forwardPart"
+  elif [[ -n "$forwardPart" ]]; then
+    # extra slash removal
+    result="${forwardPart:1}"
+  fi
+
+  echo "$result"
+}
+
+WRAPPER=$(cat <<ENDWRAPPER
+child=0
+sig_handler() {
+    sig_send=\$1
+    code=\$2
+    if [ \$child -ne 0 ]; then
+        kill -\$sig_send \$child
+        wait \$child
+    fi
+    exit \$code
+}
+trap 'sig_handler HUP 129' HUP
+trap 'sig_handler TERM 130' INT
+trap 'sig_handler TERM 131' QUIT
+trap 'sig_handler TERM 143' TERM
+
+# Move shell stdin to fd 3
+exec 3<&0 0<&-
+
+PATH=\${PATH}:"${CTR_ADD_PATH}"
+export PATH
+
+node /src/cli/bin/run-local-registry.js &
+sleep 3
+
+bash <&3 &
+child=\$!
+wait \$child
+ENDWRAPPER
+)
+
+CTR_PROJECT_ROOT=/src
+BIN_DIR="$(realPath "$(dirname "$0")")"
+PROJECT_ROOT="$(realPath "${BIN_DIR}/..")"
+WORK_DIR="${CTR_PROJECT_ROOT}/$(relativePath "${PROJECT_ROOT}" "${PWD}")"
+INNER_DOCKER_ARGS=(-it --rm -w "${WORK_DIR}" "-v${PROJECT_ROOT}:${CTR_PROJECT_ROOT}")
+
+# Unset NPM_CONFIG_LOGLEVEL that the official node container sets so any
+# .npmrc log level settings can take effect if desired
+INNER_DOCKER_ARGS+=(-e NPM_CONFIG_LOGLEVEL)
+
+# Tell adapt CLI to use the local registry
+INNER_DOCKER_ARGS+=(-e ADAPT_NPM_REGISTRY=http://127.0.0.1:4873)
+
+exec docker run "${INNER_DOCKER_ARGS[@]}" "${IMAGE}" sh -c "${WRAPPER}"

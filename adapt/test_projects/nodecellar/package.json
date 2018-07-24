@@ -10,6 +10,9 @@
       "source-map-support": "^0.5.5"
   },
   "devDependencies": {
-    "@types/node": "^8.10.20"
+    "@types/node": "^8.10.20",
+    "@usys/adapt": "*",
+    "@usys/cloud": "*",
+    "typescript": "^2.9.2"
   }
 }
