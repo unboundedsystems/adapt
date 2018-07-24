@@ -51,10 +51,10 @@ function logError(action: Action, err: any, logger: (e: string) => void) {
 }
 
 class PluginManagerImpl implements PluginManager {
-    private plugins: Plugin[];
-    private dom?: UnbsElement | null;
-    private actions?: Action[];
-    private log?: (...args: any[]) => void;
+    plugins: Plugin[];
+    dom?: UnbsElement | null;
+    actions?: Action[];
+    log?: (...args: any[]) => void;
 
     constructor(config: PluginConfig) {
         this.plugins = config.plugins;
