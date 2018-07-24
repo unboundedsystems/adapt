@@ -1,5 +1,5 @@
 import * as path from "path";
-import * as verdaccio from "../testlib/mocha-verdaccio";
+import * as verdaccio from "../testlib/verdaccio";
 
 import * as npm from "../../src/npm";
 
@@ -11,17 +11,17 @@ const toPublish = [
     cloudDir,
 ];
 
-async function setupLocalRegistry(done: MochaDone) {
+async function setupLocalRegistry() {
     for (const modDir of toPublish) {
         await npm.publish(modDir, npmLocalProxyOpts);
     }
     // tslint:disable-next-line:no-console
     console.log(`>> Local NPM registry started [loaded ${toPublish.length} modules]\n`);
-    done();
 }
 
-const verdaccioConfigPath = path.join(verdaccioDir, "config.yaml");
-const verdaccioConfig: verdaccio.Config = {
+export const verdaccioConfigPath = path.join(verdaccioDir, "config.yaml");
+export const verdaccioConfig: verdaccio.Config = {
+    // Standard verdaccio config items
     storage: path.join(verdaccioDir, "storage"),
     auth: {
         htpasswd: {
@@ -48,11 +48,10 @@ const verdaccioConfig: verdaccio.Config = {
     logs: [
         { type: "stdout", format: "pretty", level: "error" }
     ],
-    onStart: setupLocalRegistry,
     self_path: verdaccioConfigPath,
+
+    // Our additional config items
+    listen: `0.0.0.0:${localRegistryPort}`,
+    onStart: setupLocalRegistry,
     clearStorage: true,
 };
-
-// Use the mocha-verdaccio test fixture. Starts verdaccio before any test
-// starts
-verdaccio.all(verdaccioConfig, `0.0.0.0:${localRegistryPort}`, verdaccioConfigPath);

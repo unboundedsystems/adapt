@@ -33,6 +33,7 @@ export default class BuildCommand extends Command {
     static flags = {
         registry: flags.string({
             description: "URL of alternate NPM registry to use",
+            env: "ADAPT_NPM_REGISTRY",
         }),
         rootFile: flags.string({
             description: "Project description file to build (.ts or .tsx)",
