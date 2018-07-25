@@ -4,6 +4,8 @@ IMAGE="node:8"
 TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 CTR_ADD_PATH="/src/node_modules/.bin"
 
+DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
+
 if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
     PROJECT="${BASH_REMATCH[1]}"
     if [ -n "${PROJECT}" ]; then
