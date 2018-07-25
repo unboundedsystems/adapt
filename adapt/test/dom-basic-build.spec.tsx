@@ -46,7 +46,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should validate primitive component", () => {
         const orig = <AlwaysErrorPrimitive key="root" />;
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom, messages } = Adapt.build(orig, null);
 
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
@@ -62,6 +62,7 @@ describe("DOM Basic Build Tests", () => {
         }
         should(domError.componentType).equal(DomError);
         should(domError.props.children).match(/Always error instantiated/);
+        should(messages[0].content).match(/Always error instantiated/);
     });
 
     it("Should build single child", () => {
