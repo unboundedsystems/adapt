@@ -74,6 +74,26 @@ function isClassConstructorError(err: any) {
         /Class constructor .* cannot be invoked/.test(err.message);
 }
 
+function recordDomError(
+    cc: ComputeContents,
+    element: UnbsElement,
+    err: Error): { domError: UnbsElement<{}>, message: string } {
+
+    let message =
+        `Component ${element.componentType.name} cannot be ` +
+        `built with current props`;
+    if (err.message) message += ": " + err.message;
+    const domError = createElement(DomError, {}, message);
+
+    cc.buildErr = true;
+    const kids = childrenToArray(element.props.children);
+    cc.messages.push({ type: MessageType.warning, content: message });
+    kids.unshift(domError);
+    replaceChildren(element, kids);
+
+    return { domError, message };
+}
+
 function computeContentsFromElement<P extends object>(
     element: UnbsElement<P & WithChildren>,
     state: StateStore): ComputeContents {
@@ -116,17 +136,7 @@ function computeContentsFromElement<P extends object>(
     function buildDone(err?: Error) {
         ret.buildDone = true;
         ret.contents = element;
-        if (err) {
-            ret.buildErr = true;
-            const kids = childrenToArray(element.props.children);
-            let message =
-                `Component ${element.componentType.name} cannot be ` +
-                `built with current props`;
-            if (err.message) message += ": " + err.message;
-            ret.messages.push({ type: MessageType.warning, content: message });
-            kids.unshift(createElement(DomError, {}, message));
-            replaceChildren(element, kids);
-        }
+        if (err) recordDomError(ret, element, err);
         return ret;
     }
 }
@@ -237,6 +247,16 @@ function subLastPathElem(path: UnbsElement[], elem: UnbsElement): UnbsElement[] 
     return ret;
 }
 
+function validateComponent(elem: UnbsElement): Error | undefined {
+    if (!isPrimitiveElement(elem)) throw new Error("Internal Error: can only validate primitive components");
+    try {
+        new elem.componentType(elem.props);
+    } catch (err) {
+        return err;
+    }
+    return;
+}
+
 function mountAndBuildComponent(
     path: UnbsElement[],
     parentStateNamespace: StateNamespace,
@@ -252,6 +272,8 @@ function mountAndBuildComponent(
         const ret = new ComputeContents();
         ret.contents = elem;
         ret.buildDone = true;
+        const err = validateComponent(elem);
+        if (err != null) recordDomError(ret, elem, err);
         return ret;
     }
 

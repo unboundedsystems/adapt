@@ -1,7 +1,8 @@
 export * from "./jsx_namespace";
 export {
-    createElement,
+    childrenToArray,
     cloneElement,
+    createElement,
     Component,
     PrimitiveComponent,
     UnbsElement,
@@ -11,7 +12,7 @@ export {
     isElement,
     isPrimitiveElement,
     WithChildren,
-    PropsType,
+    PropsType
 } from "./jsx";
 
 export {
