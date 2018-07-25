@@ -1,7 +1,5 @@
-import * as verdaccio from "../testlib/mocha-verdaccio";
-
-import { verdaccioConfig, verdaccioConfigPath } from "./local-registry-config";
+import { localRegistryDefaults, mochaLocalRegistry } from "@usys/utils";
 
 // Use the mocha-verdaccio test fixture. Starts verdaccio before any test
 // starts
-verdaccio.all(verdaccioConfig, verdaccioConfigPath);
+mochaLocalRegistry.all(localRegistryDefaults.config, localRegistryDefaults.configPath);

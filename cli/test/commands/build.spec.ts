@@ -1,9 +1,7 @@
 import { expect, test as oclifTest } from "@oclif/test";
+import { localRegistryDefaults, mochaTmpdir } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as tmpdir from "../testlib/mocha-tmpdir";
-
-import { localRegistryUrl } from "../common/config";
 
 import { defaultStateHistoryDir } from "../../src/commands/build";
 import {
@@ -11,6 +9,8 @@ import {
     infoFilename,
     stateFilename
 } from "../../src/proj/statehistory";
+
+const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
 
 const basicPackageJson = {
     name: "test",
@@ -96,7 +96,7 @@ const basicTestChain =
 
 describe("Build basic tests", function() {
     this.timeout(30000);
-    tmpdir.each("adapt-cli-test-build");
+    mochaTmpdir.each("adapt-cli-test-build");
 
     basicTestChain
     .command(["build", "--registry", localRegistryUrl, "--init", "dev"])
@@ -210,7 +210,7 @@ const stateIncrementTestChain =
 describe("Build state update tests", () => {
     // These tests must all use a single temp directory where the
     // state_history can be shared and built upon
-    tmpdir.all("adapt-cli-test-build");
+    mochaTmpdir.all("adapt-cli-test-build");
 
     stateIncrementTestChain
     .command(["build", "--registry", localRegistryUrl, "--init", "dev"])
@@ -250,7 +250,7 @@ describe("Build state update tests", () => {
 });
 
 describe("Build negative tests", () => {
-    tmpdir.each("adapt-cli-test-build");
+    mochaTmpdir.each("adapt-cli-test-build");
 
     testBase
     .command(["build", "--rootFile", "doesntexist", "dev"])

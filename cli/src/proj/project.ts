@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import * as npm from "../npm";
+import { npm } from "@usys/utils";
 import {
     ValidationError,
     verifyAdaptModule,

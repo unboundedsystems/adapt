@@ -1,8 +1,8 @@
+import { mochaTmpdir as tmpdir, npm } from "@usys/utils";
 import * as should from "should";
-import * as tmpdir from "../mocha-tmpdir";
 
 import * as path from "path";
-import { npmInstall, pkgRootDir } from "../testlib";
+import { pkgRootDir } from "../testlib";
 
 import {
     exec,
@@ -60,9 +60,9 @@ describe("Exec module tests", function() {
     const copyDir = path.resolve(projectsRoot, "import_module");
     tmpdir.each("adapt-buildStack", {copy: copyDir});
 
-    it("Should import a node module", function() {
+    it("Should import a node module", async function() {
         const projDir = tmpdir.getTmpdir(this);
-        npmInstall();
+        await npm.install();
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);
         const ret = exec(index, {host});

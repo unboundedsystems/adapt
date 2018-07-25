@@ -1,0 +1,68 @@
+import * as fs from "fs";
+import * as path from "path";
+
+/**
+ * Given a directory path in the execution directory (i.e. "dist"), return
+ * the corresponding source directory.
+ * @param dirname Runtime execution directory to translate into source
+ *     directory. Typically just pass your local __dirname for the current
+ *     file. Must be absolute path.
+ */
+export function sourceDir(dirname: string) {
+    if (!path.isAbsolute(dirname)) {
+        throw new Error(`'${dirname} is not an absolute path`);
+    }
+    return dirname.replace(RegExp(path.sep + "dist"), "");
+}
+
+/**
+ * Given a directory path in the execution directory (i.e. "dist"), return
+ * a set of directory paths for the enclosing NPM package.
+ * @param dirname Runtime execution directory within an NPM package.
+ *     Typically just pass your local __dirname for the current
+ *     file.
+ */
+export function findPackageDirs(dirname: string) {
+    let root: string | null = null;
+    let repoRoot: string | null = null;
+
+    dirname = path.resolve(dirname);
+    do {
+        if (root == null) {
+            const pkgJson = path.join(dirname, "package.json");
+            if (fs.existsSync(pkgJson)) root = dirname;
+        }
+        const dotGit = path.join(dirname, ".git");
+        if (fs.existsSync(dotGit)) {
+            repoRoot = dirname;
+            break;
+        }
+
+        const parent = path.dirname(dirname);
+        if (parent === dirname) {
+            throw new Error(`Unable to find package directories`);
+        }
+        dirname = parent;
+    } while (true);
+
+    if (root == null || repoRoot == null) {
+        throw new Error(`Error finding package directories`);
+    }
+
+    return {
+        root,
+        repoRoot,
+        test: path.join(root, "test"),
+        dist: path.join(root, "dist"),
+    };
+}
+
+export const utilsDirs = findPackageDirs(__dirname);
+export const repoRootDir = utilsDirs.repoRoot;
+export const repoDirs = {
+    "adapt": path.join(repoRootDir, "adapt"),
+    "cli": path.join(repoRootDir, "cli"),
+    "cloud": path.join(repoRootDir, "cloud"),
+    "dom-parser": path.join(repoRootDir, "dom-parser"),
+    "verdaccio": path.join(repoRootDir, "verdaccio"),
+};

@@ -35,12 +35,12 @@ export interface Config {
     onStart?: () => Promise<void>;
 }
 
-export interface VerdaccioServer {
+export interface Server {
     httpServer: http.Server;
-    stop(this: VerdaccioServer): Promise<void>;
+    stop(this: Server): Promise<void>;
 }
 
-class VerdaccioServerImpl implements VerdaccioServer {
+class ServerImpl implements Server {
     constructor(public httpServer: http.Server) {}
 
     stop(): Promise<void> {
@@ -54,20 +54,18 @@ class VerdaccioServerImpl implements VerdaccioServer {
     }
 }
 
-export async function start(config: Config, configPath: string): Promise<VerdaccioServer> {
-    let server: http.Server | undefined;
+export async function start(config: Config, configPath: string): Promise<Server> {
     const { clearStorage, storage, onStart } = config;
 
     if (clearStorage) await fs.emptyDir(storage);
     else await fs.ensureDir(storage);
 
-    let p: Promise<void> = new Promise((resolve, reject) => {
+    const server = await new Promise<http.Server>((resolve, reject) => {
         try {
             verdaccio(config, config.listen, configPath, "1.0.0", "verdaccio",
                 (webServer: any, addr: any, _pkgName: any, _pkgVersion: any) => {
-                    server = webServer;
                     webServer.listen(addr.port || addr.path, addr.host, () => {
-                        resolve();
+                        resolve(webServer);
                     });
                 });
         } catch (err) {
@@ -75,14 +73,11 @@ export async function start(config: Config, configPath: string): Promise<Verdacc
         }
     });
 
-    if (onStart) {
-        p = p.then(() => onStart());
+    try {
+        if (onStart) await onStart();
+        return new ServerImpl(server);
+    } catch (err) {
+        server.close();
+        throw err;
     }
-
-    return p.then(() => {
-        if (server == null) {
-            throw new Error(`Unable to start verdaccio. server == null`);
-        }
-        return new VerdaccioServerImpl(server);
-    });
 }
