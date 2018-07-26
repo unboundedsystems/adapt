@@ -87,10 +87,21 @@ class StateHistoryDir {
     }
 
     async revert(): Promise<void> {
+        const errors: any[] = [];
+
         while (true) {
             const act = this.revertActions.pop();
             if (act === undefined) break;
-            await act();
+            try {
+                await act();
+            } catch (err) {
+                errors.push(err);
+            }
+        }
+        if (errors.length !== 0) {
+            let i = 1;
+            const msg = errors.map((e) => `  ${i++}) ${e}`).join("\n");
+            throw new Error(`Errors occurred while reverting state history:\n${msg}`);
         }
     }
 
