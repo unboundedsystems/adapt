@@ -151,7 +151,11 @@ export default class BuildCommand extends Command {
         try {
             await tasks.run();
         } catch (err) {
-            if (history != null) history.revert();
+            try {
+                if (history != null) await history.revert();
+            } catch (e2) {
+                this.warn(e2);
+            }
             this.error(err);
         }
     }

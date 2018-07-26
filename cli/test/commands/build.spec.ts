@@ -95,7 +95,7 @@ const basicTestChain =
     });
 
 describe("Build basic tests", function() {
-    this.timeout(20000);
+    this.timeout(30000);
     tmpdir.each("adapt-cli-test-build");
 
     basicTestChain
@@ -273,12 +273,12 @@ describe("Build negative tests", () => {
         expect(err.message).contains(
             `The directory '${process.cwd()}' does not contain a package.json file`);
     })
-    .it("Should fail if package.json doesn't exist", (ctx) => {
+    .it("Should fail if package.json doesn't exist", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("This project cannot be built");
         expect(ctx.stdout).contains(
             `The directory '${process.cwd()}' does not contain a package.json file`);
-        expect(fs.pathExists(defaultStateHistoryDir)).to.eventually.be.false;
+        expect(await fs.pathExists(defaultStateHistoryDir)).to.be.false;
     });
 });
