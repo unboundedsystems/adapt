@@ -50,6 +50,12 @@ export {
 } from "./keys";
 
 export {
+    Plugin,
+    PluginOptions,
+    Action
+} from "./plugin_support";
+
+export {
     stack,
 } from "./stack";
 
