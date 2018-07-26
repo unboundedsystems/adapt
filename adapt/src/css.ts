@@ -1,6 +1,7 @@
 import * as util from "util";
 
 import cssWhat = require("css-what");
+import * as ld from "lodash";
 
 import * as jsx from "./jsx";
 
@@ -179,7 +180,10 @@ export class Rule<P = jsx.AnyProps> {
     constructor(readonly override: BuildOverride<P>) { }
 }
 
-export function rule<P = jsx.AnyProps>(override: BuildOverride<P>) {
+export function rule<P = jsx.AnyProps>(override?: BuildOverride<P>) {
+    if (override === undefined) {
+        override = (_, i) => i.origElement;
+    }
     return new Rule<P>(override);
 }
 
@@ -260,6 +264,47 @@ export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
     }
 
     return parseStyles(rawStyles);
+}
+
+//FIXME(manishv) This is horribly slow, use a browser-like right-to-left set-matching algorithm instead
+function findInDomImpl(styles: StyleList, path: jsx.UnbsElement[]):
+    jsx.UnbsElement[][] {
+
+    const elem = ld.last(path);
+    if (elem == null) return [];
+
+    const matches: jsx.UnbsElement[][] = [];
+    for (const style of styles) {
+        if (style.match(path)) {
+            matches.push(path);
+            break;
+        }
+    }
+
+    const children = jsx.childrenToArray(elem.props.children);
+    for (const child of children) {
+        matches.push(...findInDomImpl(styles, [...path, child]));
+    }
+
+    return matches;
+}
+
+export function findElementsInDom(
+    stylesIn: StyleList | jsx.UnbsElement | null,
+    dom: jsx.UnbsElement): jsx.UnbsElement[] {
+
+    return ld.compact(findInDom(stylesIn, dom)
+        .map((path) => ld.last(path)));
+}
+
+export function findInDom(
+    stylesIn: StyleList | jsx.UnbsElement | null,
+    dom: jsx.UnbsElement): jsx.UnbsElement[][] {
+
+    if (stylesIn == null) return [];
+    const styles = jsx.isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
+
+    return findInDomImpl(styles, [dom]);
 }
 
 export class Style extends jsx.Component<StyleProps> {

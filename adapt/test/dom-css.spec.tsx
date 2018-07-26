@@ -86,3 +86,36 @@ describe("DOM CSS Build Tests", () => {
         });
     });
 });
+
+describe("DOM CSS find tests", () => {
+    it("Should find elements by style", () => {
+        const dom =
+            <Adapt.Group>
+                <MakeMakeEmpty id={1} />
+                <Adapt.Group>
+                    <MakeMakeEmpty id={2} />
+                </Adapt.Group>
+            </Adapt.Group>;
+
+        const elems = Adapt.findElementsInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, dom);
+        should(elems).eql([<MakeMakeEmpty id={1} />, <MakeMakeEmpty id={2} />]);
+    });
+
+    it("Should find paths by style", () => {
+        const inner =
+            <Adapt.Group>
+                <MakeMakeEmpty id={2} />
+            </Adapt.Group>;
+        const dom =
+            <Adapt.Group>
+                <MakeMakeEmpty id={1} />
+                {inner}
+            </Adapt.Group>;
+
+        const elems = Adapt.findInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, dom);
+        should(elems).eql([
+            [dom, <MakeMakeEmpty id={1} />],
+            [dom, inner, <MakeMakeEmpty id={2} />]
+        ]);
+    });
+});

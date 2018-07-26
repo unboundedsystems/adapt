@@ -30,7 +30,9 @@ export {
     concatStyles,
     Style,
     StyleBuildInfo,
-    rule
+    rule,
+    findElementsInDom,
+    findInDom
 } from "./css";
 
 export {
