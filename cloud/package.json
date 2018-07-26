@@ -27,6 +27,7 @@
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
   "dependencies": {
     "@usys/adapt": "0.0.1",
+    "kubernetes-client": "^5.3.1",
     "lodash": "^4.17.10",
     "postinstall-build": "^5.0.1"
   },
@@ -37,6 +38,7 @@
     "mocha": "^5.2.0",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",
+    "stream-buffers": "^3.0.2",
     "tslint": "^5.10.0",
     "typescript": "^2.9.1"
   },

@@ -1,13 +1,16 @@
-import Adapt, { childrenToArray, DomError, isElement } from "@usys/adapt";
+import Adapt, { childrenToArray, DomError, isElement, PluginOptions } from "@usys/adapt";
+import * as k8s from "kubernetes-client";
 import * as ld from "lodash";
 import * as should from "should";
 
-import { Container, Pod } from "../../src/k8s";
+import { Console } from "console";
+import { WritableStreamBuffer } from "stream-buffers";
+import { Container, createPodPlugin, Pod, PodPlugin } from "../../src/k8s";
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
         const pod =
-            <Pod name="test">
+            <Pod name="test" config={{}}>
                 <Container name="onlyContainer" image="node:latest" />
             </Pod>;
 
@@ -16,7 +19,7 @@ describe("k8s Pod Component Tests", () => {
 
     it("Should enforce unique container names", () => {
         const pod =
-            <Pod name="test">
+            <Pod name="test" config={{}}>
                 <Container name="container" image="node:latest" />
                 <Container name="dupContainer" image="node:latest" />
                 <Container name="dupContainer" image="node:latest" />
@@ -43,6 +46,35 @@ describe("k8s Pod Component Tests", () => {
         }
 
         should(err.props.children).match(/dupContainer/);
+    });
+
+});
+
+describe("k8s Pod Plugin Tests", () => {
+
+    let plugin: PodPlugin;
+    let logs: WritableStreamBuffer;
+    let options: PluginOptions;
+    let k8sConfig: object;
+
+    beforeEach(async () => {
+        plugin = createPodPlugin();
+        logs = new WritableStreamBuffer();
+        options = {
+            log: new Console(logs, logs).log
+        };
+        k8sConfig = k8s.config.fromKubeconfig("./kubeconfig");
+    });
+
+    it("Should fetch pods from k8s", async () => {
+        const pod =
+            <Pod name="test" config={k8sConfig}>
+                <Container name="container" image="node:latest" />
+            </Pod>;
+
+        await plugin.start(options);
+        await plugin.observe(pod);
+        await plugin.finish();
     });
 
 });
