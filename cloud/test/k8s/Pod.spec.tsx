@@ -1,11 +1,14 @@
 import Adapt, { childrenToArray, DomError, isElement, PluginOptions } from "@usys/adapt";
-import * as k8s from "kubernetes-client";
 import * as ld from "lodash";
 import * as should from "should";
 
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
-import { Container, createPodPlugin, Pod, PodPlugin } from "../../src/k8s";
+import * as util from "util";
+import { Container, createPodPlugin, Pod, podElementToName, PodPlugin } from "../../src/k8s";
+
+// tslint:disable-next-line:no-var-requires
+const k8s = require("kubernetes-client");
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
@@ -50,7 +53,61 @@ describe("k8s Pod Component Tests", () => {
 
 });
 
-describe("k8s Pod Plugin Tests", () => {
+async function doBuild(elem: Adapt.UnbsElement) {
+    const { messages, contents: dom } = await Adapt.build(elem, null);
+    if (dom == null) {
+        should(dom).not.Null();
+        should(dom).not.Undefined();
+        throw new Error("Unreachable");
+    }
+
+    should(messages.length).equal(0);
+    return dom;
+}
+
+async function act(actions: Adapt.Action[]) {
+    for (const action of actions) {
+        try {
+            await action.act();
+        } catch (e) {
+            throw new Error(`${action.description}: ${util.inspect(e)}`);
+        }
+    }
+}
+
+async function getClient(config: any) {
+    const client = new k8s.Client({ config });
+    await client.loadSpec();
+    should(client.api).not.Null();
+    should(client.api).not.Undefined();
+    return client;
+}
+
+async function getPodsWithClient(client: any) {
+    should(client.api).not.Null();
+    should(client.api).not.Undefined();
+    const pods = await client.api.v1.namespaces("default").pods.get();
+    should(pods.statusCode).equal(200);
+    return pods.body.items;
+}
+
+async function getPods(config: any) {
+    const client = await getClient(config);
+    return getPodsWithClient(client);
+}
+
+async function sleep(wait: number): Promise<void> {
+    await new Promise((res) => {
+        setTimeout(() => {
+            res();
+            return;
+        }, wait);
+        return;
+    });
+}
+
+describe("k8s Pod Plugin Tests", function() {
+    this.timeout(20000);
 
     let plugin: PodPlugin;
     let logs: WritableStreamBuffer;
@@ -66,14 +123,64 @@ describe("k8s Pod Plugin Tests", () => {
         k8sConfig = k8s.config.fromKubeconfig("./kubeconfig");
     });
 
-    it("Should fetch pods from k8s", async () => {
+    afterEach(async () => {
+        const client = await getClient(k8sConfig);
+        let pods = await getPodsWithClient(client);
+
+        for (const pod of pods) {
+            await client.api.v1.namespaces("default").pods(pod.metadata.name).delete();
+        }
+
+        const retries = 3;
+        let count = 0;
+        do {
+            pods = await getPodsWithClient(client);
+            await sleep(5000);
+            count++;
+        } while (pods.length !== 0 && count < retries);
+
+        if (pods.length !== 0) {
+            throw new Error(`Failed to remove pods: ${JSON.stringify(pods, null, 2)}`);
+        }
+    });
+
+    it("Should compute actions with no pods from k8s", async () => {
         const pod =
             <Pod name="test" config={k8sConfig}>
                 <Container name="container" image="node:latest" />
             </Pod>;
 
+        const dom = await doBuild(pod);
+
         await plugin.start(options);
-        await plugin.observe(pod);
+        await plugin.observe(dom);
+        const actions = await plugin.analyze(dom);
+        should(actions.length).equal(1);
+        should(actions[0].description).match(/Creating\s.+test/);
+
+        await plugin.finish();
+    });
+
+    it("Should create pod", async () => {
+        const pod =
+            <Pod name="test" config={k8sConfig} terminationGracePeriodSeconds={5}>
+                <Container name="container" image="alpine:3.8" command={["sleep"]} args={["3"]} />
+            </Pod>;
+
+        const dom = await doBuild(pod);
+
+        await plugin.start(options);
+        await plugin.observe(dom);
+        const actions = await plugin.analyze(dom);
+        should(actions.length).equal(1);
+        should(actions[0].description).match(/Creating\s.+test/);
+
+        await act(actions);
+
+        const pods = await getPods(k8sConfig);
+        should(pods.length).equal(1);
+        should(pods[0].metadata.name).equal(podElementToName(dom));
+
         await plugin.finish();
     });
 
