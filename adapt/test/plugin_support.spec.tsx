@@ -1,3 +1,5 @@
+import * as fs from "fs-extra";
+import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
@@ -5,6 +7,8 @@ import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import Adapt, { Group, UnbsElement } from "../src";
 import * as pluginSupport from "../src/plugin_support";
+import { setAdaptContext } from "../src/ts/context";
+import { packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -137,5 +141,66 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.observe();
         await mgr.analyze();
         await mgr.finish();
+    });
+});
+
+let testPluginsLoaded: string[] = [];
+
+async function requireTestPlugin(name: string, jsFile = "index.js") {
+    const srcDir = path.join(packageDirs.root, "test_plugins", name);
+    const modDir = path.join(packageDirs.dist, "test_plugins", name);
+    const jsPath = path.join(modDir, jsFile);
+    await fs.ensureSymlink(
+        path.join(srcDir, "package.json"), path.join(modDir, "package.json"));
+    await require(jsPath);
+    testPluginsLoaded.push(jsPath);
+}
+
+function cleanupTestPlugins() {
+    for (const p of testPluginsLoaded) {
+        delete require.cache[p];
+    }
+    testPluginsLoaded = [];
+}
+
+describe("Plugin register and deploy", () => {
+    let mockStdOut: WritableStreamBuffer;
+    let mockStdErr: WritableStreamBuffer;
+    let log: (...args: any[]) => void;
+    const dom = <Group />;
+
+    beforeEach(() => {
+        cleanupTestPlugins();
+        setAdaptContext(Object.create(null));
+        mockStdOut = new WritableStreamBuffer();
+        mockStdErr = new WritableStreamBuffer();
+        const c = new Console(mockStdOut, mockStdErr);
+        log = c.log;
+    });
+
+    after(() => {
+        cleanupTestPlugins();
+        setAdaptContext(Object.create(null));
+    });
+
+    it("Should register plugin", async () => {
+        await requireTestPlugin("echo_plugin");
+        const config = pluginSupport.createPluginConfig();
+        config.plugins.should.have.length(1);
+
+        const mgr = pluginSupport.createPluginManager(config);
+        await mgr.start(dom, { log });
+        const stdout = mockStdOut.getContentsAsString();
+        should(stdout).match(/EchoPlugin: start/);
+    });
+
+    it("Should error if no plugins registered", () => {
+        should(() => pluginSupport.createPluginConfig()).throw(/No plugins registered/);
+    });
+
+    it("Should throw on registering same plugin twice", async () => {
+        await requireTestPlugin("echo_plugin");
+        return should(requireTestPlugin("echo_plugin", "second.js"))
+            .be.rejectedWith(/Attempt to register multiple plugins with the same name 'echo_plugin'/);
     });
 });

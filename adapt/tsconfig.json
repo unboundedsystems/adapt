@@ -2,6 +2,7 @@
   "include": [
     "src/**/*",
     "test/**/*",
+    "test_plugins/**/*",
   ],
   "exclude": [
     "dist",

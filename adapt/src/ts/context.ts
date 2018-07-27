@@ -194,13 +194,14 @@ const hostGlobals = {
     Promise,
 };
 
-let adaptContext: any;
+let adaptContext: any = Object.create(null);
 
 export function getAdaptContext() {
     return adaptContext;
 }
 
-function setAdaptContext(ctx: any) {
+// exported for test only
+export function setAdaptContext(ctx: any) {
     adaptContext = ctx;
 }
 
