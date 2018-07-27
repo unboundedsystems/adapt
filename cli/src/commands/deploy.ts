@@ -13,20 +13,20 @@ import {
     StateHistory,
 } from "../proj";
 
-const cantBuild = "This project cannot be built.\n";
+const cantBuild = "This project cannot be deployed.\n";
 
 export const defaultStateHistoryDir = "./state_history";
 
-export default class BuildCommand extends Command {
-    static description = "Build the DOM for a project";
+export default class DeployCommand extends Command {
+    static description = "Deploy an Adapt project";
 
     static examples = [
         `
-  Build the stack named "dev" from the default project description file, index.tsx:
-    $ adapt build dev
+  Deploy the stack named "dev" from the default project description file, index.tsx:
+    $ adapt deploy dev
 
-  Build the stack named "dev" from an alternate description file:
-    $ adapt build --rootFile somefile.tsx dev
+  Deploy the stack named "dev" from an alternate description file:
+    $ adapt deploy --rootFile somefile.tsx dev
 `,
     ];
 
@@ -36,7 +36,7 @@ export default class BuildCommand extends Command {
             env: "ADAPT_NPM_REGISTRY",
         }),
         rootFile: flags.string({
-            description: "Project description file to build (.ts or .tsx)",
+            description: "Project description file to deploy (.ts or .tsx)",
             default: "index.tsx",
         }),
         stateHistory: flags.string({
@@ -57,7 +57,7 @@ export default class BuildCommand extends Command {
 
     async run() {
         // tslint:disable-next-line:no-shadowed-variable
-        const { args, flags } = this.parse(BuildCommand);
+        const { args, flags } = this.parse(DeployCommand);
         const { stackName } = args;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
 

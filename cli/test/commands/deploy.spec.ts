@@ -3,7 +3,7 @@ import { localRegistryDefaults, mochaTmpdir } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 
-import { defaultStateHistoryDir } from "../../src/commands/build";
+import { defaultStateHistoryDir } from "../../src/commands/deploy";
 import {
     domFilename,
     infoFilename,
@@ -96,10 +96,10 @@ const basicTestChain =
 
 describe("Build basic tests", function() {
     this.timeout(30000);
-    mochaTmpdir.each("adapt-cli-test-build");
+    mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
-    .command(["build", "--registry", localRegistryUrl, "--init", "dev"])
+    .command(["deploy", "--registry", localRegistryUrl, "--init", "dev"])
 
     .it("Should build basic default filename", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -114,7 +114,7 @@ describe("Build basic tests", function() {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .command(["build", "--registry", localRegistryUrl, "--init", "dev"])
+    .command(["deploy", "--registry", localRegistryUrl, "--init", "dev"])
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -210,10 +210,10 @@ const stateIncrementTestChain =
 describe("Build state update tests", () => {
     // These tests must all use a single temp directory where the
     // state_history can be shared and built upon
-    mochaTmpdir.all("adapt-cli-test-build");
+    mochaTmpdir.all("adapt-cli-test-deploy");
 
     stateIncrementTestChain
-    .command(["build", "--registry", localRegistryUrl, "--init", "dev"])
+    .command(["deploy", "--registry", localRegistryUrl, "--init", "dev"])
 
     .it("Should create initial state", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -225,7 +225,7 @@ describe("Build state update tests", () => {
     });
 
     stateIncrementTestChain
-    .command(["build", "--registry", localRegistryUrl, "dev"])
+    .command(["deploy", "--registry", localRegistryUrl, "dev"])
 
     .it("Should create second state", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -237,7 +237,7 @@ describe("Build state update tests", () => {
     });
 
     stateIncrementTestChain
-    .command(["build", "--registry", localRegistryUrl, "dev"])
+    .command(["deploy", "--registry", localRegistryUrl, "dev"])
 
     .it("Should create third state", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -250,10 +250,10 @@ describe("Build state update tests", () => {
 });
 
 describe("Build negative tests", () => {
-    mochaTmpdir.each("adapt-cli-test-build");
+    mochaTmpdir.each("adapt-cli-test-deploy");
 
     testBase
-    .command(["build", "--rootFile", "doesntexist", "dev"])
+    .command(["deploy", "--rootFile", "doesntexist", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -266,7 +266,7 @@ describe("Build negative tests", () => {
     .do(() => {
         return fs.ensureFile(path.join(process.cwd(), "test.ts"));
     })
-    .command(["build", "--rootFile", "test.ts", "--init", "dev"])
+    .command(["deploy", "--rootFile", "test.ts", "--init", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -276,7 +276,7 @@ describe("Build negative tests", () => {
     .it("Should fail if package.json doesn't exist", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
-        expect(ctx.stdout).contains("This project cannot be built");
+        expect(ctx.stdout).contains("This project cannot be deployed");
         expect(ctx.stdout).contains(
             `The directory '${process.cwd()}' does not contain a package.json file`);
         expect(await fs.pathExists(defaultStateHistoryDir)).to.be.false;

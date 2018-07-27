@@ -24,8 +24,7 @@ export interface AdaptModule {
 export function verifyAdaptModule(val: any): AdaptModule {
     if (val == null) throw new ValidationError("AdaptModule", "value is null");
 
-    if (val.buildStack == null) throw new ValidationError("AdaptModule", "buildStack missing");
-    if (typeof val.buildStack !== "function") throw new ValidationError("AdaptModule", "buildStack not a function");
+    verifyProp("AdaptModule", val, "buildStack", "function");
 
     return val as AdaptModule;
 }
@@ -86,4 +85,18 @@ export function verifyBuildState(val: any): BuildState {
     verifyMessages(val.messages);
 
     return val as BuildState;
+}
+
+/*
+ * Utilities
+ */
+
+function verifyProp(parentType: string, parent: any, prop: string,
+                    typeofProp: string) {
+    if (parent[prop] == null) {
+        throw new ValidationError(parentType, `${typeofProp} property '${prop}' is missing`);
+    }
+    if (typeof parent[prop] !== typeofProp) {
+        throw new ValidationError(parentType, `property '${prop}' is not a ${typeofProp}`);
+    }
 }
