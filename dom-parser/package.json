@@ -1,6 +1,8 @@
 {
   "name": "@usys/dom-parser",
   "description": "Unbounded Adapt DOM Parser",
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
   "version": "0.0.1",
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "dependencies": {
@@ -22,7 +24,6 @@
     "typescript": "^2.9.2"
   },
   "license": "UNLICENSED",
-  "main": "dist/index.js",
   "files": [
     "dist"
   ],
