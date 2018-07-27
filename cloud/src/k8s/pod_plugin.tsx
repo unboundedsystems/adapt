@@ -8,7 +8,7 @@ import { Pod, PodProps } from ".";
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
 
-interface PodStatus {
+interface PodReplyItems {
     metadata: { name: string, namespace: string, labels: any[]; };
     spec: { containers: any[] };
     status: { phase: string };
@@ -50,14 +50,14 @@ async function getPodClient(
     return client;
 }
 
-type Observations = Map<Client, PodStatus[]>;
+type Observations = Map<Client, PodReplyItems[]>;
 
-async function getPods(client: Client): Promise<PodStatus[]> {
+async function getPods(client: Client): Promise<PodReplyItems[]> {
     if (client.api == null) throw new Error("Must initialize client before calling api");
 
-    const pods = await client.api.v1.namespaces("kube-system").pods.get();
+    const pods = await client.api.v1.namespaces("default").pods.get();
     if (pods.statusCode === 200) {
-        return pods.body.items as PodStatus[];
+        return pods.body.items as PodReplyItems[];
     }
     throw new Error(`Unable to get pods, status ${pods.statusCode}: ${pods}`);
 }
@@ -66,11 +66,11 @@ function alreadyExists(_pod: UnbsElement, _observations: Observations): boolean 
     return false;
 }
 
-function observedPods(_observations: Observations): { client: Client, podStatus: PodStatus }[] {
+function observedPods(_observations: Observations): { client: Client, podStatus: PodReplyItems }[] {
     return []; //FIXME(manishv) do something here
 }
 
-function podMatchesStatus(_podStatus: PodStatus, _pods: UnbsElement<PodProps>[]): boolean {
+function podMatchesStatus(_podStatus: PodReplyItems, _pods: UnbsElement<PodProps>[]): boolean {
     return true; //FIXME(manishv) do something here
 }
 
@@ -84,11 +84,11 @@ function findPods(dom: UnbsElement): UnbsElement<PodProps>[] {
 export class PodPluginImpl implements PodPlugin {
     logger?: ((...args: any[]) => void);
     connections: Connections = new Map<object, Client>();
-    observations?: Map<Client, PodStatus[]>;
+    observations?: Map<Client, PodReplyItems[]>;
 
     async start(options: Adapt.PluginOptions) {
         this.logger = options.log;
-        this.observations = new Map<Client, PodStatus[]>();
+        this.observations = new Map<Client, PodReplyItems[]>();
     }
 
     async observe(dom: UnbsElement): Promise<void> {

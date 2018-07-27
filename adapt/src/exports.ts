@@ -6,10 +6,12 @@ export {
     Component,
     PrimitiveComponent,
     UnbsElement,
+    UnbsMountedElement,
     UnbsElementOrNull,
     AnyProps,
     AnyState,
     isElement,
+    isMountedElement,
     isPrimitiveElement,
     WithChildren,
     PropsType

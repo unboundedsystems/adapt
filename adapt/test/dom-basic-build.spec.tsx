@@ -42,6 +42,13 @@ describe("DOM Basic Build Tests", () => {
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
         should(deepFilterElemsToPublic(dom)).eql(ref);
+
+        if (!Adapt.isMountedElement(dom)) {
+            should(Adapt.isMountedElement(dom)).True();
+            return;
+        }
+
+        should(dom.id).eql(JSON.stringify(["root"]));
     });
 
     it("Should validate primitive component", () => {
