@@ -5,33 +5,56 @@ import {
     Message,
     serializeDom,
 } from "..";
+import { createPluginManager } from "../plugin_support";
+import { adaptServer } from "../server";
+import { createDeployment, loadDeployment } from "../server/deployment";
 import { getStacks, } from "../stack";
 import { createStateStore } from "../state";
 import {
     exec,
     MemFileHost,
 } from "../ts";
+import { Logger } from "../type_support";
 
 export interface BuildState {
     domXml: string;
     stateJson: string;
     messages: Message[];
+    deployId?: string;
 }
 
 export interface BuildOptions {
-    rootDir?: string;
+    adaptUrl: string;
+    fileName: string;
+    initialStateJson: string;
+    projectName: string;
+    deployID: string;
+    stackName: string;
+
+    dryRun?: boolean;
+    initLocalServer?: boolean;
+    log?: Logger;
+    projectRoot?: string;
 }
 
-const defaultOptions: BuildOptions = {
+const defaultOptions = {
+    dryRun: false,
+    initLocalServer: false,
+    // tslint:disable-next-line:no-console
+    log: console.log,
+    projectRoot: undefined,
 };
 
-export function buildStack(fileName: string, stackName: string,
-                           initialStateJson: string, options?: BuildOptions
-): BuildState {
+export async function buildStack(options: BuildOptions): Promise<BuildState> {
     const finalOptions = { ...defaultOptions, ...options };
+    const { deployID, projectName, stackName } = finalOptions;
 
-    fileName = path.resolve(fileName);
-    const projectRoot = finalOptions.rootDir || path.dirname(fileName);
+    const server = await adaptServer(finalOptions.adaptUrl, {
+        init: finalOptions.initLocalServer,
+    });
+
+    const fileName = path.resolve(finalOptions.fileName);
+    const projectRoot = finalOptions.projectRoot || path.dirname(fileName);
 
     const fileExt = path.extname(fileName);
     const importName = path.basename(fileName, fileExt);
@@ -55,15 +78,27 @@ export function buildStack(fileName: string, stackName: string,
         throw new Error(`Invalid stack '${stackName}': root is null`);
     }
 
-    const stateStore = createStateStore(initialStateJson);
+    const stateStore = createStateStore(finalOptions.initialStateJson);
 
     const output = build(stack.root, stack.style, {stateStore});
-    if (output.contents == null) {
+    const dom = output.contents;
+    if (dom == null) {
         throw new Error(`build returned a null DOM`);
     }
 
-    const domXml = serializeDom(output.contents);
+    const domXml = serializeDom(dom);
     const stateJson = stateStore.serialize();
+
+    const deployment = (deployID === "new") ?
+        await createDeployment(server, projectName, stackName) :
+        await loadDeployment(server, deployID);
+
+    const mgr = createPluginManager(deployment.pluginConfig);
+    await mgr.start(dom, { log: finalOptions.log });
+    await mgr.observe();
+    await mgr.analyze();
+    await mgr.act(finalOptions.dryRun);
+    await mgr.finish();
 
     return {
         domXml,
