@@ -1,25 +1,12 @@
-import { spawnSync } from "child_process";
+import { findPackageDirs } from "@usys/utils";
 import * as ld from "lodash";
-import * as path from "path";
 import * as should from "should";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
 
-export const pkgRootDir =
-    path.resolve(path.join(__dirname, "..", ".."));
-export const pkgTestDir = path.join(pkgRootDir, "test");
-
-export interface NpmOptions {
-    dir?: string;
-    packages?: string[];
-}
-export function npmInstall(options?: NpmOptions) {
-    const cwd = (options && options.dir) || process.cwd();
-    let args = ["install"];
-    if (options && options.packages) args = args.concat(options.packages);
-
-    spawnSync("npm", args, { cwd, stdio: "inherit" });
-}
+export const packageDirs = findPackageDirs(__dirname);
+export const pkgRootDir = packageDirs.root;
+export const pkgTestDir = packageDirs.test;
 
 export function checkChildComponents(element: Adapt.UnbsElement, ...children: any[]) {
     const childArray = jsx.childrenToArray(element.props.children);

@@ -31,6 +31,7 @@
     "@types/type-name": "^1.0.27",
     "@types/when": "^2.4.31",
     "@types/xmlbuilder": "0.0.32",
+    "@usys/utils": "0.0.1",
     "fs-extra": "^6.0.1",
     "mocha": "^5.1.1",
     "should": "^13.2.1",

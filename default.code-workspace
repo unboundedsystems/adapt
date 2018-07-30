@@ -17,6 +17,9 @@
 		},
 		{
 			"path": "git-server"
+		},
+		{
+			"path": "utils"
 		}
 	],
 	"settings": {

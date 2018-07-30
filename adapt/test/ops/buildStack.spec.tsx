@@ -1,8 +1,8 @@
+import { mochaTmpdir as tmpdir, npm } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as should from "should";
-import * as tmpdir from "../mocha-tmpdir";
 
-import { npmInstall, pkgRootDir } from "../testlib";
+import { pkgRootDir } from "../testlib";
 
 import { buildStack } from "../../src/ops/buildStack";
 
@@ -32,7 +32,7 @@ describe("buildStack Tests", function() {
         await fs.writeFile("package.json",
                            JSON.stringify(simplePackageJson, null, 2));
 
-        npmInstall();
+        await npm.install();
 
         const bs = buildStack("index.tsx", "default", "{}");
 
@@ -62,8 +62,8 @@ describe("buildStack Nodecellar example project", function() {
             "file:" + pkgRootDir,
             "file:" + path.join(pkgRootDir, "..", "cloud")
         ];
-        npmInstall();
-        npmInstall({packages});
+        await npm.install();
+        await npm.install({packages});
 
         const out = buildStack("index.tsx", "dev", {});
 

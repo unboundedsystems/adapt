@@ -1,9 +1,8 @@
+import { localRegistryDefaults, mochaTmpdir } from "@usys/utils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { npmLocalProxyOpts } from "../common/config";
-import { sourceDir } from "../testlib";
-import * as tmpdir from "../testlib/mocha-tmpdir";
+import { sourceDir } from "../common/paths";
 
 import * as proj from "../../src/proj/project";
 
@@ -29,10 +28,10 @@ const projOpts: proj.ProjectOptions = {
 
 describe("Project basic tests", function() {
     this.timeout(20000);
-    tmpdir.each("adapt-cli-test-proj");
+    mochaTmpdir.each("adapt-cli-test-proj");
 
     it("Should open a local directory", async function() {
-        const projDir = tmpdir.getTmpdir(this);
+        const projDir = mochaTmpdir.getTmpdir(this);
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
 
@@ -45,7 +44,7 @@ describe("Project basic tests", function() {
     });
 
     it("Should open a local relative directory", async function() {
-        const projDir = tmpdir.getTmpdir(this);
+        const projDir = mochaTmpdir.getTmpdir(this);
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
 
@@ -112,7 +111,7 @@ describe("Project basic tests", function() {
     });
 
     it("Should load from alternate registry", async () => {
-        const opts = { ...npmLocalProxyOpts, ...projOpts };
+        const opts = { ...localRegistryDefaults.npmLocalProxyOpts, ...projOpts };
         // FIXME(mark): Once we actually publish @usys/cloud publicly, this
         // test is no longer a great test. Change the package to something
         // that we know is definitely only present in the local registry.

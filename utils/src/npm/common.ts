@@ -1,5 +1,5 @@
-import { spawn } from "child_process";
 import * as decamelize from "decamelize";
+import * as execa from "execa";
 
 export type LogLevel = "silent" | "error" | "warn" | "notice" | "http" |
     "timing" | "info" | "verbose" | "silly";
@@ -7,16 +7,24 @@ export type LogLevel = "silent" | "error" | "warn" | "notice" | "http" |
 export interface CommonOptions {
     cwd?: string;
     loglevel?: LogLevel;
+    pipeOutput?: boolean;
     progress?: boolean;
     registry?: string;
+    userconfig?: string;
 }
 
 export const commonDefaults: CommonOptions = {
-    loglevel: "warn",
-    progress: true,
+    loglevel: "error",
+    pipeOutput: false,
+    progress: false,
 };
 
-export function run(action: string, options: any, args?: string[]): Promise<void> {
+export interface NpmOutput {
+    stdout: string;
+    stderr: string;
+}
+
+export function run(action: string, options: any, args?: string[]): Promise<NpmOutput> {
     // tslint:disable-next-line:prefer-const
     let { cwd = null, ...finalOpts } = { ...commonDefaults, ...options };
     cwd = cwd || process.cwd();
@@ -29,22 +37,15 @@ export function run(action: string, options: any, args?: string[]): Promise<void
     }
     if (args) finalArgs = finalArgs.concat(args);
 
-    return new Promise((resolve, reject) => {
-        try {
-            const child = spawn("npm", finalArgs, { cwd, stdio: "inherit" });
-            child.on("error", (err) => reject(err));
-            child.on("exit", (code, signal) => {
-                if (signal != null) {
-                    reject(new Error(`npm install exited on signal ${signal}`));
-                } else if (code !== 0) {
-                    reject(new Error(`npm install failed (exit code ${code})`));
-                } else {
-                    resolve();
-                }
-            });
-
-        } catch (err) {
-            reject(err);
+    try {
+        const prom = execa("npm", finalArgs, { cwd, stripEof: false });
+        if (finalOpts.pipeOutput) {
+            prom.stdout.pipe(process.stdout);
+            prom.stderr.pipe(process.stdout);
         }
-    });
+        return prom;
+    } catch (err) {
+        err.message = `npm ${action} failed: ${err.message}`;
+        throw err;
+    }
 }

@@ -9,7 +9,7 @@ const defaultOptions: InstallOptions = {
     packageLockOnly: false,
 };
 
-export function install(options?: InstallOptions): Promise<void> {
+export function install(options?: InstallOptions) {
     const { packages, ...finalOpts } = { ...defaultOptions, ...options };
 
     return run("install", finalOpts, packages);

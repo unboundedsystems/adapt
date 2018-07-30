@@ -52,8 +52,9 @@ prepush: test lint $(prepush_submakes)
 #
 # Build dependencies between directories
 #
-cli-build cloud-build: adapt-build
-cli-build: cloud-build
+adapt-build: utils-build
+cli-build: adapt-build cloud-build utils-build
+cloud-build: adapt-build
 
 
 #

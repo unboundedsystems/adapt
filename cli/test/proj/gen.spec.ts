@@ -1,8 +1,8 @@
+import { mochaTmpdir } from "@usys/utils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import { cloneDeep } from "lodash";
 import * as path from "path";
-import * as tmpdir from "../testlib/mocha-tmpdir";
 
 import {
     _getGen,
@@ -60,7 +60,7 @@ async function loadProject(pkgJson: any): Promise<Project> {
 }
 
 describe("Gen basic tests", () => {
-    tmpdir.each("adapt-cli-test-gen");
+    mochaTmpdir.each("adapt-cli-test-gen");
 
     it("Should accept valid Gen list", () => {
         validateGenList([ genBasic, genEmpty ]);
