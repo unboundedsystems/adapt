@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import JsonDB = require("node-json-db");
 import { URL } from "url";
 
-import { AdaptServer, register, ServerOptions, SetOptions } from "./server";
+import { AdaptServer, ServerOptions, SetOptions } from "./server";
 
 export interface LocalServerOptions extends ServerOptions {
     init?: boolean;
@@ -14,7 +14,6 @@ const defaultOptions = {
 
 const currentVersion = 0;
 
-// Exported for testing only
 export class LocalServer implements AdaptServer {
     static urlMatch = /^file:/;
     private db: JsonDB;
@@ -72,5 +71,3 @@ export class LocalServer implements AdaptServer {
         this.db.delete(dataPath);
     }
 }
-
-register(LocalServer);
