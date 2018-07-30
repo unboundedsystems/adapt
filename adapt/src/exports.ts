@@ -61,6 +61,7 @@ export {
 
 export {
     Constructor,
+    Logger,
 } from "./type_support";
 
 export * from "./utils";

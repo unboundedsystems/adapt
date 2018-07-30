@@ -5,6 +5,7 @@ import * as readPkgUp from "read-pkg-up";
 import * as when from "when";
 import { UnbsElement } from ".";
 import { getAdaptContext } from "./ts";
+import { Logger } from "./type_support";
 
 export interface PluginConfig {
     plugins: Plugin[];
@@ -16,7 +17,7 @@ export interface Action {
 }
 
 export interface PluginOptions {
-    log: (...args: any[]) => void;
+    log: Logger;
 }
 
 export interface Plugin {
@@ -27,7 +28,7 @@ export interface Plugin {
 }
 
 export interface PluginManagerStartOptions {
-    log: (...args: any[]) => void;
+    log: Logger;
 }
 
 export interface ActionResult {
@@ -101,7 +102,7 @@ class PluginManagerImpl implements PluginManager {
     plugins: Plugin[];
     dom?: UnbsElement | null;
     actions?: Action[];
-    log?: (...args: any[]) => void;
+    log?: Logger;
     state: PluginManagerState;
 
     constructor(config: PluginConfig) {
