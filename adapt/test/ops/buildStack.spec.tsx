@@ -127,6 +127,8 @@ describe("buildStack Tests", async function() {
 `);
 
         should(bs.stateJson).equal("{}");
+        should(bs.deployId).equal("myproject::default");
+
         const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);
         should(stdout).match(/EchoPlugin: observe/);

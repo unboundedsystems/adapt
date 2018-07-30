@@ -101,6 +101,7 @@ export async function buildStack(options: BuildOptions): Promise<BuildState> {
     await mgr.finish();
 
     return {
+        deployId: deployment.deployID,
         domXml,
         stateJson,
         messages: output.messages,
