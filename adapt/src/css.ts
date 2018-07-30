@@ -1,7 +1,9 @@
 import * as util from "util";
 
 import cssWhat = require("css-what");
+import * as ld from "lodash";
 
+import { DomPath } from "./dom";
 import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
@@ -16,7 +18,7 @@ export type BuildOverride<P = jsx.AnyProps> =
 export interface StyleRule {
     selector: string;
     sfc: BuildOverride;
-    match(path: jsx.UnbsElement[]): boolean;
+    match(path: DomPath): boolean;
 }
 
 export interface RawStyle {
@@ -28,7 +30,7 @@ type SelFrag = cssWhat.ParsedSelectorFrag;
 
 interface MatchConfigType {
     [type: string]: (frag: SelFrag,
-        path: jsx.UnbsElement[]) => { newPath: jsx.UnbsElement[], matched: boolean };
+        path: DomPath) => { newPath: DomPath, matched: boolean };
 }
 
 const matchConfig: MatchConfigType = {
@@ -50,7 +52,7 @@ function fragToString(frag: SelFrag): string {
     return util.inspect(frag);
 }
 
-function matchTag(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.UnbsElement[], matched: boolean } {
+function matchTag(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: boolean } {
     if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
 
     const { elem } = last(path);
@@ -60,7 +62,7 @@ function matchTag(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.UnbsEl
     return { newPath: path, matched: elem.componentType.name === frag.name };
 }
 
-function matchChild(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.UnbsElement[], matched: boolean } {
+function matchChild(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: boolean } {
     if (frag.type !== "child") throw new Error("Internal Error: " + util.inspect(frag));
     if (path.length < 1) return { newPath: path, matched: false };
     return { newPath: path.slice(0, -1), matched: true };
@@ -68,7 +70,7 @@ function matchChild(frag: SelFrag, path: jsx.UnbsElement[]): { newPath: jsx.Unbs
 
 function matchFrag(
     selFrag: SelFrag,
-    path: jsx.UnbsElement[]) {
+    path: DomPath) {
 
     const matcher = matchConfig[selFrag.type];
     if (matcher === undefined) {
@@ -79,7 +81,7 @@ function matchFrag(
 
 function matchDescendant(
     selector: cssWhat.ParsedSelectorBlock,
-    path: jsx.UnbsElement[]): boolean {
+    path: DomPath): boolean {
 
     if (selector.length <= 0) {
         throw new Error("Internal Error: validated but malformed CSS" +
@@ -102,7 +104,7 @@ function matchDescendant(
 
 function matchWithSelector(
     selector: cssWhat.ParsedSelector,
-    path: jsx.UnbsElement[]): boolean {
+    path: DomPath): boolean {
 
     for (const block of selector) {
         if (matchWithBlock(block, path)) {
@@ -114,7 +116,7 @@ function matchWithSelector(
 
 function matchWithBlock(
     selBlock: cssWhat.ParsedSelectorBlock,
-    path: jsx.UnbsElement[]): boolean {
+    path: DomPath): boolean {
 
     const { prefix, elem: selFrag } = last(selBlock);
     if (selFrag == null) {
@@ -143,7 +145,7 @@ function buildStyle(rawStyle: RawStyle): StyleRule {
     return {
         selector: rawStyle.selector,
         sfc: rawStyle.build,
-        match: (path: jsx.UnbsElement[]) =>
+        match: (path: DomPath) =>
             matchWithSelector(selector, path)
     };
 }
@@ -179,7 +181,10 @@ export class Rule<P = jsx.AnyProps> {
     constructor(readonly override: BuildOverride<P>) { }
 }
 
-export function rule<P = jsx.AnyProps>(override: BuildOverride<P>) {
+export function rule<P = jsx.AnyProps>(override?: BuildOverride<P>) {
+    if (override === undefined) {
+        override = (_, i) => i.origElement;
+    }
     return new Rule<P>(override);
 }
 
@@ -260,6 +265,47 @@ export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
     }
 
     return parseStyles(rawStyles);
+}
+
+//FIXME(manishv) This is horribly slow, use a browser-like right-to-left set-matching algorithm instead
+function findInDomImpl(styles: StyleList, path: DomPath):
+    DomPath[] {
+
+    const elem = ld.last(path);
+    if (elem == null) return [];
+
+    const matches: DomPath[] = [];
+    for (const style of styles) {
+        if (style.match(path)) {
+            matches.push(path);
+            break;
+        }
+    }
+
+    const children = jsx.childrenToArray(elem.props.children);
+    for (const child of children) {
+        matches.push(...findInDomImpl(styles, [...path, child]));
+    }
+
+    return matches;
+}
+
+export function findElementsInDom(
+    stylesIn: StyleList | jsx.UnbsElement | null,
+    dom: jsx.UnbsElement): jsx.UnbsElement[] {
+
+    return ld.compact(findPathsInDom(stylesIn, dom)
+        .map((path) => ld.last(path)));
+}
+
+export function findPathsInDom(
+    stylesIn: StyleList | jsx.UnbsElement | null,
+    dom: jsx.UnbsElement): DomPath[] {
+
+    if (stylesIn == null) return [];
+    const styles = jsx.isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
+
+    return findInDomImpl(styles, [dom]);
 }
 
 export class Style extends jsx.Component<StyleProps> {

@@ -6,30 +6,37 @@ export {
     Component,
     PrimitiveComponent,
     UnbsElement,
+    UnbsMountedElement,
     UnbsElementOrNull,
     AnyProps,
     AnyState,
+    BuiltinProps,
     isElement,
+    isMountedElement,
     isPrimitiveElement,
     WithChildren,
     PropsType
 } from "./jsx";
 
 export {
-    Group
+    Group,
+    DomError
 } from "./builtin_components";
 
 export {
     build,
     BuildOutput,
     Message,
+    DomPath
 } from "./dom";
 
 export {
     concatStyles,
     Style,
     StyleBuildInfo,
-    rule
+    rule,
+    findElementsInDom,
+    findPathsInDom
 } from "./css";
 
 export {
@@ -47,6 +54,12 @@ export {
 export {
     UpdateStateInfo,
 } from "./keys";
+
+export {
+    Plugin,
+    PluginOptions,
+    Action
+} from "./plugin_support";
 
 export {
     stack,

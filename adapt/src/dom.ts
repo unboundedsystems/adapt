@@ -43,6 +43,8 @@ export interface Message {
     content: string;
 }
 
+export type DomPath = UnbsElement[];
+
 type CleanupFunc = () => void;
 class ComputeContents {
     buildDone = false;
@@ -141,7 +143,7 @@ function computeContentsFromElement<P extends object>(
     }
 }
 
-function findOverride(styles: css.StyleList, path: UnbsElement[]) {
+function findOverride(styles: css.StyleList, path: DomPath) {
     const element = path[path.length - 1];
     if (css.ruleIsFinal(element.props)) return null;
 
@@ -155,7 +157,7 @@ function findOverride(styles: css.StyleList, path: UnbsElement[]) {
 }
 
 function computeContents(
-    path: UnbsElement[],
+    path: DomPath,
     options: BuildOptionsReq): ComputeContents {
 
     const element = ld.last(path);
@@ -193,7 +195,7 @@ function ApplyStyle(
 }
 
 function doOverride(
-    path: UnbsElement[],
+    path: DomPath,
     key: string,
     styles: css.StyleList,
     options: BuildOptionsReq): UnbsElement {
@@ -221,7 +223,7 @@ function doOverride(
 }
 
 function mountElement(
-    path: UnbsElement[],
+    path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
     options: BuildOptionsReq): UnbsElement {
@@ -241,7 +243,7 @@ function mountElement(
     return elem;
 }
 
-function subLastPathElem(path: UnbsElement[], elem: UnbsElement): UnbsElement[] {
+function subLastPathElem(path: DomPath, elem: UnbsElement): DomPath {
     const ret = path.slice(0, -1);
     ret.push(elem);
     return ret;
@@ -258,7 +260,7 @@ function validateComponent(elem: UnbsElement): Error | undefined {
 }
 
 function mountAndBuildComponent(
-    path: UnbsElement[],
+    path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {
@@ -346,7 +348,7 @@ function atDepth(options: BuildOptionsReq, depth: number) {
 }
 
 function pathBuild(
-    path: UnbsElement[],
+    path: DomPath,
     styles: css.StyleList,
     optionsIn?: BuildOptions): BuildOutput {
 
@@ -373,7 +375,7 @@ function pathBuild(
 }
 
 function realBuild(
-    path: UnbsElement[],
+    path: DomPath,
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
     options: BuildOptionsReq): ComputeContents {

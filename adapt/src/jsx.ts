@@ -16,6 +16,10 @@ export interface UnbsElement<P extends object = AnyProps> {
     readonly componentType: ComponentType<P>;
 }
 
+export interface UnbsMountedElement<P extends object = AnyProps> extends UnbsElement<P> {
+    readonly id: string;
+}
+
 export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
@@ -23,11 +27,15 @@ export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsE
 
 export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
 
-export function isElement(val: any): val is UnbsElement<AnyProps> {
+export function isElement<P extends object = AnyProps>(val: any): val is UnbsElement<P> {
     return val instanceof UnbsElementImpl;
 }
 
-export function isElementImpl(val: any): val is UnbsElementImpl<AnyProps> {
+export function isMountedElement<P extends object = AnyProps>(val: any): val is UnbsMountedElement<P> {
+    return isElementImpl(val) && val.mounted;
+}
+
+export function isElementImpl<P extends object = AnyProps>(val: any): val is UnbsElementImpl<P> {
     return isElement(val);
 }
 
@@ -180,6 +188,8 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
             }
         }
     }
+
+    get id() { return JSON.stringify(this.stateNamespace); }
 }
 
 export class UnbsPrimitiveElementImpl<Props extends object> extends UnbsElementImpl<Props> {
