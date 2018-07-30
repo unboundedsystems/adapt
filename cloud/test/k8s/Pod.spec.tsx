@@ -1,4 +1,4 @@
-import Adapt, { childrenToArray, DomError, isElement, PluginOptions } from "@usys/adapt";
+import Adapt, { childrenToArray, DomError, Group, isElement, PluginOptions } from "@usys/adapt";
 import * as ld from "lodash";
 import * as should from "should";
 
@@ -13,7 +13,7 @@ const k8s = require("kubernetes-client");
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
         const pod =
-            <Pod name="test" config={{}}>
+            <Pod key="test" config={{}}>
                 <Container name="onlyContainer" image="node:latest" />
             </Pod>;
 
@@ -22,7 +22,7 @@ describe("k8s Pod Component Tests", () => {
 
     it("Should enforce unique container names", () => {
         const pod =
-            <Pod name="test" config={{}}>
+            <Pod key="test" config={{}}>
                 <Container name="container" image="node:latest" />
                 <Container name="dupContainer" image="node:latest" />
                 <Container name="dupContainer" image="node:latest" />
@@ -106,7 +106,7 @@ async function sleep(wait: number): Promise<void> {
     });
 }
 
-describe("k8s Pod Plugin Tests", function() {
+xdescribe("k8s Pod Plugin Tests", function () {
     this.timeout(20000);
 
     let plugin: PodPlugin;
@@ -146,7 +146,7 @@ describe("k8s Pod Plugin Tests", function() {
 
     it("Should compute actions with no pods from k8s", async () => {
         const pod =
-            <Pod name="test" config={k8sConfig}>
+            <Pod key="test" config={k8sConfig}>
                 <Container name="container" image="node:latest" />
             </Pod>;
 
@@ -161,10 +161,10 @@ describe("k8s Pod Plugin Tests", function() {
         await plugin.finish();
     });
 
-    it("Should create pod", async () => {
+    async function createPod(name: string) {
         const pod =
-            <Pod name="test" config={k8sConfig} terminationGracePeriodSeconds={5}>
-                <Container name="container" image="alpine:3.8" command={["sleep"]} args={["3"]} />
+            <Pod key={name} config={k8sConfig} terminationGracePeriodSeconds={0}>
+                <Container name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
         const dom = await doBuild(pod);
@@ -180,6 +180,32 @@ describe("k8s Pod Plugin Tests", function() {
         const pods = await getPods(k8sConfig);
         should(pods.length).equal(1);
         should(pods[0].metadata.name).equal(podElementToName(dom));
+
+        await plugin.finish();
+    }
+
+    it("Should create pod", async () => {
+        await createPod("test");
+    });
+
+    xit("Should delete pod", async () => {
+        await createPod("test");
+
+        const dom = await doBuild(<Group />);
+        await plugin.start(options);
+        await plugin.observe(dom);
+        const actions = await plugin.analyze(dom);
+        should(actions.length).equal(1);
+        should(actions[0].description).match(/Deleting\s.+test/);
+
+        await act(actions);
+
+        await sleep(6); // Sleep longer than termination grace period
+        const pods = await getPods(k8sConfig);
+        if (pods.length !== 0) {
+            should(pods.length).equal(1);
+            should(pods[0].metadata.deletionGracePeriod).not.Undefined();
+        }
 
         await plugin.finish();
     });

@@ -27,7 +27,7 @@ export function createPodPlugin() {
     return new PodPluginImpl();
 }
 
-function isPodElement(e: UnbsElement): e is UnbsElement<PodProps> {
+function isPodElement(e: UnbsElement): e is UnbsElement<PodProps & Adapt.BuiltinProps> {
     return e.componentType === Pod;
 }
 
@@ -103,7 +103,7 @@ function podMatchesStatus(
 
 const rules = <Style>{Pod} {Adapt.rule()}</Style>;
 
-function findPods(dom: UnbsElement): UnbsElement<PodProps>[] {
+function findPods(dom: UnbsElement): UnbsElement<PodProps & Adapt.BuiltinProps>[] {
     const candidatePods = findElementsInDom(rules, dom);
     return ld.compact(candidatePods.map((e) => isPodElement(e) ? e : null));
 }
@@ -205,6 +205,7 @@ export class PodPluginImpl implements PodPlugin {
             await Promise.all(pods.map((pod) =>
                 getPodClient(pod, { connCache: this.connections }))));
 
+        //FIXME(manishv)  This is broken, what if no pods from an old cluster are left in the dom?
         const runningPods = await Promise.all(clients.map(async (client) => ({ client, pods: await getPods(client) })));
         for (const runningPod of runningPods) {
             this.observations.set(runningPod.client, runningPod.pods);
@@ -221,7 +222,7 @@ export class PodPluginImpl implements PodPlugin {
             const action = alreadyExists(pod, this.observations, this.connections) ? "Updating" : "Creating";
 
             ret.push({
-                description: `${action} pod ${pod.props.name}`,
+                description: `${action} pod ${pod.props.key}`,
                 act: async () => {
                     const client = await getPodClient(pod, { connCache: this.connections });
                     const podSpec = makePodManifest(pod);

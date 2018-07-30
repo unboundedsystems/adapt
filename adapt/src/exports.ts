@@ -10,6 +10,7 @@ export {
     UnbsElementOrNull,
     AnyProps,
     AnyState,
+    BuiltinProps,
     isElement,
     isMountedElement,
     isPrimitiveElement,

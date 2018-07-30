@@ -3,7 +3,6 @@ import * as ld from "lodash";
 import { Container, ContainerProps } from "./Container";
 
 export interface PodProps {
-    name: string;
     config: any; //Legal configuration loaded from kubeconfig
     terminationGracePeriodSeconds?: number;
     children: UnbsElement | UnbsElement[];

@@ -25,6 +25,7 @@
         ],
         "no-namespace": false,
         "no-unused-expression": false,
+        "space-before-function-paren": false,
         "object-literal-sort-keys": [
             false,
             "match-declaration-order"
