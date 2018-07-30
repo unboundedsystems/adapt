@@ -153,7 +153,7 @@ function makePodManifest(pod: UnbsElement<PodProps>): PodManifest {
             containers: containers.map((c) => ({
                 name: c.props.name,
                 image: c.props.image,
-                command: c.props.command
+                command: c.props.command //FIXME(manishv)  What if we just have args and no command?
             })),
             terminationGracePeriodSeconds: pod.props.terminationGracePeriodSeconds
         }

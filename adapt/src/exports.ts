@@ -27,6 +27,7 @@ export {
     build,
     BuildOutput,
     Message,
+    DomPath
 } from "./dom";
 
 export {
@@ -35,7 +36,7 @@ export {
     StyleBuildInfo,
     rule,
     findElementsInDom,
-    findInDom
+    findPathsInDom
 } from "./css";
 
 export {

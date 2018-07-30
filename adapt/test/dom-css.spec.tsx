@@ -112,7 +112,7 @@ describe("DOM CSS find tests", () => {
                 {inner}
             </Adapt.Group>;
 
-        const elems = Adapt.findInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, dom);
+        const elems = Adapt.findPathsInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, dom);
         should(elems).eql([
             [dom, <MakeMakeEmpty id={1} />],
             [dom, inner, <MakeMakeEmpty id={2} />]
