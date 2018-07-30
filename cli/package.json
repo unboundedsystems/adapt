@@ -60,8 +60,9 @@
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
   "license": "UNLICENSED",
   "oclif": {
-    "commands": "./dist/src/commands",
     "bin": "adapt",
+    "commands": "./dist/src/commands",
+    "dirname": "adapt",
     "plugins": [
       "@oclif/plugin-help"
     ]
