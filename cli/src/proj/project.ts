@@ -4,6 +4,7 @@ import * as path from "path";
 
 import { npm } from "@usys/utils";
 import {
+    BuildOptions,
     ValidationError,
     verifyAdaptModule,
     verifyBuildState,
@@ -86,9 +87,11 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
 }
 
 export class Project {
+    readonly name: string;
     constructor(readonly manifest: pacote.Manifest,
                 readonly packageLock: npm.PackageLock,
                 readonly options: ProjectOptionsComplete) {
+        this.name = manifest.name;
     }
 
     getLockedVersion(pkgName: string): VersionString | null {
@@ -96,17 +99,18 @@ export class Project {
         return dep ? dep.version : null;
     }
 
-    async build(rootFile: string, stackName: string, stateInputJson: string) {
-        const projectDir = this.options.session.projectDir;
+    async build(options: BuildOptions) {
+        const projectRoot = this.options.session.projectDir;
 
         await npm.install(npmInstallOptions(this.options));
 
-        rootFile = path.resolve(projectDir, rootFile);
+        options.fileName = path.resolve(projectRoot, options.fileName);
+        options.projectRoot = projectRoot;
 
         const oldNodePath = process.env.NODE_PATH;
         try {
             // Only affects current process; not exported
-            process.env.NODE_PATH = prependPath(oldNodePath, projectDir);
+            process.env.NODE_PATH = prependPath(oldNodePath, projectRoot);
 
             // Load Adapt at runtime. We've already done some version
             // verification before getting here, but we don't
@@ -118,9 +122,7 @@ export class Project {
             const adapt = verifyAdaptModule(await require("@usys/adapt"));
 
             try {
-                return verifyBuildState(
-                    adapt.buildStack(rootFile, stackName, stateInputJson,
-                                     { rootDir: projectDir }));
+                return verifyBuildState(await adapt.buildStack(options));
             } catch (err) {
                 if (err instanceof adapt.CompileError) {
                     // tslint:disable-next-line:no-console
