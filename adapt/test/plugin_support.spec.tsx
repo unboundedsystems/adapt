@@ -3,12 +3,10 @@ import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
-import { Console } from "console";
-import { WritableStreamBuffer } from "stream-buffers";
 import Adapt, { Group, UnbsElement } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
-import { packageDirs } from "./testlib";
+import { mockLogger, MockLogger, packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -43,17 +41,12 @@ class TestPlugin implements pluginSupport.Plugin {
 describe("Plugin Support Basic Tests", () => {
     let mgr: pluginSupport.PluginManager;
     let spy: sinon.SinonSpy;
-    let mockStdOut: WritableStreamBuffer;
-    let mockStdErr: WritableStreamBuffer;
-    let logger: (...args: any[]) => void;
+    let logger: MockLogger;
     const dom = <Group />;
 
     beforeEach(() => {
         spy = sinon.spy();
-        mockStdOut = new WritableStreamBuffer();
-        mockStdErr = new WritableStreamBuffer();
-        const c = new Console(mockStdOut, mockStdErr);
-        logger = (...args: any[]) => c.log(...args);
+        logger = mockLogger();
 
         mgr = pluginSupport.createPluginManager({
             plugins: [new TestPlugin(spy)]
@@ -65,13 +58,13 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call start on each plugin", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         should(spy.calledOnce).True();
         should(spy.args[0][0]).equal("start");
     });
 
     it("Should call observe after start", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         await mgr.observe();
         should(spy.callCount).equal(2);
         should(spy.getCall(0).args[0]).equal("start");
@@ -79,7 +72,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call analyze after observe", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         should(spy.callCount).equal(3);
@@ -89,7 +82,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call actions", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(false);
@@ -101,13 +94,13 @@ describe("Plugin Support Basic Tests", () => {
         should(spy.getCall(3).args).eql(["action1"]);
         should(spy.getCall(4).args).eql(["action2"]);
         should(spy.getCall(5).args).eql(["finish"]);
-        const contents = mockStdOut.getContentsAsString();
+        const contents = logger.stdout;
         should(contents).match(/action1/);
         should(contents).match(/action2/);
     });
 
     it("Should not call actions on dry run", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(true);
@@ -117,13 +110,13 @@ describe("Plugin Support Basic Tests", () => {
         should(spy.getCall(1).args).eql(["observe", dom]);
         should(spy.getCall(2).args).eql(["analyze", dom]);
         should(spy.getCall(3).args).eql(["finish"]);
-        const contents = mockStdOut.getContentsAsString();
+        const contents = logger.stdout;
         should(contents).match(/action1/);
         should(contents).match(/action2/);
     });
 
     it("Should not allow illegal call sequences", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         should(() => mgr.analyze()).throw();
         await should(mgr.act(false)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
@@ -139,7 +132,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should allow finish without acting", async () => {
-        await mgr.start(dom, { log: logger });
+        await mgr.start(dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.finish();
@@ -148,12 +141,21 @@ describe("Plugin Support Basic Tests", () => {
 
 let testPluginsLoaded: string[] = [];
 
-async function requireTestPlugin(name: string, jsFile = "index.js") {
-    const srcDir = path.join(packageDirs.root, "test_plugins", name);
+function testPluginSrcDir(name: string) {
+    return path.join(packageDirs.root, "test_plugins", name);
+}
+
+async function setupTestPlugin(name: string) {
+    const srcDir = testPluginSrcDir(name);
     const modDir = path.join(packageDirs.dist, "test_plugins", name);
-    const jsPath = path.join(modDir, jsFile);
     await fs.ensureSymlink(
         path.join(srcDir, "package.json"), path.join(modDir, "package.json"));
+    return modDir;
+}
+
+async function requireTestPlugin(name: string, jsFile = "index.js") {
+    const modDir = await setupTestPlugin(name);
+    const jsPath = path.resolve(path.join(modDir, jsFile));
     await require(jsPath);
     testPluginsLoaded.push(jsPath);
 }
@@ -166,18 +168,13 @@ function cleanupTestPlugins() {
 }
 
 describe("Plugin register and deploy", () => {
-    let mockStdOut: WritableStreamBuffer;
-    let mockStdErr: WritableStreamBuffer;
-    let log: (...args: any[]) => void;
+    let logger: MockLogger;
     const dom = <Group />;
 
     beforeEach(() => {
         cleanupTestPlugins();
         setAdaptContext(Object.create(null));
-        mockStdOut = new WritableStreamBuffer();
-        mockStdErr = new WritableStreamBuffer();
-        const c = new Console(mockStdOut, mockStdErr);
-        log = c.log;
+        logger = mockLogger();
     });
 
     after(() => {
@@ -191,8 +188,8 @@ describe("Plugin register and deploy", () => {
         config.plugins.should.have.length(1);
 
         const mgr = pluginSupport.createPluginManager(config);
-        await mgr.start(dom, { log });
-        const stdout = mockStdOut.getContentsAsString();
+        await mgr.start(dom, { log: logger.log });
+        const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);
     });
 
