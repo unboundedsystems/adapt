@@ -184,6 +184,8 @@ class PluginManagerImpl implements PluginManager {
 
     async finish() {
         this.transitionTo(PluginManagerState.Finishing);
+        const waitingFor = this.plugins.map((plugin) => plugin.finish());
+        await Promise.all(waitingFor);
         this.dom = undefined;
         this.actions = undefined;
         this.log = undefined;

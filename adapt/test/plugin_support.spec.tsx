@@ -94,12 +94,13 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.analyze();
         await mgr.act(false);
         await mgr.finish();
-        should(spy.callCount).equal(5);
+        should(spy.callCount).equal(6);
         should(spy.getCall(0).args[0]).equal("start");
         should(spy.getCall(1).args).eql(["observe", dom]);
         should(spy.getCall(2).args).eql(["analyze", dom]);
         should(spy.getCall(3).args).eql(["action1"]);
         should(spy.getCall(4).args).eql(["action2"]);
+        should(spy.getCall(5).args).eql(["finish"]);
         const contents = mockStdOut.getContentsAsString();
         should(contents).match(/action1/);
         should(contents).match(/action2/);
@@ -111,10 +112,11 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.analyze();
         await mgr.act(true);
         await mgr.finish();
-        should(spy.callCount).equal(3);
+        should(spy.callCount).equal(4);
         should(spy.getCall(0).args[0]).equal("start");
         should(spy.getCall(1).args).eql(["observe", dom]);
         should(spy.getCall(2).args).eql(["analyze", dom]);
+        should(spy.getCall(3).args).eql(["finish"]);
         const contents = mockStdOut.getContentsAsString();
         should(contents).match(/action1/);
         should(contents).match(/action2/);
