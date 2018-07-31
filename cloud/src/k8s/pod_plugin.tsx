@@ -1,4 +1,4 @@
-import Adapt, { AnyProps, findElementsInDom, isMountedElement, Style, UnbsElement } from "@usys/adapt";
+import Adapt, { AdaptElement, AnyProps, findElementsInDom, isMountedElement, Style } from "@usys/adapt";
 import * as ld from "lodash";
 //import * as when from "when";
 
@@ -27,12 +27,12 @@ export function createPodPlugin() {
     return new PodPluginImpl();
 }
 
-function isPodElement(e: UnbsElement): e is UnbsElement<PodProps & Adapt.BuiltinProps> {
+function isPodElement(e: AdaptElement): e is AdaptElement<PodProps & Adapt.BuiltinProps> {
     return e.componentType === Pod;
 }
 
 async function getPodClient(
-    podIn: UnbsElement<AnyProps>,
+    podIn: AdaptElement<AnyProps>,
     options: { connCache: Connections }): Promise<Client> {
 
     const pod = isPodElement(podIn) ? podIn : undefined;
@@ -61,7 +61,7 @@ async function getPods(client: Client): Promise<PodReplyItem[]> {
 }
 
 function alreadyExists(
-    pod: UnbsElement<PodProps>,
+    pod: AdaptElement<PodProps>,
     observations: Observations,
     connections: Connections): boolean {
 
@@ -91,7 +91,7 @@ function observedPods(observations: Observations): { client: Client, podStatus: 
 
 function podMatchesStatus(
     status: { client: Client, podStatus: PodReplyItem },
-    pods: UnbsElement<PodProps>[], connections: Connections): boolean {
+    pods: AdaptElement<PodProps>[], connections: Connections): boolean {
 
     return pods.find((pod) => {
         if (!isMountedElement(pod)) throw new Error("Can only compare mounted pod elements to running state");
@@ -103,7 +103,7 @@ function podMatchesStatus(
 
 const rules = <Style>{Pod} {Adapt.rule()}</Style>;
 
-function findPods(dom: UnbsElement): UnbsElement<PodProps & Adapt.BuiltinProps>[] {
+function findPods(dom: AdaptElement): AdaptElement<PodProps & Adapt.BuiltinProps>[] {
     const candidatePods = findElementsInDom(rules, dom);
     return ld.compact(candidatePods.map((e) => isPodElement(e) ? e : null));
 }
@@ -127,13 +127,13 @@ interface PodManifest {
     spec: PodSpec;
 }
 
-export function podElementToName(pod: Adapt.UnbsElement<AnyProps>): string {
+export function podElementToName(pod: Adapt.AdaptElement<AnyProps>): string {
     if (!isPodElement(pod)) throw new Error("Can only compute name of Pod elements");
     if (!isMountedElement(pod)) throw new Error("Can only compute name of mounted elements");
     return "fixme-manishv-" + Buffer.from(pod.id).toString("hex");
 }
 
-function makePodManifest(pod: UnbsElement<PodProps>): PodManifest {
+function makePodManifest(pod: AdaptElement<PodProps>): PodManifest {
     if (!isMountedElement(pod)) throw new Error("Can only create pod spec for mounted elements!");
     const containers = ld.compact(
         Adapt.childrenToArray(pod.props.children)
@@ -162,7 +162,7 @@ function makePodManifest(pod: UnbsElement<PodProps>): PodManifest {
 
 class Connections {
 
-    private static toKey(podOrConfig: UnbsElement<PodProps> | any) {
+    private static toKey(podOrConfig: AdaptElement<PodProps> | any) {
         let config = podOrConfig;
         if (Adapt.isElement(podOrConfig)) {
             const pod = podOrConfig;
@@ -176,12 +176,12 @@ class Connections {
 
     private connections: Map<string, Client> = new Map<string, Client>();
 
-    get(pod: UnbsElement<PodProps>): Client | undefined {
+    get(pod: AdaptElement<PodProps>): Client | undefined {
         const key = Connections.toKey(pod);
         return this.connections.get(key);
     }
 
-    set(pod: UnbsElement<PodProps>, client: Client) {
+    set(pod: AdaptElement<PodProps>, client: Client) {
         const key = Connections.toKey(pod);
         this.connections.set(key, client);
     }
@@ -197,7 +197,7 @@ export class PodPluginImpl implements PodPlugin {
         this.observations = new Map<Client, PodReplyItem[]>();
     }
 
-    async observe(dom: UnbsElement): Promise<void> {
+    async observe(dom: AdaptElement): Promise<void> {
         const pods = findPods(dom);
         if (this.observations == null) throw new Error("Plugin users should call start before observe");
 
@@ -213,7 +213,7 @@ export class PodPluginImpl implements PodPlugin {
         return;
     }
 
-    analyze(dom: UnbsElement): Adapt.Action[] {
+    analyze(dom: AdaptElement): Adapt.Action[] {
         const pods = findPods(dom);
         if (this.observations == null) throw new Error("Plugin users should call observe before analyze");
 

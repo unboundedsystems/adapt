@@ -1,8 +1,8 @@
 import Adapt, {
+    AdaptElementOrNull,
     BuildNotImplemented,
     Component,
-    PrimitiveComponent,
-    UnbsElementOrNull
+    PrimitiveComponent
 } from "@usys/adapt";
 
 export interface ExternalDockerHostProps {
@@ -20,7 +20,7 @@ export interface DockerHostProps {
 }
 
 export class DockerHost extends Component<DockerHostProps> {
-    build(): UnbsElementOrNull {
+    build(): AdaptElementOrNull {
         if (this.props.dockerHost) {
             return <ExternalDockerHost dockerHost={this.props.dockerHost} />;
         }

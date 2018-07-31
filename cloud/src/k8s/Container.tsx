@@ -1,4 +1,4 @@
-import { PrimitiveComponent, UnbsElement } from "@usys/adapt";
+import { AdaptElement, PrimitiveComponent } from "@usys/adapt";
 
 export interface ContainerProps {
     name: string; //Must be unique within pod
@@ -15,7 +15,7 @@ function validateProps(_props: ContainerProps) {
     //FIXME(manishv) check if workDir is valid path
 }
 
-export function isContainerElement(x: UnbsElement): x is UnbsElement<ContainerProps> {
+export function isContainerElement(x: AdaptElement): x is AdaptElement<ContainerProps> {
     return x.componentType === Container;
 }
 

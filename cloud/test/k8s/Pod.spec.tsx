@@ -53,7 +53,7 @@ describe("k8s Pod Component Tests", () => {
 
 });
 
-async function doBuild(elem: Adapt.UnbsElement) {
+async function doBuild(elem: Adapt.AdaptElement) {
     const { messages, contents: dom } = await Adapt.build(elem, null);
     if (dom == null) {
         should(dom).not.Null();

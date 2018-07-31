@@ -163,8 +163,8 @@ describe("buildStack Nodecellar example project", function() {
             should(out.dom).not.be.Null();
             return;
         }
-        should(out.dom instanceof UnbsPrimitiveElementImpl).be.True();
-        const el = out.dom as UnbsPrimitiveElementImpl<any>;
+        should(out.dom instanceof AdaptPrimitiveElementImpl).be.True();
+        const el = out.dom as AdaptPrimitiveElementImpl<any>;
         should(el.componentInstance instanceof PrimitiveComponent).be.True();
     });
 });

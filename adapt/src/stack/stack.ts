@@ -1,17 +1,17 @@
-import { UnbsElementOrNull } from "..";
+import { AdaptElementOrNull } from "..";
 import { getAdaptContext } from "../ts";
 
 export interface Stack {
-    root: UnbsElementOrNull;
-    style: UnbsElementOrNull;
+    root: AdaptElementOrNull;
+    style: AdaptElementOrNull;
 }
 
 export interface Stacks {
     [stackName: string]: Stack;
 }
 
-export function stack(stackName: string, root: UnbsElementOrNull,
-                      style: UnbsElementOrNull = null): void {
+export function stack(stackName: string, root: AdaptElementOrNull,
+                      style: AdaptElementOrNull = null): void {
     const stacks = getStacks(true);
     stacks[stackName] = { root, style };
 }

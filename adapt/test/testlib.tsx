@@ -11,7 +11,7 @@ export const packageDirs = findPackageDirs(__dirname);
 export const pkgRootDir = packageDirs.root;
 export const pkgTestDir = packageDirs.test;
 
-export function checkChildComponents(element: Adapt.UnbsElement, ...children: any[]) {
+export function checkChildComponents(element: Adapt.AdaptElement, ...children: any[]) {
     const childArray = jsx.childrenToArray(element.props.children);
 
     const childComponents = childArray.map(
@@ -37,7 +37,7 @@ export function MakeEmpty(props: { id: number }) {
     return <Empty id={props.id} />;
 }
 
-export function MakeGroup(props: { children?: Adapt.UnbsElement[] | Adapt.UnbsElement }) {
+export function MakeGroup(props: { children?: Adapt.AdaptElement[] | Adapt.AdaptElement }) {
     return <Adapt.Group>{props.children}</Adapt.Group>;
 }
 

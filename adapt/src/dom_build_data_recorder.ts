@@ -1,5 +1,5 @@
 import {
-    UnbsElement
+    AdaptElement
 } from "./jsx";
 
 import {
@@ -18,41 +18,41 @@ export type BuildOp =
 
 export interface BuildOpStart {
     type: "start";
-    root: UnbsElement;
+    root: AdaptElement;
 }
 export interface BuildOpStep {
     type: "step";
-    oldElem: UnbsElement;
-    newElem: UnbsElement | null;
+    oldElem: AdaptElement;
+    newElem: AdaptElement | null;
     style?: StyleRule;
 }
 
 export interface BuildOpElementBuilt {
     type: "elementBuilt";
-    oldElem: UnbsElement;
-    newElem: UnbsElement | null;
+    oldElem: AdaptElement;
+    newElem: AdaptElement | null;
 }
 
 export interface BuildOpDescend {
     type: "descend";
-    descendFrom: UnbsElement;
-    descendTo: UnbsElement;
+    descendFrom: AdaptElement;
+    descendTo: AdaptElement;
 }
 
 export interface BuildOpAscend {
     type: "ascend";
-    ascendTo: UnbsElement;
-    ascendFrom: UnbsElement;
+    ascendTo: AdaptElement;
+    ascendFrom: AdaptElement;
 }
 
 export interface BuildOpElementDone {
     type: "elementDone";
-    elem: UnbsElement;
+    elem: AdaptElement;
 }
 
 export interface BuildOpDone {
     type: "done";
-    root: UnbsElement | null;
+    root: AdaptElement | null;
 }
 
 export interface BuildOpError {
@@ -65,7 +65,7 @@ export type BuildListener = (op: BuildOp) => void;
 
 export function buildPrinter(): BuildListener {
     let depth = 0;
-    function el(elem: UnbsElement | null) {
+    function el(elem: AdaptElement | null) {
         return elem ? elem.componentType.name : "null";
     }
 

@@ -1,14 +1,14 @@
-import { childrenToArray, isElement, PrimitiveComponent, UnbsElement } from "@usys/adapt";
+import { AdaptElement, childrenToArray, isElement, PrimitiveComponent } from "@usys/adapt";
 import * as ld from "lodash";
 import { Container, ContainerProps } from "./Container";
 
 export interface PodProps {
     config: any; //Legal configuration loaded from kubeconfig
     terminationGracePeriodSeconds?: number;
-    children: UnbsElement | UnbsElement[];
+    children: AdaptElement | AdaptElement[];
 }
 
-function isContainerArray(children: any[]): children is UnbsElement<ContainerProps>[] {
+function isContainerArray(children: any[]): children is AdaptElement<ContainerProps>[] {
     try {
         children.map((child) => {
             if (!isElement(child)) throw new Error();

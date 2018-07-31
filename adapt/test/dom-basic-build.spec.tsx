@@ -1,8 +1,8 @@
 import Adapt, {
+    AdaptElementOrNull,
     BuildNotImplemented,
     Component,
     PrimitiveComponent,
-    UnbsElementOrNull,
     WithChildren,
 } from "../src";
 
@@ -180,7 +180,7 @@ describe("DOM Basic Build Tests", () => {
     });
 
     it("Should insert DomError for SFC that throws BuildNotImplemented", () => {
-        function SFCThrows(_props: AbstractProps): UnbsElementOrNull {
+        function SFCThrows(_props: AbstractProps): AdaptElementOrNull {
             throw new BuildNotImplemented();
         }
         const orig =

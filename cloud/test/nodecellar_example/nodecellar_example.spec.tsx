@@ -7,9 +7,9 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 import Adapt, {
+    AdaptElement,
     build,
     serializeDom,
-    UnbsElement,
 } from "@usys/adapt";
 
 import localStyle from "./localStyle";
@@ -17,7 +17,7 @@ import Nodecellar from "./Nodecellar";
 
 const outputDir = `${__dirname}/results`.replace(/\/dist/, "");
 
-function checkDom(dom: UnbsElement | null, xmlFilename: string) {
+function checkDom(dom: AdaptElement | null, xmlFilename: string) {
     should(dom).not.be.Null();
     if (dom == null) {
         throw new Error(`Dom is null when comparing to '${xmlFilename}.`);

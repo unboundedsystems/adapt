@@ -1,19 +1,19 @@
 import { BuildNotImplemented } from "./index";
 import {
+    AdaptElementOrNull,
     Component,
     ComponentType,
-    UnbsElementOrNull,
 } from "./jsx";
 
 import * as ld from "lodash";
 
 export interface ProviderProps<T> {
     value: T;
-    children: UnbsElementOrNull; // Must be single child
+    children: AdaptElementOrNull; // Must be single child
 }
 
 export interface ConsumerProps<T> {
-    children: (value: T) => UnbsElementOrNull;
+    children: (value: T) => AdaptElementOrNull;
 }
 
 export type Provider<T> = ComponentType<ProviderProps<T>>;
@@ -42,7 +42,7 @@ export function createContext<T>(defaultValue: T): Context<T> {
 
     // tslint:disable-next-line:no-shadowed-variable
     class Provider extends Component<ProviderProps<T>> {
-        build(): UnbsElementOrNull {
+        build(): AdaptElementOrNull {
             const { children } = this.props;
             if ((children == null) || Array.isArray(children)) {
                 throw new BuildNotImplemented(`A context Provider may only have a single child`);

@@ -6,7 +6,7 @@ import { Empty, MakeEmpty, MakeMakeEmpty } from "./testlib";
 
 class Dummy extends Adapt.Component { }
 
-function checkChildKeys(element: Adapt.UnbsElement, refKeys: string[]) {
+function checkChildKeys(element: Adapt.AdaptElement, refKeys: string[]) {
     if (element.props.children == null) {
         should(refKeys).eql([]);
         return;

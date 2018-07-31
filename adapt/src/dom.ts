@@ -5,6 +5,9 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    AdaptElement,
+    AdaptElementImpl,
+    AdaptElementOrNull,
     AnyProps,
     AnyState,
     childrenToArray,
@@ -16,9 +19,6 @@ import {
     isPrimitive,
     isPrimitiveElement,
     simplifyChildren,
-    UnbsElement,
-    UnbsElementImpl,
-    UnbsElementOrNull,
     WithChildren,
 } from "./jsx";
 
@@ -43,16 +43,16 @@ export interface Message {
     content: string;
 }
 
-export type DomPath = UnbsElement[];
+export type DomPath = AdaptElement[];
 
 type CleanupFunc = () => void;
 class ComputeContents {
     buildDone = false;
     buildErr = false;
-    contents: UnbsElementOrNull = null;
+    contents: AdaptElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
-    mountedElements: UnbsElement[] = [];
+    mountedElements: AdaptElement[] = [];
 
     combine(other: ComputeContents) {
         this.messages.push(...other.messages);
@@ -78,8 +78,8 @@ function isClassConstructorError(err: any) {
 
 function recordDomError(
     cc: ComputeContents,
-    element: UnbsElement,
-    err: Error): { domError: UnbsElement<{}>, message: string } {
+    element: AdaptElement,
+    err: Error): { domError: AdaptElement<{}>, message: string } {
 
     let message =
         `Component ${element.componentType.name} cannot be ` +
@@ -97,7 +97,7 @@ function recordDomError(
 }
 
 function computeContentsFromElement<P extends object>(
-    element: UnbsElement<P & WithChildren>,
+    element: AdaptElement<P & WithChildren>,
     state: StateStore): ComputeContents {
     const ret = new ComputeContents();
 
@@ -181,7 +181,7 @@ function computeContents(
 function ApplyStyle(
     props: {
         override: css.BuildOverride<AnyProps>,
-        element: UnbsElement
+        element: AdaptElement
     }) {
 
     const origBuild = () => {
@@ -198,7 +198,7 @@ function doOverride(
     path: DomPath,
     key: string,
     styles: css.StyleList,
-    options: BuildOptionsReq): UnbsElement {
+    options: BuildOptionsReq): AdaptElement {
 
     const element = ld.last(path);
     if (element == null) {
@@ -226,7 +226,7 @@ function mountElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): UnbsElement {
+    options: BuildOptionsReq): AdaptElement {
 
     let elem = ld.last(path);
     if (elem == null) {
@@ -243,13 +243,13 @@ function mountElement(
     return elem;
 }
 
-function subLastPathElem(path: DomPath, elem: UnbsElement): DomPath {
+function subLastPathElem(path: DomPath, elem: AdaptElement): DomPath {
     const ret = path.slice(0, -1);
     ret.push(elem);
     return ret;
 }
 
-function validateComponent(elem: UnbsElement): Error | undefined {
+function validateComponent(elem: AdaptElement): Error | undefined {
     if (!isPrimitiveElement(elem)) throw new Error("Internal Error: can only validate primitive components");
     try {
         new elem.componentType(elem.props);
@@ -328,12 +328,12 @@ const defaultBuildOptions = {
 type BuildOptionsReq = Required<BuildOptions>;
 
 export interface BuildOutput {
-    contents: UnbsElementOrNull;
+    contents: AdaptElementOrNull;
     messages: Message[];
 }
 export function build(
-    root: UnbsElement,
-    styles: UnbsElement | null,
+    root: AdaptElement,
+    styles: AdaptElement | null,
     options?: BuildOptions): BuildOutput {
 
     const styleList = css.buildStyles(styles);
@@ -414,7 +414,7 @@ function realBuild(
     //instead of recursion to avoid blowing the call stack
     //For deep DOMs
     let childList: any[] = [];
-    if (children instanceof UnbsElementImpl) {
+    if (children instanceof AdaptElementImpl) {
         childList = [children];
     } else if (ld.isArray(children)) {
         childList = children;
@@ -422,7 +422,7 @@ function realBuild(
 
     assignKeysAtPlacement(childList);
     newChildren = childList.map((child) => {
-        if (child instanceof UnbsElementImpl) {
+        if (child instanceof AdaptElementImpl) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
             const ret = realBuild([...path, child], newRoot.stateNamespace, styles, options);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
@@ -440,7 +440,7 @@ function realBuild(
     return out;
 }
 
-function replaceChildren(elem: UnbsElement, children: any | any[] | undefined) {
+function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {
     children = simplifyChildren(children);
 
     if (Object.isFrozen(elem.props)) {

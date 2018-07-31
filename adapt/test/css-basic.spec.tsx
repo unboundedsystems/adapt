@@ -19,7 +19,7 @@ describe("Selector Parsing", () => {
     });
 });
 
-function pathToLeaf(elem: Adapt.UnbsElement): Adapt.UnbsElement[] {
+function pathToLeaf(elem: Adapt.AdaptElement): Adapt.AdaptElement[] {
     should(Adapt.isElement(elem)).True();
     if ((elem.props.children == null) || (elem.props.children.length === 0)) {
         return [elem];
@@ -30,9 +30,9 @@ function pathToLeaf(elem: Adapt.UnbsElement): Adapt.UnbsElement[] {
     return path;
 }
 
-function testStylePath(style: Adapt.UnbsElement,
-    matchPath: Adapt.UnbsElement[] | null,
-    noMatchPath: Adapt.UnbsElement[] | null) {
+function testStylePath(style: Adapt.AdaptElement,
+    matchPath: Adapt.AdaptElement[] | null,
+    noMatchPath: Adapt.AdaptElement[] | null) {
 
     const styles = css.buildStyles(style);
     const matcher = styles[0].match;
@@ -41,9 +41,9 @@ function testStylePath(style: Adapt.UnbsElement,
     if (noMatchPath != null) should(matcher(noMatchPath)).False();
 }
 
-function testStyleDom(style: Adapt.UnbsElement,
-    dom: Adapt.UnbsElement | null,
-    noMatchDom: Adapt.UnbsElement | null) {
+function testStyleDom(style: Adapt.AdaptElement,
+    dom: Adapt.AdaptElement | null,
+    noMatchDom: Adapt.AdaptElement | null) {
 
     const matchPath = dom == null ? null : pathToLeaf(dom);
     const noMatchPath = noMatchDom == null ? null : pathToLeaf(noMatchDom);
