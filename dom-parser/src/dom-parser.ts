@@ -10,7 +10,7 @@ import {
     DOMNode
 } from "./dom";
 
-const rootName = "unbs"; //FIXME(manishv) Move to "Adapt"
+const rootName = "Adapt";
 
 async function parseXML(xmlStr: string): Promise<any> {
     return new Promise<any>((res, rej) => {

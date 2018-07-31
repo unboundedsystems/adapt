@@ -19,7 +19,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "jsx":"react",
-    "jsxFactory": "unbs.createElement",
+    "jsxFactory": "Adapt.createElement",
     "lib": [
       "es6"
     ],
