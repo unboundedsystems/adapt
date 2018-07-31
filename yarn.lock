@@ -222,6 +222,12 @@
   version "4.1.4"
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-4.1.4.tgz#5ca073b330d90b4066d6ce18f60d57f2084ce8ca"
 
+"@types/chalk@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@types/chalk/-/chalk-2.2.0.tgz#b7f6e446f4511029ee8e3f43075fb5b73fbaa0ba"
+  dependencies:
+    chalk "*"
+
 "@types/decamelize@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@types/decamelize/-/decamelize-1.2.0.tgz#aabc2306e6c229356636cab7fcb823cfe170f056"
@@ -818,7 +824,7 @@ chai@^4.1.2:
     pathval "^1.0.0"
     type-detect "^4.0.0"
 
-chalk@2.4.1, chalk@^2.0.0, chalk@^2.3.0, chalk@^2.4.1:
+chalk@*, chalk@2.4.1, chalk@^2.0.0, chalk@^2.3.0, chalk@^2.4.1:
   version "2.4.1"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.1.tgz#18c49ab16a037b6eb0152cc83e3471338215b66e"
   dependencies:
@@ -3423,7 +3429,7 @@ query-string@^5.0.1:
     decode-uri-component "^0.2.0"
     object-assign "^4.1.0"
     strict-uri-encode "^1.0.0"
-    
+
 randomstring@^1.1.5:
   version "1.1.5"
   resolved "https://registry.yarnpkg.com/randomstring/-/randomstring-1.1.5.tgz#6df0628f75cbd5932930d9fe3ab4e956a18518c3"
