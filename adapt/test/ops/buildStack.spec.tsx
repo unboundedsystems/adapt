@@ -1,10 +1,13 @@
 import { mochaTmpdir as tmpdir, npm } from "@usys/utils";
 import * as fs from "fs-extra";
+import * as path from "path";
 import * as should from "should";
 
-import { pkgRootDir } from "../testlib";
+import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
 
 import { buildStack } from "../../src/ops/buildStack";
+import { LocalServer } from "../../src/server/local_server";
+import { AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
 const simplePackageJson = {
     name: "test_project",
@@ -18,23 +21,103 @@ const simplePackageJson = {
 
 const simpleIndexTsx = `
 import Adapt, { PrimitiveComponent } from "@usys/adapt";
+import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {}
 Adapt.stack("default", <Simple />);
 `;
 
-describe("buildStack Tests", function() {
+const simplePluginTs = `
+import { Action, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+
+class EchoPlugin implements Plugin {
+    _log?: PluginOptions["log"];
+
+    log(...args: any[]) {
+        if (this._log == null) throw new Error("Plugin has no log function");
+        this._log(this.constructor.name + ":", ...args);
+    }
+
+    async start(options: PluginOptions) {
+        if (options.log == null) throw new Error("Plugin start called without log");
+        this._log = options.log;
+        this.log("start");
+    }
+    async observe(dom: any) {
+        this.log("observe");
+    }
+    analyze(dom: any): Action[] {
+        this.log("analyze");
+        return [
+            { description: "echo action1", act: () => this.doAction("action1") },
+            { description: "echo action2", act: () => this.doAction("action2") }
+        ];
+    }
+    async finish() {
+        this.log("finish");
+    }
+
+    async doAction(msg: string) {
+        this.log(msg);
+    }
+}
+
+export function create() {
+    return new EchoPlugin();
+}
+
+registerPlugin({
+    module,
+    create,
+});
+`;
+
+const simplePluginPackageJson = `
+{
+    "name": "echo_plugin",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": { },
+    "author": ""
+}
+`;
+
+describe("buildStack Tests", async function() {
+    let origServerTypes: AdaptServerType[];
+    let logger: MockLogger;
+
     this.timeout(30000);
     tmpdir.each("adapt-buildStack");
+
+    beforeEach(() => {
+        origServerTypes = mockServerTypes_();
+        mockServerTypes_([LocalServer]);
+        logger = createMockLogger();
+    });
+    afterEach(() => {
+        mockServerTypes_(origServerTypes);
+    });
 
     it("Should build a single file", async () => {
         await fs.writeFile("index.tsx", simpleIndexTsx);
         await fs.writeFile("package.json",
                            JSON.stringify(simplePackageJson, null, 2));
+        await fs.outputFile(path.join("simple_plugin", "index.ts"), simplePluginTs);
+        await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
         await npm.install();
 
-        const bs = buildStack("index.tsx", "default", "{}");
+        const bs = await buildStack({
+            adaptUrl: `file://${process.cwd()}/db.json`,
+            deployID: "new",
+            fileName: "index.tsx",
+            initLocalServer: true,
+            initialStateJson: "{}",
+            log: logger.log,
+            projectName: "myproject",
+            stackName: "default",
+        });
 
         should(bs.messages.length).equal(0);
         should(bs.domXml).equal(
@@ -44,6 +127,15 @@ describe("buildStack Tests", function() {
 `);
 
         should(bs.stateJson).equal("{}");
+        should(bs.deployId).equal("myproject::default");
+
+        const stdout = logger.stdout;
+        should(stdout).match(/EchoPlugin: start/);
+        should(stdout).match(/EchoPlugin: observe/);
+        should(stdout).match(/EchoPlugin: analyze/);
+        should(stdout).match(/action1/);
+        should(stdout).match(/action2/);
+        should(stdout).match(/EchoPlugin: finish/);
     });
 });
 

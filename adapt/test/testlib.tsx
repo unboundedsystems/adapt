@@ -1,8 +1,11 @@
 import { findPackageDirs } from "@usys/utils";
+import { Console } from "console";
 import * as ld from "lodash";
 import * as should from "should";
+import { WritableStreamBuffer } from "stream-buffers";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
+import { Logger } from "../src/type_support";
 
 export const packageDirs = findPackageDirs(__dirname);
 export const pkgRootDir = packageDirs.root;
@@ -87,4 +90,34 @@ export function deepFilterElemsToPublic(o: any): any {
         ret[key] = deepFilterElemsToPublic(o[key]);
     }
     return ret;
+}
+
+export interface MockLogger {
+    stdout: string;
+    stderr: string;
+    log: Logger;
+    error: Logger;
+}
+
+class MockLoggerImpl implements MockLogger {
+    _stdout = new WritableStreamBuffer();
+    _stderr = new WritableStreamBuffer();
+    log: Logger;
+    error: Logger;
+
+    constructor() {
+        const c = new Console(this._stdout, this._stderr);
+        this.log = c.log;
+        this.error = c.error;
+    }
+    get stdout() {
+        return this._stdout.getContentsAsString();
+    }
+    get stderr() {
+        return this._stderr.getContentsAsString();
+    }
+}
+
+export function createMockLogger(): MockLogger {
+    return new MockLoggerImpl();
 }

@@ -1,7 +1,11 @@
 import * as ld from "lodash";
+import * as path from "path";
+import * as readPkgUp from "read-pkg-up";
 
 import * as when from "when";
 import { UnbsElement } from ".";
+import { getAdaptContext } from "./ts";
+import { Logger } from "./type_support";
 
 export interface PluginConfig {
     plugins: Plugin[];
@@ -13,7 +17,7 @@ export interface Action {
 }
 
 export interface PluginOptions {
-    log: (...args: any[]) => void;
+    log: Logger;
 }
 
 export interface Plugin {
@@ -24,7 +28,7 @@ export interface Plugin {
 }
 
 export interface PluginManagerStartOptions {
-    log: (...args: any[]) => void;
+    log: Logger;
 }
 
 export interface ActionResult {
@@ -98,7 +102,7 @@ class PluginManagerImpl implements PluginManager {
     plugins: Plugin[];
     dom?: UnbsElement | null;
     actions?: Action[];
-    log?: (...args: any[]) => void;
+    log?: Logger;
     state: PluginManagerState;
 
     constructor(config: PluginConfig) {
@@ -181,9 +185,71 @@ class PluginManagerImpl implements PluginManager {
 
     async finish() {
         this.transitionTo(PluginManagerState.Finishing);
+        const waitingFor = this.plugins.map((plugin) => plugin.finish());
+        await Promise.all(waitingFor);
         this.dom = undefined;
         this.actions = undefined;
         this.log = undefined;
         this.transitionTo(PluginManagerState.Initial);
     }
+}
+
+export interface PluginRegistration {
+    module: NodeModule;
+    create(): Plugin;
+}
+
+interface PackageInfo {
+    name: string;
+    version: string;
+}
+
+interface PluginModule extends PluginRegistration {
+    name: string;
+    version: string;
+}
+
+type PluginModules = Map<string, PluginModule>;
+
+export function registerPlugin(plugin: PluginRegistration) {
+    const modules = getPluginModules(true);
+    const pInfo = findPackageInfo(path.dirname(plugin.module.filename));
+    const mod: PluginModule = { ...plugin, ...pInfo };
+
+    const existing = modules.get(mod.name);
+    if (existing !== undefined) {
+        throw new Error(`Attempt to register multiple plugins with the same name '${mod.name}'`);
+    }
+    modules.set(mod.name, mod);
+}
+
+export function createPluginConfig(): PluginConfig {
+    const plugins: Plugin[] = [];
+    const modules = getPluginModules();
+    if (modules == null) throw new Error(`No plugins registered`);
+
+    modules.forEach((mod) => {
+        plugins.push(mod.create());
+    });
+    return { plugins };
+}
+
+function getPluginModules(create = false): PluginModules {
+    const aContext = getAdaptContext();
+    if (!aContext.pluginModules && create === true) {
+        aContext.pluginModules = new Map<string, PluginModule>();
+    }
+    return aContext.pluginModules;
+}
+
+function findPackageInfo(dir: string): PackageInfo {
+    const ret = readPkgUp.sync({cwd: dir, normalize: false });
+    const pkgJson = ret.pkg;
+    if (!pkgJson || !pkgJson.name || !pkgJson.version) {
+        throw new Error(`Invalid plugin registration. Cannot find package.json info in directory ${dir}.`);
+    }
+    return {
+        name: pkgJson.name,
+        version: pkgJson.version,
+    };
 }

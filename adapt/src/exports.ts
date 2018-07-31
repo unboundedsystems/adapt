@@ -56,17 +56,12 @@ export {
 } from "./keys";
 
 export {
-    Plugin,
-    PluginOptions,
-    Action
-} from "./plugin_support";
-
-export {
     stack,
 } from "./stack";
 
 export {
     Constructor,
+    Logger,
 } from "./type_support";
 
 export * from "./utils";
@@ -83,3 +78,11 @@ export {
 export {
     CompileError,
 } from "./ts";
+
+export {
+    Action,
+    Plugin,
+    PluginOptions,
+    registerPlugin,
+    PluginRegistration,
+} from "./plugin_support";

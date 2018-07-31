@@ -1,4 +1,5 @@
 import { Command, flags } from "@oclif/command";
+import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
@@ -12,39 +13,51 @@ import {
     Session,
     StateHistory,
 } from "../proj";
+import { BuildOptions, BuildState } from "../types/adapt_shared";
 
-const cantBuild = "This project cannot be built.\n";
+const cantBuild = "This project cannot be deployed.\n";
 
 export const defaultStateHistoryDir = "./state_history";
 
-export default class BuildCommand extends Command {
-    static description = "Build the DOM for a project";
+export default class DeployCommand extends Command {
+    static description = "Deploy an Adapt project";
 
     static examples = [
         `
-  Build the stack named "dev" from the default project description file, index.tsx:
-    $ adapt build dev
+  Deploy the stack named "dev" from the default project description file, index.tsx:
+    $ adapt deploy dev
 
-  Build the stack named "dev" from an alternate description file:
-    $ adapt build --rootFile somefile.tsx dev
+  Deploy the stack named "dev" from an alternate description file:
+    $ adapt deploy --rootFile somefile.tsx dev
 `,
     ];
 
     static flags = {
+        deployID: flags.string({
+            description: "Identifier for the deployment or 'new' for a new deployment",
+            default: "new",
+        }),
+        dryRun: flags.boolean({
+            description: "Show what would happen during deploy, but do not modify the deployment",
+        }),
+        init: flags.boolean({
+            description: "Initialize a new state history directory if it doesn't exist",
+        }),
         registry: flags.string({
             description: "URL of alternate NPM registry to use",
             env: "ADAPT_NPM_REGISTRY",
         }),
         rootFile: flags.string({
-            description: "Project description file to build (.ts or .tsx)",
+            description: "Project description file to deploy (.ts or .tsx)",
             default: "index.tsx",
+        }),
+        serverUrl: flags.string({
+            description: "URL of Adapt server. Defaults to using local system.",
+            env: "ADAPT_SERVER_URL",
         }),
         stateHistory: flags.string({
             description: "Directory where state sequences will be stored",
             default: defaultStateHistoryDir,
-        }),
-        init: flags.boolean({
-            description: "Initialize a new state history directory if it doesn't exist",
         }),
     };
 
@@ -57,32 +70,42 @@ export default class BuildCommand extends Command {
 
     async run() {
         // tslint:disable-next-line:no-shadowed-variable
-        const { args, flags } = this.parse(BuildCommand);
+        const { args, flags } = this.parse(DeployCommand);
         const { stackName } = args;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
         if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
-        // NOTE(mark): Why doesn't oclif set the boolean to false?
+
+        // NOTE(mark): Why doesn't oclif set the boolean flags to false?
         if (flags.init === undefined) flags.init = false;
+        if (flags.dryRun === undefined) flags.dryRun = false;
 
         const projectFile = path.resolve(flags.rootFile);
 
         if (! await fs.pathExists(projectFile)) {
             this.error(`Project file '${flags.rootFile}' does not exist`);
         }
-        const projectDir = path.dirname(projectFile);
+        const projectRoot = path.dirname(projectFile);
 
         await fs.ensureDir(cacheDir);
 
         const session: Session = {
             cacheDir,
-            projectDir,
+            projectDir: projectRoot,
         };
         const projOpts: ProjectOptions = {
             session,
         };
 
         if (flags.registry) projOpts.registry = flags.registry;
+
+        let adaptUrl: string;
+        if (flags.serverUrl) {
+            adaptUrl = flags.serverUrl;
+        } else {
+            const dbFile = path.join(this.config.dataDir, "local_deploy.json");
+            adaptUrl = filePathToUrl(dbFile);
+        }
 
         // Task context items
         // NOTE: TypeScript 2.9 has trouble doing control flow analysis when
@@ -92,7 +115,7 @@ export default class BuildCommand extends Command {
         // https://github.com/Microsoft/TypeScript/issues/11498
         let project: Project | undefined;
         let history: StateHistory | undefined;
-        let initState: string | undefined;
+        let initialStateJson: string | undefined;
 
         const tasks = new Listr([
             {
@@ -104,14 +127,14 @@ export default class BuildCommand extends Command {
                     history = await createStateHistoryDir(flags.stateHistory, flags.init);
 
                     const stored = await history.lastState();
-                    initState = stored.stateJson;
+                    initialStateJson = stored.stateJson;
                 },
             },
             {
                 title: "Validating project",
                 task: async () => {
                     try {
-                        project = await load(projectDir, projOpts);
+                        project = await load(projectRoot, projOpts);
                         const gen = getGen(project);
                         if (!gen.matchInfo.matches) {
                             this.error(cantBuild +
@@ -122,7 +145,7 @@ export default class BuildCommand extends Command {
                     } catch (err) {
                         if (err.code === "ENOPACKAGEJSON") {
                             this.error(cantBuild +
-                                `The directory '${projectDir}' does not contain a ` +
+                                `The directory '${projectRoot}' does not contain a ` +
                                 `package.json file`);
                         }
                         throw err;
@@ -130,7 +153,7 @@ export default class BuildCommand extends Command {
                 },
             },
             {
-                title: "Building project",
+                title: "Deploying project",
                 task: async () => {
                     if (project == null) {
                         throw new Error(`Internal error: project cannot be null`);
@@ -138,12 +161,43 @@ export default class BuildCommand extends Command {
                     if (history == null) {
                         throw new Error(`Internal error: history cannot be null`);
                     }
-                    if (initState == null) {
+                    if (initialStateJson == null) {
                         throw new Error(`Internal error: initState cannot be null`);
                     }
-                    const buildState = await project.build(projectFile, stackName,
-                                                           initState);
+                    if (flags.deployID == null) {
+                        throw new Error(`Internal error: deployID cannot be null`);
+                    }
+                    const buildOptions: BuildOptions = {
+                        adaptUrl,
+                        fileName: projectFile,
+                        initialStateJson,
+                        projectName: project.name,
+                        deployID: flags.deployID,
+                        stackName,
+                        dryRun: flags.dryRun,
+                        initLocalServer: true,
+                    };
+                    let buildState: BuildState;
+                    try {
+                        buildState = await project.build(buildOptions);
+                    } catch (err) {
+                        if (err.message.match(/No plugins registered/)) {
+                            this.error(cantBuild +
+                                `The project did not import any Adapt plugins`);
+                        }
+                        throw err;
+                    }
+
                     await history.appendState(buildState);
+
+                    const id = buildState.deployId;
+                    if (id == null) this.error(`Deploy successful, but deployID missing in response.`);
+
+                    if (flags.deployID === "new") {
+                        this.log(`Deployment created successfully. DeployID is: ${id}`);
+                    } else {
+                        this.log(`Deployment ${id} updated successfully.`);
+                    }
                 }
             }
         ]);

@@ -17,15 +17,13 @@ export class ValidationError extends CustomError {
 export interface AdaptModule {
     CompileError: Constructor<Error>;
 
-    buildStack(fileName: string, stackName: string, initialStateJson: string,
-               options?: BuildOptions): BuildState;
+    buildStack(options: BuildOptions): Promise<BuildState>;
 }
 
 export function verifyAdaptModule(val: any): AdaptModule {
     if (val == null) throw new ValidationError("AdaptModule", "value is null");
 
-    if (val.buildStack == null) throw new ValidationError("AdaptModule", "buildStack missing");
-    if (typeof val.buildStack !== "function") throw new ValidationError("AdaptModule", "buildStack not a function");
+    verifyProp("AdaptModule", val, "buildStack", "function");
 
     return val as AdaptModule;
 }
@@ -34,12 +32,23 @@ export function verifyAdaptModule(val: any): AdaptModule {
  * General types
  */
 export type Constructor<T extends object> = (new (...args: any[]) => T);
+export type Logger = (...args: any[]) => void;
 
 /*
  * Types related to adapt.buildStack
  */
 export interface BuildOptions {
-    rootDir?: string;
+    adaptUrl: string;
+    fileName: string;
+    initialStateJson: string;
+    projectName: string;
+    deployID: string;
+    stackName: string;
+
+    dryRun?: boolean;
+    initLocalServer?: boolean;
+    log?: Logger;
+    projectRoot?: string;
 }
 
 export enum MessageType {
@@ -56,6 +65,7 @@ export interface BuildState {
     domXml: string;
     stateJson: string;
     messages: Message[];
+    deployId?: string;
 }
 
 export function verifyMessage(m: any): Message {
@@ -86,4 +96,18 @@ export function verifyBuildState(val: any): BuildState {
     verifyMessages(val.messages);
 
     return val as BuildState;
+}
+
+/*
+ * Utilities
+ */
+
+function verifyProp(parentType: string, parent: any, prop: string,
+                    typeofProp: string) {
+    if (parent[prop] == null) {
+        throw new ValidationError(parentType, `${typeofProp} property '${prop}' is missing`);
+    }
+    if (typeof parent[prop] !== typeofProp) {
+        throw new ValidationError(parentType, `property '${prop}' is not a ${typeofProp}`);
+    }
 }
