@@ -1,6 +1,6 @@
 import { Action, Plugin, PluginOptions, registerPlugin } from "../../src";
 
-class EchoPlugin implements Plugin {
+class EchoPlugin implements Plugin<{}> {
     log_?: PluginOptions["log"];
 
     log(...args: any[]) {
@@ -13,10 +13,11 @@ class EchoPlugin implements Plugin {
         this.log_ = options.log;
         this.log("start");
     }
-    async observe(dom: any) {
+    async observe(_oldDom: any, dom: any) {
         this.log("observe", dom);
+        return {};
     }
-    analyze(dom: any): Action[] {
+    analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
         return [
             { description: "echo action1", act: () => this.doAction("action1") },

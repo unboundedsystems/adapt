@@ -30,7 +30,7 @@ const basicPackageJson = {
 const simplePluginTs = `
 import { Action, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
 
-class EchoPlugin implements Plugin {
+class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
 
     log(...args: any[]) {
@@ -43,10 +43,11 @@ class EchoPlugin implements Plugin {
         this._log = options.log;
         this.log("start");
     }
-    async observe(dom: any) {
+    async observe(_oldDom: any, dom: any) {
         this.log("observe", dom);
+        return {};
     }
-    analyze(dom: any): Action[] {
+    analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
         return [
             { description: "echo action1", act: () => this.doAction("action1") },

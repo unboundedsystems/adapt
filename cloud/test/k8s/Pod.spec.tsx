@@ -1,4 +1,4 @@
-import Adapt, { childrenToArray, DomError, Group, isElement, PluginOptions } from "@usys/adapt";
+import Adapt, { AdaptElementOrNull, childrenToArray, DomError, Group, isElement, PluginOptions } from "@usys/adapt";
 import * as ld from "lodash";
 import * as should from "should";
 
@@ -153,15 +153,15 @@ xdescribe("k8s Pod Plugin Tests", function () {
         const dom = await doBuild(pod);
 
         await plugin.start(options);
-        await plugin.observe(dom);
-        const actions = await plugin.analyze(dom);
+        const obs = await plugin.observe(null, dom);
+        const actions = await plugin.analyze(null, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].description).match(/Creating\s.+test/);
 
         await plugin.finish();
     });
 
-    async function createPod(name: string) {
+    async function createPod(name: string): Promise<AdaptElementOrNull> {
         const pod =
             <Pod key={name} config={k8sConfig} terminationGracePeriodSeconds={0}>
                 <Container name="container" image="alpine:3.8" command={["sleep", "3s"]} />
@@ -170,8 +170,8 @@ xdescribe("k8s Pod Plugin Tests", function () {
         const dom = await doBuild(pod);
 
         await plugin.start(options);
-        await plugin.observe(dom);
-        const actions = await plugin.analyze(dom);
+        const obs = await plugin.observe(null, dom);
+        const actions = await plugin.analyze(null, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].description).match(/Creating\s.+test/);
 
@@ -182,21 +182,22 @@ xdescribe("k8s Pod Plugin Tests", function () {
         should(pods[0].metadata.name).equal(podElementToName(dom));
 
         await plugin.finish();
+        return dom;
     }
 
     it("Should create pod", async () => {
         await createPod("test");
     });
 
-    xit("Should delete pod", async () => {
-        await createPod("test");
+    it("Should delete pod", async () => {
+        const oldDom = await createPod("test");
 
         const dom = await doBuild(<Group />);
         await plugin.start(options);
-        await plugin.observe(dom);
-        const actions = await plugin.analyze(dom);
+        const obs = await plugin.observe(oldDom, dom);
+        const actions = await plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
-        should(actions[0].description).match(/Deleting\s.+test/);
+        should(actions[0].description).match(/Destroying\s.+fixme-manishv-[0-9A-Fa-f]+/);
 
         await act(actions);
 

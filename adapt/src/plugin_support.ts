@@ -1,14 +1,16 @@
 import * as ld from "lodash";
 import * as path from "path";
 import * as readPkgUp from "read-pkg-up";
-
 import * as when from "when";
-import { AdaptElement } from ".";
+
+import { AdaptElementOrNull } from ".";
 import { getAdaptContext } from "./ts";
 import { Logger } from "./type_support";
 
+type RegisteredPlugins = Map<string, Plugin>; //string is the name of the plugin
+
 export interface PluginConfig {
-    plugins: Plugin[];
+    plugins: RegisteredPlugins;
 }
 
 export interface Action {
@@ -20,10 +22,10 @@ export interface PluginOptions {
     log: Logger;
 }
 
-export interface Plugin {
+export interface Plugin<Observations extends object = object> {
     start(options: PluginOptions): Promise<void>;
-    observe(dom: AdaptElement): Promise<void>; //Pull data needed for analyze
-    analyze(dom: AdaptElement /*, status FIXME(manishv) add */): Action[];
+    observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
+    analyze(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Action[];
     finish(): Promise<void>;
 }
 
@@ -37,7 +39,7 @@ export interface ActionResult {
 }
 
 export interface PluginManager {
-    start(dom: AdaptElement, options: PluginManagerStartOptions): Promise<void>;
+    start(dom: AdaptElementOrNull, options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Action[];
     act(dryRun: boolean): Promise<ActionResult[]>;
@@ -98,15 +100,28 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
     }
 }
 
+function mapMap<K, V, T>(map: Map<K, V>, f: (key: K, val: V) => T): T[] {
+    const ret: T[] = [];
+    for (const [k, v] of map.entries()) {
+        ret.push(f(k, v));
+    }
+    return ret;
+}
+
+interface AnyObservation {
+    [name: string]: any;
+}
+
 class PluginManagerImpl implements PluginManager {
-    plugins: Plugin[];
-    dom?: AdaptElement | null;
+    plugins: Map<string, Plugin>;
+    dom?: AdaptElementOrNull;
     actions?: Action[];
     log?: Logger;
     state: PluginManagerState;
+    observations: AnyObservation;
 
     constructor(config: PluginConfig) {
-        this.plugins = config.plugins;
+        this.plugins = new Map(config.plugins);
         this.state = PluginManagerState.Initial;
     }
 
@@ -117,13 +132,14 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(dom: AdaptElement | null, options: PluginManagerStartOptions) {
+    async start(dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.log = options.log;
+        this.observations = {};
 
         const loptions = { log: options.log }; //FIXME(manishv) have a per-plugin log here
-        const waitingFor = this.plugins.map((plugin) => plugin.start(loptions));
+        const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.start(loptions));
         await Promise.all(waitingFor);
         this.transitionTo(PluginManagerState.PreObserve);
     }
@@ -132,8 +148,14 @@ class PluginManagerImpl implements PluginManager {
         this.transitionTo(PluginManagerState.Observing);
         const dom = this.dom;
         if (dom == undefined) throw new Error("Must call start before observe");
-        const waitingFor = this.plugins.map((plugin) => plugin.observe(dom));
-        await Promise.all(waitingFor);
+        const observationsP = mapMap(
+            this.plugins,
+            async (name, plugin) => ({ name, obs: await plugin.observe(null, dom) }));
+        const observations = await Promise.all(observationsP);
+        for (const { name, obs } of observations) {
+            this.observations[name] = JSON.stringify(obs);
+        }
+
         this.transitionTo(PluginManagerState.PreAnalyze);
     }
 
@@ -141,7 +163,13 @@ class PluginManagerImpl implements PluginManager {
         this.transitionTo(PluginManagerState.Analyzing);
         const dom = this.dom;
         if (dom == undefined) throw new Error("Must call start before analyze");
-        const actionsTmp = this.plugins.map((plugin) => plugin.analyze(dom));
+        const actionsTmp = mapMap(
+            this.plugins,
+            (name, plugin) => {
+                const obs = JSON.parse(this.observations[name]);
+                return plugin.analyze(null, dom, obs);
+            });
+
         this.actions = ld.flatten(actionsTmp);
         this.transitionTo(PluginManagerState.PreAct);
         return this.actions;
@@ -185,11 +213,12 @@ class PluginManagerImpl implements PluginManager {
 
     async finish() {
         this.transitionTo(PluginManagerState.Finishing);
-        const waitingFor = this.plugins.map((plugin) => plugin.finish());
+        const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.finish());
         await Promise.all(waitingFor);
         this.dom = undefined;
         this.actions = undefined;
         this.log = undefined;
+        this.observations = {};
         this.transitionTo(PluginManagerState.Initial);
     }
 }
@@ -224,12 +253,12 @@ export function registerPlugin(plugin: PluginRegistration) {
 }
 
 export function createPluginConfig(): PluginConfig {
-    const plugins: Plugin[] = [];
+    const plugins: RegisteredPlugins = new Map<string, Plugin>();
     const modules = getPluginModules();
     if (modules == null) throw new Error(`No plugins registered`);
 
     modules.forEach((mod) => {
-        plugins.push(mod.create());
+        plugins.set(mod.name, mod.create());
     });
     return { plugins };
 }
@@ -243,7 +272,7 @@ function getPluginModules(create = false): PluginModules {
 }
 
 function findPackageInfo(dir: string): PackageInfo {
-    const ret = readPkgUp.sync({cwd: dir, normalize: false });
+    const ret = readPkgUp.sync({ cwd: dir, normalize: false });
     const pkgJson = ret.pkg;
     if (!pkgJson || !pkgJson.name || !pkgJson.version) {
         throw new Error(`Invalid plugin registration. Cannot find package.json info in directory ${dir}.`);

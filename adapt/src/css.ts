@@ -292,7 +292,7 @@ function findInDomImpl(styles: StyleList, path: DomPath):
 
 export function findElementsInDom(
     stylesIn: StyleList | jsx.AdaptElement | null,
-    dom: jsx.AdaptElement): jsx.AdaptElement[] {
+    dom: jsx.AdaptElementOrNull): jsx.AdaptElement[] {
 
     return ld.compact(findPathsInDom(stylesIn, dom)
         .map((path) => ld.last(path)));
@@ -300,11 +300,12 @@ export function findElementsInDom(
 
 export function findPathsInDom(
     stylesIn: StyleList | jsx.AdaptElement | null,
-    dom: jsx.AdaptElement): DomPath[] {
+    dom: jsx.AdaptElementOrNull): DomPath[] {
 
     if (stylesIn == null) return [];
     const styles = jsx.isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
 
+    if (dom === null) return [];
     return findInDomImpl(styles, [dom]);
 }
 
