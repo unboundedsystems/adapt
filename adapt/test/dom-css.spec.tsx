@@ -118,4 +118,11 @@ describe("DOM CSS find tests", () => {
             [dom, inner, <MakeMakeEmpty id={2} />]
         ]);
     });
+
+    it("Should search null DOM", () => {
+        const paths = Adapt.findPathsInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, null);
+        should(paths).empty();
+        const elems = Adapt.findElementsInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, null);
+        should(elems).empty();
+    });
 });

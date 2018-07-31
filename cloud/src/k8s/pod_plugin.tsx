@@ -1,4 +1,11 @@
-import Adapt, { AdaptElement, AnyProps, findElementsInDom, isMountedElement, Style } from "@usys/adapt";
+import Adapt, {
+    AdaptElement,
+    AdaptElementOrNull,
+    AnyProps,
+    findElementsInDom,
+    isMountedElement,
+    Style
+} from "@usys/adapt";
 import * as ld from "lodash";
 //import * as when from "when";
 
@@ -19,9 +26,11 @@ interface Client {
     loadSpec(): Promise<void>;
 }
 
-export interface PodPlugin extends Adapt.Plugin {
-    observations?: Observations;
+interface PodObservations {
+    [kubeconfig: string]: PodReplyItem[];
 }
+
+export interface PodPlugin extends Adapt.Plugin<PodObservations> { }
 
 export function createPodPlugin() {
     return new PodPluginImpl();
@@ -31,24 +40,21 @@ function isPodElement(e: AdaptElement): e is AdaptElement<PodProps & Adapt.Built
     return e.componentType === Pod;
 }
 
-async function getPodClient(
-    podIn: AdaptElement<AnyProps>,
+async function getClientForConfigJSON(
+    configJSON: string,
     options: { connCache: Connections }): Promise<Client> {
 
-    const pod = isPodElement(podIn) ? podIn : undefined;
-    if (pod == null) throw new Error("Element is not a pod");
+    const config = JSON.parse(configJSON);
 
-    let client = options.connCache.get(pod);
+    let client = options.connCache.get(config);
     if (client === undefined) {
-        client = new k8s.Client({ config: pod.props.config }) as Client;
+        client = new k8s.Client({ config }) as Client;
         await client.loadSpec();
-        options.connCache.set(pod, client);
+        options.connCache.set(config, client);
     }
 
     return client;
 }
-
-type Observations = Map<Client, PodReplyItem[]>;
 
 async function getPods(client: Client): Promise<PodReplyItem[]> {
     if (client.api == null) throw new Error("Must initialize client before calling api");
@@ -62,13 +68,11 @@ async function getPods(client: Client): Promise<PodReplyItem[]> {
 
 function alreadyExists(
     pod: AdaptElement<PodProps>,
-    observations: Observations,
-    connections: Connections): boolean {
+    observations: PodObservations): boolean {
 
-    const client = connections.get(pod.props.config);
-    if (client === undefined) return false;
+    const configJSON = canonicalConfigJSON(pod.props.config);
 
-    const obs = observations.get(client);
+    const obs = observations[configJSON];
     if (obs === undefined) return false;
 
     if (!isMountedElement(pod)) throw new Error("Can only compute name for mounted elements!");
@@ -77,33 +81,33 @@ function alreadyExists(
     return item !== undefined;
 }
 
-function observedPods(observations: Observations): { client: Client, podStatus: PodReplyItem }[] {
-    const ret: { client: Client, podStatus: PodReplyItem }[] = [];
+function observedPods(observations: PodObservations): { configJSON: string, podStatus: PodReplyItem }[] {
+    const ret: { configJSON: string, podStatus: PodReplyItem }[] = [];
 
-    for (const entry of observations.entries()) {
-        for (const item of entry[1]) {
-            ret.push({ client: entry[0], podStatus: item });
+    for (const configJSON in observations) {
+        if (!observations.hasOwnProperty(configJSON)) continue;
+        for (const item of observations[configJSON]) {
+            ret.push({ configJSON, podStatus: item });
         }
     }
 
     return ret;
 }
 
-function podMatchesStatus(
-    status: { client: Client, podStatus: PodReplyItem },
-    pods: AdaptElement<PodProps>[], connections: Connections): boolean {
+function podShouldExist(
+    status: { configJSON: string, podStatus: PodReplyItem },
+    pods: AdaptElement<PodProps>[]): boolean {
 
     return pods.find((pod) => {
         if (!isMountedElement(pod)) throw new Error("Can only compare mounted pod elements to running state");
-        const podClient = connections.get(pod);
-        if (status.client !== podClient) return false;
+        if (status.configJSON === canonicalConfigJSON(pod.props.config)) return false;
         return podElementToName(pod) === status.podStatus.metadata.name;
     }) !== undefined;
 }
 
 const rules = <Style>{Pod} {Adapt.rule()}</Style>;
 
-function findPods(dom: AdaptElement): AdaptElement<PodProps & Adapt.BuiltinProps>[] {
+function findPods(dom: AdaptElementOrNull): AdaptElement<PodProps & Adapt.BuiltinProps>[] {
     const candidatePods = findElementsInDom(rules, dom);
     return ld.compact(candidatePods.map((e) => isPodElement(e) ? e : null));
 }
@@ -171,7 +175,7 @@ class Connections {
         }
 
         if (!ld.isObject(config)) throw new Error("Cannot lookup connection for non-object pod configs");
-        return JSON.stringify(config);
+        return canonicalConfigJSON(config);
     }
 
     private connections: Map<string, Client> = new Map<string, Client>();
@@ -187,44 +191,50 @@ class Connections {
     }
 }
 
+function canonicalConfigJSON(config: any) {
+    return JSON.stringify(config); //FIXME(manishv) Make this truly canonicalize things/urls/etc.
+}
+
 export class PodPluginImpl implements PodPlugin {
     logger?: ((...args: any[]) => void);
-    connections: Connections = new Connections();
-    observations?: Map<Client, PodReplyItem[]>;
+    connCache: Connections = new Connections();
 
     async start(options: Adapt.PluginOptions) {
         this.logger = options.log;
-        this.observations = new Map<Client, PodReplyItem[]>();
     }
 
-    async observe(dom: AdaptElement): Promise<void> {
-        const pods = findPods(dom);
-        if (this.observations == null) throw new Error("Plugin users should call start before observe");
+    async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<PodObservations> {
+        const newPods = findPods(dom);
+        const oldPods = findPods(oldDom);
+        const allPods = newPods.concat(oldPods);
 
-        const clients = ld.uniq(
-            await Promise.all(pods.map((pod) =>
-                getPodClient(pod, { connCache: this.connections }))));
+        const configs = ld.uniq(allPods.map((pod) => canonicalConfigJSON(pod.props.config)));
+        const clients = await Promise.all(configs.map(async (config) => ({
+            config,
+            client: await getClientForConfigJSON(config, { connCache: this.connCache })
+        })));
 
-        //FIXME(manishv)  This is broken, what if no pods from an old cluster are left in the dom?
-        const runningPods = await Promise.all(clients.map(async (client) => ({ client, pods: await getPods(client) })));
-        for (const runningPod of runningPods) {
-            this.observations.set(runningPod.client, runningPod.pods);
+        const runningPodsP = clients.map(async (c) => ({ config: c.config, pods: await getPods(c.client) }));
+        const runningPods = await Promise.all(runningPodsP);
+        const ret: PodObservations = {};
+        for (const { config, pods } of runningPods) {
+            ret[config] = pods;
         }
-        return;
+        return ret;
     }
 
-    analyze(dom: AdaptElement): Adapt.Action[] {
-        const pods = findPods(dom);
-        if (this.observations == null) throw new Error("Plugin users should call observe before analyze");
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: PodObservations): Adapt.Action[] {
+        const newPods = findPods(dom);
 
         const ret: Adapt.Action[] = [];
-        for (const pod of pods) {
-            const action = alreadyExists(pod, this.observations, this.connections) ? "Updating" : "Creating";
+        for (const pod of newPods) {
+            const action = alreadyExists(pod, obs) ? "Updating" : "Creating";
 
             ret.push({
                 description: `${action} pod ${pod.props.key}`,
                 act: async () => {
-                    const client = await getPodClient(pod, { connCache: this.connections });
+                    const configJSON = canonicalConfigJSON(pod.props.config);
+                    const client = await getClientForConfigJSON(configJSON, { connCache: this.connCache });
                     const podSpec = makePodManifest(pod);
                     if (client.api === undefined) throw new Error("Internal Error");
                     await client.api.v1.namespaces("default").pods.post({ body: podSpec });
@@ -232,11 +242,12 @@ export class PodPluginImpl implements PodPlugin {
             });
         }
 
-        for (const { client, podStatus } of observedPods(this.observations)) {
-            if (podMatchesStatus({ client, podStatus }, pods, this.connections)) continue;
+        for (const { configJSON, podStatus } of observedPods(obs)) {
+            if (podShouldExist({ configJSON, podStatus }, newPods)) continue;
             ret.push({
                 description: `Destroying pod ${podStatus.metadata.name}`,
                 act: async () => {
+                    const client = await getClientForConfigJSON(configJSON, { connCache: this.connCache });
                     if (client.api == null) throw new Error("Action uses uninitialized client");
                     await client.api.v1.namespaces("default").pods(podStatus.metadata.name).delete();
                 }
@@ -248,7 +259,6 @@ export class PodPluginImpl implements PodPlugin {
 
     async finish() {
         this.logger = undefined;
-        this.observations = undefined;
     }
 
 }

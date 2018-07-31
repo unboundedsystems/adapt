@@ -3,7 +3,7 @@ import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
-import Adapt, { AdaptElement, Group } from "../src";
+import Adapt, { AdaptElementOrNull, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
 import { createMockLogger, MockLogger, packageDirs } from "./testlib";
@@ -17,17 +17,20 @@ async function doAction(name: string, cb: (op: string) => void) {
     cb(name);
 }
 
-class TestPlugin implements pluginSupport.Plugin {
+class TestPlugin implements pluginSupport.Plugin<{}> {
     constructor(readonly spy: sinon.SinonSpy) { }
 
     async start(options: pluginSupport.PluginOptions) {
         this.spy("start", options);
     }
-    async observe(dom: AdaptElement) {
-        this.spy("observe", dom);
+    async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
+        const obs = { test: "object" };
+        this.spy("observe", dom, obs);
+        return obs;
     }
-    analyze(dom: AdaptElement): pluginSupport.Action[] {
-        this.spy("analyze", dom);
+
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): pluginSupport.Action[] {
+        this.spy("analyze", dom, obs);
         return [
             { description: "action1", act: () => doAction("action1", this.spy) },
             { description: "action2", act: () => doAction("action2", this.spy) }
@@ -47,9 +50,11 @@ describe("Plugin Support Basic Tests", () => {
     beforeEach(() => {
         spy = sinon.spy();
         logger = createMockLogger();
+        const registered = new Map<string, pluginSupport.Plugin>();
+        registered.set("TestPlugin", new TestPlugin(spy));
 
         mgr = pluginSupport.createPluginManager({
-            plugins: [new TestPlugin(spy)]
+            plugins: registered
         });
     });
 
@@ -68,7 +73,7 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.observe();
         should(spy.callCount).equal(2);
         should(spy.getCall(0).args[0]).equal("start");
-        should(spy.getCall(1).args).eql(["observe", dom]);
+        should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
     });
 
     it("Should call analyze after observe", async () => {
@@ -77,8 +82,8 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.analyze();
         should(spy.callCount).equal(3);
         should(spy.getCall(0).args[0]).equal("start");
-        should(spy.getCall(1).args).eql(["observe", dom]);
-        should(spy.getCall(2).args).eql(["analyze", dom]);
+        should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
+        should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
     });
 
     it("Should call actions", async () => {
@@ -89,8 +94,8 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.finish();
         should(spy.callCount).equal(6);
         should(spy.getCall(0).args[0]).equal("start");
-        should(spy.getCall(1).args).eql(["observe", dom]);
-        should(spy.getCall(2).args).eql(["analyze", dom]);
+        should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
+        should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
         should(spy.getCall(3).args).eql(["action1"]);
         should(spy.getCall(4).args).eql(["action2"]);
         should(spy.getCall(5).args).eql(["finish"]);
@@ -107,8 +112,8 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.finish();
         should(spy.callCount).equal(4);
         should(spy.getCall(0).args[0]).equal("start");
-        should(spy.getCall(1).args).eql(["observe", dom]);
-        should(spy.getCall(2).args).eql(["analyze", dom]);
+        should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
+        should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
         should(spy.getCall(3).args).eql(["finish"]);
         const contents = logger.stdout;
         should(contents).match(/action1/);
@@ -185,7 +190,7 @@ describe("Plugin register and deploy", () => {
     it("Should register plugin", async () => {
         await requireTestPlugin("echo_plugin");
         const config = pluginSupport.createPluginConfig();
-        config.plugins.should.have.length(1);
+        should(config.plugins).size(1);
 
         const mgr = pluginSupport.createPluginManager(config);
         await mgr.start(dom, { log: logger.log });
