@@ -1,16 +1,16 @@
 import { Action, Plugin, PluginOptions, registerPlugin } from "../../src";
 
 class EchoPlugin implements Plugin {
-    _log?: PluginOptions["log"];
+    log_?: PluginOptions["log"];
 
     log(...args: any[]) {
-        if (this._log == null) throw new Error(`Plugin has no log function`);
-        this._log(`${this.constructor.name}:`, ...args);
+        if (this.log_ == null) throw new Error(`Plugin has no log function`);
+        this.log_(`${this.constructor.name}:`, ...args);
     }
 
     async start(options: PluginOptions) {
         if (options.log == null) throw new Error(`Plugin start called without log`);
-        this._log = options.log;
+        this.log_ = options.log;
         this.log("start");
     }
     async observe(dom: any) {

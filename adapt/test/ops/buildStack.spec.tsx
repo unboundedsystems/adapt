@@ -3,11 +3,11 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
 
-import { mockLogger, MockLogger, pkgRootDir } from "../testlib";
+import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
 
 import { buildStack } from "../../src/ops/buildStack";
 import { LocalServer } from "../../src/server/local_server";
-import { _mockServerTypes, AdaptServerType } from "../../src/server/server";
+import { AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
 const simplePackageJson = {
     name: "test_project",
@@ -91,12 +91,12 @@ describe("buildStack Tests", async function() {
     tmpdir.each("adapt-buildStack");
 
     beforeEach(() => {
-        origServerTypes = _mockServerTypes();
-        _mockServerTypes([LocalServer]);
-        logger = mockLogger();
+        origServerTypes = mockServerTypes_();
+        mockServerTypes_([LocalServer]);
+        logger = createMockLogger();
     });
     afterEach(() => {
-        _mockServerTypes(origServerTypes);
+        mockServerTypes_(origServerTypes);
     });
 
     it("Should build a single file", async () => {

@@ -5,10 +5,10 @@ import * as should from "should";
 
 import { LocalServer, LocalServerOptions } from "../../src/server/local_server";
 import {
-    _mockServerTypes,
     adaptServer,
     AdaptServer,
     AdaptServerType,
+    mockServerTypes_,
     register,
 } from "../../src/server/server";
 
@@ -25,10 +25,10 @@ describe("Server tests", () => {
     mochaTmpdir.each("test-adapt-server");
 
     beforeEach(() => {
-        origServerTypes = _mockServerTypes();
+        origServerTypes = mockServerTypes_();
     });
     afterEach(() => {
-        _mockServerTypes(origServerTypes);
+        mockServerTypes_(origServerTypes);
     });
 
     it("Should init a file URL with default registrations", async () => {
@@ -40,7 +40,7 @@ describe("Server tests", () => {
     });
 
     it("Should throw with no serverTypes registered", () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         const dbFile = path.join(process.cwd(), "db.json");
         return should(adaptServer("file://" + dbFile, {}))
             .rejectedWith(/Adapt server url.*is not a supported url type/);
@@ -52,14 +52,14 @@ describe("LocalServer tests", () => {
     mochaTmpdir.each("test-adapt-localserver");
 
     beforeEach(() => {
-        origServerTypes = _mockServerTypes();
+        origServerTypes = mockServerTypes_();
     });
     afterEach(() => {
-        _mockServerTypes(origServerTypes);
+        mockServerTypes_(origServerTypes);
     });
 
     it("Should init a file URL when registered", async () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         register(LocalServer);
         const server = await initLocalServer("db.json", true);
         const someobject = { bar: 1 };
@@ -68,14 +68,14 @@ describe("LocalServer tests", () => {
     });
 
     it("Should throw if DB doesn't exist and init is false", () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         register(LocalServer);
         return should(initLocalServer("db.json", false))
             .rejectedWith(/Adapt local server file .* does not exist/);
     });
 
     it("Should store data in JSON format", async () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         register(LocalServer);
         const server = await initLocalServer("db.json", true);
         await server.set("/foo/bar", {baz: "qaz"});
@@ -91,7 +91,7 @@ describe("LocalServer tests", () => {
     });
 
     it("Should not throw on overwrite existing", async () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         register(LocalServer);
         const server = await initLocalServer("db.json", true);
         await server.set("/foo/bar", 1);
@@ -101,7 +101,7 @@ describe("LocalServer tests", () => {
     });
 
     it("Should throw on mustCreate with existing", async () => {
-        _mockServerTypes([]);
+        mockServerTypes_([]);
         register(LocalServer);
         const server = await initLocalServer("db.json", true);
         await server.set("/foo/bar", 1, { mustCreate: true });

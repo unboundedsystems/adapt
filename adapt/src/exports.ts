@@ -84,5 +84,5 @@ export {
     Plugin,
     PluginOptions,
     registerPlugin,
-    RegisterPlugin,
+    PluginRegistration,
 } from "./plugin_support";

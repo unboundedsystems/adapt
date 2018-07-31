@@ -194,7 +194,7 @@ class PluginManagerImpl implements PluginManager {
     }
 }
 
-export interface RegisterPlugin {
+export interface PluginRegistration {
     module: NodeModule;
     create(): Plugin;
 }
@@ -204,14 +204,14 @@ interface PackageInfo {
     version: string;
 }
 
-interface PluginModule extends RegisterPlugin {
+interface PluginModule extends PluginRegistration {
     name: string;
     version: string;
 }
 
 type PluginModules = Map<string, PluginModule>;
 
-export function registerPlugin(plugin: RegisterPlugin) {
+export function registerPlugin(plugin: PluginRegistration) {
     const modules = getPluginModules(true);
     const pInfo = findPackageInfo(path.dirname(plugin.module.filename));
     const mod: PluginModule = { ...plugin, ...pInfo };

@@ -118,6 +118,6 @@ class MockLoggerImpl implements MockLogger {
     }
 }
 
-export function mockLogger(): MockLogger {
+export function createMockLogger(): MockLogger {
     return new MockLoggerImpl();
 }

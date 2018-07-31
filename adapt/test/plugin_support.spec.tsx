@@ -6,7 +6,7 @@ import * as sinon from "sinon";
 import Adapt, { Group, UnbsElement } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
-import { mockLogger, MockLogger, packageDirs } from "./testlib";
+import { createMockLogger, MockLogger, packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -46,7 +46,7 @@ describe("Plugin Support Basic Tests", () => {
 
     beforeEach(() => {
         spy = sinon.spy();
-        logger = mockLogger();
+        logger = createMockLogger();
 
         mgr = pluginSupport.createPluginManager({
             plugins: [new TestPlugin(spy)]
@@ -174,7 +174,7 @@ describe("Plugin register and deploy", () => {
     beforeEach(() => {
         cleanupTestPlugins();
         setAdaptContext(Object.create(null));
-        logger = mockLogger();
+        logger = createMockLogger();
     });
 
     after(() => {

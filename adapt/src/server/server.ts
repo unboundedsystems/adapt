@@ -22,7 +22,7 @@ export interface AdaptServerType {
 // Exported for testing only
 let serverTypes: AdaptServerType[] = [];
 
-export function _mockServerTypes(sTypes?: AdaptServerType[]) {
+export function mockServerTypes_(sTypes?: AdaptServerType[]) {
     const oldTypes = serverTypes;
     if (sTypes != null) serverTypes = sTypes;
     return oldTypes;
