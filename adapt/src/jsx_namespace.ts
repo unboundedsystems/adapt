@@ -1,4 +1,4 @@
-import { AnyProps, AnyState, BuiltinProps, Component, UnbsElement } from "./jsx";
+import { AdaptElement, AnyProps, AnyState, BuiltinProps, Component } from "./jsx";
 
 export namespace JSX {
     export interface IntrinsicElements { }
@@ -14,5 +14,5 @@ export namespace JSX {
         children: never;
     }
     export type ElementClass = Component<AnyProps, AnyState>;
-    export type Element = UnbsElement;
+    export type Element = AdaptElement;
 }

@@ -3,15 +3,15 @@ import * as util from "util";
 import * as ld from "lodash";
 
 import {
+    AdaptElement,
     AnyProps,
     AnyState,
     Component,
     isElement,
-    UnbsElement,
 } from "./jsx";
 import { StateNamespace } from "./state";
 
-export function setKey(elem: UnbsElement, key: string) {
+export function setKey(elem: AdaptElement, key: string) {
     if (Object.isFrozen(elem.props)) {
         const newProps = Object.assign(ld.clone(elem.props), { key });
         Object.freeze(newProps);
@@ -21,7 +21,7 @@ export function setKey(elem: UnbsElement, key: string) {
     }
 }
 
-export function computeMountKey(elem: UnbsElement, parentStateNamespace: StateNamespace): string {
+export function computeMountKey(elem: AdaptElement, parentStateNamespace: StateNamespace): string {
     let newKey: string | undefined = elem.props.key;
     if (newKey == null) {
         const lastKey = ld.last(parentStateNamespace);
@@ -33,8 +33,8 @@ export function computeMountKey(elem: UnbsElement, parentStateNamespace: StateNa
 
 export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined) {
     const existingKeys = new KeyNames();
-    const needsKeys: UnbsElement[] = [];
-    const duplicateKeys: UnbsElement[] = [];
+    const needsKeys: AdaptElement[] = [];
+    const duplicateKeys: AdaptElement[] = [];
 
     if (siblingsIn == null) return;
     const siblings = ld.isArray(siblingsIn) ? siblingsIn : [siblingsIn];

@@ -13,7 +13,7 @@ export interface StyleBuildInfo {
     origElement: any;
 }
 export type BuildOverride<P = jsx.AnyProps> =
-    (props: P, info: StyleBuildInfo) => jsx.UnbsElementOrNull;
+    (props: P, info: StyleBuildInfo) => jsx.AdaptElementOrNull;
 
 export interface StyleRule {
     selector: string;
@@ -169,12 +169,12 @@ export type AbstractComponentCtor
     // tslint:disable-next-line:ban-types
     Function & { prototype: T };
 
-export type UnbsComponentConstructor =
+export type AdaptComponentConstructor =
     new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps, jsx.AnyState>;
 
 export interface StyleProps {
     children: (AbstractComponentCtor | jsx.SFC | string |
-        UnbsComponentConstructor | Rule)[];
+        AdaptComponentConstructor | Rule)[];
 }
 
 export class Rule<P = jsx.AnyProps> {
@@ -234,7 +234,7 @@ function isStylesComponent(componentType: any):
     return componentType === Style;
 }
 
-export function buildStyles(styleElem: jsx.UnbsElement | null): StyleList {
+export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
     if (styleElem == null) {
         return [];
     }
@@ -291,16 +291,16 @@ function findInDomImpl(styles: StyleList, path: DomPath):
 }
 
 export function findElementsInDom(
-    stylesIn: StyleList | jsx.UnbsElement | null,
-    dom: jsx.UnbsElement): jsx.UnbsElement[] {
+    stylesIn: StyleList | jsx.AdaptElement | null,
+    dom: jsx.AdaptElement): jsx.AdaptElement[] {
 
     return ld.compact(findPathsInDom(stylesIn, dom)
         .map((path) => ld.last(path)));
 }
 
 export function findPathsInDom(
-    stylesIn: StyleList | jsx.UnbsElement | null,
-    dom: jsx.UnbsElement): DomPath[] {
+    stylesIn: StyleList | jsx.AdaptElement | null,
+    dom: jsx.AdaptElement): DomPath[] {
 
     if (stylesIn == null) return [];
     const styles = jsx.isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
@@ -321,15 +321,15 @@ export class Style extends jsx.Component<StyleProps> {
  * the Style element parameters.
  *
  * @export
- * @param {...jsx.UnbsElement[]} styles
+ * @param {...jsx.AdaptElement[]} styles
  *   Zero or more Style elements, each containing style rules.
- * @returns {jsx.UnbsElement}
+ * @returns {jsx.AdaptElement}
  *   A new Style element containing the concatenation of all
  *   of the rules from the passed in Style elements.
  */
 export function concatStyles(
-    ...styles: jsx.UnbsElement[]
-): jsx.UnbsElement {
+    ...styles: jsx.AdaptElement[]
+): jsx.AdaptElement {
 
     const rules: Rule[] = [];
     for (const styleElem of styles) {

@@ -15,7 +15,7 @@ class Dummy extends Adapt.Component<Adapt.AnyProps> {
 }
 
 describe("JSX SFC createElement Tests", () => {
-    function Component(_props: any): Adapt.UnbsElement {
+    function Component(_props: any): Adapt.AdaptElement {
         throw new Error("Test is not supposed to render");
     }
 
@@ -156,7 +156,7 @@ describe("JSX cloneElement Tests", () => {
     });
 
     it("Children as params should override orig and props", () => {
-        function Dummy2(_props: any): Adapt.UnbsElement {
+        function Dummy2(_props: any): Adapt.AdaptElement {
             throw new Error("Test is not supposed to render");
         }
 

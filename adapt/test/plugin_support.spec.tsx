@@ -3,7 +3,7 @@ import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
-import Adapt, { Group, UnbsElement } from "../src";
+import Adapt, { AdaptElement, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
 import { createMockLogger, MockLogger, packageDirs } from "./testlib";
@@ -23,10 +23,10 @@ class TestPlugin implements pluginSupport.Plugin {
     async start(options: pluginSupport.PluginOptions) {
         this.spy("start", options);
     }
-    async observe(dom: UnbsElement) {
+    async observe(dom: AdaptElement) {
         this.spy("observe", dom);
     }
-    analyze(dom: UnbsElement): pluginSupport.Action[] {
+    analyze(dom: AdaptElement): pluginSupport.Action[] {
         this.spy("analyze", dom);
         return [
             { description: "action1", act: () => doAction("action1", this.spy) },

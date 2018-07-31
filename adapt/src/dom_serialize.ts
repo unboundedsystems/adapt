@@ -1,7 +1,7 @@
 import * as ld from "lodash";
 import * as xmlbuilder from "xmlbuilder";
 
-import { isElement, UnbsElement } from ".";
+import { AdaptElement, isElement } from ".";
 import { childrenToArray } from "./jsx";
 
 interface PreparedProps {
@@ -35,7 +35,7 @@ function serializeLongPropVal(propVal: any, pretty = true) {
     return propVal.toString();
 }
 
-function collectProps(elem: UnbsElement) {
+function collectProps(elem: AdaptElement) {
     const props = elem.props;
     const shortProps: PreparedProps = {};
     let longProps: PreparedProps | null = null;
@@ -69,7 +69,7 @@ function addPropsNode(node: xmlbuilder.XMLElementOrXMLNode, props: PreparedProps
 
 function serializeChildren(
     node: xmlbuilder.XMLElementOrXMLNode,
-    elem: UnbsElement): void {
+    elem: AdaptElement): void {
 
     const children: any[] = childrenToArray(elem.props.children);
 
@@ -87,7 +87,7 @@ function serializeChildren(
     }
 }
 
-function serializeElement(parent: xmlbuilder.XMLElementOrXMLNode, elem: UnbsElement): void {
+function serializeElement(parent: xmlbuilder.XMLElementOrXMLNode, elem: AdaptElement): void {
     const { shortProps, longProps } = collectProps(elem);
     const node = parent.ele(elem.componentType.name, shortProps);
     if (longProps != null) {
@@ -96,7 +96,7 @@ function serializeElement(parent: xmlbuilder.XMLElementOrXMLNode, elem: UnbsElem
     serializeChildren(node, elem);
 }
 
-export function serializeDom(root: UnbsElement): string {
+export function serializeDom(root: AdaptElement): string {
     const doc = xmlbuilder.create("Adapt");
     serializeElement(doc, root);
     doc.end({

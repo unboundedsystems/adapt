@@ -3,7 +3,7 @@ import * as path from "path";
 import * as readPkgUp from "read-pkg-up";
 
 import * as when from "when";
-import { UnbsElement } from ".";
+import { AdaptElement } from ".";
 import { getAdaptContext } from "./ts";
 import { Logger } from "./type_support";
 
@@ -22,8 +22,8 @@ export interface PluginOptions {
 
 export interface Plugin {
     start(options: PluginOptions): Promise<void>;
-    observe(dom: UnbsElement): Promise<void>; //Pull data needed for analyze
-    analyze(dom: UnbsElement /*, status FIXME(manishv) add */): Action[];
+    observe(dom: AdaptElement): Promise<void>; //Pull data needed for analyze
+    analyze(dom: AdaptElement /*, status FIXME(manishv) add */): Action[];
     finish(): Promise<void>;
 }
 
@@ -37,7 +37,7 @@ export interface ActionResult {
 }
 
 export interface PluginManager {
-    start(dom: UnbsElement, options: PluginManagerStartOptions): Promise<void>;
+    start(dom: AdaptElement, options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Action[];
     act(dryRun: boolean): Promise<ActionResult[]>;
@@ -100,7 +100,7 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
 
 class PluginManagerImpl implements PluginManager {
     plugins: Plugin[];
-    dom?: UnbsElement | null;
+    dom?: AdaptElement | null;
     actions?: Action[];
     log?: Logger;
     state: PluginManagerState;
@@ -117,7 +117,7 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(dom: UnbsElement | null, options: PluginManagerStartOptions) {
+    async start(dom: AdaptElement | null, options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.log = options.log;

@@ -11,31 +11,31 @@ import * as tySup from "./type_support";
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
-export interface UnbsElement<P extends object = AnyProps> {
+export interface AdaptElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
 }
 
-export interface UnbsMountedElement<P extends object = AnyProps> extends UnbsElement<P> {
+export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly id: string;
 }
 
-export interface UnbsPrimitiveElement<P extends object = AnyProps> extends UnbsElement<P> {
+export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
 
-export type UnbsElementOrNull = UnbsElement<AnyProps> | null;
+export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
-export function isElement<P extends object = AnyProps>(val: any): val is UnbsElement<P> {
-    return val instanceof UnbsElementImpl;
+export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
+    return val instanceof AdaptElementImpl;
 }
 
-export function isMountedElement<P extends object = AnyProps>(val: any): val is UnbsMountedElement<P> {
+export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
 }
 
-export function isElementImpl<P extends object = AnyProps>(val: any): val is UnbsElementImpl<P> {
+export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
     return isElement(val);
 }
 
@@ -55,7 +55,7 @@ export abstract class Component<Props extends object = {}, State extends object 
         this.stateUpdates.push(upd);
     }
 
-    build(): UnbsElementOrNull {
+    build(): AdaptElementOrNull {
         throw new BuildNotImplemented();
     }
 }
@@ -75,14 +75,14 @@ export function isPrimitive<P extends object>(component: Component<P>):
     return component instanceof PrimitiveComponent;
 }
 
-export type SFC = (props: AnyProps) => UnbsElementOrNull;
+export type SFC = (props: AnyProps) => AdaptElementOrNull;
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
     return func instanceof Component;
 }
 
-export function isPrimitiveElement(elem: UnbsElement): elem is UnbsPrimitiveElement<AnyProps> {
+export function isPrimitiveElement(elem: AdaptElement): elem is AdaptPrimitiveElement<AnyProps> {
     return isPrimitive(elem.componentType.prototype);
 }
 
@@ -90,7 +90,7 @@ export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
-    (props: P): UnbsElementOrNull;
+    (props: P): AdaptElementOrNull;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P): Component<P, S>;
@@ -138,7 +138,7 @@ export interface WithMatchProps {
     [$cssMatch]?: MatchProps;
 }
 
-export class UnbsElementImpl<Props extends object> implements UnbsElement<Props> {
+export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
     readonly props: Props & WithChildren & Required<WithMatchProps>;
 
     stateNamespace: StateNamespace = [];
@@ -192,7 +192,7 @@ export class UnbsElementImpl<Props extends object> implements UnbsElement<Props>
     get id() { return JSON.stringify(this.stateNamespace); }
 }
 
-export class UnbsPrimitiveElementImpl<Props extends object> extends UnbsElementImpl<Props> {
+export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElementImpl<Props> {
     componentInstance?: PrimitiveComponent<AnyProps>;
 
     constructor(
@@ -236,7 +236,7 @@ export function createElement<Props extends object>(
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
     props: tySup.ExcludeInterface<Props, tySup.Children<any>> & BuiltinProps,
-    ...children: tySup.ChildType<Props>[]): UnbsElement {
+    ...children: tySup.ChildType<Props>[]): AdaptElement {
 
     if (typeof ctor === "string") {
         throw new Error("createElement cannot called with string element type");
@@ -256,19 +256,19 @@ export function createElement<Props extends object>(
         };
     }
     if (isPrimitive(ctor.prototype)) {
-        return new UnbsPrimitiveElementImpl(
+        return new AdaptPrimitiveElementImpl(
             ctor as PrimitiveClassComponentTyp<Props>,
             fixedProps,
             children);
     } else {
-        return new UnbsElementImpl(ctor, fixedProps, children);
+        return new AdaptElementImpl(ctor, fixedProps, children);
     }
 }
 
 export function cloneElement(
-    element: UnbsElement,
+    element: AdaptElement,
     props: AnyProps,
-    ...children: any[]): UnbsElement {
+    ...children: any[]): AdaptElement {
 
     const newProps = {
         ...element.props,
@@ -276,9 +276,9 @@ export function cloneElement(
     };
 
     if (isPrimitiveElement(element)) {
-        return new UnbsPrimitiveElementImpl(element.componentType, newProps, children);
+        return new AdaptPrimitiveElementImpl(element.componentType, newProps, children);
     } else {
-        return new UnbsElementImpl(element.componentType, newProps, children);
+        return new AdaptElementImpl(element.componentType, newProps, children);
     }
 }
 

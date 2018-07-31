@@ -1,7 +1,7 @@
-import { PrimitiveComponent, UnbsElementOrNull } from "./jsx";
+import { AdaptElementOrNull, PrimitiveComponent } from "./jsx";
 
 export interface GroupProps {
-    children?: UnbsElementOrNull[] | UnbsElementOrNull;
+    children?: AdaptElementOrNull[] | AdaptElementOrNull;
 }
 export class Group extends PrimitiveComponent<GroupProps> { }
 

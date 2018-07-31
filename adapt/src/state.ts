@@ -2,7 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { AnyProps, AnyState, Component, isElementImpl, UnbsElement } from "./jsx";
+import { AdaptElement, AnyProps, AnyState, Component, isElementImpl } from "./jsx";
 import { StateNamespace } from "./state";
 
 export interface StateStore {
@@ -125,7 +125,7 @@ export function applyStateUpdate<
     writableState(component).state = newState as S; //FIXME(manishv) validate type of newState
 }
 
-export function stateNamespaceForPath(path: UnbsElement[]): StateNamespace {
+export function stateNamespaceForPath(path: AdaptElement[]): StateNamespace {
     const elem = ld.last(path);
     if (!elem) return [];
     if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
