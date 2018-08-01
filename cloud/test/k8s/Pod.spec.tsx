@@ -6,6 +6,7 @@ import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
 import { Container, createPodPlugin, Pod, podElementToName, PodPlugin } from "../../src/k8s";
+import { MinikubeInfo, startTestMinikube, stopTestMinikube } from "./minikube";
 
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
@@ -106,13 +107,25 @@ async function sleep(wait: number): Promise<void> {
     });
 }
 
-xdescribe("k8s Pod Plugin Tests", function () {
-    this.timeout(20000);
+describe("k8s Pod Plugin Tests", function () {
+    this.timeout(80000);
 
     let plugin: PodPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
     let k8sConfig: object;
+    let minikubeInfo: MinikubeInfo;
+
+    before(async () => {
+        minikubeInfo = await startTestMinikube();
+        k8sConfig = k8s.config.fromKubeconfig(minikubeInfo.kubeconfig);
+    });
+
+    after(async () => {
+        if (minikubeInfo != null) {
+            await stopTestMinikube(minikubeInfo);
+        }
+    });
 
     beforeEach(async () => {
         plugin = createPodPlugin();
@@ -120,7 +133,6 @@ xdescribe("k8s Pod Plugin Tests", function () {
         options = {
             log: new Console(logs, logs).log
         };
-        k8sConfig = k8s.config.fromKubeconfig("./kubeconfig");
     });
 
     afterEach(async () => {

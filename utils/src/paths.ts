@@ -65,6 +65,7 @@ export const repoDirs = {
     "cli": path.join(repoRootDir, "cli"),
     "cloud": path.join(repoRootDir, "cloud"),
     "dom-parser": path.join(repoRootDir, "dom-parser"),
+    "utils": path.join(repoRootDir, "utils"),
     "verdaccio": path.join(repoRootDir, "verdaccio"),
 };
 

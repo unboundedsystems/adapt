@@ -16,6 +16,7 @@ export const defaultPublishList = [
     repoDirs.adapt,
     repoDirs.cloud,
     repoDirs["dom-parser"],
+    repoDirs.utils,
 ];
 
 export async function setupLocalRegistry(publishList: string[]): Promise<void> {
