@@ -34,7 +34,7 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container): Prom
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
     for (const cluster of kubeconfig.clusters) {
-        const server = (cluster.cluster.server as string)
+        const server = (cluster.cluster.server as string);
         cluster.cluster.server = server.replace("localhost", "kubernetes");
         cluster.cluster.server = server.replace("127.0.0.1", "kubernetes");
     }
