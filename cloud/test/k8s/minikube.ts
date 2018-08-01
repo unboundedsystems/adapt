@@ -106,36 +106,43 @@ async function removeFromNetwork(container: Docker.Container, network: Docker.Ne
 }
 
 export async function startTestMinikube(): Promise<MinikubeInfo> {
-    const docker = new Docker({ socketPath: "/var/run/docker.sock" });
-
-    let stopContainer: () => Promise<void>;
-    let container: Docker.Container;
-    let network: Docker.Network;
-
-    const self = await getSelfContainer(docker);
-
-    if (process.env.ADAPT_TEST_MINIKUBE) {
-        container = docker.getContainer(process.env.ADAPT_TEST_MINIKUBE);
-        network = await getNetwork(docker, container);
-        stopContainer = async () => { return; };
-    } else {
-        const newContainerName = `test_minikube_${self.id}_${process.pid}`;
-        network = await createNetwork(docker, newContainerName);
-        if (network.id === undefined) throw new Error("Network id was undefined!");
-        container = await runMinikubeContainer(docker, newContainerName, network.id);
-        await uutils.sleep(30000);
-        stopContainer = async () => { await container.stop(); await network.remove(); };
+    const stops: (() => Promise<void>)[] = [];
+    async function stop() {
+        for (const f of stops) {
+            await f();
+        }
     }
 
-    const kubeconfig = await getKubeconfig(docker, container);
+    try {
+        const docker = new Docker({ socketPath: "/var/run/docker.sock" });
+        const self = await getSelfContainer(docker);
+        let container: Docker.Container;
+        let network: Docker.Network;
 
-    await addToNetwork(self, network);
+        if (process.env.ADAPT_TEST_MINIKUBE) {
+            container = docker.getContainer(process.env.ADAPT_TEST_MINIKUBE);
+            network = await getNetwork(docker, container);
+        } else {
+            const newContainerName = `test_minikube_${self.id}_${process.pid}`;
+            network = await createNetwork(docker, newContainerName);
+            stops.unshift(async () => network.remove());
+            if (network.id === undefined) throw new Error("Network id was undefined!");
+            container = await runMinikubeContainer(docker, newContainerName, network.id);
+            await uutils.sleep(30000);
+            stops.unshift(async () => container.stop());
+        }
 
-    const stop = async () => {
-        await removeFromNetwork(self, network);
-        await stopContainer();
-    };
-    return { docker, container, network, kubeconfig, stop };
+        const kubeconfig = await getKubeconfig(docker, container);
+
+        await addToNetwork(self, network);
+
+        stops.unshift(async () => removeFromNetwork(self, network));
+
+        return { docker, container, network, kubeconfig, stop };
+    } catch (e) {
+        await stop();
+        throw e;
+    }
 }
 
 export async function stopTestMinikube(info: MinikubeInfo): Promise<void> {
