@@ -147,9 +147,10 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
 
             // Wait for the container to be ready
             for (let i = 0; i < 20; i++) {
-                await uutils.sleep(10000);  // 10 sec polling
+                await uutils.sleep(5000);  // 10 sec polling
                 try {
                     kubeconfig = await getKubeconfig(docker, container);
+                    break;
                 } catch (err) {
                     if (! /exited with error/.test(err.message)) throw err;
                 }
