@@ -1,9 +1,8 @@
 import * as ld from "lodash";
 import * as path from "path";
-import * as readPkgUp from "read-pkg-up";
 import * as when from "when";
-
 import { AdaptElementOrNull } from ".";
+import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
 import { Logger } from "./type_support";
 
@@ -228,11 +227,6 @@ export interface PluginRegistration {
     create(): Plugin;
 }
 
-interface PackageInfo {
-    name: string;
-    version: string;
-}
-
 interface PluginModule extends PluginRegistration {
     name: string;
     version: string;
@@ -243,7 +237,7 @@ type PluginModules = Map<string, PluginModule>;
 export function registerPlugin(plugin: PluginRegistration) {
     const modules = getPluginModules(true);
     const pInfo = findPackageInfo(path.dirname(plugin.module.filename));
-    const mod: PluginModule = { ...plugin, ...pInfo };
+    const mod = { ...plugin, ...pInfo };
 
     const existing = modules.get(mod.name);
     if (existing !== undefined) {
@@ -269,16 +263,4 @@ function getPluginModules(create = false): PluginModules {
         aContext.pluginModules = new Map<string, PluginModule>();
     }
     return aContext.pluginModules;
-}
-
-function findPackageInfo(dir: string): PackageInfo {
-    const ret = readPkgUp.sync({ cwd: dir, normalize: false });
-    const pkgJson = ret.pkg;
-    if (!pkgJson || !pkgJson.name || !pkgJson.version) {
-        throw new Error(`Invalid plugin registration. Cannot find package.json info in directory ${dir}.`);
-    }
-    return {
-        name: pkgJson.name,
-        version: pkgJson.version,
-    };
 }
