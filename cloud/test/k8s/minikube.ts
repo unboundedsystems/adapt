@@ -1,10 +1,13 @@
 import * as uutils from "@usys/utils";
-import * as jsYaml from "js-yaml";
-
 import Docker = require("dockerode");
 import * as fs from "fs";
+import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
 import * as sb from "stream-buffers";
+import * as util from "util";
+
+// tslint:disable-next-line:no-var-requires
+const stripAnsi = require("strip-ansi");
 
 export interface MinikubeInfo {
     docker: Docker;
@@ -14,32 +17,38 @@ export interface MinikubeInfo {
     stop: () => Promise<void>;
 }
 
-async function getKubeconfig(_docker: Docker, container: Docker.Container): Promise<object> {
+async function dockerExec(container: Docker.Container, command: string[]): Promise<string> {
     const exec = await container.exec({
         AttachStdin: false,
         AttachStdout: true,
         AttachStderr: false,
-        Cmd: ["cat", "/kubeconfig"]
+        Cmd: command
     });
 
     const info = await exec.start();
     const buf = new sb.WritableStreamBuffer();
     const errBuf = new sb.WritableStreamBuffer();
     info.modem.demuxStream(info.output, buf, errBuf);
-    const configYAML = await new Promise<string>((res, rej) => {
+    return new Promise<string>((res, rej) => {
         info.output.on("end", async () => {
             const inspectInfo = await exec.inspect();
             if (inspectInfo.Running !== false) {
-                rej(new Error(`getKubeConfig: stream ended with process still running?!`));
+                rej(new Error(`dockerExec: ${util.inspect(command)} stream ended with process still running?!`));
                 return;
             }
             if (inspectInfo.ExitCode !== 0) {
-                rej(new Error(`getKubeConfig: process exited with error (code: ${inspectInfo.ExitCode}`));
+                // tslint:disable-next-line:max-line-length
+                const msg = `dockerExec: ${util.inspect(command)} process exited with error (code: ${inspectInfo.ExitCode})`;
+                rej(new Error(msg));
                 return;
             }
             res(buf.getContentsAsString());
         });
     });
+}
+
+async function getKubeconfig(_docker: Docker, container: Docker.Container): Promise<object> {
+    const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
     for (const cluster of kubeconfig.clusters) {
@@ -114,6 +123,52 @@ async function removeFromNetwork(container: Docker.Container, network: Docker.Ne
     await network.disconnect({ Container: container.id });
 }
 
+async function waitFor(
+    iterations: number,
+    pollSec: number,
+    timeoutMsg: string,
+    action: () => Promise<boolean>): Promise<void> {
+
+    for (let i = 0; i < iterations; i++) {
+        if (await action()) return;
+        await uutils.sleep(pollSec * 1000);
+    }
+    throw new Error(timeoutMsg);
+}
+
+async function waitForKubeConfig(docker: Docker, container: Docker.Container): Promise<object | undefined> {
+    let config: object | undefined;
+    await waitFor(20, 5, "Timed out waiting for kubeconfig", async () => {
+        try {
+            config = await getKubeconfig(docker, container);
+            return true;
+        } catch (err) {
+            if (! /exited with error/.test(err.message)) throw err;
+            return false;
+        }
+    });
+    return config;
+}
+
+async function waitForMiniKube(container: Docker.Container) {
+    await waitFor(20, 5, "Timed out waiting for Minikube", async () => {
+        try {
+            const statusColor = await dockerExec(container, ["kubectl", "cluster-info"]);
+            const status = stripAnsi(statusColor) as string;
+            if (/^Kubernetes master is running at/.test(status)) {
+                return true;
+            }
+        } catch (err) {
+            if (! /exited with error/.test(err.message)) throw err;
+        }
+        return false;
+    });
+}
+
+function secondsSince(start: number): number {
+    return (Date.now() - start) / 1000;
+}
+
 export async function startTestMinikube(): Promise<MinikubeInfo> {
     const stops: (() => Promise<void>)[] = [];
     async function stop() {
@@ -145,22 +200,18 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
             container = await runMinikubeContainer(docker, newContainerName, network.id);
             stops.unshift(async () => container.stop());
 
-            // Wait for the container to be ready
-            for (let i = 0; i < 20; i++) {
-                await uutils.sleep(10000);  // 10 sec polling
-                try {
-                    kubeconfig = await getKubeconfig(docker, container);
-                } catch (err) {
-                    if (! /exited with error/.test(err.message)) throw err;
-                }
-            }
-            if (!kubeconfig) {
-                throw new Error(`Timed out waiting for kubeconfig`);
-            }
-            const elapsed = (Date.now() - startTime) / 1000;
+            kubeconfig = await waitForKubeConfig(docker, container);
+            const configTime = secondsSince(startTime);
             // tslint:disable-next-line:no-console
-            console.log(`\n    Minikube started in ${elapsed} seconds`);
+            console.log(`    Got kubeconfig (${configTime} seconds)`);
         }
+
+        if (!kubeconfig) throw new Error("Internal Error: should be unreachable");
+
+        await waitForMiniKube(container);
+        const totalTime = secondsSince(startTime);
+        // tslint:disable-next-line:no-console
+        console.log(`\n    Minikube ready in ${totalTime} seconds`);
 
         await addToNetwork(self, network);
 
