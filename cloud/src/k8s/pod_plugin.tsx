@@ -1,11 +1,14 @@
 import Adapt, {
+    Action,
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
+    BuiltinProps,
     findElementsInDom,
     isMountedElement,
     Style
 } from "@usys/adapt";
+import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 //import * as when from "when";
 
@@ -17,7 +20,7 @@ const k8s = require("kubernetes-client");
 
 interface PodReplyItem {
     metadata: { name: string, namespace: string, labels: any[]; };
-    spec: { containers: any[] };
+    spec: PodSpec;
     status: { phase: string };
 }
 
@@ -41,16 +44,17 @@ function isPodElement(e: AdaptElement): e is AdaptElement<PodProps & Adapt.Built
 }
 
 async function getClientForConfigJSON(
-    configJSON: string,
+    kubeconfigJSON: string,
     options: { connCache: Connections }): Promise<Client> {
 
-    const config = JSON.parse(configJSON);
+    const kubeconfig = JSON.parse(kubeconfigJSON);
 
-    let client = options.connCache.get(config);
+    let client = options.connCache.get(kubeconfig);
     if (client === undefined) {
-        client = new k8s.Client({ config }) as Client;
+        const k8sConfig = k8s.config.fromKubeconfig(kubeconfig);
+        client = new k8s.Client({ config: k8sConfig }) as Client;
         await client.loadSpec();
-        options.connCache.set(config, client);
+        options.connCache.set(kubeconfig, client);
     }
 
     return client;
@@ -66,19 +70,17 @@ async function getPods(client: Client): Promise<PodReplyItem[]> {
     throw new Error(`Unable to get pods, status ${pods.statusCode}: ${pods}`);
 }
 
-function alreadyExists(
+function findPodInObs(
     pod: AdaptElement<PodProps>,
-    observations: PodObservations): boolean {
+    observations: PodObservations): PodReplyItem | undefined {
 
     const configJSON = canonicalConfigJSON(pod.props.config);
 
     const obs = observations[configJSON];
-    if (obs === undefined) return false;
+    if (obs === undefined) return undefined;
 
     if (!isMountedElement(pod)) throw new Error("Can only compute name for mounted elements!");
-    const item = obs.find((i) => podElementToName(pod) === i.metadata.name);
-
-    return item !== undefined;
+    return obs.find((i) => podElementToName(pod) === i.metadata.name);
 }
 
 function observedPods(observations: PodObservations): { configJSON: string, podStatus: PodReplyItem }[] {
@@ -100,7 +102,8 @@ function podShouldExist(
 
     return pods.find((pod) => {
         if (!isMountedElement(pod)) throw new Error("Can only compare mounted pod elements to running state");
-        if (status.configJSON === canonicalConfigJSON(pod.props.config)) return false;
+        const canonicalJSON = canonicalConfigJSON(pod.props.config);
+        if (status.configJSON !== canonicalJSON) return false;
         return podElementToName(pod) === status.podStatus.metadata.name;
     }) !== undefined;
 }
@@ -121,6 +124,19 @@ interface PodSpec {
     }[];
     terminationGracePeriodSeconds?: number;
 }
+
+const knownContainerPaths = [
+    "name",
+    "args",
+    "command",
+    "image"
+];
+
+const knownPodSpecPaths = [
+    "containers",
+    "terminationGracePeriodSeconds"
+];
+
 interface PodManifest {
     apiVersion: "v1" | "v1beta1" | "v1beta2";
     kind: "Pod";
@@ -191,11 +207,70 @@ class Connections {
     }
 }
 
-function canonicalConfigJSON(config: any) {
-    return JSON.stringify(config); //FIXME(manishv) Make this truly canonicalize things/urls/etc.
+//Exported for tests only
+export function canonicalConfigJSON(config: any) {
+    return jsonStableStringify(config); //FIXME(manishv) Make this truly canonicalize based on data.
 }
 
-export class PodPluginImpl implements PodPlugin {
+enum K8sAction {
+    none = "None",
+    creating = "Creating",
+    replacing = "Replacing",
+    updating = "Updating",
+    destroying = "Destroying"
+}
+
+//FIXME(manishv) Use PodSpec swagger and compare all fields of interest
+function specsEqual(spec1: PodSpec, spec2: PodSpec) {
+    function processContainers(spec: PodSpec) {
+        if (spec.containers === undefined) return;
+        spec.containers = spec.containers
+            .map((c) => ld.pick(c, knownContainerPaths) as any);
+        spec.containers = ld.sortBy(spec.containers, (c) => c.name);
+    }
+    const s1 = ld.pick(spec1, knownPodSpecPaths) as PodSpec;
+    const s2 = ld.pick(spec2, knownPodSpecPaths) as PodSpec;
+    processContainers(s1);
+    processContainers(s2);
+
+    return ld.isEqual(s1, s2);
+}
+
+function computeActionExceptDelete(
+    pod: AdaptElement<PodProps & BuiltinProps>,
+    obs: PodObservations,
+    connCache: Connections): Action | undefined {
+
+    const podItem = findPodInObs(pod, obs);
+    const configJSON = canonicalConfigJSON(pod.props.config);
+    const manifest = makePodManifest(pod);
+
+    if (podItem === undefined) {
+        return {
+            description: `${K8sAction.creating} pod ${pod.props.key}`,
+            act: async () => {
+                const client = await getClientForConfigJSON(configJSON, { connCache });
+                if (client.api === undefined) throw new Error("Internal Error");
+                await client.api.v1.namespaces("default").pods.post({ body: manifest });
+            }
+        };
+    }
+
+    if (specsEqual(podItem.spec, manifest.spec)) return;
+
+    return {
+        description: `${K8sAction.replacing} pod ${pod.props.key}`,
+        act: async () => {
+            const client = await getClientForConfigJSON(configJSON, { connCache });
+            if (client.api === undefined) throw new Error("Internal Error");
+
+            await client.api.v1.namespaces("default").pods(podElementToName(pod)).delete();
+            await client.api.v1.namespaces("default").pods.post({ body: manifest });
+        }
+    };
+}
+
+class PodPluginImpl implements PodPlugin {
     logger?: ((...args: any[]) => void);
     connCache: Connections = new Connections();
 
@@ -228,18 +303,10 @@ export class PodPluginImpl implements PodPlugin {
 
         const ret: Adapt.Action[] = [];
         for (const pod of newPods) {
-            const action = alreadyExists(pod, obs) ? "Updating" : "Creating";
-
-            ret.push({
-                description: `${action} pod ${pod.props.key}`,
-                act: async () => {
-                    const configJSON = canonicalConfigJSON(pod.props.config);
-                    const client = await getClientForConfigJSON(configJSON, { connCache: this.connCache });
-                    const podSpec = makePodManifest(pod);
-                    if (client.api === undefined) throw new Error("Internal Error");
-                    await client.api.v1.namespaces("default").pods.post({ body: podSpec });
-                }
-            });
+            const action = computeActionExceptDelete(pod, obs, this.connCache);
+            if (action !== undefined) {
+                ret.push(action);
+            }
         }
 
         for (const { configJSON, podStatus } of observedPods(obs)) {
