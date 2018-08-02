@@ -226,6 +226,7 @@ function specsEqual(spec1: PodSpec, spec2: PodSpec) {
         if (spec.containers === undefined) return;
         spec.containers = spec.containers
             .map((c) => ld.pick(c, knownContainerPaths) as any);
+        spec.containers = ld.sortBy(spec.containers, (c) => c.name);
     }
     const s1 = ld.pick(spec1, knownPodSpecPaths) as PodSpec;
     const s2 = ld.pick(spec2, knownPodSpecPaths) as PodSpec;
