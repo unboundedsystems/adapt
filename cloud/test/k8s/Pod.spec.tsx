@@ -6,6 +6,7 @@ import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
 import { Container, createPodPlugin, Pod, podElementToName, PodPlugin } from "../../src/k8s";
+import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
 import { MinikubeInfo, startTestMinikube, stopTestMinikube } from "./minikube";
 
 // tslint:disable-next-line:no-var-requires
@@ -173,6 +174,40 @@ describe("k8s Pod Plugin Tests", function () {
         await plugin.finish();
     });
 
+    it("Should distinguish between replace and create actions", async () => {
+        const pod =
+            <Pod key="test" config={k8sConfig}>
+                <Container name="container" image="node:latest" />
+            </Pod>;
+
+        const dom = await doBuild(pod);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(null, dom);
+        const mockObservation = {
+            metadata: {
+                name: podElementToName(dom),
+                namespace: "default",
+                labels: []
+            },
+            spec: {
+                containers: [{
+                    name: "container",
+                    image: "alpine:latest", //This is the diff to cause a replace
+                    dataNotUnderstood: ["foo"] //Field that should be ignored
+                }],
+            },
+            status: { phase: "" }
+        };
+
+        obs[canonicalConfigJSON(k8sConfig)].push(mockObservation);
+        const actions = await plugin.analyze(null, dom, obs);
+        should(actions).length(1);
+        should(actions[0].description).match(/Replacing\s.+test/);
+
+        await plugin.finish();
+    });
+
     async function createPod(name: string): Promise<AdaptElementOrNull> {
         const pod =
             <Pod key={name} config={k8sConfig} terminationGracePeriodSeconds={0}>
@@ -184,13 +219,13 @@ describe("k8s Pod Plugin Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = await plugin.analyze(null, dom, obs);
-        should(actions.length).equal(1);
+        should(actions).length(1);
         should(actions[0].description).match(/Creating\s.+test/);
 
         await act(actions);
 
         const pods = await getPods(k8sConfig);
-        should(pods.length).equal(1);
+        should(pods).length(1);
         should(pods[0].metadata.name).equal(podElementToName(dom));
 
         await plugin.finish();
@@ -199,6 +234,54 @@ describe("k8s Pod Plugin Tests", function () {
 
     it("Should create pod", async () => {
         await createPod("test");
+    });
+
+    it("Should replace pod", async () => {
+        const oldDom = await createPod("test");
+
+        //5s sleep diff to cause replace vs. 3s sleep in createPod
+        const command = ["sleep", "5s"];
+        const pod =
+            <Pod key="test" config={k8sConfig} terminationGracePeriodSeconds={0}>
+                <Container name="container" image="alpine:3.8" command={command} />
+            </Pod>;
+
+        const dom = await doBuild(pod);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(oldDom, dom);
+        const actions = await plugin.analyze(oldDom, dom, obs);
+        should(actions).length(1);
+        should(actions[0].description).match(/Replacing\s.+test/);
+
+        await act(actions);
+
+        const pods = await getPods(k8sConfig);
+        should(pods).length(1);
+        should(pods[0].metadata.name).equal(podElementToName(dom));
+        should(pods[0].spec.containers).length(1);
+        should(pods[0].spec.containers[0].command).eql(command);
+
+        await plugin.finish();
+    });
+
+    it("Should leave pod alone", async () => {
+        const oldDom = await createPod("test");
+
+        //No diff
+        const command = ["sleep", "3s"];
+        const pod =
+            <Pod key="test" config={k8sConfig} terminationGracePeriodSeconds={0}>
+                <Container name="container" image="alpine:3.8" command={command} />
+            </Pod>;
+
+        const dom = await doBuild(pod);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(oldDom, dom);
+        const actions = await plugin.analyze(oldDom, dom, obs);
+        should(actions).length(0);
+        await plugin.finish();
     });
 
     it("Should delete pod", async () => {
