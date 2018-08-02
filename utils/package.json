@@ -26,7 +26,7 @@
   },
   "peerDependencies": {},
   "files": [
-    "/dist"
+    "/dist/src"
   ],
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
   "license": "UNLICENSED",
@@ -40,7 +40,6 @@
     "clean": "rm -rf dist",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
-    "prepack": "make build",
     "pretest": "make build",
     "test": "nyc mocha --opts mocha.opts"
   }
