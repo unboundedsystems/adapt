@@ -86,18 +86,20 @@ describe("Project basic tests", function() {
 
     it("Should get a github package", async function() {
         this.timeout(40000);
-        const p = await proj.load("sindresorhus/decamelize#v1.2.0", projOpts);
+        const p = await proj.load("substack/json-stable-stringify#1.0.1", projOpts);
         expect(p).to.be.an("object");
-        expect(p.manifest.name).equal("decamelize");
-        expect(p.manifest.version).equal("1.2.0");
-        expect(p.manifest._resolved).equal("github:sindresorhus/decamelize#95980ab6fb44c40eaca7792bdf93aff7c210c805");
-        expect(p.manifest.devDependencies.ava).equal("*");
+        expect(p.manifest.name).equal("json-stable-stringify");
+        expect(p.manifest.version).equal("1.0.1");
+        expect(p.manifest._resolved)
+            .equal("github:substack/json-stable-stringify#4a3ac9cc006a91e64901f8ebe78d23bf9fc9fbd0");
+        expect(p.manifest.dependencies.jsonify).equal("~0.0.0");
+        expect(p.manifest.devDependencies.tape).equal("~1.0.4");
 
         const lock = p.packageLock;
-        expect(lock.name).equal("decamelize");
-        expect(lock.version).equal("1.2.0");
+        expect(lock.name).equal("json-stable-stringify");
+        expect(lock.version).equal("1.0.1");
 
-        expect(p.getLockedVersion("ava")).equal("0.25.0");
+        expect(p.getLockedVersion("jsonify")).equal("0.0.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
 

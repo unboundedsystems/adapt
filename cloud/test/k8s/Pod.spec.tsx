@@ -109,7 +109,7 @@ async function sleep(wait: number): Promise<void> {
 }
 
 describe("k8s Pod Plugin Tests", function () {
-    this.timeout(80000);
+    this.timeout(4 * 60 * 1000);
 
     let plugin: PodPlugin;
     let logs: WritableStreamBuffer;
