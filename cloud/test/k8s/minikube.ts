@@ -31,9 +31,11 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container): Prom
             const inspectInfo = await exec.inspect();
             if (inspectInfo.Running !== false) {
                 rej(new Error(`getKubeConfig: stream ended with process still running?!`));
+                return;
             }
             if (inspectInfo.ExitCode !== 0) {
                 rej(new Error(`getKubeConfig: process exited with error (code: ${inspectInfo.ExitCode}`));
+                return;
             }
             res(buf.getContentsAsString());
         });
