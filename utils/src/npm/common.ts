@@ -13,7 +13,11 @@ export interface CommonOptions {
     userconfig?: string;
 }
 
-export const commonDefaults: CommonOptions = {
+interface AnyOptions {
+    [key: string]: any;
+}
+
+export const commonDefaults = {
     loglevel: "error",
     pipeOutput: false,
     progress: false,
@@ -24,9 +28,9 @@ export interface NpmOutput {
     stderr: string;
 }
 
-export function run(action: string, options: any, args?: string[]): Promise<NpmOutput> {
+export function run(action: string, options: CommonOptions | AnyOptions, args?: string[]): Promise<NpmOutput> {
     // tslint:disable-next-line:prefer-const
-    let { cwd = null, ...finalOpts } = { ...commonDefaults, ...options };
+    let { cwd = null, pipeOutput, ...finalOpts } = { ...commonDefaults, ...options };
     cwd = cwd || process.cwd();
 
     let finalArgs = [action];
@@ -39,7 +43,7 @@ export function run(action: string, options: any, args?: string[]): Promise<NpmO
 
     try {
         const prom = execa("npm", finalArgs, { cwd, stripEof: false });
-        if (finalOpts.pipeOutput) {
+        if (pipeOutput) {
             prom.stdout.pipe(process.stdout);
             prom.stderr.pipe(process.stdout);
         }
