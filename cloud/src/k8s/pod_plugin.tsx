@@ -44,16 +44,17 @@ function isPodElement(e: AdaptElement): e is AdaptElement<PodProps & Adapt.Built
 }
 
 async function getClientForConfigJSON(
-    configJSON: string,
+    kubeconfigJSON: string,
     options: { connCache: Connections }): Promise<Client> {
 
-    const config = JSON.parse(configJSON);
+    const kubeconfig = JSON.parse(kubeconfigJSON);
 
-    let client = options.connCache.get(config);
+    let client = options.connCache.get(kubeconfig);
     if (client === undefined) {
-        client = new k8s.Client({ config }) as Client;
+        const k8sConfig = k8s.config.fromKubeconfig(kubeconfig);
+        client = new k8s.Client({ config: k8sConfig }) as Client;
         await client.loadSpec();
-        options.connCache.set(config, client);
+        options.connCache.set(kubeconfig, client);
     }
 
     return client;

@@ -114,12 +114,14 @@ describe("k8s Pod Plugin Tests", function () {
     let plugin: PodPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
+    let kubeconfig: object;
     let k8sConfig: object;
     let minikubeInfo: MinikubeInfo;
 
     before(async () => {
         minikubeInfo = await startTestMinikube();
-        k8sConfig = k8s.config.fromKubeconfig(minikubeInfo.kubeconfig);
+        kubeconfig = minikubeInfo.kubeconfig;
+        k8sConfig = k8s.config.fromKubeconfig(kubeconfig);
     });
 
     after(async () => {
@@ -159,7 +161,7 @@ describe("k8s Pod Plugin Tests", function () {
 
     it("Should compute actions with no pods from k8s", async () => {
         const pod =
-            <Pod key="test" config={k8sConfig}>
+            <Pod key="test" config={kubeconfig}>
                 <Container name="container" image="node:latest" />
             </Pod>;
 
@@ -176,7 +178,7 @@ describe("k8s Pod Plugin Tests", function () {
 
     it("Should distinguish between replace and create actions", async () => {
         const pod =
-            <Pod key="test" config={k8sConfig}>
+            <Pod key="test" config={kubeconfig}>
                 <Container name="container" image="node:latest" />
             </Pod>;
 
@@ -200,7 +202,7 @@ describe("k8s Pod Plugin Tests", function () {
             status: { phase: "" }
         };
 
-        obs[canonicalConfigJSON(k8sConfig)].push(mockObservation);
+        obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
         const actions = await plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Replacing\s.+test/);
@@ -210,7 +212,7 @@ describe("k8s Pod Plugin Tests", function () {
 
     async function createPod(name: string): Promise<AdaptElementOrNull> {
         const pod =
-            <Pod key={name} config={k8sConfig} terminationGracePeriodSeconds={0}>
+            <Pod key={name} config={kubeconfig} terminationGracePeriodSeconds={0}>
                 <Container name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
@@ -242,7 +244,7 @@ describe("k8s Pod Plugin Tests", function () {
         //5s sleep diff to cause replace vs. 3s sleep in createPod
         const command = ["sleep", "5s"];
         const pod =
-            <Pod key="test" config={k8sConfig} terminationGracePeriodSeconds={0}>
+            <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
                 <Container name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
@@ -271,7 +273,7 @@ describe("k8s Pod Plugin Tests", function () {
         //No diff
         const command = ["sleep", "3s"];
         const pod =
-            <Pod key="test" config={k8sConfig} terminationGracePeriodSeconds={0}>
+            <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
                 <Container name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
