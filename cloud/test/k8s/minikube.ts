@@ -26,8 +26,15 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container): Prom
     const buf = new sb.WritableStreamBuffer();
     const errBuf = new sb.WritableStreamBuffer();
     info.modem.demuxStream(info.output, buf, errBuf);
-    const configYAML = await new Promise<string>((res) => {
-        info.output.on("end", () => {
+    const configYAML = await new Promise<string>((res, rej) => {
+        info.output.on("end", async () => {
+            const inspectInfo = await exec.inspect();
+            if (inspectInfo.Running !== false) {
+                rej(new Error(`getKubeConfig: stream ended with process still running?!`));
+            }
+            if (inspectInfo.ExitCode !== 0) {
+                rej(new Error(`getKubeConfig: process exited with error (code: ${inspectInfo.ExitCode}`));
+            }
             res(buf.getContentsAsString());
         });
     });
@@ -113,6 +120,9 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         }
     }
 
+    const startTime = Date.now();
+    let kubeconfig: object | undefined;
+
     try {
         const docker = new Docker({ socketPath: "/var/run/docker.sock" });
         const self = await getSelfContainer(docker);
@@ -122,17 +132,33 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         if (process.env.ADAPT_TEST_MINIKUBE) {
             container = docker.getContainer(process.env.ADAPT_TEST_MINIKUBE);
             network = await getNetwork(docker, container);
+            kubeconfig = await getKubeconfig(docker, container);
         } else {
+            // tslint:disable-next-line:no-console
+            console.log(`    Starting Minikube`);
             const newContainerName = `test_minikube_${self.id}_${process.pid}`;
             network = await createNetwork(docker, newContainerName);
             stops.unshift(async () => network.remove());
             if (network.id === undefined) throw new Error("Network id was undefined!");
             container = await runMinikubeContainer(docker, newContainerName, network.id);
-            await uutils.sleep(30000);
             stops.unshift(async () => container.stop());
-        }
 
-        const kubeconfig = await getKubeconfig(docker, container);
+            // Wait for the container to be ready
+            for (let i = 0; i < 20; i++) {
+                await uutils.sleep(10000);  // 10 sec polling
+                try {
+                    kubeconfig = await getKubeconfig(docker, container);
+                } catch (err) {
+                    if (! /exited with error/.test(err.message)) throw err;
+                }
+            }
+            if (!kubeconfig) {
+                throw new Error(`Timed out waiting for kubeconfig`);
+            }
+            const elapsed = (Date.now() - startTime) / 1000;
+            // tslint:disable-next-line:no-console
+            console.log(`\n    Minikube started in ${elapsed} seconds`);
+        }
 
         await addToNetwork(self, network);
 
