@@ -22,79 +22,88 @@ try {
 const debugReanimate = false;
 const debugPackageRegistry = false;
 
-export type FrozenJson = string;
+export type MummyJson = string;
 
 // Exported for testing only
-export class ZombieRegistry {
-    jsonToObj = new Map<FrozenJson, any>();
-    objToJson = new Map<any, FrozenJson>();
+export class MummyRegistry {
+    jsonToObj = new Map<MummyJson, any>();
+    objToJson = new Map<any, MummyJson>();
 
-    async awaken(frozen: FrozenJson): Promise<any> {
-        let obj = this.jsonToObj.get(frozen);
+    async awaken(mummyJson: MummyJson): Promise<any> {
+        let obj = this.jsonToObj.get(mummyJson);
         if (obj !== undefined) return obj;
 
-        const zinfo = JSON.parse(frozen);
-        if (!isTwitching(zinfo)) throw new Error(`Invalid frozen JSON`);
+        const mummy = JSON.parse(mummyJson);
+        if (!isMummy(mummy)) throw new Error(`Invalid mummy JSON`);
 
-        let pkgPath = await packagePath(zinfo);
+        let pkgPath = await packagePath(mummy);
         if (pkgPath == null) {
-            trace(debugReanimate, `WARN: Unable to find package ${packageId(zinfo)} in module tree`);
-            pkgPath = zinfo.pkgName;
+            // We can't find an EXACT match for the package ID from mummy
+            // (package name and exact version). This typically happens for
+            // two reasons: 1) The version of the package in question has
+            // changed (e.g. updated to newer version) or 2) the package
+            // is located in a node search path, but is not in the node_modules
+            // directory for THIS package (e.g. it's in a parent node_modules
+            // directory like happens in the adapt repo).
+            // Both of these things could be fixed by webpacking/zipping the
+            // current Adapt project and all dependencies.
+            trace(debugReanimate, `WARN: Unable to find package ${packageId(mummy)} in module tree`);
+            pkgPath = mummy.pkgName;
         }
 
         const mainFile = require.resolve(pkgPath);
-        const modPath = path.join(path.dirname(mainFile), zinfo.relFilePath);
+        const modPath = path.join(path.dirname(mainFile), mummy.relFilePath);
 
         // This should cause the module to initialize and call registerObject.
         const exp = require(modPath);
 
         // Try the lookup again
-        obj = this.jsonToObj.get(frozen);
+        obj = this.jsonToObj.get(mummyJson);
         if (obj !== undefined) return obj;
 
         // We get here if the call to registerObject is not done at the top
         // level module scope. We can still find the object we're looking for
         // as long as it gets exported and that export happens at the top
         // level module scope.
-        trace(debugReanimate, `\n****  Searching exports for:`, zinfo, `\nExports:`, exp);
+        trace(debugReanimate, `\n****  Searching exports for:`, mummy, `\nExports:`, exp);
         this.print();
 
         let parent: any = exp;
-        if (zinfo.namespace !== "") parent = parent && parent[zinfo.namespace];
-        obj = parent && parent[zinfo.name];
+        if (mummy.namespace !== "") parent = parent && parent[mummy.namespace];
+        obj = parent && parent[mummy.name];
         trace(debugReanimate, `Exports lookup returned:`, obj);
 
         // NOTE(mark): I think we can remove namespace, as long as this error
         // never triggers.
-        if (zinfo.namespace !== "" && obj !== null) {
-            throw new Error(`**** Used non-default namespace to successfully find ${frozen}`);
+        if (mummy.namespace !== "" && obj != null) {
+            throw new Error(`**** Used non-default namespace to successfully find ${mummyJson}`);
         }
 
         if (obj === undefined) {
-            throw new Error(`Unable to reanimate ${frozen}`);
+            throw new Error(`Unable to reanimate ${mummyJson}`);
         }
-        this.entomb(obj, frozen);
+        this.entomb(obj, mummyJson);
         return obj;
     }
 
-    frozen(obj: any): FrozenJson {
-        if (obj == null) throw new Error(`Can't get frozen representation of ${obj}`);
-        const fj = this.objToJson.get(obj);
-        if (fj !== undefined) return fj;
-        throw new Error(`Unable to look up frozen representation for '${obj}'`);
+    findMummy(obj: any): MummyJson {
+        if (obj == null) throw new Error(`Can't get JSON representation of ${obj}`);
+        const mj = this.objToJson.get(obj);
+        if (mj !== undefined) return mj;
+        throw new Error(`Unable to look up JSON representation for '${obj}'`);
     }
 
-    entomb(obj: any, frozen: FrozenJson) {
+    entomb(obj: any, mummyJson: MummyJson) {
         if (obj == null) {
             throw new Error(`Unable to store ${obj} for later reanimation`);
         }
-        this.jsonToObj.set(frozen, obj);
+        this.jsonToObj.set(mummyJson, obj);
         const existing = this.objToJson.get(obj);
-        if (existing !== undefined && existing !== frozen) {
+        if (existing !== undefined && existing !== mummyJson) {
             trace(debugReanimate, `WARN: reanimate: object '${obj}' already stored`);
-            trace(debugReanimate, `Existing:`, existing, `New:`, frozen);
+            trace(debugReanimate, `Existing:`, existing, `New:`, mummyJson);
         } else {
-            this.objToJson.set(obj, frozen);
+            this.objToJson.set(obj, mummyJson);
         }
     }
 
@@ -112,42 +121,42 @@ export class ZombieRegistry {
     }
 }
 
-let registry = new ZombieRegistry();
+let registry = new MummyRegistry();
 
-interface Twitching {
+interface Mummy {
     name: string;
     namespace: string;
     pkgName: string;
     pkgVersion: string;
     relFilePath: string;
 }
-const twitchingProps = ["name", "namespace", "pkgName", "pkgVersion", "relFilePath"];
+const mummyProps = ["name", "namespace", "pkgName", "pkgVersion", "relFilePath"];
 
-function isTwitching(val: any): val is Twitching {
+function isMummy(val: any): val is Mummy {
     if (val == null || typeof val !== "object") {
-        throw new Error(`Invalid frozen JSON object`);
+        throw new Error(`Invalid JSON represenation of object`);
     }
-    for (const prop of twitchingProps) {
+    for (const prop of mummyProps) {
         const t = typeof val[prop];
         if (t !== "string") {
-            throw new Error(`Invalid frozen JSON property '${prop}' type '${t}'`);
+            throw new Error(`Invalid property '${prop}' type '${t}' in JSON representation of object`);
         }
     }
     return true;
 }
 
-function freeze(obj: any, name: string, namespace: string, module: NodeModule) {
+function enbalm(obj: any, name: string, namespace: string, module: NodeModule): MummyJson {
     const pkgInfo = findPackageInfo(path.dirname(module.filename));
-    const t: Twitching = {
+    const m: Mummy = {
         name,
         namespace,
         pkgName: pkgInfo.name,
         pkgVersion: pkgInfo.version,
         relFilePath: path.relative(path.dirname(pkgInfo.main), module.filename),
     };
-    trace(debugReanimate, "mainFile:", pkgInfo.main, "\ntwitching:", t);
-    const s = stringify(t);
-    trace(debugReanimate, "Frozen:", s);
+    trace(debugReanimate, "mainFile:", pkgInfo.main, "\nmummy:", m);
+    const s = stringify(m);
+    trace(debugReanimate, "JSON value:", s);
     return s;
 }
 
@@ -162,13 +171,13 @@ export function registerObject(obj: any, name: string,
     // FIXME(mark): we should wait to run findExportName until
     // module.loaded === true. To do that, we should create a Promise, but
     // store it rather than returning it, to keep this function sync. Then
-    // both reanimate and frozen should ensure all promises are resolved before
+    // both reanimate and findMummy should ensure all promises are resolved before
     // continuing operation. That should allow us to remove the namespace
     // stuff.
     const exportName = findExportName(obj, name, mod);
 
-    registry.entomb(obj, freeze(obj, exportName || name,
-                               exportName ? "" : altNamespace, mod));
+    registry.entomb(obj, enbalm(obj, exportName || name,
+                                exportName ? "" : altNamespace, mod));
 
     if (!exportName) {
         let exp = mod.exports[altNamespace];
@@ -231,16 +240,16 @@ export function callerModule(callerNum: number): NodeModule {
     return mod;
 }
 
-export function reanimate(frozen: FrozenJson): Promise<any> {
-    return registry.awaken(frozen);
+export function reanimate(mummy: MummyJson): Promise<any> {
+    return registry.awaken(mummy);
 }
 
-export function findFrozen(obj: any): FrozenJson {
-    return registry.frozen(obj);
+export function findMummy(obj: any): MummyJson {
+    return registry.findMummy(obj);
 }
 
 // Exported for testing
-export function mockRegistry_(newRegistry?: ZombieRegistry): ZombieRegistry {
+export function mockRegistry_(newRegistry?: MummyRegistry): MummyRegistry {
     const oldRegistry = registry;
     if (newRegistry != null) registry = newRegistry;
     return oldRegistry;
@@ -303,11 +312,11 @@ function findPaths(reg: PackageRegistry, root: string, name: string, tree: npm.L
     }
 }
 
-async function packagePath(pkg: Twitching): Promise<PackagePath | undefined> {
+async function packagePath(pkg: Mummy): Promise<PackagePath | undefined> {
     const reg = await packageRegistry();
     return reg.get(packageId(pkg));
 }
 
-function packageId(pkg: Twitching): PackageId {
+function packageId(pkg: Mummy): PackageId {
     return `${pkg.pkgName}@${pkg.pkgVersion}`;
 }

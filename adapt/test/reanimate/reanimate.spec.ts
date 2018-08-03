@@ -15,12 +15,12 @@ import { packageDirs } from "../testlib";
 
 import {
     callerModule,
-    findFrozen,
-    FrozenJson,
+    findMummy,
     mockRegistry_,
+    MummyJson,
+    MummyRegistry,
     reanimate,
     registerObject,
-    ZombieRegistry
 } from "../../src/reanimate/reanimate";
 import * as firstInFunc from "./test_in_func";
 import * as firstLateExport from "./test_late_export";
@@ -61,8 +61,8 @@ function requireInFuncModule() {
 }
 
 describe("Reanimate basic tests", () => {
-    let origRegistry: ZombieRegistry;
-    let firstFrozen: FrozenJson;
+    let origRegistry: MummyRegistry;
+    let firstMummyJ: MummyJson;
 
     before(() => {
         origRegistry = mockRegistry_();
@@ -74,10 +74,10 @@ describe("Reanimate basic tests", () => {
     it("Should have registered on first import", async () => {
         mockRegistry_(origRegistry);
 
-        firstFrozen = findFrozen(firstVictim.Victim);
-        should(firstFrozen).be.type("string");
+        firstMummyJ = findMummy(firstVictim.Victim);
+        should(firstMummyJ).be.type("string");
 
-        const parsed = JSON.parse(firstFrozen);
+        const parsed = JSON.parse(firstMummyJ);
         should(parsed).eql({
             name: "Victim",
             namespace: "",
@@ -86,12 +86,12 @@ describe("Reanimate basic tests", () => {
             relFilePath: "../test/reanimate/test_victim.js",
         });
 
-        const obj = await reanimate(firstFrozen);
+        const obj = await reanimate(firstMummyJ);
         should(obj).equal(firstVictim.Victim);
     });
 
-    it("Should freeze and reanimate with new module and registry", async () => {
-        mockRegistry_(new ZombieRegistry());
+    it("Should store and reanimate with new module and registry", async () => {
+        mockRegistry_(new MummyRegistry());
 
         // Pre-flight sanity check. Victim derives from Living
         let v = new currentVictim.Victim();
@@ -99,10 +99,10 @@ describe("Reanimate basic tests", () => {
 
         registerObject(currentVictim.Victim, "Victim", currentVictim.module);
 
-        const frozenVictim = findFrozen(currentVictim.Victim);
-        should(frozenVictim).be.type("string");
+        const mummified = findMummy(currentVictim.Victim);
+        should(mummified).be.type("string");
 
-        const parsed = JSON.parse(frozenVictim);
+        const parsed = JSON.parse(mummified);
         should(parsed).eql({
             name: "Victim",
             namespace: "",
@@ -112,10 +112,10 @@ describe("Reanimate basic tests", () => {
         });
 
         // Clear out the registry and victim module
-        mockRegistry_(new ZombieRegistry());
+        mockRegistry_(new MummyRegistry());
         deleteVictimModule();
 
-        const obj = await reanimate(frozenVictim);
+        const obj = await reanimate(mummified);
         // This Victim will be a different object from the original
         should(obj).not.equal(currentVictim.Victim);
         // But if we re-require the victim module, we'll get the updated obj
@@ -128,7 +128,7 @@ describe("Reanimate basic tests", () => {
         should(v.constructor.name).equal("VictimInternal");
     });
 
-    it("Should freeze and reanimate object registered before export", async () => {
+    it("Should store and reanimate object registered before export", async () => {
 
         // Pre-flight sanity check. LateExport derives from Living
         let v = new currentLateExport.LateExport();
@@ -137,14 +137,14 @@ describe("Reanimate basic tests", () => {
 
         // Clear everything
         deleteLateExportModule();
-        mockRegistry_(new ZombieRegistry());
+        mockRegistry_(new MummyRegistry());
 
         requireLateExportModule();
 
-        const firstFrozenLate = findFrozen(currentLateExport.LateExport);
-        should(firstFrozenLate).be.type("string");
+        const firstMummyLate = findMummy(currentLateExport.LateExport);
+        should(firstMummyLate).be.type("string");
 
-        const parsed = JSON.parse(firstFrozenLate);
+        const parsed = JSON.parse(firstMummyLate);
         should(parsed).eql({
             // FIXME(mark): registerObject needs to delay searching module.exports
             // until after module.loaded === true. Then this should be:
@@ -156,7 +156,7 @@ describe("Reanimate basic tests", () => {
             relFilePath: "../test/reanimate/test_late_export.js",
         });
 
-        const firstObj = await reanimate(firstFrozenLate);
+        const firstObj = await reanimate(firstMummyLate);
         // The reanimated object should still be an instance of Living
         v = new firstObj();
         should(isLiving(v)).be.True();
@@ -164,9 +164,9 @@ describe("Reanimate basic tests", () => {
 
         // Clear once more
         deleteLateExportModule();
-        mockRegistry_(new ZombieRegistry());
+        mockRegistry_(new MummyRegistry());
 
-        const obj = await reanimate(firstFrozenLate);
+        const obj = await reanimate(firstMummyLate);
         // This LateExport will be a different object from the original
         should(obj).not.equal(firstObj);
         should(obj).not.equal(currentLateExport.LateExport);
@@ -196,16 +196,16 @@ describe("Reanimate basic tests", () => {
         }
     });
 
-    it("Should freeze and reanimate with module default", async () => {
-        mockRegistry_(new ZombieRegistry());
+    it("Should store and reanimate with module default", async () => {
+        mockRegistry_(new MummyRegistry());
 
         // modOrCallerNum is default paremeter
         currentInFunc.doRegister();
 
-        const frozen = findFrozen(currentInFunc.InFunc);
-        should(frozen).be.type("string");
+        const mummy = findMummy(currentInFunc.InFunc);
+        should(mummy).be.type("string");
 
-        const parsed = JSON.parse(frozen);
+        const parsed = JSON.parse(mummy);
         should(parsed).eql({
             name: "InFunc",
             namespace: "",
@@ -215,10 +215,10 @@ describe("Reanimate basic tests", () => {
         });
 
         // Clear out the registry and module
-        mockRegistry_(new ZombieRegistry());
+        mockRegistry_(new MummyRegistry());
         deleteInFuncModule();
 
-        const obj = await reanimate(frozen);
+        const obj = await reanimate(mummy);
         // This will be a different object from the original
         should(obj).not.equal(currentInFunc.InFunc);
         // But if we re-require the module, we'll get the updated obj
@@ -238,30 +238,30 @@ const re = require("@usys/reanimate");
 
 try {
     if (process.argv.length !== 3) {
-        throw new Error("Usage: node index.js <FrozenJson>|show1|show2|showlate");
+        throw new Error("Usage: node index.js <MummyJson>|show1|show2|showlate");
     }
 
-    const frozenJson = process.argv[2];
+    const mummy = process.argv[2];
 
-    if (frozenJson === "show1") {
+    if (mummy === "show1") {
         const o = require("@usys/oldlib");
-        console.log(re.findFrozen(o.Victim));
+        console.log(re.findMummy(o.Victim));
         process.exit(0);
     }
-    if (frozenJson === "show2") {
+    if (mummy === "show2") {
         const v = require("@usys/victim");
-        console.log(re.findFrozen(v.Victim));
+        console.log(re.findMummy(v.Victim));
         process.exit(0);
     }
-    if (frozenJson === "showlate") {
+    if (mummy === "showlate") {
         const v = require("@usys/register-in-func");
         // registerObject is only called on construction
         new v.LateVictim(true);
-        console.log(re.findFrozen(v.LateVictim));
+        console.log(re.findMummy(v.LateVictim));
         process.exit(0);
     }
 
-    re.reanimate(frozenJson)
+    re.reanimate(mummy)
     .then((alive) => {
         new alive();
         console.log("SUCCESS");
@@ -409,29 +409,29 @@ const registryConfig = {
     onStart: setupRegistry,
 };
 
-async function showFrozen(which: string): Promise<FrozenJson> {
-    // Get the frozen representation
+async function showMummy(which: string): Promise<MummyJson> {
+    // Get the mummy representation
     const res = await execa("node", ["index.js", "show" + which]);
-    const frozenJson = res.stdout;
-    should(frozenJson).not.match(/FAILED/);
-    const parsed = JSON.parse(frozenJson);
-    should(parsed).be.type("object");
-    should(parsed.relFilePath).equal("index.js");
+    const mummyJson = res.stdout;
+    should(mummyJson).not.match(/FAILED/);
+    const mummy = JSON.parse(mummyJson);
+    should(mummy).be.type("object");
+    should(mummy.relFilePath).equal("index.js");
 
-    return frozenJson;
+    return mummyJson;
 }
 
-function checkFrozenVictim(which: string, frozenJson: FrozenJson) {
-    const parsed = JSON.parse(frozenJson);
-    should(parsed).be.type("object");
-    should(parsed.name).equal("Victim");
-    should(parsed.pkgName).equal("@usys/victim");
-    should(parsed.pkgVersion).equal(which + ".0.0");
+function checkMummyVictim(which: string, mummyJson: MummyJson) {
+    const mummy = JSON.parse(mummyJson);
+    should(mummy).be.type("object");
+    should(mummy.name).equal("Victim");
+    should(mummy.pkgName).equal("@usys/victim");
+    should(mummy.pkgVersion).equal(which + ".0.0");
 }
 
 describe("Reanimate in package tests", function() {
-    let frozen1: string;
-    let frozen2: string;
+    let mummy1: string;
+    let mummy2: string;
 
     this.timeout(40000);
 
@@ -440,43 +440,43 @@ describe("Reanimate in package tests", function() {
     mochaLocalRegistry.all(registryConfig, localRegistryDefaults.configPath);
     before(() => npm.install(localRegistryDefaults.npmLocalProxyOpts));
 
-    it("Should reanimate top level dependency from frozen", async () => {
-        const frozenJson = await showFrozen("2");
-        checkFrozenVictim("2", frozenJson);
-        frozen2 = frozenJson;
+    it("Should reanimate top level dependency from mummy", async () => {
+        const mummyJson = await showMummy("2");
+        checkMummyVictim("2", mummyJson);
+        mummy2 = mummyJson;
 
-        // Reanimate the frozen object and construct it
-        const res = await execa("node", ["index.js", frozenJson]);
+        // Reanimate the mummy and construct it
+        const res = await execa("node", ["index.js", mummyJson]);
         should(res.stdout).match(/SUCCESS/);
         should(res.stdout).match(/Created Victim version 2.0.0/);
     });
 
-    it("Should reanimate sub dependency from frozen", async () => {
-        const frozenJson = await showFrozen("1");
-        checkFrozenVictim("1", frozenJson);
-        frozen1 = frozenJson;
+    it("Should reanimate sub dependency from mummy", async () => {
+        const mummyJson = await showMummy("1");
+        checkMummyVictim("1", mummyJson);
+        mummy1 = mummyJson;
 
-        // Reanimate the frozen object and construct it
-        const res = await execa("node", ["index.js", frozenJson]);
+        // Reanimate the mummy object and construct it
+        const res = await execa("node", ["index.js", mummyJson]);
         should(res.stdout).match(/SUCCESS/);
         should(res.stdout).match(/Created Victim version 1.0.0/);
     });
 
     it("Should reanimate non-module-level registerObject", async () => {
-        const frozenJson = await showFrozen("late");
-        const parsed = JSON.parse(frozenJson);
-        should(parsed.name).equal("LateVictim");
-        should(parsed.pkgName).equal("@usys/register-in-func");
-        should(parsed.pkgVersion).equal("1.0.0");
+        const mummyJson = await showMummy("late");
+        const mummy = JSON.parse(mummyJson);
+        should(mummy.name).equal("LateVictim");
+        should(mummy.pkgName).equal("@usys/register-in-func");
+        should(mummy.pkgVersion).equal("1.0.0");
 
-        // Reanimate the frozen object and construct it
-        const res = await execa("node", ["index.js", frozenJson]);
+        // Reanimate the mummy object and construct it
+        const res = await execa("node", ["index.js", mummyJson]);
         should(res.stdout).match(/SUCCESS/);
         should(res.stdout).match(/Created LateVictim/);
     });
 
     it("Should reanimate with different root dir", async () => {
-        if (!frozen1 || !frozen2) {
+        if (!mummy1 || !mummy2) {
             throw new Error(`Previous tests did not run successfully`);
         }
 
@@ -489,11 +489,11 @@ describe("Reanimate in package tests", function() {
             await createProject();
             await npm.install(localRegistryDefaults.npmLocalProxyOpts);
 
-            let res = await execa("node", ["index.js", frozen1]);
+            let res = await execa("node", ["index.js", mummy1]);
             should(res.stdout).match(/SUCCESS/);
             should(res.stdout).match(/Created Victim version 1.0.0/);
 
-            res = await execa("node", ["index.js", frozen2]);
+            res = await execa("node", ["index.js", mummy2]);
             should(res.stdout).match(/SUCCESS/);
             should(res.stdout).match(/Created Victim version 2.0.0/);
         } finally {

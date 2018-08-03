@@ -1,6 +1,6 @@
 export {
-    findFrozen,
-    FrozenJson,
+    findMummy,
+    MummyJson,
     reanimate,
     registerObject,
 } from "./reanimate";
