@@ -4,6 +4,9 @@
   "description": "Unbounded Adapt core library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
+  "files": [
+      "dist/src"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "pretest": "make build",
