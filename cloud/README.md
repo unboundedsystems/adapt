@@ -9,6 +9,14 @@ cd cloud
 docker network create test_minikube
 
 docker run --privileged -d --name test_minikube --network test_minikube --network-alias kubernetes quay.io/aspenmesh/minikube-dind
+```
 
+Then run the tests (from the cloud directory):
+```
 DOCKER_ARGS="-e ADAPT_TEST_MINIKUBE=test_minikube" ../bin/npm run test
+```
+
+Or do a make (from top level):
+```
+DOCKER_ARGS="-e ADAPT_TEST_MINIKUBE=test_minikube" ./bin/make
 ```
