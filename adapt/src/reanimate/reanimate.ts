@@ -1,4 +1,5 @@
 import { npm } from "@usys/utils";
+import callsites = require("callsites");
 import * as stringify from "json-stable-stringify";
 import * as path from "path";
 import { findPackageInfo } from "../packageinfo";
@@ -160,10 +161,23 @@ class Zombie implements Twitching {
     }
 }
 
-export function registerObject(obj: any, name: string, module: NodeModule,
+export function registerObject(obj: any, name: string,
+                               modOrCallerNum: NodeModule | number = 0,
                                altNamespace = "$adaptExports") {
+    let mod: NodeModule;
+
     if (obj == null) throw new Error(`Cannot register null or undefined`);
-    if (module.exports == null) throw new Error(`Internal error: exports unexpectedly null`);
+
+    if (typeof modOrCallerNum === "number") {
+        if (modOrCallerNum < 0) {
+            throw new Error(`registerObject: callerNum must be >= 0`);
+        }
+        mod = callerModule(modOrCallerNum + 2);
+    } else {
+        mod = modOrCallerNum;
+    }
+
+    if (mod.exports == null) throw new Error(`Internal error: exports unexpectedly null`);
 
     // FIXME(mark): we should wait to run findExportName until
     // module.loaded === true. To do that, we should create a Promise, but
@@ -171,17 +185,17 @@ export function registerObject(obj: any, name: string, module: NodeModule,
     // both reanimate and frozen should ensure all promises are resolved before
     // continuing operation. That should allow us to remove the namespace
     // stuff.
-    const exportName = findExportName(obj, name, module);
+    const exportName = findExportName(obj, name, mod);
 
     const z = new Zombie(obj, exportName || name,
-                         exportName ? "" : altNamespace, module);
+                         exportName ? "" : altNamespace, mod);
     registry.store(obj, z.freeze());
 
     if (!exportName) {
-        let exp = module.exports[altNamespace];
+        let exp = mod.exports[altNamespace];
         if (exp == null) {
             exp = Object.create(null);
-            module.exports[altNamespace] = exp;
+            mod.exports[altNamespace] = exp;
         }
         exp[name] = obj;
     }
@@ -198,6 +212,28 @@ function findExportName(obj: any, defaultName: string,
         if (module.exports[k] === obj) return k;
     }
     return undefined;
+}
+
+// Exported for testing
+export function callerModule(callerNum: number): NodeModule {
+    if (!Number.isInteger(callerNum) || callerNum < 0) {
+        throw new Error(`callerModule: invalid callerNum: ${callerNum}`);
+    }
+    const stack = callsites();
+    if (callerNum >= stack.length) {
+        throw new Error(`callerModule: callerNum too large: ${callerNum}, max: ${stack.length - 1}`);
+    }
+
+    const fileName = stack[callerNum].getFileName();
+    if (fileName == null) {
+        throw new Error(`callerModule: unable to get filename`);
+    }
+
+    const mod = require.cache[fileName];
+    if (mod == null) {
+        throw new Error(`callerModule: file ${fileName} not in cache`);
+    }
+    return mod;
 }
 
 export function reanimate(frozen: FrozenJson): Promise<any> {

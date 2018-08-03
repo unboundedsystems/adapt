@@ -13,6 +13,7 @@ import * as should from "should";
 import { packageDirs } from "../testlib";
 
 import {
+    callerModule,
     findFrozen,
     FrozenJson,
     mockRegistry_,
@@ -20,12 +21,14 @@ import {
     registerObject,
     ZombieRegistry
 } from "../../src/reanimate/reanimate";
+import * as firstInFunc from "./test_in_func";
 import * as firstLateExport from "./test_late_export";
 import { isLiving } from "./test_living";
 import * as firstVictim from "./test_victim";
 
 let currentVictim = firstVictim;
 let currentLateExport = firstLateExport;
+let currentInFunc = firstInFunc;
 
 function deleteVictimModule() {
     delete require.cache[currentVictim.module.id];
@@ -33,6 +36,10 @@ function deleteVictimModule() {
 
 function deleteLateExportModule() {
     delete require.cache[currentLateExport.module.id];
+}
+
+function deleteInFuncModule() {
+    delete require.cache[currentInFunc.module.id];
 }
 
 function requireVictimModule() {
@@ -45,6 +52,11 @@ function requireLateExportModule() {
     currentLateExport = require("./test_late_export");
     // Ensure we actually got a new module
     should(currentLateExport).not.equal(firstLateExport);
+}
+
+function requireInFuncModule() {
+    currentInFunc = require("./test_in_func");
+    should(currentInFunc).not.equal(firstInFunc);
 }
 
 describe("Reanimate basic tests", () => {
@@ -165,6 +177,57 @@ describe("Reanimate basic tests", () => {
         v = new obj();
         should(isLiving(v)).be.True();
         should(v.constructor.name).equal("LateExportInternal");
+    });
+
+    it("callerModule should return valid modules", () => {
+        const files = [
+            "dist/src/reanimate/reanimate.js",
+            "dist/test/reanimate/reanimate.spec.js",
+        ];
+
+        for (let i = 0; i < files.length; i++) {
+            const mod = callerModule(i);
+            should(mod).be.type("object");
+            should(mod.filename).equal(path.join(packageDirs.root, files[i]));
+            if (i === 1) {
+                should(mod).equal(module);
+            }
+        }
+    });
+
+    it("Should freeze and reanimate with module default", async () => {
+        mockRegistry_(new ZombieRegistry());
+
+        // modOrCallerNum is default paremeter
+        currentInFunc.doRegister();
+
+        const frozen = findFrozen(currentInFunc.InFunc);
+        should(frozen).be.type("string");
+
+        const parsed = JSON.parse(frozen);
+        should(parsed).eql({
+            name: "InFunc",
+            namespace: "",
+            pkgName: "@usys/adapt",
+            pkgVersion: "0.0.1",
+            relFilePath: "../test/reanimate/test_in_func.js",
+        });
+
+        // Clear out the registry and module
+        mockRegistry_(new ZombieRegistry());
+        deleteInFuncModule();
+
+        const obj = await reanimate(frozen);
+        // This will be a different object from the original
+        should(obj).not.equal(currentInFunc.InFunc);
+        // But if we re-require the module, we'll get the updated obj
+        requireInFuncModule();
+        should(obj).equal(currentInFunc.InFunc);
+
+        // And the reanimated object should still be an instance of Living
+        const v = new obj();
+        should(isLiving(v)).be.True();
+        should(v.constructor.name).equal("InFuncInternal");
     });
 
 });
@@ -330,8 +393,9 @@ const reanimatePackage: Package = {
         name: "@usys/reanimate",
         dependencies: {
             "@usys/utils": "0.0.1",
-            "json-stable-stringify": "^1.0.1",
-            "read-pkg-up": "^4.0.0"
+            "callsites": "2.0.0",
+            "json-stable-stringify": "1.0.1",
+            "read-pkg-up": "4.0.0"
         },
     },
     files: {
