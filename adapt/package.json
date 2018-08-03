@@ -4,6 +4,9 @@
   "description": "Unbounded Adapt core library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
+  "files": [
+      "dist/src"
+  ],
   "scripts": {
     "clean": "rm -rf dist",
     "pretest": "make build",
@@ -20,8 +23,11 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "devDependencies": {
+    "@types/callsites": "^2.0.0",
+    "@types/execa": "^0.9.0",
     "@types/fs-extra": "^5.0.3",
     "@types/indent-string": "^3.0.0",
+    "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.108",
     "@types/mkdirp": "^0.5.2",
     "@types/mocha": "^5.2.0",
@@ -34,7 +40,7 @@
     "@types/type-name": "^1.0.27",
     "@types/when": "^2.4.31",
     "@types/xmlbuilder": "0.0.32",
-    "@usys/utils": "0.0.1",
+    "execa": "^0.10.0",
     "fs-extra": "^6.0.1",
     "mocha": "^5.1.1",
     "should": "^13.2.1",
@@ -44,9 +50,12 @@
     "typescript": "^2.8.3"
   },
   "dependencies": {
+    "@usys/utils": "0.0.1",
+    "callsites": "^2.0.0",
     "css-what": "^2.1.0",
     "flush-write-stream": "^1.0.3",
     "indent-string": "^3.2.0",
+    "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.10",
     "mkdirp": "^0.5.1",
     "node-json-db": "^0.7.5",

@@ -1,4 +1,9 @@
-import { mochaTmpdir as tmpdir, npm } from "@usys/utils";
+import {
+    localRegistryDefaults,
+    mochaLocalRegistry,
+    mochaTmpdir as tmpdir,
+    npm
+} from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
@@ -89,6 +94,8 @@ describe("buildStack Tests", async function() {
     let logger: MockLogger;
 
     this.timeout(30000);
+    mochaLocalRegistry.all(localRegistryDefaults.config,
+                           localRegistryDefaults.configPath);
     tmpdir.each("adapt-buildStack");
 
     beforeEach(() => {
@@ -107,7 +114,7 @@ describe("buildStack Tests", async function() {
         await fs.outputFile(path.join("simple_plugin", "index.ts"), simplePluginTs);
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
-        await npm.install();
+        await npm.install(localRegistryDefaults.npmLocalProxyOpts);
 
         const bs = await buildStack({
             adaptUrl: `file://${process.cwd()}/db.json`,

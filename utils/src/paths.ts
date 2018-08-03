@@ -41,18 +41,18 @@ export function findPackageDirs(dirname: string) {
 
         const parent = path.dirname(dirname);
         if (parent === dirname) {
-            throw new Error(`Unable to find package directories`);
+            break;
         }
         dirname = parent;
     } while (true);
 
-    if (root == null || repoRoot == null) {
+    if (root == null) {
         throw new Error(`Error finding package directories`);
     }
 
     return {
         root,
-        repoRoot,
+        repoRoot: repoRoot || "/dev/null", // Not supported outside of a git repo
         test: path.join(root, "test"),
         dist: path.join(root, "dist"),
     };
