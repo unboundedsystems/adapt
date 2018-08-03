@@ -73,7 +73,7 @@ export class ZombieRegistry {
         if (obj === undefined) {
             throw new Error(`Unable to reanimate ${frozen}`);
         }
-        this.store(obj, frozen);
+        this.entomb(obj, frozen);
         return obj;
     }
 
@@ -84,9 +84,9 @@ export class ZombieRegistry {
         throw new Error(`Unable to look up frozen representation for '${obj}'`);
     }
 
-    store(obj: any, frozen: FrozenJson) {
-        if (obj === undefined) {
-            throw new Error(`Unable to store undefined for later reanimation`);
+    entomb(obj: any, frozen: FrozenJson) {
+        if (obj == null) {
+            throw new Error(`Unable to store ${obj} for later reanimation`);
         }
         this.jsonToObj.set(frozen, obj);
         const existing = this.objToJson.get(obj);
@@ -121,13 +121,13 @@ interface Twitching {
     pkgVersion: string;
     relFilePath: string;
 }
-const twitchingProps = new Set(["name", "namespace", "pkgName", "pkgVersion", "relFilePath"]);
+const twitchingProps = ["name", "namespace", "pkgName", "pkgVersion", "relFilePath"];
 
 function isTwitching(val: any): val is Twitching {
     if (val == null || typeof val !== "object") {
         throw new Error(`Invalid frozen JSON object`);
     }
-    for (const prop of twitchingProps.values()) {
+    for (const prop of twitchingProps) {
         const t = typeof val[prop];
         if (t !== "string") {
             throw new Error(`Invalid frozen JSON property '${prop}' type '${t}'`);
@@ -136,47 +136,27 @@ function isTwitching(val: any): val is Twitching {
     return true;
 }
 
-class Zombie implements Twitching {
-    pkgName: string;
-    pkgVersion: string;
-    pkgRoot: string;
-    relFilePath: string;
-
-    constructor(public obj: any, public name: string, public namespace: string, module: NodeModule) {
-        const pkgInfo = findPackageInfo(path.dirname(module.filename));
-        this.pkgName = pkgInfo.name;
-        this.pkgVersion = pkgInfo.version;
-        this.pkgRoot = pkgInfo.root;
-        this.relFilePath = path.relative(path.dirname(pkgInfo.main), module.filename);
-        trace(debugReanimate, "mainFile:", pkgInfo.main, "\nthis:", this);
-    }
-
-    freeze(): FrozenJson {
-        function replacer(key: string, val: any) {
-            return (key === "" || twitchingProps.has(key)) ? val : undefined;
-        }
-        const s = stringify(this, { replacer });
-        trace(debugReanimate, "Frozen:", JSON.parse(s));
-        return s;
-    }
+function freeze(obj: any, name: string, namespace: string, module: NodeModule) {
+    const pkgInfo = findPackageInfo(path.dirname(module.filename));
+    const t: Twitching = {
+        name,
+        namespace,
+        pkgName: pkgInfo.name,
+        pkgVersion: pkgInfo.version,
+        relFilePath: path.relative(path.dirname(pkgInfo.main), module.filename),
+    };
+    trace(debugReanimate, "mainFile:", pkgInfo.main, "\ntwitching:", t);
+    const s = stringify(t);
+    trace(debugReanimate, "Frozen:", s);
+    return s;
 }
 
 export function registerObject(obj: any, name: string,
                                modOrCallerNum: NodeModule | number = 0,
                                altNamespace = "$adaptExports") {
-    let mod: NodeModule;
-
     if (obj == null) throw new Error(`Cannot register null or undefined`);
 
-    if (typeof modOrCallerNum === "number") {
-        if (modOrCallerNum < 0) {
-            throw new Error(`registerObject: callerNum must be >= 0`);
-        }
-        mod = callerModule(modOrCallerNum + 2);
-    } else {
-        mod = modOrCallerNum;
-    }
-
+    const mod = findModule(modOrCallerNum);
     if (mod.exports == null) throw new Error(`Internal error: exports unexpectedly null`);
 
     // FIXME(mark): we should wait to run findExportName until
@@ -187,9 +167,8 @@ export function registerObject(obj: any, name: string,
     // stuff.
     const exportName = findExportName(obj, name, mod);
 
-    const z = new Zombie(obj, exportName || name,
-                         exportName ? "" : altNamespace, mod);
-    registry.store(obj, z.freeze());
+    registry.entomb(obj, freeze(obj, exportName || name,
+                               exportName ? "" : altNamespace, mod));
 
     if (!exportName) {
         let exp = mod.exports[altNamespace];
@@ -212,6 +191,22 @@ function findExportName(obj: any, defaultName: string,
         if (module.exports[k] === obj) return k;
     }
     return undefined;
+}
+
+function findModule(modOrCallerNum: NodeModule | number): NodeModule {
+    let mod: NodeModule;
+
+    if (typeof modOrCallerNum === "number") {
+        if (modOrCallerNum < 0) {
+            throw new Error(`registerObject: callerNum must be >= 0`);
+        }
+        // Back up the stack to caller of registerObject
+        mod = callerModule(modOrCallerNum + 3);
+    } else {
+        mod = modOrCallerNum;
+    }
+
+    return mod;
 }
 
 // Exported for testing
@@ -274,6 +269,14 @@ async function packageRegistry(): Promise<PackageRegistry> {
     return packageRegistry_;
 }
 
+/**
+ * Walk the output of npm ls --json and for each package, extract it's _id
+ * and package root directory, then store in the PackageRegistry.
+ * @param reg PackageRegistry to store in
+ * @param root Root directory of the topmost NPM module
+ * @param name Name of the current package for where we are in the LsTree
+ * @param tree The LsTree object for the current package (corresponding to name)
+ */
 function findPaths(reg: PackageRegistry, root: string, name: string, tree: npm.LsTree) {
     const { _id, _location, path: ppath } = tree;
     let loc: string | null = null;
