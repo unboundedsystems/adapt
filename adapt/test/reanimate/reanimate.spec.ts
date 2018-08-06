@@ -10,6 +10,7 @@ import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import * as should from "should";
+import { Constructor } from "../../src/type_support";
 import { Package, writePackage } from "../package_maker";
 import { packageDirs } from "../testlib";
 
@@ -22,42 +23,35 @@ import {
     reanimate,
     registerObject,
 } from "../../src/reanimate/reanimate";
-import * as firstInFunc from "./test_in_func";
-import * as firstLateExport from "./test_late_export";
+import * as firstBaseReg from "./test_baseReg";
+import * as firstInFunc from "./test_inFunc";
+import * as firstLateExport from "./test_lateExport";
 import { isLiving } from "./test_living";
 import * as firstVictim from "./test_victim";
 
-let currentVictim = firstVictim;
-let currentLateExport = firstLateExport;
-let currentInFunc = firstInFunc;
+const currentAdaptVersion = "0.0.1";
 
-function deleteVictimModule() {
-    delete require.cache[currentVictim.module.id];
+const curMod = {
+    victim: firstVictim,
+    lateExport: firstLateExport,
+    inFunc: firstInFunc,
+    baseReg: firstBaseReg,
+};
+type Mods = typeof curMod;
+type ModName = keyof Mods;
+//type ModExports<Mname extends ModName> = keyof Mods[Mname];
+type CtorNames<T> = { [K in keyof T]: T[K] extends Constructor<any> ? K : never }[keyof T];
+type ModCtorNames<Mname extends ModName> = CtorNames<Mods[Mname]>;
+
+function deleteModule(modName: ModName) {
+    delete require.cache[curMod[modName].module.id];
 }
 
-function deleteLateExportModule() {
-    delete require.cache[currentLateExport.module.id];
-}
-
-function deleteInFuncModule() {
-    delete require.cache[currentInFunc.module.id];
-}
-
-function requireVictimModule() {
-    currentVictim = require("./test_victim");
+function requireModule(modName: ModName) {
+    const current = curMod[modName];
+    curMod[modName] = require(`./test_${modName}`);
     // Ensure we actually got a new module
-    should(currentVictim).not.equal(firstVictim);
-}
-
-function requireLateExportModule() {
-    currentLateExport = require("./test_late_export");
-    // Ensure we actually got a new module
-    should(currentLateExport).not.equal(firstLateExport);
-}
-
-function requireInFuncModule() {
-    currentInFunc = require("./test_in_func");
-    should(currentInFunc).not.equal(firstInFunc);
+    should(curMod[modName]).not.equal(current);
 }
 
 describe("Reanimate basic tests", () => {
@@ -82,7 +76,7 @@ describe("Reanimate basic tests", () => {
             name: "Victim",
             namespace: "",
             pkgName: "@usys/adapt",
-            pkgVersion: "0.0.1",
+            pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_victim.js",
         });
 
@@ -94,12 +88,12 @@ describe("Reanimate basic tests", () => {
         mockRegistry_(new MummyRegistry());
 
         // Pre-flight sanity check. Victim derives from Living
-        let v = new currentVictim.Victim();
+        let v = new curMod.victim.Victim();
         should(isLiving(v)).be.True();
 
-        registerObject(currentVictim.Victim, "Victim", currentVictim.module);
+        registerObject(curMod.victim.Victim, "Victim", curMod.victim.module);
 
-        const mummified = findMummy(currentVictim.Victim);
+        const mummified = findMummy(curMod.victim.Victim);
         should(mummified).be.type("string");
 
         const parsed = JSON.parse(mummified);
@@ -107,20 +101,20 @@ describe("Reanimate basic tests", () => {
             name: "Victim",
             namespace: "",
             pkgName: "@usys/adapt",
-            pkgVersion: "0.0.1",
+            pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_victim.js",
         });
 
         // Clear out the registry and victim module
         mockRegistry_(new MummyRegistry());
-        deleteVictimModule();
+        deleteModule("victim");
 
         const obj = await reanimate(mummified);
         // This Victim will be a different object from the original
-        should(obj).not.equal(currentVictim.Victim);
+        should(obj).not.equal(curMod.victim.Victim);
         // But if we re-require the victim module, we'll get the updated obj
-        requireVictimModule();
-        should(obj).equal(currentVictim.Victim);
+        requireModule("victim");
+        should(obj).equal(curMod.victim.Victim);
 
         // And the reanimated object should still be an instance of Living
         v = new obj();
@@ -131,17 +125,17 @@ describe("Reanimate basic tests", () => {
     it("Should store and reanimate object registered before export", async () => {
 
         // Pre-flight sanity check. LateExport derives from Living
-        let v = new currentLateExport.LateExport();
+        let v = new curMod.lateExport.LateExport();
         should(isLiving(v)).be.True();
         should(v.constructor.name).equal("LateExportInternal");
 
         // Clear everything
-        deleteLateExportModule();
+        deleteModule("lateExport");
         mockRegistry_(new MummyRegistry());
 
-        requireLateExportModule();
+        requireModule("lateExport");
 
-        const firstMummyLate = findMummy(currentLateExport.LateExport);
+        const firstMummyLate = findMummy(curMod.lateExport.LateExport);
         should(firstMummyLate).be.type("string");
 
         const parsed = JSON.parse(firstMummyLate);
@@ -152,8 +146,8 @@ describe("Reanimate basic tests", () => {
             name: "LateExportReg",
             namespace: "$adaptExports",
             pkgName: "@usys/adapt",
-            pkgVersion: "0.0.1",
-            relFilePath: "../test/reanimate/test_late_export.js",
+            pkgVersion: currentAdaptVersion,
+            relFilePath: "../test/reanimate/test_lateExport.js",
         });
 
         const firstObj = await reanimate(firstMummyLate);
@@ -163,16 +157,16 @@ describe("Reanimate basic tests", () => {
         should(v.constructor.name).equal("LateExportInternal");
 
         // Clear once more
-        deleteLateExportModule();
+        deleteModule("lateExport");
         mockRegistry_(new MummyRegistry());
 
         const obj = await reanimate(firstMummyLate);
         // This LateExport will be a different object from the original
         should(obj).not.equal(firstObj);
-        should(obj).not.equal(currentLateExport.LateExport);
+        should(obj).not.equal(curMod.lateExport.LateExport);
         // But if we re-require the module, we'll get the updated obj
-        requireLateExportModule();
-        should(obj).equal(currentLateExport.LateExport);
+        requireModule("lateExport");
+        should(obj).equal(curMod.lateExport.LateExport);
 
         // And the reanimated object should still be an instance of Living
         v = new obj();
@@ -200,9 +194,9 @@ describe("Reanimate basic tests", () => {
         mockRegistry_(new MummyRegistry());
 
         // modOrCallerNum is default paremeter
-        currentInFunc.doRegister();
+        curMod.inFunc.doRegister();
 
-        const mummy = findMummy(currentInFunc.InFunc);
+        const mummy = findMummy(curMod.inFunc.InFunc);
         should(mummy).be.type("string");
 
         const parsed = JSON.parse(mummy);
@@ -210,27 +204,90 @@ describe("Reanimate basic tests", () => {
             name: "InFunc",
             namespace: "",
             pkgName: "@usys/adapt",
-            pkgVersion: "0.0.1",
-            relFilePath: "../test/reanimate/test_in_func.js",
+            pkgVersion: currentAdaptVersion,
+            relFilePath: "../test/reanimate/test_inFunc.js",
         });
 
         // Clear out the registry and module
         mockRegistry_(new MummyRegistry());
-        deleteInFuncModule();
+        deleteModule("inFunc");
 
         const obj = await reanimate(mummy);
         // This will be a different object from the original
-        should(obj).not.equal(currentInFunc.InFunc);
+        should(obj).not.equal(curMod.inFunc.InFunc);
         // But if we re-require the module, we'll get the updated obj
-        requireInFuncModule();
-        should(obj).equal(currentInFunc.InFunc);
+        requireModule("inFunc");
+        should(obj).equal(curMod.inFunc.InFunc);
 
         // And the reanimated object should still be an instance of Living
         const v = new obj();
         should(isLiving(v)).be.True();
         should(v.constructor.name).equal("InFuncInternal");
     });
+});
 
+async function basicTestConstructor<M extends ModName, R extends ModCtorNames<M>>(
+    modName: M,
+    regName: R, // Name of the constructor we expect to be registered
+    newName: R = regName, // Name of the constructor to new to cause registration
+) {
+
+    const getCtor = (name: R): any => curMod[modName][name];
+    const regCtor = getCtor(regName);
+    const newCtor = getCtor(newName);
+
+    // Shouldn't have already registered
+    should(() => findMummy(regCtor)).throwError(/Unable to look up JSON/);
+
+    // Register on construct
+    new newCtor();
+    const mummyJson = findMummy(regCtor);
+
+    should(mummyJson).be.type("string");
+
+    const mummy = JSON.parse(mummyJson);
+    should(mummy).eql({
+        name: regName,
+        namespace: "",
+        pkgName: "@usys/adapt",
+        pkgVersion: currentAdaptVersion,
+        relFilePath: `../test/reanimate/test_${modName}.js`,
+    });
+
+    let live = await reanimate(mummyJson);
+    should(live).equal(regCtor);
+
+    // Clear out the registry and module
+    mockRegistry_(new MummyRegistry());
+    deleteModule(modName);
+
+    live = await reanimate(mummyJson);
+    // This will be a different object from the original
+    should(live).not.equal(regCtor);
+    // But if we re-require the module, we'll get the updated obj
+    requireModule(modName);
+    should(live).equal(getCtor(regName));
+
+    const b = new live();
+    should(b.constructor.name).equal(regName);
+}
+
+describe("registerConstructor", () => {
+
+    it("Should store and reanimate constructor", async () => {
+        await basicTestConstructor("baseReg", "BaseReg");
+    });
+
+    it("Should store and reanimate indirect register", async () => {
+        await basicTestConstructor("baseReg", "BaseRegFunc");
+    });
+
+    it("Should store and reanimate nested constructor", async () => {
+        await basicTestConstructor("baseReg", "BaseReg", "BaseRegNested");
+    });
+    it("Should store and reanimate derived class", async () => {
+        await basicTestConstructor("baseReg", "Derived");
+    });
 });
 
 const mainIndexJs = `

@@ -4,6 +4,8 @@ import * as stringify from "json-stable-stringify";
 import * as path from "path";
 import { findPackageInfo } from "../packageinfo";
 
+import { inspect } from "util";
+
 // As long as utilsTypes is not used as a value, TS will only pull in the
 // types. Then dynamically load utils, if available. Since we use this file
 // as a module in unit tests, the dynamic import allows us to not have to
@@ -166,7 +168,10 @@ export function registerObject(obj: any, name: string,
     if (obj == null) throw new Error(`Cannot register null or undefined`);
 
     const mod = findModule(modOrCallerNum);
-    if (mod.exports == null) throw new Error(`Internal error: exports unexpectedly null`);
+    if (mod.exports == null) {
+        throw new Error(`Internal error: exports unexpectedly null for ` +
+            `${mod.id}\n${inspect(mod)}`);
+    }
 
     // FIXME(mark): we should wait to run findExportName until
     // module.loaded === true. To do that, we should create a Promise, but
@@ -187,6 +192,11 @@ export function registerObject(obj: any, name: string,
         }
         exp[name] = obj;
     }
+}
+
+// tslint:disable-next-line:ban-types
+export function registerConstructor(ctor: Function) {
+    registerObject(ctor, ctor.name, findConstructorModule());
 }
 
 function findExportName(obj: any, defaultName: string,
@@ -214,6 +224,53 @@ function findModule(modOrCallerNum: NodeModule | number): NodeModule {
     } else {
         mod = modOrCallerNum;
     }
+
+    return mod;
+}
+
+// Exported for testing
+export function findConstructorModule(): NodeModule {
+    const stack = callsites();
+    let candidateFrame: number | undefined;
+
+    // Skip over first entry..that's this function
+    let frame = 1;
+
+    // Find the first frame inside a constructor
+    while (frame < stack.length) {
+        if (stack[frame].isConstructor()) break;
+        frame++;
+    }
+    if (frame === stack.length) throw new Error(`Unable to find constructor on stack`);
+
+    const constructingType = stack[frame].getTypeName();
+    if (!constructingType) throw new Error(`Unable to find type of constructor object`);
+
+    let lastConstructor = frame;
+    while (frame < stack.length) {
+        // Stop when we reach a frame not inside a constructor
+        if (!stack[frame].isConstructor()) break;
+        lastConstructor = frame;
+
+        if (stack[frame].getFunctionName() === constructingType) {
+            if (candidateFrame !== undefined) {
+                throw new Error(`Found two candidate constructor frames`);
+            }
+            candidateFrame = frame;
+        }
+        frame++;
+    }
+    if (candidateFrame === undefined) {
+        throw new Error(
+            `Unable to find constructor with correct name. Outer ` +
+            `constructor is: ${stack[lastConstructor].getFunctionName()}`);
+    }
+
+    const filename = stack[candidateFrame].getFileName();
+    if (!filename) throw new Error(`stack frame has no filename`);
+
+    const mod = require.cache[filename];
+    if (!mod) throw new Error(`Unable to find module for file ${filename}`);
 
     return mod;
 }
