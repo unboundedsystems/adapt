@@ -1,16 +1,34 @@
+import { findPackageDirs } from "@usys/utils";
 import * as path from "path";
 import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
 
+import { isError, ProjectRunError, ThrewNonError } from "../error";
 import { trace, tracef } from "../utils";
 import { ChainableHost } from "./hosts";
 
 const debugVm = false;
 
-class RunStack {
-    stack: string[] = [];
-    constructor(public error: Error) {}
+const packageDirs = findPackageDirs(__dirname);
+
+// Remove each line that has a filename that's in our dist/src/ts directory.
+// There are often 2-3 of these compilation-related frames between each
+// stack frame that the user cares about, which makes the backtraces super
+// confusing for them.
+const tsStackExclude = RegExp("^.*\\(" + path.join(packageDirs.dist, "src", "ts") + ".*$", "mg");
+
+// Script.runInContext is the call that starts the user's project script.
+// Delete that line and all following lines.
+const ctxStackEnd = /\n[^\n]*Script\.runInContext(?:.|\n)*/;
+
+function getProjectStack(projectError: Error): string {
+    if (projectError.stack) {
+        let ctxStack = projectError.stack.replace(ctxStackEnd, "");
+        ctxStack = ctxStack.replace(tsStackExclude, "");
+        return ctxStack;
+    }
+    return "[No stack]";
 }
 
 export interface Extensions {
@@ -150,13 +168,9 @@ export class VmModule {
             return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
                                  require, this.ctxModule, filename, dirname);
         } catch (err) {
-            if (err instanceof RunStack) {
-                err.stack.push(filename);
-                throw err;
-            }
-            const rs = new RunStack(err);
-            rs.stack.push(filename);
-            throw rs;
+            if (err instanceof ProjectRunError) throw err;
+            if (!isError(err)) err = new ThrewNonError(err);
+            throw new ProjectRunError(err, getProjectStack(err), err.stack);
         }
     }
 
@@ -245,15 +259,12 @@ export class VmContext {
             // Execute the program
             val = script.runInContext(this.vmGlobal);
         } catch (err) {
-            if (err instanceof RunStack) {
-                // tslint:disable-next-line:no-console
-                console.log(`Error while executing Adapt project: ${err.error.message}`);
-                for (const mod of err.stack) {
-                    // tslint:disable-next-line:no-console
-                    console.log(`  ${mod}`);
-                }
-                throw new Error(`Exiting on run error`);
+            if (!isError(err)) err = new ThrewNonError(err);
+            if (!(err instanceof ProjectRunError)) {
+                err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
+            // tslint:disable-next-line:no-console
+            console.log(err.message);
             throw err;
         }
         if (debugVm) {

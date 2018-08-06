@@ -4,6 +4,7 @@ import * as should from "should";
 import * as path from "path";
 import { pkgRootDir } from "../testlib";
 
+import { ProjectRunError } from "../../src/error";
 import {
     exec,
     execString,
@@ -52,6 +53,33 @@ describe("Exec basic tests", () => {
         const context = { foo: {} };
         execString(source, context);
         should(context.foo).eql({bar: 1});
+    });
+
+    it("Should throw ProjectRunError upon error", function() {
+        this.timeout(5000);
+
+        const source =
+            `// Comment line\n` +
+            `throw new Error("This is my error");\n`;
+        const shortStack =
+            `[root].ts:2\n` +
+            `throw new Error("This is my error");\n` +
+            `^\n` +
+            `\n` +
+            `Error: This is my error\n` +
+            `    at [root].ts:2:7`;
+
+        const context = {};
+        try {
+            execString(source, context);
+            throw new Error(`execString should have thrown`);
+        } catch (err) {
+            should(err).be.instanceof(ProjectRunError);
+            should(err.message).equal("Error executing Adapt project: This is my error");
+            should(err.projectStack).equal(shortStack);
+            should(err.fullStack).startWith(shortStack);
+            should(err.fullStack).match(/VmContext.run/);
+        }
     });
 });
 
