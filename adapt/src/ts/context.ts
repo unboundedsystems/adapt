@@ -22,20 +22,16 @@ export interface ModuleCache {
 }
 
 export class VmModule {
-    exports: any = {};
-    filename: string;
-    loaded = false;
-    children: VmModule[] = [];
     _extensions: Extensions;
     _cache: ModuleCache;
     _compile = this.runJs;
+    ctxModule: NodeModule;
 
     private _hostModCache: any;
 
     constructor(public id: string, private vmContext: vm.Context | undefined,
                 public host: ChainableHost,
                 public parent?: VmModule) {
-        this.filename = id;
         if (parent) {
             this._extensions = parent._extensions;
             this._cache = parent._cache;
@@ -46,6 +42,8 @@ export class VmModule {
             this._hostModCache = Object.create(null);
             this._extensions[".js"] = this.runJsModule.bind(this);
         }
+        this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
+        this.ctxModule.filename = id;
     }
 
     /**
@@ -69,18 +67,21 @@ export class VmModule {
             const resolvedPath = resolved.resolvedFileName;
 
             const cached = this._cache[resolvedPath];
-            if (cached) return cached.exports;
+            if (cached) return cached.ctxModule.exports;
 
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
                                         this);
 
             this._cache[resolvedPath] = newMod;
+            require.cache[resolvedPath] = newMod.ctxModule;
 
             const ext = path.extname(resolvedPath) || ".js";
+
             // Run the module
             this._extensions[ext](newMod, resolvedPath);
-            newMod.loaded = true;
-            return newMod.exports;
+
+            newMod.ctxModule.loaded = true;
+            return newMod.ctxModule.exports;
         }
 
         // Any relative or absolute path should have been resolved already
@@ -146,8 +147,8 @@ export class VmModule {
         const require = this.require.bind(this);
         const dirname = path.dirname(filename);
         try {
-            return compiled.call(this.exports, this.exports, require, this,
-                                filename, dirname);
+            return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
+                                 require, this.ctxModule, filename, dirname);
         } catch (err) {
             if (err instanceof RunStack) {
                 err.stack.push(filename);
@@ -221,8 +222,8 @@ export class VmContext {
         const module = new VmModule(filename, undefined, host, undefined);
         this.mainModule = module;
 
-        vmGlobal.exports = module.exports;
-        vmGlobal.module = module;
+        vmGlobal.exports = module.ctxModule.exports;
+        vmGlobal.module = module.ctxModule;
         vmGlobal.require = module.require.bind(module);
         vmGlobal.global = vmGlobal;
         setAdaptContext(Object.create(null));
@@ -246,7 +247,7 @@ export class VmContext {
         } catch (err) {
             if (err instanceof RunStack) {
                 // tslint:disable-next-line:no-console
-                console.log(`Error during run: ${err.error.message}`);
+                console.log(`Error while executing Adapt project: ${err.error.message}`);
                 for (const mod of err.stack) {
                     // tslint:disable-next-line:no-console
                     console.log(`  ${mod}`);
