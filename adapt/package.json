@@ -50,6 +50,7 @@
     "typescript": "^2.8.3"
   },
   "dependencies": {
+    "@usys/dom-parser": "0.0.1",
     "@usys/utils": "0.0.1",
     "callsites": "^2.0.0",
     "css-what": "^2.1.0",
