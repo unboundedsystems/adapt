@@ -17,10 +17,12 @@ import { packageDirs } from "../testlib";
 import {
     callerModule,
     findMummy,
+    findMummyUrn,
     mockRegistry_,
     MummyJson,
     MummyRegistry,
     reanimate,
+    reanimateUrn,
     registerObject,
 } from "../../src/reanimate/reanimate";
 import * as firstBaseReg from "./test_baseReg";
@@ -82,6 +84,13 @@ describe("Reanimate basic tests", () => {
 
         const obj = await reanimate(firstMummyJ);
         should(obj).equal(firstVictim.Victim);
+
+        const mummyUrn = findMummyUrn(firstVictim.Victim);
+        should(mummyUrn).equal(
+            // tslint:disable-next-line:max-line-length
+            `urn:Adapt:@usys/adapt:${currentAdaptVersion}::../test/reanimate/test_victim.js:Victim`);
+        const obj2 = await reanimateUrn(mummyUrn);
+        should(obj2).equal(firstVictim.Victim);
     });
 
     it("Should store and reanimate with new module and registry", async () => {
@@ -150,11 +159,19 @@ describe("Reanimate basic tests", () => {
             relFilePath: "../test/reanimate/test_lateExport.js",
         });
 
+        const mummyUrn = findMummyUrn(curMod.lateExport.LateExport);
+        should(mummyUrn).equal(
+            // tslint:disable-next-line:max-line-length
+            `urn:Adapt:@usys/adapt:${currentAdaptVersion}:$adaptExports:../test/reanimate/test_lateExport.js:LateExportReg`);
+
         const firstObj = await reanimate(firstMummyLate);
         // The reanimated object should still be an instance of Living
         v = new firstObj();
         should(isLiving(v)).be.True();
         should(v.constructor.name).equal("LateExportInternal");
+
+        const firstObj2 = await reanimateUrn(mummyUrn);
+        should(firstObj2).equal(firstObj);
 
         // Clear once more
         deleteModule("lateExport");
@@ -413,7 +430,8 @@ const reanimatePackage: Package = {
             "@usys/utils": "0.0.1",
             "callsites": "2.0.0",
             "json-stable-stringify": "1.0.1",
-            "read-pkg-up": "4.0.0"
+            "read-pkg-up": "4.0.0",
+            "urn-lib": "1.1.2",
         },
     },
     files: {

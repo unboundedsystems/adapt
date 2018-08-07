@@ -2,9 +2,9 @@ import { npm } from "@usys/utils";
 import callsites = require("callsites");
 import * as stringify from "json-stable-stringify";
 import * as path from "path";
-import { findPackageInfo } from "../packageinfo";
-
+import URN = require("urn-lib");
 import { inspect } from "util";
+import { findPackageInfo } from "../packageinfo";
 
 // As long as utilsTypes is not used as a value, TS will only pull in the
 // types. Then dynamically load utils, if available. Since we use this file
@@ -25,6 +25,7 @@ const debugReanimate = false;
 const debugPackageRegistry = false;
 
 export type MummyJson = string;
+export type MummyUrn = string;
 
 // Exported for testing only
 export class MummyRegistry {
@@ -136,12 +137,12 @@ const mummyProps = ["name", "namespace", "pkgName", "pkgVersion", "relFilePath"]
 
 function isMummy(val: any): val is Mummy {
     if (val == null || typeof val !== "object") {
-        throw new Error(`Invalid JSON represenation of object`);
+        throw new Error(`Invalid represenation of object`);
     }
     for (const prop of mummyProps) {
         const t = typeof val[prop];
         if (t !== "string") {
-            throw new Error(`Invalid property '${prop}' type '${t}' in JSON representation of object`);
+            throw new Error(`Invalid property '${prop}' type '${t}' in representation of object`);
         }
     }
     return true;
@@ -311,6 +312,47 @@ export function mockRegistry_(newRegistry?: MummyRegistry): MummyRegistry {
     if (newRegistry != null) registry = newRegistry;
     return oldRegistry;
 }
+
+/*
+ * URNs
+ */
+
+const urnDomain = "Adapt";
+const encoder = URN.create("urn", {
+    components: [
+        "domain",
+        "pkgName",
+        "pkgVersion",
+        "namespace",
+        "relFilePath",
+        "name",
+    ],
+    separator: ":",
+    allowEmpty: true,
+});
+
+export function findMummyUrn(obj: any): MummyUrn {
+    const mummyJson = registry.findMummy(obj);
+    const mummy: Mummy = JSON.parse(mummyJson);
+    return encoder.format({ domain: urnDomain, ...mummy });
+}
+
+export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
+    const { domain, protocol, ...mummy } = encoder.parse(mummyUrn);
+    if (protocol !== "urn") {
+        throw new Error(`Invalid protocol in URN '${mummyUrn}'`);
+    }
+    if (domain !== urnDomain) {
+        throw new Error(`Invalid domain in URN '${mummyUrn}'`);
+    }
+
+    if (!isMummy(mummy)) throw new Error(`Internal error isMummy returned false`);
+    return registry.awaken(stringify(mummy));
+}
+
+/*
+ * Package registry
+ */
 
 type PackageId = string;
 type PackagePath = string;

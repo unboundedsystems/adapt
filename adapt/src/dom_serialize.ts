@@ -2,7 +2,8 @@ import * as ld from "lodash";
 import * as xmlbuilder from "xmlbuilder";
 
 import { AdaptElement, isElement } from ".";
-import { childrenToArray } from "./jsx";
+import { childrenToArray, isComponentElement } from "./jsx";
+import { findMummyUrn } from "./reanimate";
 
 interface PreparedProps {
     [key: string]: string;
@@ -69,13 +70,15 @@ function addPropsNode(node: xmlbuilder.XMLElementOrXMLNode, props: PreparedProps
 
 function serializeChildren(
     node: xmlbuilder.XMLElementOrXMLNode,
-    elem: AdaptElement): void {
+    elem: AdaptElement,
+    reanimateable: boolean,
+): void {
 
     const children: any[] = childrenToArray(elem.props.children);
 
     for (const child of children) {
         if (isElement(child)) {
-            serializeElement(node, child);
+            serializeElement(node, child, reanimateable);
         } else {
             const serChild = JSON.stringify(child, null, 2);
             if (serChild == null) {
@@ -87,18 +90,47 @@ function serializeChildren(
     }
 }
 
-function serializeElement(parent: xmlbuilder.XMLElementOrXMLNode, elem: AdaptElement): void {
+function getUrn(elem: AdaptElement) {
+    if (!isComponentElement(elem)) {
+        throw new Error(
+            `Unable to create reanimateable representation of ` +
+            `'${elem.componentType.name}' because it isn't an ` +
+            `Adapt Component`);
+    }
+
+    try {
+        return findMummyUrn(elem.componentType);
+    } catch { /**/ }
+
+    // Ensure component is registered by constructing one
+    try { new elem.componentType({}); } catch { /**/ }
+
+    return findMummyUrn(elem.componentType);
+}
+
+function serializeElement(
+    parent: xmlbuilder.XMLElementOrXMLNode,
+    elem: AdaptElement,
+    reanimateable: boolean,
+): void {
     const { shortProps, longProps } = collectProps(elem);
-    const node = parent.ele(elem.componentType.name, shortProps);
+    let node: xmlbuilder.XMLElementOrXMLNode;
+
+    if (reanimateable) {
+        const urn = getUrn(elem);
+        node = parent.ele(elem.componentType.name, { ...shortProps, xmlns: urn });
+    } else {
+        node = parent.ele(elem.componentType.name, shortProps);
+    }
     if (longProps != null) {
         addPropsNode(node, longProps);
     }
-    serializeChildren(node, elem);
+    serializeChildren(node, elem, reanimateable);
 }
 
-export function serializeDom(root: AdaptElement): string {
+export function serializeDom(root: AdaptElement, reanimateable = false): string {
     const doc = xmlbuilder.create("Adapt");
-    serializeElement(doc, root);
+    serializeElement(doc, root, reanimateable);
     doc.end({
         headless: true,
         pretty: true

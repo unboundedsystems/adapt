@@ -38,6 +38,7 @@
     "strictNullChecks": true,
     "target": "es6",
     "typeRoots": [ // Only allow types to be pulled from specific directories
+      "./types",
       "./node_modules/@types",
       "../node_modules/@types",
     ]

@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
-      "dist/src"
+    "dist/src"
   ],
   "scripts": {
     "clean": "rm -rf dist",
@@ -64,6 +64,7 @@
     "stream-buffers": "^3.0.2",
     "ts-custom-error": "^2.2.1",
     "type-name": "^2.0.2",
+    "urn-lib": "^1.1.2",
     "when": "^3.7.8",
     "xmlbuilder": "^10.0.0"
   }

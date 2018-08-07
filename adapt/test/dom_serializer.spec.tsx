@@ -2,7 +2,7 @@ import * as Adapt from "../src";
 
 import * as should from "should";
 
-class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
+export class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 
 //FIXME(manishv)  All the serialization tests should parse XML and check for
 //semantic equivalence, not string equivalance.
@@ -92,4 +92,20 @@ describe("DOM Child Serialization", () => {
 `);
     });
 
+});
+
+// tslint:disable:max-line-length
+
+describe("DOM Reanimateable Serialization", () => {
+    it("Should serialize component reanimation info", () => {
+        const ser = Adapt.serializeDom(<Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>, true);
+        should(ser).equal(`<Adapt>
+  <Group xmlns="urn:Adapt:@usys/adapt:0.0.1::builtin_components.js:Group">
+    <Flex id="1" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/dom_serializer.spec.js:Flex"/>
+    <Flex id="2" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/dom_serializer.spec.js:Flex"/>
+  </Group>
+</Adapt>
+`);
+
+    });
 });
