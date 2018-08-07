@@ -27,7 +27,7 @@ describe("DOM Parse Tests", () => {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(new DOMNode("foo", {}));
+        should(dom).eql(new DOMNode("foo", {}, ""));
     });
 
     it("Should parse node with single child", async () => {
@@ -38,8 +38,8 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const bar = new DOMNode("bar", {});
-        const expectedRoot = new DOMNode("foo", {}, [bar]);
+        const bar = new DOMNode("bar", {}, "");
+        const expectedRoot = new DOMNode("foo", {}, "", [bar]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql(bar); //Needed in case DOMNode has bug
@@ -53,8 +53,8 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const bar = new DOMNode("bar", {});
-        const expectedRoot = new DOMNode("foo", {}, [bar, bar]);
+        const bar = new DOMNode("bar", {}, "");
+        const expectedRoot = new DOMNode("foo", {}, "", [bar, bar]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql([bar, bar]); //Needed in case DOMNode has bug
@@ -70,7 +70,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", {}, [obj]);
+        const expectedRoot = new DOMNode("foo", {}, "", [obj]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql(obj); //Needed in case DOMNode has bug
@@ -84,7 +84,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", { x: 12, y: "foo" });
+        const expectedRoot = new DOMNode("foo", { x: 12, y: "foo" }, "");
         should(dom).deepEqual(expectedRoot);
     });
 
@@ -108,7 +108,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", { x: { z: 3 } });
+        const expectedRoot = new DOMNode("foo", { x: { z: 3 } }, "");
         should(dom).deepEqual(expectedRoot);
     });
 
@@ -122,5 +122,47 @@ describe("DOM Parse Tests", () => {
                 </foo>
             </Adapt>`;
         should(back.domFromString(xmlStr)).rejectedWith(Error);
+    });
+
+    it("Should parse xmlns", async () => {
+        const xmlStr =
+            `<Adapt>
+                <d:Foo  xmlns:d='http://www.example.com/stuff'
+                        xmlns='urn:bar' id='3235329' >
+                    <__props__>
+                        <prop name="x">{ "z": 3 }</prop>
+                    </__props__>
+                    <Foo    xmlns='urn:Adapt:%40usys%2Fadapt/0.0.1/builtin_components.js'>
+                        <__props__>
+                            <prop name="a">{ "b": 3 }</prop>
+                        </__props__>
+                    </Foo>
+                    <Foo baz="avalue"/>
+                </d:Foo>
+            </Adapt>`;
+        const dom = await back.domFromString(xmlStr);
+        if (dom == null) {
+
+            should(dom).not.Null();
+            return;
+        }
+
+        const foo2 = new DOMNode(
+            "Foo",
+            { a: { b: 3 } },
+            "urn:Adapt:%40usys%2Fadapt/0.0.1/builtin_components.js"
+        );
+        const foo3 = new DOMNode(
+            "Foo",
+            { baz: "avalue"},
+            "urn:bar"
+        );
+        const fooRoot = new DOMNode(
+            "Foo",
+            { id: 3235329, x: { z: 3 } },
+            "http://www.example.com/stuff",
+            [foo2, foo3]
+        );
+        should(dom).deepEqual(fooRoot);
     });
 });
