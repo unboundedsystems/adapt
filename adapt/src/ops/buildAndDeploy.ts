@@ -1,13 +1,12 @@
 import * as path from "path";
 
 import {
+    AdaptElementOrNull,
     build,
-    Message,
     serializeDom,
 } from "..";
 import { createPluginManager } from "../plugin_support";
-import { adaptServer } from "../server";
-import { createDeployment, loadDeployment } from "../server/deployment";
+import { Deployment } from "../server/deployment";
 import { getStacks, } from "../stack";
 import { createStateStore } from "../state";
 import {
@@ -15,46 +14,25 @@ import {
     MemFileHost,
 } from "../ts";
 import { Logger } from "../type_support";
-
-export interface BuildState {
-    domXml: string;
-    stateJson: string;
-    messages: Message[];
-    deployId?: string;
-}
+import { DeployState } from "./common";
 
 export interface BuildOptions {
-    adaptUrl: string;
+    deployment: Deployment;
+    dryRun: boolean;
     fileName: string;
-    initialStateJson: string;
-    projectName: string;
-    deployID: string;
+    prevDom: AdaptElementOrNull;
+    prevStateJson: string;
+    log: Logger;
     stackName: string;
 
-    dryRun?: boolean;
-    initLocalServer?: boolean;
-    log?: Logger;
     projectRoot?: string;
 }
 
-const defaultOptions = {
-    dryRun: false,
-    initLocalServer: false,
-    // tslint:disable-next-line:no-console
-    log: console.log,
-    projectRoot: undefined,
-};
+export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
+    const { deployment, stackName } = options;
 
-export async function buildStack(options: BuildOptions): Promise<BuildState> {
-    const finalOptions = { ...defaultOptions, ...options };
-    const { deployID, projectName, stackName } = finalOptions;
-
-    const server = await adaptServer(finalOptions.adaptUrl, {
-        init: finalOptions.initLocalServer,
-    });
-
-    const fileName = path.resolve(finalOptions.fileName);
-    const projectRoot = finalOptions.projectRoot || path.dirname(fileName);
+    const fileName = path.resolve(options.fileName);
+    const projectRoot = options.projectRoot || path.dirname(fileName);
 
     const fileExt = path.extname(fileName);
     const importName = path.basename(fileName, fileExt);
@@ -78,7 +56,7 @@ export async function buildStack(options: BuildOptions): Promise<BuildState> {
         throw new Error(`Invalid stack '${stackName}': root is null`);
     }
 
-    const stateStore = createStateStore(finalOptions.initialStateJson);
+    const stateStore = createStateStore(options.prevStateJson);
 
     const output = build(stack.root, stack.style, {stateStore});
     const dom = output.contents;
@@ -86,22 +64,18 @@ export async function buildStack(options: BuildOptions): Promise<BuildState> {
         throw new Error(`build returned a null DOM`);
     }
 
-    const domXml = serializeDom(dom);
+    const domXml = serializeDom(dom, true);
     const stateJson = stateStore.serialize();
 
-    const deployment = (deployID === "new") ?
-        await createDeployment(server, projectName, stackName) :
-        await loadDeployment(server, deployID);
-
     const mgr = createPluginManager(deployment.pluginConfig);
-    await mgr.start(null, dom, { log: finalOptions.log });
+    await mgr.start(null, dom, { log: options.log });
     await mgr.observe();
     await mgr.analyze();
-    await mgr.act(finalOptions.dryRun);
+    await mgr.act(options.dryRun);
     await mgr.finish();
 
     return {
-        deployId: deployment.deployID,
+        deployID: deployment.deployID,
         domXml,
         stateJson,
         messages: output.messages,

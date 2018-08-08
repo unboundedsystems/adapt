@@ -10,7 +10,7 @@ import * as should from "should";
 
 import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
 
-import { buildStack } from "../../src/ops/buildStack";
+import { createDeployment } from "../../src/ops/createDeployment";
 import { LocalServer } from "../../src/server/local_server";
 import { AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
@@ -89,14 +89,14 @@ const simplePluginPackageJson = `
 }
 `;
 
-describe("buildStack Tests", async function() {
+describe("createDeployment Tests", async function() {
     let origServerTypes: AdaptServerType[];
     let logger: MockLogger;
 
     this.timeout(30000);
     mochaLocalRegistry.all(localRegistryDefaults.config,
                            localRegistryDefaults.configPath);
-    tmpdir.each("adapt-buildStack");
+    tmpdir.each("adapt-createDeployment");
 
     beforeEach(() => {
         origServerTypes = mockServerTypes_();
@@ -116,9 +116,8 @@ describe("buildStack Tests", async function() {
 
         await npm.install(localRegistryDefaults.npmLocalProxyOpts);
 
-        const bs = await buildStack({
+        const bs = await createDeployment({
             adaptUrl: `file://${process.cwd()}/db.json`,
-            deployID: "new",
             fileName: "index.tsx",
             initLocalServer: true,
             initialStateJson: "{}",
@@ -130,12 +129,12 @@ describe("buildStack Tests", async function() {
         should(bs.messages.length).equal(0);
         should(bs.domXml).equal(
 `<Adapt>
-  <Simple key="Simple"/>
+  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
 </Adapt>
 `);
 
         should(bs.stateJson).equal("{}");
-        should(bs.deployId).equal("myproject::default");
+        should(bs.deployID).equal("myproject::default");
 
         const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);

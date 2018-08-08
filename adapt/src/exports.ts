@@ -71,9 +71,7 @@ export {
     createStateStore
 } from "./state";
 
-export {
-    buildStack,
-} from "./ops";
+export * from "./ops";
 
 export {
     CompileError,
