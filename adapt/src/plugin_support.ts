@@ -38,7 +38,8 @@ export interface ActionResult {
 }
 
 export interface PluginManager {
-    start(dom: AdaptElementOrNull, options: PluginManagerStartOptions): Promise<void>;
+    start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
+          options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Action[];
     act(dryRun: boolean): Promise<ActionResult[]>;
@@ -114,6 +115,7 @@ interface AnyObservation {
 class PluginManagerImpl implements PluginManager {
     plugins: Map<string, Plugin>;
     dom?: AdaptElementOrNull;
+    prevDom?: AdaptElementOrNull;
     actions?: Action[];
     log?: Logger;
     state: PluginManagerState;
@@ -131,9 +133,10 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
+    async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
+        this.prevDom = prevDom;
         this.log = options.log;
         this.observations = {};
 
@@ -146,10 +149,13 @@ class PluginManagerImpl implements PluginManager {
     async observe() {
         this.transitionTo(PluginManagerState.Observing);
         const dom = this.dom;
-        if (dom == undefined) throw new Error("Must call start before observe");
+        const prevDom = this.prevDom;
+        if (dom === undefined || prevDom === undefined) {
+            throw new Error("Must call start before observe");
+        }
         const observationsP = mapMap(
             this.plugins,
-            async (name, plugin) => ({ name, obs: await plugin.observe(null, dom) }));
+            async (name, plugin) => ({ name, obs: await plugin.observe(prevDom, dom) }));
         const observations = await Promise.all(observationsP);
         for (const { name, obs } of observations) {
             this.observations[name] = JSON.stringify(obs);
@@ -161,12 +167,15 @@ class PluginManagerImpl implements PluginManager {
     analyze() {
         this.transitionTo(PluginManagerState.Analyzing);
         const dom = this.dom;
-        if (dom == undefined) throw new Error("Must call start before analyze");
+        const prevDom = this.prevDom;
+        if (dom === undefined || prevDom === undefined) {
+            throw new Error("Must call start before analyze");
+        }
         const actionsTmp = mapMap(
             this.plugins,
             (name, plugin) => {
                 const obs = JSON.parse(this.observations[name]);
-                return plugin.analyze(null, dom, obs);
+                return plugin.analyze(prevDom, dom, obs);
             });
 
         this.actions = ld.flatten(actionsTmp);
@@ -215,6 +224,7 @@ class PluginManagerImpl implements PluginManager {
         const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.finish());
         await Promise.all(waitingFor);
         this.dom = undefined;
+        this.prevDom = undefined;
         this.actions = undefined;
         this.log = undefined;
         this.observations = {};

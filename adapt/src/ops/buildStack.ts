@@ -94,7 +94,7 @@ export async function buildStack(options: BuildOptions): Promise<BuildState> {
         await loadDeployment(server, deployID);
 
     const mgr = createPluginManager(deployment.pluginConfig);
-    await mgr.start(dom, { log: finalOptions.log });
+    await mgr.start(null, dom, { log: finalOptions.log });
     await mgr.observe();
     await mgr.analyze();
     await mgr.act(finalOptions.dryRun);

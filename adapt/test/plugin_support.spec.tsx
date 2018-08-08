@@ -63,13 +63,13 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call start on each plugin", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         should(spy.calledOnce).True();
         should(spy.args[0][0]).equal("start");
     });
 
     it("Should call observe after start", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         await mgr.observe();
         should(spy.callCount).equal(2);
         should(spy.getCall(0).args[0]).equal("start");
@@ -77,7 +77,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call analyze after observe", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         should(spy.callCount).equal(3);
@@ -87,7 +87,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call actions", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(false);
@@ -105,7 +105,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not call actions on dry run", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.act(true);
@@ -121,7 +121,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not allow illegal call sequences", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         should(() => mgr.analyze()).throw();
         await should(mgr.act(false)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
@@ -137,7 +137,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should allow finish without acting", async () => {
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         await mgr.observe();
         await mgr.analyze();
         await mgr.finish();
@@ -193,7 +193,7 @@ describe("Plugin register and deploy", () => {
         should(config.plugins).size(1);
 
         const mgr = pluginSupport.createPluginManager(config);
-        await mgr.start(dom, { log: logger.log });
+        await mgr.start(null, dom, { log: logger.log });
         const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);
     });
