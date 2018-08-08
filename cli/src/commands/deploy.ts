@@ -7,15 +7,16 @@ import * as path from "path";
 import {
     createStateHistoryDir,
     getGen,
+    HistoryEntry,
     load,
     Project,
     ProjectOptions,
     Session,
     StateHistory,
 } from "../proj";
-import { BuildOptions, BuildState } from "../types/adapt_shared";
+import { CreateOptions, DeployState, UpdateOptions } from "../types/adapt_shared";
 
-const cantBuild = "This project cannot be deployed.\n";
+const cantDeploy = "This project cannot be deployed.\n";
 
 export const defaultStateHistoryDir = "./state_history";
 
@@ -76,6 +77,10 @@ export default class DeployCommand extends Command {
 
         if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
 
+        if (flags.deployID !== "new") {
+            throw new Error(`Deployment update not currently supported`);
+        }
+
         // NOTE(mark): Why doesn't oclif set the boolean flags to false?
         if (flags.init === undefined) flags.init = false;
         if (flags.dryRun === undefined) flags.dryRun = false;
@@ -115,7 +120,7 @@ export default class DeployCommand extends Command {
         // https://github.com/Microsoft/TypeScript/issues/11498
         let project: Project | undefined;
         let history: StateHistory | undefined;
-        let initialStateJson: string | undefined;
+        let lastState: HistoryEntry | undefined;
 
         const tasks = new Listr([
             {
@@ -126,8 +131,7 @@ export default class DeployCommand extends Command {
                     }
                     history = await createStateHistoryDir(flags.stateHistory, flags.init);
 
-                    const stored = await history.lastState();
-                    initialStateJson = stored.stateJson;
+                    lastState = await history.lastState();
                 },
             },
             {
@@ -137,14 +141,14 @@ export default class DeployCommand extends Command {
                         project = await load(projectRoot, projOpts);
                         const gen = getGen(project);
                         if (!gen.matchInfo.matches) {
-                            this.error(cantBuild +
+                            this.error(cantDeploy +
                                 `The following updates must be made:\n` +
                                 gen.matchInfo.required.map(
                                     (ui) => "  " + ui.message).join("\n"));
                         }
                     } catch (err) {
                         if (err.code === "ENOPACKAGEJSON") {
-                            this.error(cantBuild +
+                            this.error(cantDeploy +
                                 `The directory '${projectRoot}' does not contain a ` +
                                 `package.json file`);
                         }
@@ -161,37 +165,50 @@ export default class DeployCommand extends Command {
                     if (history == null) {
                         throw new Error(`Internal error: history cannot be null`);
                     }
-                    if (initialStateJson == null) {
-                        throw new Error(`Internal error: initState cannot be null`);
+                    if (lastState == null) {
+                        throw new Error(`Internal error: lastState cannot be null`);
                     }
                     if (flags.deployID == null) {
                         throw new Error(`Internal error: deployID cannot be null`);
                     }
-                    const buildOptions: BuildOptions = {
-                        adaptUrl,
-                        fileName: projectFile,
-                        initialStateJson,
-                        projectName: project.name,
-                        deployID: flags.deployID,
-                        stackName,
-                        dryRun: flags.dryRun,
-                        initLocalServer: true,
-                    };
-                    let buildState: BuildState;
+
+                    let deployState: DeployState;
                     try {
-                        buildState = await project.build(buildOptions);
+                        if (flags.deployID === "new") {
+
+                            const createOptions: CreateOptions = {
+                                adaptUrl,
+                                fileName: projectFile,
+                                projectName: project.name,
+                                stackName,
+                                dryRun: flags.dryRun,
+                                initLocalServer: true,
+                            };
+                            deployState = await project.create(createOptions);
+
+                        } else {
+                            const updateOptions: UpdateOptions = {
+                                adaptUrl,
+                                deployID: flags.deployID,
+                                dryRun: flags.dryRun,
+                                fileName: projectFile,
+                                prevDomXml: lastState.domXml,
+                                prevStateJson: lastState.stateJson,
+                                stackName,
+                            };
+                            deployState = await project.update(updateOptions);
+                        }
                     } catch (err) {
                         if (err.message.match(/No plugins registered/)) {
-                            this.error(cantBuild +
+                            this.error(cantDeploy +
                                 `The project did not import any Adapt plugins`);
                         }
                         throw err;
                     }
 
-                    await history.appendState(buildState);
+                    await history.appendState(deployState);
 
-                    const id = buildState.deployId;
-                    if (id == null) this.error(`Deploy successful, but deployID missing in response.`);
+                    const id = deployState.deployID;
 
                     if (flags.deployID === "new") {
                         this.log(`Deployment created successfully. DeployID is: ${id}`);

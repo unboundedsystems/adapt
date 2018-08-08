@@ -17,13 +17,15 @@ export class ValidationError extends CustomError {
 export interface AdaptModule {
     CompileError: Constructor<Error>;
 
-    buildStack(options: BuildOptions): Promise<BuildState>;
+    createDeployment(options: CreateOptions): Promise<DeployState>;
+    updateDeployment(options: UpdateOptions): Promise<DeployState>;
 }
 
 export function verifyAdaptModule(val: any): AdaptModule {
     if (val == null) throw new ValidationError("AdaptModule", "value is null");
 
-    verifyProp("AdaptModule", val, "buildStack", "function");
+    verifyProp("AdaptModule", val, "createDeployment", "function");
+    verifyProp("AdaptModule", val, "updateDeployment", "function");
 
     return val as AdaptModule;
 }
@@ -35,18 +37,21 @@ export type Constructor<T extends object> = (new (...args: any[]) => T);
 export type Logger = (...args: any[]) => void;
 
 /*
- * Types related to adapt.buildStack
+ * Types related to deployment
  */
-export interface BuildOptions {
+export interface DeployState {
+    domXml: string;
+    stateJson: string;
+    messages: Message[];
+    deployID: string;
+}
+
+export interface DeployCommonOptions {
     adaptUrl: string;
     fileName: string;
-    initialStateJson: string;
-    projectName: string;
-    deployID: string;
     stackName: string;
 
     dryRun?: boolean;
-    initLocalServer?: boolean;
     log?: Logger;
     projectRoot?: string;
 }
@@ -59,13 +64,6 @@ export enum MessageType {
 export interface Message {
     type: MessageType;
     content: string;
-}
-
-export interface BuildState {
-    domXml: string;
-    stateJson: string;
-    messages: Message[];
-    deployId?: string;
 }
 
 export function verifyMessage(m: any): Message {
@@ -89,13 +87,33 @@ export function verifyMessages(val: any): Message[] {
     return val as Message[];
 }
 
-export function verifyBuildState(val: any): BuildState {
-    if (val == null) throw new ValidationError("BuildState", "value is null");
-    if (typeof val.domXml !== "string") throw new ValidationError("BuildState", "domXml is invalid");
-    if (typeof val.stateJson !== "string") throw new ValidationError("BuildState", "stateJson is invalid");
+export function verifyDeployState(val: any): DeployState {
+    if (val == null) throw new ValidationError("DeployState", "value is null");
+    verifyProp("DeployState", val, "domXml", "string");
+    verifyProp("DeployState", val, "stateJson", "string");
+    verifyProp("DeployState", val, "deployID", "string");
     verifyMessages(val.messages);
 
-    return val as BuildState;
+    return val as DeployState;
+}
+
+/*
+ * Types related to adapt.createDeployment
+ */
+export interface CreateOptions extends DeployCommonOptions {
+    projectName: string;
+
+    initLocalServer?: boolean;
+    initialStateJson?: string;
+}
+
+/*
+ * Types related to adapt.updateDeployment
+ */
+export interface UpdateOptions extends DeployCommonOptions {
+    deployID: string;
+    prevDomXml: string;
+    prevStateJson: string;
 }
 
 /*

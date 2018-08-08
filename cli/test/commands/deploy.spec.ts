@@ -145,7 +145,7 @@ async function checkBasicIndexTsxState(historyDir: string): Promise<void> {
     const domXml = await fs.readFile(path.join(dir, domFilename));
     expect(domXml.toString()).equals(
 `<Adapt>
-  <Root key="Root"/>
+  <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root"/>
 </Adapt>
 `);
     const state = await fs.readJson(path.join(dir, stateFilename));
@@ -284,7 +284,7 @@ async function checkStateUpdateState(historyDir: string, count: number): Promise
         const domXml = await fs.readFile(path.join(dir, domFilename));
         expect(domXml.toString()).equals(
 `<Adapt>
-  <Empty id="1">
+  <Empty id="1" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Empty">
     <__props__>
       <prop name="key">"StateUpdater-Empty"</prop>
     </__props__>

@@ -4,10 +4,13 @@ import * as path from "path";
 
 import { npm } from "@usys/utils";
 import {
-    BuildOptions,
+    AdaptModule,
+    CreateOptions,
+    DeployState,
+    UpdateOptions,
     ValidationError,
     verifyAdaptModule,
-    verifyBuildState,
+    verifyDeployState,
 } from "../types/adapt_shared";
 import { mkdtmp } from "../utils";
 import { VersionString } from "./gen";
@@ -50,13 +53,6 @@ function npmInstallOptions(projOpts: ProjectOptionsComplete): npm.InstallOptions
     return npmOpts;
 }
 
-function prependPath(oldPath: string | undefined, newDir: string): string {
-    if (typeof oldPath === "string" && oldPath.length > 0) {
-        return `${newDir}:${oldPath}`;
-    }
-    return newDir;
-}
-
 export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     const finalOpts = await finalProjectOptions(projectOpts);
     const session = finalOpts.session;
@@ -86,6 +82,22 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     return new Project(manifest, pkgLock, finalOpts);
 }
 
+// FIXME(mark): Move this to another file
+async function adaptModule(projectRoot: string): Promise<AdaptModule> {
+    const entryFile = require.resolve("@usys/adapt", { paths: [projectRoot]});
+
+    // Load Adapt at runtime. We've already done some version
+    // verification before getting here, but we don't
+    // have types.
+    // TODO(mark): What's the right way to type this? We actually
+    // don't want to have a dependency on @usys/adapt.
+
+    // tslint:disable-next-line:no-implicit-dependencies
+    return verifyAdaptModule(await require(entryFile));
+}
+
+type AdaptAction = (adapt: AdaptModule) => Promise<any>;
+
 export class Project {
     readonly name: string;
     constructor(readonly manifest: pacote.Manifest,
@@ -99,7 +111,16 @@ export class Project {
         return dep ? dep.version : null;
     }
 
-    async build(options: BuildOptions) {
+    async create(options: CreateOptions): Promise<DeployState> {
+        return this.deploy(options, (adapt) => adapt.createDeployment(options));
+    }
+
+    async update(options: UpdateOptions): Promise<DeployState> {
+        return this.deploy(options, (adapt) => adapt.updateDeployment(options));
+    }
+
+    private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
+        Promise<DeployState> {
         const projectRoot = this.options.session.projectDir;
 
         await npm.install(npmInstallOptions(this.options));
@@ -107,36 +128,19 @@ export class Project {
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;
 
-        const oldNodePath = process.env.NODE_PATH;
+        const adapt = await adaptModule(projectRoot);
+
         try {
-            // Only affects current process; not exported
-            process.env.NODE_PATH = prependPath(oldNodePath, projectRoot);
-
-            // Load Adapt at runtime. We've already done some version
-            // verification before getting here, but we don't
-            // have types.
-            // TODO(mark): What's the right way to type this? We actually
-            // don't want to have a dependency on @usys/adapt.
-
-            // tslint:disable-next-line:no-implicit-dependencies
-            const adapt = verifyAdaptModule(await require("@usys/adapt"));
-
-            try {
-                return verifyBuildState(await adapt.buildStack(options));
-            } catch (err) {
-                if (err instanceof adapt.CompileError) {
-                    // tslint:disable-next-line:no-console
-                    console.log(`Got a compile error:\n`, err);
-                } else if (err instanceof ValidationError) {
-                    throw new Error(`Internal error: unrecognized response ` +
-                        `from Adapt build: ${err.message}`);
-                }
-                throw err;
+            return verifyDeployState(await action(adapt));
+        } catch (err) {
+            if (err instanceof adapt.CompileError) {
+                // tslint:disable-next-line:no-console
+                console.log(`Got a compile error:\n`, err);
+            } else if (err instanceof ValidationError) {
+                throw new Error(`Internal error: unrecognized response ` +
+                    `from Adapt build: ${err.message}`);
             }
-
-        } finally {
-            if (oldNodePath === undefined) delete process.env.NODE_PATH;
-            else process.env.NODE_PATH = oldNodePath;
+            throw err;
         }
     }
 }
