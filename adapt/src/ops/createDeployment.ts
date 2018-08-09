@@ -42,6 +42,6 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             ...buildOpts
         });
     } finally {
-        await destroyDeployment(server, deployment.deployID);
+        if (finalOptions.dryRun) await destroyDeployment(server, deployment.deployID);
     }
 }
