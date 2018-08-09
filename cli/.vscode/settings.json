@@ -2,5 +2,4 @@
     "git.ignoreLimitWarning": true,
     "tslint.alwaysShowRuleFailuresAsWarnings": true,
     "tslint.alwaysShowStatus": true,
-    "typescript.tsdk": "node_modules/typescript/lib"
 }
