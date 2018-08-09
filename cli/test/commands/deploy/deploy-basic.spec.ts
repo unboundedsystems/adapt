@@ -1,14 +1,14 @@
 import { filePathToUrl, localRegistryDefaults, mochaTmpdir } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { clitest, expect } from "../common/fancy";
+import { clitest, expect } from "../../common/fancy";
 
-import { defaultStateHistoryDir } from "../../src/commands/deploy";
+import { defaultStateHistoryDir } from "../../../src/base";
 import {
     domFilename,
     infoFilename,
     stateFilename
-} from "../../src/proj/statehistory";
+} from "../../../src/proj/statehistory";
 
 const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
 
@@ -21,9 +21,10 @@ const basicPackageJson = {
     author: "",
     license: "UNLICENSED",
     dependencies: {
-        "typescript": "^2.8.3",
         "@types/node": "^8.10",
         "@usys/adapt": "0.0.1",
+        "source-map-support": "^0.5.6",
+        "typescript": "^2.8.3",
     },
 };
 
@@ -181,18 +182,18 @@ function checkPluginStdout(stdout: string, dryRun = false) {
     }
 }
 
-describe("Build basic tests", function() {
+describe("Deploy create basic tests", function() {
     this.timeout(30000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
-    .command(["deploy", "--init", "dev"])
+    .command(["deploy:create", "--init", "dev"])
 
     .it("Should build basic default filename", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Deploying project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
         checkPluginStdout(ctx.stdout);
 
@@ -203,13 +204,13 @@ describe("Build basic tests", function() {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .command(["deploy", "--init", "dev"])
+    .command(["deploy:create", "--init", "dev"])
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("✔ Opening state history");
         expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Deploying project");
+        expect(ctx.stdout).contains("✔ Creating new project deployment");
 
         checkPluginStdout(ctx.stdout);
 
@@ -217,13 +218,13 @@ describe("Build basic tests", function() {
     });
 
     basicTestChain
-    .command(["deploy", "--init", "--dryRun", "dev"])
+    .command(["deploy:create", "--init", "--dryRun", "dev"])
 
     .it("Should not modify anything with --dryRun", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Deploying project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
         checkPluginStdout(ctx.stdout, true);
 
@@ -315,7 +316,7 @@ const stateIncrementTestChain =
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-describe("Build state update tests", () => {
+describe("Deploy update basic tests", () => {
     let deployID = "NOTFOUND";
 
     // These tests must all use a single temp directory where the
@@ -323,13 +324,13 @@ describe("Build state update tests", () => {
     mochaTmpdir.all("adapt-cli-test-deploy");
 
     stateIncrementTestChain
-    .command(["deploy", "--init", "dev"])
+    .command(["deploy:create", "--init", "dev"])
 
     .it("Should create initial state", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Deploying project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment created successfully. DeployID is:`);
 
         const matches = ctx.stdout.match(newDeployRegex);
@@ -342,13 +343,13 @@ describe("Build state update tests", () => {
     });
 
     stateIncrementTestChain
-    .delayedcommand(() => ["deploy", "--deployID", deployID, "dev"])
+    .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
     .it("Should create second state", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Deploying project [completed]");
+        expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
 
         checkPluginStdout(ctx.stdout);
@@ -357,13 +358,13 @@ describe("Build state update tests", () => {
     });
 
     stateIncrementTestChain
-    .delayedcommand(() => ["deploy", "--deployID", deployID, "dev"])
+    .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
     .it("Should create third state", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Deploying project [completed]");
+        expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
 
         checkPluginStdout(ctx.stdout);
@@ -376,7 +377,7 @@ describe("Build negative tests", () => {
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     testBase
-    .command(["deploy", "--rootFile", "doesntexist", "dev"])
+    .command(["deploy:create", "--rootFile", "doesntexist", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -389,7 +390,7 @@ describe("Build negative tests", () => {
     .do(() => {
         return fs.ensureFile(path.join(process.cwd(), "test.ts"));
     })
-    .command(["deploy", "--rootFile", "test.ts", "--init", "dev"])
+    .command(["deploy:create", "--rootFile", "test.ts", "--init", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -404,4 +405,13 @@ describe("Build negative tests", () => {
             `The directory '${process.cwd()}' does not contain a package.json file`);
         expect(await fs.pathExists(defaultStateHistoryDir)).to.be.false;
     });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:update", "abc123", "dev"])
+    .catch((err: any) => {
+        expect(err.message).contains(
+            "Deployment 'abc123' does not exist");
+    })
+    .it("Should fail if deployment doesn't exist");
 });
