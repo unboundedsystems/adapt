@@ -4,6 +4,9 @@
   "description": "Unbounded Adapt cloud component library",
   "main": "./dist/src/index.js",
   "typings": "./dist/src/index.d.ts",
+  "files": [
+    "dist/src"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "npm run clean; npm run _build:watch",
