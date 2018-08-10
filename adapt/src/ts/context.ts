@@ -12,11 +12,12 @@ const debugVm = false;
 
 const packageDirs = findPackageDirs(__dirname);
 
-// Remove each line that has a filename that's in our dist/src/ts directory.
+// Remove each line that has a filename that's in our dist/src/ts directory
+// or our src/ts directory (depending on how the module is installed).
 // There are often 2-3 of these compilation-related frames between each
 // stack frame that the user cares about, which makes the backtraces super
 // confusing for them.
-const tsStackExclude = RegExp("^.*\\(" + path.join(packageDirs.dist, "src", "ts") + ".*$", "mg");
+const tsStackExclude = RegExp("\n.*?\\(" + packageDirs.root + "(?:/dist)?/src/ts/.*?$", "mg");
 
 // Script.runInContext is the call that starts the user's project script.
 // Delete that line and all following lines.
