@@ -2,10 +2,7 @@ import { Component } from "@usys/adapt";
 
 export type PortDescription = string | number;
 
-export interface ImageId {
-    repository: string;
-    tag?: string;
-}
+export type ImageId = string;
 
 export type Command = string | string[];
 
@@ -37,6 +34,8 @@ export interface ContainerProps {
     portBindings?: PortBinding;
     environment?: Environment;
     links?: Links;
+    entrypoint?: Command;
+    workingDir?: string;
 }
 
 export abstract class Container extends Component<ContainerProps, {}> {
