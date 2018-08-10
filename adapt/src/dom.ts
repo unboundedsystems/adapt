@@ -31,7 +31,7 @@ import {
     BuildListener,
     BuildOp,
 } from "./dom_build_data_recorder";
-import { BuildNotImplemented } from "./error";
+import { BuildNotImplemented, ThrewNonError } from "./error";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
 import { Message, MessageType } from "./utils";
 
@@ -71,21 +71,30 @@ function isClassConstructorError(err: any) {
 function recordDomError(
     cc: ComputeContents,
     element: AdaptElement,
-    err: Error): { domError: AdaptElement<{}>, message: string } {
+    err: Error | Message,
+): { domError: AdaptElement<{}>, message: string } {
 
-    let message =
-        `Component ${element.componentType.name} cannot be ` +
-        `built with current props`;
-    if (err.message) message += ": " + err.message;
-    const domError = createElement(DomError, {}, message);
+    let message: Message;
+    if (ld.isError(err)) {
+        message = {
+            type: MessageType.warning,
+            content:
+                `Component ${element.componentType.name} cannot be ` +
+                `built with current props` +
+                (err.message ? ": " + err.message : "")
+        };
+    } else {
+        message = err;
+    }
+    const domError = createElement(DomError, {}, message.content);
 
     cc.buildErr = true;
     const kids = childrenToArray(element.props.children);
-    cc.messages.push({ type: MessageType.warning, content: message });
+    cc.messages.push(message);
     kids.unshift(domError);
     replaceChildren(element, kids);
 
-    return { domError, message };
+    return { domError, message: message.content };
 }
 
 function computeContentsFromElement<P extends object>(
@@ -231,7 +240,7 @@ function mountElement(
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-    elem.mount(parentStateNamespace);
+    elem.mount(parentStateNamespace, domPathToString(path));
     return elem;
 }
 
@@ -239,16 +248,6 @@ function subLastPathElem(path: DomPath, elem: AdaptElement): DomPath {
     const ret = path.slice(0, -1);
     ret.push(elem);
     return ret;
-}
-
-function validateComponent(elem: AdaptElement): Error | undefined {
-    if (!isPrimitiveElement(elem)) throw new Error("Internal Error: can only validate primitive components");
-    try {
-        new elem.componentType(elem.props);
-    } catch (err) {
-        return err;
-    }
-    return;
 }
 
 function mountAndBuildComponent(
@@ -266,8 +265,7 @@ function mountAndBuildComponent(
         const ret = new ComputeContents();
         ret.contents = elem;
         ret.buildDone = true;
-        const err = validateComponent(elem);
-        if (err != null) recordDomError(ret, elem, err);
+        ret.mountedElements.push(elem);
         return ret;
     }
 
@@ -347,13 +345,35 @@ function pathBuild(
     const options = { ...defaultBuildOptions, ...optionsIn };
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
-    let result = null;
+    let result: ComputeContents;
     try {
         result = realBuild(path, null, styles, options);
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
     }
+
+    if (result.buildErr) {
+        return { contents: result.contents, messages: result.messages };
+    }
+
+    result.mountedElements.map((elem) => {
+        if (isPrimitiveElement(elem)) {
+            let msgs: (Message | Error)[];
+            try {
+                msgs = elem.validate();
+            } catch (err) {
+                if (!ld.isError(err)) err = new ThrewNonError(err);
+                msgs = [err];
+            }
+            for (const m of msgs) recordDomError(result, elem, m);
+        }
+    });
+
+    if (result.buildErr) {
+        return { contents: result.contents, messages: result.messages };
+    }
+
     options.recorder({ type: "done", root: result.contents });
     result.mountedElements.map((elem) => {
         if (isElementImpl(elem)) {
@@ -449,4 +469,8 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
             elem.props.children = children;
         }
     }
+}
+
+export function domPathToString(domPath: DomPath): string {
+    return "/" + domPath.map((el) => el.componentType.name).join("/");
 }

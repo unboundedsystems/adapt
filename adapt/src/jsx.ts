@@ -8,6 +8,7 @@ import { KeyTracker, UpdateStateInfo } from "./keys";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
+import { Message, MessageType } from "./utils";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
@@ -24,6 +25,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
 export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
+    validate(): Message[];
 }
 
 export interface AdaptComponentElement<P extends object = AnyProps> extends AdaptElement<P> {
@@ -79,6 +81,7 @@ export abstract class PrimitiveComponent<Props extends object>
     extends Component<Props> {
 
     updateState(_state: any, _info: UpdateStateInfo) { return; }
+    validate(): string | string[] | undefined { return; }
 }
 
 export function isPrimitive<P extends object>(component: Component<P>):
@@ -155,6 +158,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     stateNamespace: StateNamespace = [];
     mounted = false;
     component: GenericComponent | null;
+    path?: string;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -178,7 +182,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace) {
+    mount(parentNamespace: StateNamespace, path: string) {
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -188,6 +192,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         } else {
             throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
         }
+        this.path = path;
         this.mounted = true;
     }
 
@@ -204,7 +209,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 
 export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElementImpl<Props> {
-    componentInstance?: PrimitiveComponent<AnyProps>;
+    componentInstance_?: PrimitiveComponent<AnyProps>;
 
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
@@ -214,11 +219,14 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
         super(componentType, props, children);
     }
 
-    updateState(state: AnyState, keys: KeyTracker, info: UpdateStateInfo) {
-        if (this.componentInstance == null) {
-            this.componentInstance = new this.componentType(this.props);
+    get componentInstance() {
+        if (this.componentInstance_ == null) {
+            this.componentInstance_ = new this.componentType(this.props);
         }
+        return this.componentInstance_;
+    }
 
+    updateState(state: AnyState, keys: KeyTracker, info: UpdateStateInfo) {
         keys.addKey(this.componentInstance);
         this.componentInstance.updateState(state, info);
         if (this.props.children == null ||
@@ -237,6 +245,24 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
         } finally {
             keys.pathPop();
         }
+    }
+
+    validate(): Message[] {
+        let ret = this.componentInstance.validate();
+
+        if (ret === undefined) ret = [];
+        else if (typeof ret === "string") ret = [ ret ];
+        else if (!Array.isArray(ret)) {
+            throw new Error(`Incorrect type '${typeof ret}' returned from ` +
+                `component validate at ${this.path}`);
+        }
+
+        return ret.map((m) => ({
+            type: MessageType.warning,
+            content:
+                `Component validation error. [${this.path}] cannot be ` +
+                `built with current props: ${m}`,
+        }));
     }
 }
 

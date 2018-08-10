@@ -25,9 +25,8 @@ interface AbstractProps extends WithChildren {
 class Abstract extends Component<AbstractProps> { }
 
 class AlwaysErrorPrimitive extends PrimitiveComponent<{}> {
-    constructor(props: {}) {
-        throw new Error("Always error instantiated!");
-        super(props);
+    validate() {
+        return "Always error instantiated!";
     }
 }
 
