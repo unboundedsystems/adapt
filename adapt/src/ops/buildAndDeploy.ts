@@ -3,6 +3,7 @@ import * as path from "path";
 import {
     AdaptElementOrNull,
     build,
+    ProjectBuildError,
     serializeDom,
 } from "..";
 import { createPluginManager } from "../plugin_support";
@@ -63,8 +64,12 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     if (dom == null) {
         throw new Error(`build returned a null DOM`);
     }
-
     const domXml = serializeDom(dom, true);
+
+    if (output.messages.length !== 0) {
+        throw new ProjectBuildError(output.messages, domXml);
+    }
+
     const stateJson = stateStore.serialize();
 
     const mgr = createPluginManager(deployment.pluginConfig);
