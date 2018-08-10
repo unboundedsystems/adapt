@@ -33,7 +33,7 @@ const compilerDefaults: ts.CompilerOptions = {
 
 export class CompileError extends CustomError {
     constructor(public diags: ts.Diagnostic[], msg: string) {
-        super(`Compile error:\n${msg}`);
+        super(msg);
     }
 }
 

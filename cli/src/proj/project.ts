@@ -3,6 +3,7 @@ import * as pacote from "pacote";
 import * as path from "path";
 
 import { npm } from "@usys/utils";
+import { UserError } from "../error";
 import {
     AdaptModule,
     CreateOptions,
@@ -133,9 +134,14 @@ export class Project {
         try {
             return verifyDeployState(await action(adapt));
         } catch (err) {
-            if (err instanceof adapt.CompileError) {
-                // tslint:disable-next-line:no-console
-                console.log(`Got a compile error:\n`, err);
+            if (err instanceof adapt.ProjectCompileError) {
+                if (err.message) throw new UserError(err.message);
+
+            } else if (err instanceof adapt.ProjectRunError) {
+                if (err.message && err.projectStack) {
+                    throw new UserError(`${err.message}\n${err.projectStack}`);
+                }
+
             } else if (err instanceof ValidationError) {
                 throw new Error(`Internal error: unrecognized response ` +
                     `from Adapt build: ${err.message}`);

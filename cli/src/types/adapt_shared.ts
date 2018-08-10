@@ -15,7 +15,8 @@ export class ValidationError extends CustomError {
  * Types related to AdaptModule
  */
 export interface AdaptModule {
-    CompileError: Constructor<Error>;
+    ProjectCompileError: Constructor<Error>;
+    ProjectRunError: Constructor<ProjectRunError>;
 
     createDeployment(options: CreateOptions): Promise<DeployState>;
     updateDeployment(options: UpdateOptions): Promise<DeployState>;
@@ -23,6 +24,9 @@ export interface AdaptModule {
 
 export function verifyAdaptModule(val: any): AdaptModule {
     if (val == null) throw new ValidationError("AdaptModule", "value is null");
+
+    verifyProp("AdaptModule", val, "ProjectCompileError", "function");
+    verifyProp("AdaptModule", val, "ProjectRunError", "function");
 
     verifyProp("AdaptModule", val, "createDeployment", "function");
     verifyProp("AdaptModule", val, "updateDeployment", "function");
@@ -35,6 +39,15 @@ export function verifyAdaptModule(val: any): AdaptModule {
  */
 export type Constructor<T extends object> = (new (...args: any[]) => T);
 export type Logger = (...args: any[]) => void;
+
+/*
+ * Error types
+ */
+export interface ProjectRunError extends Error {
+    projectError: Error;
+    projectStack: string;
+    fullStack: string;
+}
 
 /*
  * Types related to deployment

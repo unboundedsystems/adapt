@@ -4,8 +4,14 @@ import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
 
-import { isError, ProjectRunError, ThrewNonError } from "../error";
+import {
+    isError,
+    ProjectCompileError,
+    ProjectRunError,
+    ThrewNonError
+} from "../error";
 import { trace, tracef } from "../utils";
+import { CompileError } from "./compile";
 import { ChainableHost } from "./hosts";
 
 const debugVm = false;
@@ -184,7 +190,10 @@ export class VmModule {
             return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
                                  require, this.ctxModule, filename, dirname);
         } catch (err) {
-            if (err instanceof ProjectRunError) throw err;
+            if ((err instanceof ProjectRunError) ||
+                (err instanceof CompileError)) {
+                throw err;
+            }
             if (!isError(err)) err = new ThrewNonError(err);
             throw new ProjectRunError(err, getProjectStack(err), err.stack);
         }
@@ -275,12 +284,15 @@ export class VmContext {
             // Execute the program
             val = script.runInContext(this.vmGlobal);
         } catch (err) {
+            // Translate internal error that has all the diags in it
+            // to an external API text-only version.
+            if (err instanceof CompileError) {
+                throw new ProjectCompileError(err.message);
+            }
             if (!isError(err)) err = new ThrewNonError(err);
             if (!(err instanceof ProjectRunError)) {
                 err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
-            // tslint:disable-next-line:no-console
-            console.log(err.message);
             throw err;
         }
         if (debugVm) {

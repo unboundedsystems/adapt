@@ -1,6 +1,6 @@
 import { flags } from "@oclif/command";
 import { cantDeploy, DeployBase } from "../../base";
-
+import { UserError } from "../../error";
 import { DeployState, UpdateOptions } from "../../types/adapt_shared";
 
 export default class UpdateCommand extends DeployBase {
@@ -82,6 +82,7 @@ an alternate description file, "somefile.tsx":
                             this.error(cantDeploy +
                                 `The project did not import any Adapt plugins`);
                         }
+                        if (err instanceof UserError) this.error(err.message);
                         throw err;
                     }
 
