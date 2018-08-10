@@ -41,7 +41,7 @@ function validateProps(props: PodProps) {
 
 export class Pod extends PrimitiveComponent<PodProps> {
     constructor(props: PodProps) {
-        validateProps(props);
         super(props);
+        validateProps(props);
     }
 }

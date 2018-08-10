@@ -21,7 +21,7 @@ export function isContainerElement(x: AdaptElement): x is AdaptElement<Container
 
 export class Container extends PrimitiveComponent<ContainerProps> {
     constructor(props: ContainerProps) {
-        validateProps(props);
         super(props);
+        validateProps(props);
     }
 }
