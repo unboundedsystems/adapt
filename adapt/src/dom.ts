@@ -33,15 +33,7 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented } from "./error";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
-
-export enum MessageType {
-    warning = "warning",
-    error = "error",
-}
-export interface Message {
-    type: MessageType;
-    content: string;
-}
+import { Message, MessageType } from "./utils";
 
 export type DomPath = AdaptElement[];
 

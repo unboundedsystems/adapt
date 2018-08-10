@@ -26,7 +26,6 @@ export {
 export {
     build,
     BuildOutput,
-    Message,
     DomPath
 } from "./dom";
 
@@ -46,6 +45,7 @@ export {
 export * from "./dom_build_data_recorder";
 export {
     BuildNotImplemented,
+    ProjectBuildError,
     ProjectCompileError,
     ProjectRunError,
 } from "./error";
@@ -76,10 +76,6 @@ export {
 } from "./state";
 
 export * from "./ops";
-
-export {
-    CompileError,
-} from "./ts";
 
 export {
     Action,
