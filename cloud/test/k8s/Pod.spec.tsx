@@ -1,11 +1,28 @@
-import Adapt, { AdaptElementOrNull, childrenToArray, DomError, Group, isElement, PluginOptions } from "@usys/adapt";
+import Adapt, {
+    AdaptElementOrNull,
+    childrenToArray,
+    DomError,
+    Group,
+    isElement,
+    PluginOptions,
+    rule,
+    Style,
+} from "@usys/adapt";
 import * as ld from "lodash";
 import * as should from "should";
 
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
-import { Container, createPodPlugin, Pod, podElementToName, PodPlugin } from "../../src/k8s";
+import * as abs from "../../src";
+import {
+    createPodPlugin,
+    K8sContainer,
+    k8sContainerProps,
+    Pod,
+    podElementToName,
+    PodPlugin
+} from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
 import { MinikubeInfo, startTestMinikube, stopTestMinikube } from "./minikube";
 
@@ -16,7 +33,7 @@ describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
         const pod =
             <Pod key="test" config={{}}>
-                <Container name="onlyContainer" image="node:latest" />
+                <K8sContainer name="onlyContainer" image="node:latest" />
             </Pod>;
 
         should(pod).not.Undefined();
@@ -25,9 +42,9 @@ describe("k8s Pod Component Tests", () => {
     it("Should enforce unique container names", () => {
         const pod =
             <Pod key="test" config={{}}>
-                <Container name="container" image="node:latest" />
-                <Container name="dupContainer" image="node:latest" />
-                <Container name="dupContainer" image="node:latest" />
+                <K8sContainer name="container" image="node:latest" />
+                <K8sContainer name="dupContainer" image="node:latest" />
+                <K8sContainer name="dupContainer" image="node:latest" />
             </Pod>;
 
         should(pod).not.Undefined();
@@ -51,6 +68,57 @@ describe("k8s Pod Component Tests", () => {
         }
 
         should(err.props.children).match(/dupContainer/);
+    });
+
+    it("Should translate from abstract to k8s", () => {
+        const absDom =
+            <abs.Compute>
+                <abs.Container name="one" dockerHost="" image="alpine" />
+                <abs.Container name="two" dockerHost="" image="alpine" />
+            </abs.Compute>;
+        const style =
+            <Style>
+                {abs.Container} {rule<abs.ContainerProps>((props) => (
+                    <K8sContainer {...k8sContainerProps(props)} />
+                ))}
+                {abs.Compute} {rule<abs.ComputeProps>((props) => (
+                    <Pod config={{}}>
+                        {props.children}
+                    </Pod>
+                ))}
+            </Style>;
+        const result = Adapt.build(absDom, style);
+        const dom = result.contents;
+        if (dom == null) {
+            should(dom).not.be.Null();
+            return;
+        }
+        should(result.messages).have.length(0);
+
+        const domXml = Adapt.serializeDom(dom);
+        const expected =
+`<Adapt>
+  <Pod>
+    <__props__>
+      <prop name="config">{}</prop>
+      <prop name="key">"Compute-Pod"</prop>
+    </__props__>
+    <K8sContainer image="alpine" name="one">
+      <__props__>
+        <prop name="key">"Container-K8sContainer"</prop>
+        <prop name="tty">false</prop>
+      </__props__>
+    </K8sContainer>
+    <K8sContainer image="alpine" name="two">
+      <__props__>
+        <prop name="key">"Container1-K8sContainer"</prop>
+        <prop name="tty">false</prop>
+      </__props__>
+    </K8sContainer>
+  </Pod>
+</Adapt>
+`;
+        should(domXml).eql(expected);
     });
 
 });
@@ -162,7 +230,7 @@ describe("k8s Pod Plugin Tests", function () {
     it("Should compute actions with no pods from k8s", async () => {
         const pod =
             <Pod key="test" config={kubeconfig}>
-                <Container name="container" image="node:latest" />
+                <K8sContainer name="container" image="node:latest" />
             </Pod>;
 
         const dom = await doBuild(pod);
@@ -179,7 +247,7 @@ describe("k8s Pod Plugin Tests", function () {
     it("Should distinguish between replace and create actions", async () => {
         const pod =
             <Pod key="test" config={kubeconfig}>
-                <Container name="container" image="node:latest" />
+                <K8sContainer name="container" image="node:latest" />
             </Pod>;
 
         const dom = await doBuild(pod);
@@ -213,7 +281,7 @@ describe("k8s Pod Plugin Tests", function () {
     async function createPod(name: string): Promise<AdaptElementOrNull> {
         const pod =
             <Pod key={name} config={kubeconfig} terminationGracePeriodSeconds={0}>
-                <Container name="container" image="alpine:3.8" command={["sleep", "3s"]} />
+                <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
         const dom = await doBuild(pod);
@@ -245,7 +313,7 @@ describe("k8s Pod Plugin Tests", function () {
         const command = ["sleep", "5s"];
         const pod =
             <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
-                <Container name="container" image="alpine:3.8" command={command} />
+                <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
         const dom = await doBuild(pod);
@@ -274,7 +342,7 @@ describe("k8s Pod Plugin Tests", function () {
         const command = ["sleep", "3s"];
         const pod =
             <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
-                <Container name="container" image="alpine:3.8" command={command} />
+                <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
         const dom = await doBuild(pod);

@@ -1,7 +1,7 @@
 import { AdaptElement, PrimitiveComponent } from "@usys/adapt";
 import * as ctr from "../Container";
 
-export interface ContainerProps {
+export interface K8sContainerProps {
     name: string; //Must be unique within pod
     image: string;
 
@@ -11,10 +11,10 @@ export interface ContainerProps {
     workingDir?: string;
 }
 
-export function k8sContainerProps(abstractProps: ctr.ContainerProps): ContainerProps {
+export function k8sContainerProps(abstractProps: ctr.ContainerProps): K8sContainerProps {
     const { command, entrypoint, tty, workingDir } = abstractProps;
 
-    const ret: ContainerProps = {
+    const ret: K8sContainerProps = {
         name: abstractProps.name,
         image: abstractProps.image,
     };
@@ -31,20 +31,16 @@ export function k8sContainerProps(abstractProps: ctr.ContainerProps): ContainerP
     return ret;
 }
 
-function validateProps(_props: ContainerProps) {
-    //throw if we don't like props
-    //FIXME(manishv) check if name is legal in k8s
-    //FIXME(manishv) check if image string is valid URL
-    //FIXME(manishv) check if workDir is valid path
+export function isContainerElement(x: AdaptElement): x is AdaptElement<K8sContainerProps> {
+    return x.componentType === K8sContainer;
 }
 
-export function isContainerElement(x: AdaptElement): x is AdaptElement<ContainerProps> {
-    return x.componentType === Container;
-}
-
-export class Container extends PrimitiveComponent<ContainerProps> {
-    constructor(props: ContainerProps) {
-        super(props);
-        validateProps(props);
+export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
+    /*
+    validate() {
+        //FIXME(manishv) check if name is legal in k8s
+        //FIXME(manishv) check if image string is valid URL
+        //FIXME(manishv) check if workDir is valid path
     }
+    */
 }
