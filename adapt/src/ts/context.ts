@@ -60,6 +60,7 @@ export class VmModule {
             this.cache = Object.create(null);
             this.hostModCache = Object.create(null);
             this.extensions[".js"] = this.runJsModule.bind(this);
+            this.extensions[".json"] = this.runJsonModule.bind(this);
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
@@ -145,6 +146,20 @@ export class VmModule {
         } catch (e) {
             if (e.code === "MODULE_NOT_FOUND") return undefined;
             throw e;
+        }
+    }
+
+    @tracef(debugVm)
+    private runJsonModule(mod: VmModule, filename: string) {
+        const contents = this.host.readFile(filename);
+        if (!contents) {
+            throw new Error(`Unable to find file contents for ${filename}`);
+        }
+        try {
+            mod.ctxModule.exports = JSON.parse(contents);
+        } catch (err) {
+            err.message = filename + ": " + err.message;
+            throw err;
         }
     }
 

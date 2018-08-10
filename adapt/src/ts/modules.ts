@@ -68,6 +68,7 @@ export class ModuleResolver extends ChainableHost {
                         `file because runnable=true`);
                     mod = resolveJS(modName, containingFile, this);
                 }
+                if (!mod) mod = resolveJSON(modName, containingFile, this);
             }
         }
 
@@ -89,6 +90,20 @@ export class ModuleResolver extends ChainableHost {
     trace(s: string) {
         trace(debugModuleResolution, s);
     }
+}
+
+function resolveJSON(modName: string, containingFile: string,
+                   host: ts.ModuleResolutionHost
+): ts.ResolvedModuleFull | null {
+    if (!modName.match(/\.json$/)) return null;
+
+    const resolved = path.resolve(path.dirname(containingFile), modName);
+    if (!host.fileExists(resolved)) return null;
+
+    return {
+        extension: ts.Extension.Json,
+        resolvedFileName: resolved,
+    };
 }
 
 function resolveJS(modName: string, containingFile: string,
