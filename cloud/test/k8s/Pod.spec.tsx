@@ -12,6 +12,7 @@ import * as ld from "lodash";
 import * as should from "should";
 
 import { minikube } from "@usys/testutils";
+import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
@@ -166,16 +167,6 @@ async function getPodsWithClient(client: any) {
 async function getPods(config: any) {
     const client = await getClient(config);
     return getPodsWithClient(client);
-}
-
-async function sleep(wait: number): Promise<void> {
-    await new Promise((res) => {
-        setTimeout(() => {
-            res();
-            return;
-        }, wait);
-        return;
-    });
 }
 
 describe("k8s Pod Plugin Tests", function () {
