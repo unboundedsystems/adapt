@@ -1,0 +1,5 @@
+{
+    "git.ignoreLimitWarning": true,
+    "tslint.alwaysShowRuleFailuresAsWarnings": true,
+    "tslint.alwaysShowStatus": true,
+}

@@ -36,21 +36,17 @@
     "postinstall-build": "^5.0.1"
   },
   "devDependencies": {
-    "@types/dockerode": "^2.5.5",
     "@types/execa": "^0.9.0",
-    "@types/js-yaml": "^3.11.2",
     "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.109",
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.20",
+    "@usys/testutils": "0.0.1",
     "@usys/utils": "^0.0.1",
-    "dockerode": "^2.5.5",
-    "js-yaml": "^3.12.0",
     "mocha": "^5.2.0",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",
     "stream-buffers": "^3.0.2",
-    "strip-ansi": "^4.0.0",
     "tslint": "^5.10.0",
     "typescript": "^2.9.1"
   },

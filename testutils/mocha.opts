@@ -1,0 +1,5 @@
+--require source-map-support/register
+--recursive
+--reporter spec
+--timeout 30000
+dist/test

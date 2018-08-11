@@ -6,7 +6,8 @@
             "cloud",
             "cli",
             "dom-parser",
-            "utils"
+            "utils",
+            "testutils"
         ],
         "nohoist": [
             "**/@types/chai",

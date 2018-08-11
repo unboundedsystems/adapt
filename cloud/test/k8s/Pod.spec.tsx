@@ -11,6 +11,7 @@ import Adapt, {
 import * as ld from "lodash";
 import * as should from "should";
 
+import { minikube } from "@usys/testutils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
@@ -24,7 +25,8 @@ import {
     PodPlugin
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
-import { MinikubeInfo, startTestMinikube, stopTestMinikube } from "./minikube";
+
+const { startTestMinikube, stopTestMinikube } = minikube;
 
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
@@ -184,7 +186,7 @@ describe("k8s Pod Plugin Tests", function () {
     let options: PluginOptions;
     let kubeconfig: object;
     let k8sConfig: object;
-    let minikubeInfo: MinikubeInfo;
+    let minikubeInfo: minikube.MinikubeInfo;
 
     before(async () => {
         minikubeInfo = await startTestMinikube();
