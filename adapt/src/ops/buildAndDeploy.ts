@@ -30,7 +30,7 @@ export interface BuildOptions {
 }
 
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
-    const { deployment, stackName } = options;
+    const { deployment, prevDom, stackName } = options;
 
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
@@ -60,11 +60,11 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const stateStore = createStateStore(options.prevStateJson);
 
     const output = build(stack.root, stack.style, {stateStore});
-    const dom = output.contents;
-    if (dom == null) {
+    const newDom = output.contents;
+    if (newDom == null) {
         throw new Error(`build returned a null DOM`);
     }
-    const domXml = serializeDom(dom, true);
+    const domXml = serializeDom(newDom, true);
 
     if (output.messages.length !== 0) {
         throw new ProjectBuildError(output.messages, domXml);
@@ -73,7 +73,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const stateJson = stateStore.serialize();
 
     const mgr = createPluginManager(deployment.pluginConfig);
-    await mgr.start(null, dom, { log: options.log });
+    await mgr.start(prevDom, newDom, { log: options.log });
     await mgr.observe();
     await mgr.analyze();
     await mgr.act(options.dryRun);
