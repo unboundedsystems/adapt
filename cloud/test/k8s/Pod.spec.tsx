@@ -11,7 +11,7 @@ import Adapt, {
 import * as ld from "lodash";
 import * as should from "should";
 
-import { minikube } from "@usys/testutils";
+import { k8sutils, minikube } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
@@ -27,10 +27,8 @@ import {
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
 
+const { deleteAllPods, getK8sConfig, getPods } = k8sutils;
 const { startTestMinikube, stopTestMinikube } = minikube;
-
-// tslint:disable-next-line:no-var-requires
-const k8s = require("kubernetes-client");
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
@@ -148,27 +146,6 @@ async function act(actions: Adapt.Action[]) {
     }
 }
 
-async function getClient(config: any) {
-    const client = new k8s.Client({ config });
-    await client.loadSpec();
-    should(client.api).not.Null();
-    should(client.api).not.Undefined();
-    return client;
-}
-
-async function getPodsWithClient(client: any) {
-    should(client.api).not.Null();
-    should(client.api).not.Undefined();
-    const pods = await client.api.v1.namespaces("default").pods.get();
-    should(pods.statusCode).equal(200);
-    return pods.body.items;
-}
-
-async function getPods(config: any) {
-    const client = await getClient(config);
-    return getPodsWithClient(client);
-}
-
 describe("k8s Pod Plugin Tests", function () {
     this.timeout(4 * 60 * 1000);
 
@@ -182,7 +159,7 @@ describe("k8s Pod Plugin Tests", function () {
     before(async () => {
         minikubeInfo = await startTestMinikube();
         kubeconfig = minikubeInfo.kubeconfig;
-        k8sConfig = k8s.config.fromKubeconfig(kubeconfig);
+        k8sConfig = getK8sConfig(kubeconfig);
     });
 
     after(async () => {
@@ -200,24 +177,7 @@ describe("k8s Pod Plugin Tests", function () {
     });
 
     afterEach(async () => {
-        const client = await getClient(k8sConfig);
-        let pods = await getPodsWithClient(client);
-
-        for (const pod of pods) {
-            await client.api.v1.namespaces("default").pods(pod.metadata.name).delete();
-        }
-
-        const retries = 3;
-        let count = 0;
-        do {
-            pods = await getPodsWithClient(client);
-            await sleep(5000);
-            count++;
-        } while (pods.length !== 0 && count < retries);
-
-        if (pods.length !== 0) {
-            throw new Error(`Failed to remove pods: ${JSON.stringify(pods, null, 2)}`);
-        }
+        await deleteAllPods(k8sConfig);
     });
 
     it("Should compute actions with no pods from k8s", async () => {
