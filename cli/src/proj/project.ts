@@ -48,6 +48,7 @@ function npmInstallOptions(projOpts: ProjectOptionsComplete): npm.InstallOptions
         cwd: projOpts.session.projectDir,
         loglevel: projOpts.loglevel,
         progress: projOpts.progress,
+        production: true,
     };
     if (projOpts.registry) npmOpts.registry = projOpts.registry;
 

@@ -3,6 +3,7 @@ import { CommonOptions, run } from "./common";
 export interface InstallOptions extends CommonOptions {
     packages?: string[];
     packageLockOnly?: boolean;
+    production?: boolean;
 }
 
 const defaultOptions: InstallOptions = {
