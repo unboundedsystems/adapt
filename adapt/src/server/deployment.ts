@@ -67,6 +67,14 @@ export async function destroyDeployment(server: AdaptServer, deployID: string):
     }
 }
 
+export async function listDeployments(server: AdaptServer): Promise<string[]> {
+    try {
+        return Object.keys(await server.get(deploymentPath));
+    } catch (err) {
+        throw new Error(`Error listing deployments: ${err}`);
+    }
+}
+
 class DeploymentImpl implements Deployment {
     private pluginConfig_?: PluginConfig;
 

@@ -10,9 +10,11 @@ import * as should from "should";
 
 import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
 
+import { DeployState, isDeploySuccess } from "../../src/ops/common";
 import { createDeployment } from "../../src/ops/createDeployment";
+import { listDeployments } from "../../src/server/deployment";
 import { LocalServer } from "../../src/server/local_server";
-import { AdaptServerType, mockServerTypes_ } from "../../src/server/server";
+import { adaptServer, AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
 const simplePackageJson = {
     name: "test_project",
@@ -29,7 +31,12 @@ import Adapt, { PrimitiveComponent } from "@usys/adapt";
 import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {}
+class ActError extends PrimitiveComponent<{}> {}
+class AnalyzeError extends PrimitiveComponent<{}> {}
+
 Adapt.stack("default", <Simple />);
+Adapt.stack("ActError", <ActError />);
+Adapt.stack("AnalyzeError", <AnalyzeError />);
 `;
 
 const simplePluginTs = `
@@ -54,6 +61,15 @@ class EchoPlugin implements Plugin<{}> {
     }
     analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze");
+        if (dom.componentType.name === "AnalyzeError") {
+            throw new Error("AnalyzeError");
+        }
+        if (dom.componentType.name === "ActError") {
+            return [
+                { description: "echo error", act: () => { throw new Error("ActError1"); } },
+                { description: "echo error", act: () => { throw new Error("ActError2"); } }
+            ];
+        }
         return [
             { description: "echo action1", act: () => this.doAction("action1") },
             { description: "echo action2", act: () => this.doAction("action2") }
@@ -89,22 +105,35 @@ const simplePluginPackageJson = `
 }
 `;
 
+function checkErrors(ds: DeployState, expected: RegExp[]) {
+    const errors = ds.messages.filter((m) => m.type === "error");
+    should(errors).have.length(expected.length);
+    for (let i = 0; i < expected.length; i++) {
+        should(errors[i].content).match(expected[i]);
+    }
+    should(ds.summary.error).equal(expected.length);
+}
+
 describe("createDeployment Tests", async function() {
     let origServerTypes: AdaptServerType[];
     let logger: MockLogger;
+    let projectInit = false; // first test initialized project dir
+    let firstDeployID: string;
 
     this.timeout(30000);
     mochaLocalRegistry.all(localRegistryDefaults.config,
                            localRegistryDefaults.configPath);
-    tmpdir.each("adapt-createDeployment");
+    tmpdir.all("adapt-createDeployment");
 
-    beforeEach(() => {
+    before(() => {
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
-        logger = createMockLogger();
     });
-    afterEach(() => {
+    after(() => {
         mockServerTypes_(origServerTypes);
+    });
+    beforeEach(() => {
+        logger = createMockLogger();
     });
 
     it("Should build a single file", async () => {
@@ -116,25 +145,31 @@ describe("createDeployment Tests", async function() {
 
         await npm.install(localRegistryDefaults.npmLocalProxyOpts);
 
-        const bs = await createDeployment({
-            adaptUrl: `file://${process.cwd()}/db.json`,
+        const adaptUrl = `file://${process.cwd()}/db.json`;
+        const ds = await createDeployment({
+            adaptUrl,
             fileName: "index.tsx",
             initLocalServer: true,
             initialStateJson: "{}",
-            log: logger.log,
+            logger,
             projectName: "myproject",
             stackName: "default",
         });
+        if (!isDeploySuccess(ds)) {
+            should(isDeploySuccess(ds)).be.True();
+            return;
+        }
 
-        should(bs.messages.length).equal(0);
-        should(bs.domXml).equal(
+        should(ds.summary.error).equal(0);
+        should(ds.domXml).equal(
 `<Adapt>
   <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
 </Adapt>
 `);
 
-        should(bs.stateJson).equal("{}");
-        should(bs.deployID).equal("myproject::default");
+        should(ds.stateJson).equal("{}");
+        should(ds.deployID).equal("myproject::default");
+        firstDeployID = ds.deployID;
 
         const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);
@@ -143,6 +178,54 @@ describe("createDeployment Tests", async function() {
         should(stdout).match(/action1/);
         should(stdout).match(/action2/);
         should(stdout).match(/EchoPlugin: finish/);
+
+        const server = await adaptServer(adaptUrl, {});
+        const list = await listDeployments(server);
+        should(list).have.length(1);
+        should(list[0]).equal(ds.deployID);
+
+        projectInit = true;
+    });
+
+    async function checkPluginError(stackName: string, expected: RegExp[]) {
+        should(projectInit).equal(true, "Previous test did not complete");
+
+        const adaptUrl = `file://${process.cwd()}/db.json`;
+
+        const ds = await createDeployment({
+            adaptUrl,
+            fileName: "index.tsx",
+            initialStateJson: "{}",
+            logger,
+            projectName: "myproject",
+            stackName,
+        });
+        if (isDeploySuccess(ds)) {
+            should(isDeploySuccess(ds)).be.False();
+            return;
+        }
+
+        checkErrors(ds, expected);
+
+        // Only the previous deployment should be there
+        const server = await adaptServer(adaptUrl, {});
+        const list = await listDeployments(server);
+        should(list).have.length(1);
+        should(list[0]).equal(firstDeployID);
+    }
+
+    it("Should log error on analyze", async () => {
+        await checkPluginError("AnalyzeError", [
+            /Error creating deployment: Error: AnalyzeError/
+        ]);
+    });
+
+    it("Should log error on action", async () => {
+        await checkPluginError("ActError", [
+            /Error: ActError1/,
+            /Error: ActError2/,
+            /Error creating deployment: Error: Errors encountered during plugin action phase/
+        ]);
     });
 });
 

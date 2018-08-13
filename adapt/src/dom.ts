@@ -78,6 +78,8 @@ function recordDomError(
     if (ld.isError(err)) {
         message = {
             type: MessageType.warning,
+            timestamp: Date.now(),
+            from: "DOM build",
             content:
                 `Component ${element.componentType.name} cannot be ` +
                 `built with current props` +

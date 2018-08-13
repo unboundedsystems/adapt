@@ -1,6 +1,5 @@
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
-import { Message, messagesToString } from "./utils";
 
 export class BuildNotImplemented extends CustomError {
     public constructor(message?: string) {
@@ -9,8 +8,8 @@ export class BuildNotImplemented extends CustomError {
 }
 
 export class ProjectBuildError extends CustomError {
-    constructor(msgs: Message[], domXmlString: string) {
-        super(`Error building Adapt project\n${messagesToString(msgs)}`);
+    constructor(public domXml: string) {
+        super(`Error building Adapt project`);
     }
 }
 

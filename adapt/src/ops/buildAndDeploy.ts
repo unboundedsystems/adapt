@@ -3,6 +3,7 @@ import * as path from "path";
 import {
     AdaptElementOrNull,
     build,
+    MessageLogger,
     ProjectBuildError,
     serializeDom,
 } from "..";
@@ -14,7 +15,6 @@ import {
     exec,
     MemFileHost,
 } from "../ts";
-import { Logger } from "../type_support";
 import { DeployState } from "./common";
 
 export interface BuildOptions {
@@ -23,14 +23,14 @@ export interface BuildOptions {
     fileName: string;
     prevDom: AdaptElementOrNull;
     prevStateJson: string;
-    log: Logger;
+    logger: MessageLogger;
     stackName: string;
 
     projectRoot?: string;
 }
 
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
-    const { deployment, prevDom, stackName } = options;
+    const { deployment, logger, prevDom, stackName } = options;
 
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
@@ -67,22 +67,25 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const domXml = serializeDom(newDom, true);
 
     if (output.messages.length !== 0) {
-        throw new ProjectBuildError(output.messages, domXml);
+        logger.append(output.messages);
+        throw new ProjectBuildError(domXml);
     }
 
     const stateJson = stateStore.serialize();
 
     const mgr = createPluginManager(deployment.pluginConfig);
-    await mgr.start(prevDom, newDom, { log: options.log });
+    await mgr.start(prevDom, newDom, { logger });
     await mgr.observe();
     await mgr.analyze();
     await mgr.act(options.dryRun);
     await mgr.finish();
 
     return {
+        type: "success",
         deployID: deployment.deployID,
         domXml,
         stateJson,
-        messages: output.messages,
+        messages: logger.messages,
+        summary: logger.summary,
     };
 }

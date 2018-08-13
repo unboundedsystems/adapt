@@ -259,6 +259,8 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
 
         return ret.map((m) => ({
             type: MessageType.warning,
+            timestamp: Date.now(),
+            from: "DOM validate",
             content:
                 `Component validation error. [${this.path}] cannot be ` +
                 `built with current props: ${m}`,

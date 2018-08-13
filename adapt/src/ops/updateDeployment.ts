@@ -25,13 +25,24 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
     };
     const { adaptUrl, deployID, prevDomXml, ...buildOpts } = finalOptions;
 
-    const prevDom = await reanimateDom(prevDomXml);
-    const server = await adaptServer(adaptUrl, {});
-    const deployment = await loadDeployment(server, deployID);
+    try {
+        const prevDom = await reanimateDom(prevDomXml);
+        const server = await adaptServer(adaptUrl, {});
+        const deployment = await loadDeployment(server, deployID);
 
-    return buildAndDeploy({
-        deployment,
-        prevDom,
-        ...buildOpts,
-    });
+        return buildAndDeploy({
+            deployment,
+            prevDom,
+            ...buildOpts,
+        });
+
+    } catch (err) {
+        finalOptions.logger.error(`Error updating deployment: ${err}`);
+        return {
+            type: "error",
+            messages: finalOptions.logger.messages,
+            summary: finalOptions.logger.summary,
+            domXml: err.domXml,
+        };
+    }
 }

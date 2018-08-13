@@ -1,5 +1,9 @@
-import { adaptServer } from "../server";
-import { createDeployment as createDep, destroyDeployment } from "../server/deployment";
+import { adaptServer, AdaptServer } from "../server";
+import {
+    createDeployment as createDeploymentObj,
+    Deployment,
+    destroyDeployment
+} from "../server/deployment";
 import { buildAndDeploy } from "./buildAndDeploy";
 import {
     defaultDeployCommonOptions,
@@ -29,19 +33,38 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         adaptUrl, initLocalServer, initialStateJson, projectName, ...buildOpts
     } = finalOptions;
 
-    const server = await adaptServer(adaptUrl, {
-        init: finalOptions.initLocalServer,
-    });
-    const deployment = await createDep(server, projectName, finalOptions.stackName);
-
+    let ds: DeployState;
+    let server: AdaptServer | null = null;
+    let deployment: Deployment | null = null;
     try {
-        return buildAndDeploy({
+        server = await adaptServer(adaptUrl, {
+            init: finalOptions.initLocalServer,
+        });
+        deployment = await createDeploymentObj(server, projectName,
+                                               finalOptions.stackName);
+        ds = await buildAndDeploy({
             deployment,
             prevDom: null,
             prevStateJson: initialStateJson,
             ...buildOpts
         });
-    } finally {
-        if (finalOptions.dryRun) await destroyDeployment(server, deployment.deployID);
+
+    } catch (err) {
+        finalOptions.logger.error(`Error creating deployment: ${err}`);
+        ds = {
+            type: "error",
+            messages: finalOptions.logger.messages,
+            summary: finalOptions.logger.summary,
+            domXml: err.domXml,
+        };
     }
+
+    if (server && deployment && (finalOptions.dryRun || ds.type === "error")) {
+        try {
+            await destroyDeployment(server, deployment.deployID);
+        } catch (err) {
+            finalOptions.logger.warning(`Error destroying deployment: ${err}`);
+        }
+    }
+    return ds;
 }

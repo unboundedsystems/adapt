@@ -1,10 +1,28 @@
-import { Logger, Message } from "..";
+import { Message, MessageLogger, MessageStreamer, MessageSummary } from "../utils";
 
-export interface DeployState {
+export type DeployState = DeploySuccess | DeployError;
+
+export interface DeploySuccess {
+    type: "success";
+    messages: Message[];
+    summary: MessageSummary;
+
     domXml: string;
     stateJson: string;
-    messages: Message[];
     deployID: string;
+}
+
+export interface DeployError {
+    type: "error";
+    messages: Message[];
+    summary: MessageSummary;
+
+    domXml?: string;
+    stateJson?: string;
+}
+
+export function isDeploySuccess(val: DeployState): val is DeploySuccess {
+    return val.type === "success";
 }
 
 export interface DeployCommonOptions {
@@ -13,13 +31,12 @@ export interface DeployCommonOptions {
     stackName: string;
 
     dryRun?: boolean;
-    log?: Logger;
+    logger?: MessageLogger;
     projectRoot?: string;
 }
 
 export const defaultDeployCommonOptions = {
     dryRun: false,
-    // tslint:disable-next-line:no-console
-    log: console.log,
+    logger: new MessageStreamer("deploy", process.stdout, process.stderr),
     projectRoot: undefined,
 };
