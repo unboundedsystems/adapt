@@ -52,11 +52,50 @@ export interface ProjectRunError extends Error {
 /*
  * Types related to deployment
  */
-export interface DeployState {
+export type DeployState = DeploySuccess | DeployError;
+
+export interface DeploySuccess {
+    type: "success";
+    messages: Message[];
+    summary: MessageSummary;
+
     domXml: string;
     stateJson: string;
-    messages: Message[];
     deployID: string;
+}
+
+export interface DeployError {
+    type: "error";
+    messages: Message[];
+    summary: MessageSummary;
+
+    domXml?: string;
+    stateJson?: string;
+}
+
+export function verifyDeployState(val: any): DeployState {
+    if (val == null) throw new ValidationError("DeployState", "value is null");
+    if (val.type === "success") {
+        verifyProps("DeployState", val, {
+            messages: "object",
+            summary: "object",
+            domXml: "string",
+            stateJson: "string",
+            deployID: "string",
+        });
+    } else if (val.type === "error") {
+        verifyProps("DeployState", val, {
+            messages: "object",
+            summary: "object",
+        });
+    }
+    verifyMessages(val.messages);
+
+    return val as DeployState;
+}
+
+export function isDeploySuccess(val: DeployState): val is DeploySuccess {
+    return val.type === "success";
 }
 
 export interface DeployCommonOptions {
@@ -65,27 +104,56 @@ export interface DeployCommonOptions {
     stackName: string;
 
     dryRun?: boolean;
-    log?: Logger;
+    logger?: MessageLogger;
     projectRoot?: string;
 }
 
+/*
+ * Messages
+ */
 export enum MessageType {
+    info = "info",
     warning = "warning",
     error = "error",
 }
-
 export interface Message {
     type: MessageType;
+    timestamp: number;
+    from: string;
     content: string;
+}
+
+export interface MessageSummary {
+    info: number;
+    warning: number;
+    error: number;
+}
+
+export interface MessageLogger {
+    messages: Message[];
+    summary: MessageSummary;
+    info: Logger;
+    warning: Logger;
+    error: Logger;
+    log: (type: MessageType, arg: any, ...args: any[]) => void;
+    append: (this: MessageLogger, toAppend: Message[]) => void;
 }
 
 export function verifyMessage(m: any): Message {
     if (m == null) throw new ValidationError("Message", "value is null");
-    if (m.type !== "warning" && m.type !== "error") {
-        throw new ValidationError("Message", "bad type property");
-    }
-    if (typeof m.content !== "string") {
-        throw new ValidationError("Message", "content is not string");
+    verifyProps("Message", m, {
+        type: "string",
+        content: "string",
+        from: "string",
+        timestamp: "number",
+    });
+    switch (m.type) {
+        case "info":
+        case "warning":
+        case "error":
+            break;
+        default:
+            throw new ValidationError("Message", "bad type property");
     }
     return m as Message;
 }
@@ -98,16 +166,6 @@ export function verifyMessages(val: any): Message[] {
     }
 
     return val as Message[];
-}
-
-export function verifyDeployState(val: any): DeployState {
-    if (val == null) throw new ValidationError("DeployState", "value is null");
-    verifyProp("DeployState", val, "domXml", "string");
-    verifyProp("DeployState", val, "stateJson", "string");
-    verifyProp("DeployState", val, "deployID", "string");
-    verifyMessages(val.messages);
-
-    return val as DeployState;
 }
 
 /*
@@ -140,5 +198,15 @@ function verifyProp(parentType: string, parent: any, prop: string,
     }
     if (typeof parent[prop] !== typeofProp) {
         throw new ValidationError(parentType, `property '${prop}' is not a ${typeofProp}`);
+    }
+}
+
+interface PropList {
+    [prop: string]: string; // typeof prop
+}
+
+function verifyProps(parentType: string, parent: any, props: PropList) {
+    for (const prop of Object.keys(props)) {
+        verifyProp(parentType, parent, prop, props[prop]);
     }
 }

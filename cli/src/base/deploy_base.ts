@@ -3,6 +3,8 @@ import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
+import { DeployError } from "../types/adapt_shared";
+import { getErrors, getWarnings } from "../utils";
 
 import {
     createStateHistoryDir,
@@ -157,5 +159,19 @@ export abstract class DeployBase extends Command {
             }
         }
         return super.catch(err);
+    }
+
+    deployFailure(deployErr: DeployError) {
+        const nwarn = deployErr.summary.warning;
+        const warns = nwarn === 1 ? "warning" : "warnings";
+        this.log(`${nwarn} ${warns} encountered during deploy:\n` +
+            getWarnings(deployErr.messages));
+
+        const nerr = deployErr.summary.error;
+        const errors = nerr === 1 ? "error" : "errors";
+        return this.error(
+            cantDeploy +
+            `${nerr} ${errors} encountered during deploy:\n` +
+            getErrors(deployErr.messages));
     }
 }

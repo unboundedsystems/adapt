@@ -1,7 +1,7 @@
 import { flags } from "@oclif/command";
 import { cantDeploy, DeployBase } from "../../base";
 import { UserError } from "../../error";
-import { DeployState, UpdateOptions } from "../../types/adapt_shared";
+import { DeployState, isDeploySuccess, UpdateOptions } from "../../types/adapt_shared";
 
 export default class UpdateCommand extends DeployBase {
     static description = "Update an existing deployment of an Adapt project";
@@ -84,6 +84,10 @@ an alternate description file, "somefile.tsx":
                         }
                         if (err instanceof UserError) this.error(err.message);
                         throw err;
+                    }
+
+                    if (!isDeploySuccess(deployState)) {
+                        return this.deployFailure(deployState);
                     }
 
                     await ctx.history.appendState(deployState);

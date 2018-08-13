@@ -1,7 +1,7 @@
 import { flags } from "@oclif/command";
 import { cantDeploy, DeployBase } from "../../base";
 import { UserError } from "../../error";
-import { CreateOptions, DeployState } from "../../types/adapt_shared";
+import { CreateOptions, DeployState, isDeploySuccess } from "../../types/adapt_shared";
 
 export default class CreateCommand extends DeployBase {
     static description = "Create a new deployment for an Adapt project";
@@ -66,6 +66,10 @@ export default class CreateCommand extends DeployBase {
                         }
                         if (err instanceof UserError) this.error(err.message);
                         throw err;
+                    }
+
+                    if (!isDeploySuccess(deployState)) {
+                        return this.deployFailure(deployState);
                     }
 
                     await ctx.history.appendState(deployState);
