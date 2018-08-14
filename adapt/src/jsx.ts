@@ -4,7 +4,6 @@ import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
-import { KeyTracker, UpdateStateInfo } from "./keys";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
@@ -34,7 +33,6 @@ export function isMountedElement<P extends object = AnyProps>(val: any): val is 
 
 export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
-    updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
 export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): elem is AdaptPrimitiveElement<P> {
     return isPrimitive(elem.componentType.prototype);
@@ -87,7 +85,6 @@ export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
 export abstract class PrimitiveComponent<Props extends object>
     extends Component<Props> {
 
-    updateState(_state: any, _info: UpdateStateInfo) { return; }
     validate(): string | string[] | undefined { return; }
 }
 
@@ -227,27 +224,6 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
             this.componentInstance_ = new this.componentType(this.props);
         }
         return this.componentInstance_;
-    }
-
-    updateState(state: AnyState, keys: KeyTracker, info: UpdateStateInfo) {
-        keys.addKey(this.componentInstance);
-        this.componentInstance.updateState(state, info);
-        if (this.props.children == null ||
-            !Array.isArray(this.props.children)) {
-            return;
-        }
-
-        keys.pathPush();
-        try {
-            for (const child of this.props.children) {
-                if (child == null) continue;
-                if (isPrimitiveElement(child)) {
-                    child.updateState(state, keys, info);
-                }
-            }
-        } finally {
-            keys.pathPop();
-        }
     }
 
     validate(): Message[] {

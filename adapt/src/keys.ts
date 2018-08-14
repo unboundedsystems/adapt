@@ -135,18 +135,3 @@ export class KeyTracker {
         this.names.pop();
     }
 }
-
-/**
- * Public API object that gets passed to PrimitiveComponent.updateState
- */
-export class UpdateStateInfo {
-    private _nodeName: () => string;
-
-    constructor(keyTracker: KeyTracker) {
-        this._nodeName = keyTracker.lastKeyPath.bind(keyTracker);
-    }
-
-    get nodeName(): string {
-        return this._nodeName();
-    }
-}
