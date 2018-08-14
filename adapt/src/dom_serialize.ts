@@ -13,7 +13,8 @@ function serializedShortPropIsString(propVal: string): boolean {
     return !(/^\d/.test(propVal));
 }
 
-function canBeShort(propVal: any): boolean {
+function canBeShort(propName: string, propVal: any): boolean {
+    if (propName === "xmlns" || propName.startsWith("xmlns:")) return false;
     if (ld.isNumber(propVal)) return true;
     if (ld.isString(propVal)) {
         const json = JSON.stringify(propVal);
@@ -46,7 +47,7 @@ function collectProps(elem: AdaptElement) {
         const prop = props[propName];
         if (prop === undefined) continue;
 
-        if (canBeShort(prop)) {
+        if (canBeShort(propName, prop)) {
             shortProps[propName] = serializeShortPropVal(prop);
         } else {
             if (longProps == null) {

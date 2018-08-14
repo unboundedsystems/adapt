@@ -52,6 +52,35 @@ describe("DOM Prop Serialization", () => {
 </Adapt>
 `);
     });
+
+    it("should serialize prop named xmlns long form", () => {
+      const ser = Adapt.serializeDom(<Flex xmlns="foo" />);
+      should(ser).equal(`<Adapt>
+  <Flex>
+    <__props__>
+      <prop name="xmlns">"foo"</prop>
+    </__props__>
+  </Flex>
+</Adapt>
+`);
+    });
+
+    it("should serialize prop starting with xmlns: long form", () => {
+      const props = {
+        "xmlns:bar": "foo"
+      };
+
+      const ser = Adapt.serializeDom(<Flex {...props} xmlnsness="bar" />);
+      should(ser).equal(`<Adapt>
+  <Flex xmlnsness="bar">
+    <__props__>
+      <prop name="xmlns:bar">"foo"</prop>
+    </__props__>
+  </Flex>
+</Adapt>
+`);
+    });
+
 });
 
 describe("DOM Child Serialization", () => {

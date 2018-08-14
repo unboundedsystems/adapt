@@ -165,4 +165,28 @@ describe("DOM Parse Tests", () => {
         );
         should(dom).deepEqual(fooRoot);
     });
+
+    it("Should parse prop named xmlns", async () => {
+        const xmlStr =
+            `<Adapt>
+                <Foo>
+                    <__props__>
+                        <prop name="xmlns">"bar"</prop>
+                        <prop name="xmlns:foo">"qaz"</prop>
+                    </__props__>
+                </Foo>
+            </Adapt>`;
+        const dom = await back.domFromString(xmlStr);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+
+        const foo = new DOMNode(
+            "Foo",
+            { "xmlns": "bar", "xmlns:foo": "qaz" },
+            ""
+        );
+        should(dom).deepEqual(foo);
+    });
 });
