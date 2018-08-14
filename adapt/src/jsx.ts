@@ -5,6 +5,7 @@ import * as ld from "lodash";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { KeyTracker, UpdateStateInfo } from "./keys";
+import { registerConstructor } from "./reanimate";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 
@@ -25,6 +26,10 @@ export interface AdaptPrimitiveElement<P extends object = AnyProps> extends Adap
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
 }
 
+export interface AdaptComponentElement<P extends object = AnyProps> extends AdaptElement<P> {
+    readonly componentType: ClassComponentTyp<P, AnyState>;
+}
+
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
@@ -39,6 +44,10 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
     return isElement(val);
 }
 
+export function isComponentElement<P extends object = AnyProps>(val: any): val is AdaptComponentElement<P> {
+    return isElement(val) && isComponent(val.componentType.prototype);
+}
+
 export abstract class Component<Props extends object = {}, State extends object = {}> {
 
     readonly state: State;
@@ -48,7 +57,9 @@ export abstract class Component<Props extends object = {}, State extends object 
     cleanup?: (this: this) => void;
     private stateUpdates: Partial<State>[] = [];
 
-    constructor(readonly props: Props) { }
+    constructor(readonly props: Props) {
+        registerConstructor(this.constructor);
+    }
 
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
         const upd = computeStateUpdate(this.state, this.props, stateUpdate);

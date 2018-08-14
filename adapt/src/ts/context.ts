@@ -1,16 +1,34 @@
+import { findPackageDirs } from "@usys/utils";
 import * as path from "path";
 import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
 
+import { isError, ProjectRunError, ThrewNonError } from "../error";
 import { trace, tracef } from "../utils";
 import { ChainableHost } from "./hosts";
 
 const debugVm = false;
 
-class RunStack {
-    stack: string[] = [];
-    constructor(public error: Error) {}
+const packageDirs = findPackageDirs(__dirname);
+
+// Remove each line that has a filename that's in our dist/src/ts directory.
+// There are often 2-3 of these compilation-related frames between each
+// stack frame that the user cares about, which makes the backtraces super
+// confusing for them.
+const tsStackExclude = RegExp("^.*\\(" + path.join(packageDirs.dist, "src", "ts") + ".*$", "mg");
+
+// Script.runInContext is the call that starts the user's project script.
+// Delete that line and all following lines.
+const ctxStackEnd = /\n[^\n]*Script\.runInContext(?:.|\n)*/;
+
+function getProjectStack(projectError: Error): string {
+    if (projectError.stack) {
+        let ctxStack = projectError.stack.replace(ctxStackEnd, "");
+        ctxStack = ctxStack.replace(tsStackExclude, "");
+        return ctxStack;
+    }
+    return "[No stack]";
 }
 
 export interface Extensions {
@@ -22,30 +40,28 @@ export interface ModuleCache {
 }
 
 export class VmModule {
-    exports: any = {};
-    filename: string;
-    loaded = false;
-    children: VmModule[] = [];
-    _extensions: Extensions;
-    _cache: ModuleCache;
+    extensions: Extensions;
+    cache: ModuleCache;
     _compile = this.runJs;
+    ctxModule: NodeModule;
 
-    private _hostModCache: any;
+    private hostModCache: any;
 
     constructor(public id: string, private vmContext: vm.Context | undefined,
                 public host: ChainableHost,
                 public parent?: VmModule) {
-        this.filename = id;
         if (parent) {
-            this._extensions = parent._extensions;
-            this._cache = parent._cache;
-            this._hostModCache = parent._hostModCache;
+            this.extensions = parent.extensions;
+            this.cache = parent.cache;
+            this.hostModCache = parent.hostModCache;
         } else {
-            this._extensions = Object.create(null);
-            this._cache = Object.create(null);
-            this._hostModCache = Object.create(null);
-            this._extensions[".js"] = this.runJsModule.bind(this);
+            this.extensions = Object.create(null);
+            this.cache = Object.create(null);
+            this.hostModCache = Object.create(null);
+            this.extensions[".js"] = this.runJsModule.bind(this);
         }
+        this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
+        this.ctxModule.filename = id;
     }
 
     /**
@@ -68,19 +84,22 @@ export class VmModule {
         if (resolved) {
             const resolvedPath = resolved.resolvedFileName;
 
-            const cached = this._cache[resolvedPath];
-            if (cached) return cached.exports;
+            const cached = this.cache[resolvedPath];
+            if (cached) return cached.ctxModule.exports;
 
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
                                         this);
 
-            this._cache[resolvedPath] = newMod;
+            this.cache[resolvedPath] = newMod;
+            require.cache[resolvedPath] = newMod.ctxModule;
 
             const ext = path.extname(resolvedPath) || ".js";
+
             // Run the module
-            this._extensions[ext](newMod, resolvedPath);
-            newMod.loaded = true;
-            return newMod.exports;
+            this.extensions[ext](newMod, resolvedPath);
+
+            newMod.ctxModule.loaded = true;
+            return newMod.ctxModule.exports;
         }
 
         // Any relative or absolute path should have been resolved already
@@ -96,26 +115,26 @@ export class VmModule {
 
     @tracef(debugVm)
     registerExt(ext: string, func: (mod: VmModule, fileName: string) => void) {
-        this._extensions[ext] = func;
+        this.extensions[ext] = func;
     }
 
     private loadHostMod(modName: string) {
-        const cached = this._hostModCache[modName];
+        const cached = this.hostModCache[modName];
         if (cached !== undefined) return cached;
 
         const mod = require(modName);
-        this._hostModCache[modName] = mod;
+        this.hostModCache[modName] = mod;
 
         return mod;
     }
 
     private loadSelfMod() {
-        this._hostModCache["@usys/adapt"] = require("..");
+        this.hostModCache["@usys/adapt"] = require("..");
     }
 
     @tracef(debugVm)
     private requireHostMod(modName: string) {
-        return this._hostModCache[modName];
+        return this.hostModCache[modName];
     }
 
     @tracef(debugVm)
@@ -146,16 +165,12 @@ export class VmModule {
         const require = this.require.bind(this);
         const dirname = path.dirname(filename);
         try {
-            return compiled.call(this.exports, this.exports, require, this,
-                                filename, dirname);
+            return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
+                                 require, this.ctxModule, filename, dirname);
         } catch (err) {
-            if (err instanceof RunStack) {
-                err.stack.push(filename);
-                throw err;
-            }
-            const rs = new RunStack(err);
-            rs.stack.push(filename);
-            throw rs;
+            if (err instanceof ProjectRunError) throw err;
+            if (!isError(err)) err = new ThrewNonError(err);
+            throw new ProjectRunError(err, getProjectStack(err), err.stack);
         }
     }
 
@@ -221,8 +236,8 @@ export class VmContext {
         const module = new VmModule(filename, undefined, host, undefined);
         this.mainModule = module;
 
-        vmGlobal.exports = module.exports;
-        vmGlobal.module = module;
+        vmGlobal.exports = module.ctxModule.exports;
+        vmGlobal.module = module.ctxModule;
         vmGlobal.require = module.require.bind(module);
         vmGlobal.global = vmGlobal;
         setAdaptContext(Object.create(null));
@@ -244,15 +259,12 @@ export class VmContext {
             // Execute the program
             val = script.runInContext(this.vmGlobal);
         } catch (err) {
-            if (err instanceof RunStack) {
-                // tslint:disable-next-line:no-console
-                console.log(`Error during run: ${err.error.message}`);
-                for (const mod of err.stack) {
-                    // tslint:disable-next-line:no-console
-                    console.log(`  ${mod}`);
-                }
-                throw new Error(`Exiting on run error`);
+            if (!isError(err)) err = new ThrewNonError(err);
+            if (!(err instanceof ProjectRunError)) {
+                err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
+            // tslint:disable-next-line:no-console
+            console.log(err.message);
             throw err;
         }
         if (debugVm) {

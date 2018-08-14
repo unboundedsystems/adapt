@@ -4500,6 +4500,10 @@ url-to-options@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/url-to-options/-/url-to-options-1.0.1.tgz#1505a03a289a48cbd7a434efbaeec5055f5633a9"
 
+urn-lib@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/urn-lib/-/urn-lib-1.1.2.tgz#3ab07321f217cb7694983d20df1702b594dc0602"
+
 use@^3.1.0:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/use/-/use-3.1.1.tgz#d50c8cac79a19fbc20f2911f56eb973f4e10070f"

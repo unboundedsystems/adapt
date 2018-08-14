@@ -18,7 +18,8 @@ async function parseXML(xmlStr: string): Promise<any> {
             explicitRoot: false,
             explicitChildren: true,
             preserveChildrenOrder: true,
-            charsAsChildren: true
+            charsAsChildren: true,
+            xmlns: true,
         }, (err, result) => {
             if (err != null) rej(err);
             else res(result);
@@ -29,8 +30,9 @@ async function parseXML(xmlStr: string): Promise<any> {
 export type XMLNode = GenericXMLNode | XMLPropsNode | XMLPropNode | XMLTextNode;
 export interface GenericXMLNode {
     "#name": string;
-    "$"?: AnyProps;
+    "$"?: Attrs;
     "$$"?: XMLNode[];
+    "$ns"?: XMLNS;
 }
 
 export interface XMLPropsNode extends GenericXMLNode {
@@ -40,7 +42,6 @@ export interface XMLPropsNode extends GenericXMLNode {
 
 export interface XMLPropNode extends GenericXMLNode {
     "#name": "prop";
-    "$": { name: string };
     "$$": XMLTextNode[];
 }
 
@@ -49,8 +50,31 @@ export interface XMLTextNode extends GenericXMLNode {
     "_": string;
 }
 
+export interface XMLNS {
+    local: string;
+    uri: string;
+}
+
+export interface Attr {
+    local: string;
+    name: string;
+    prefix: string;
+    uri: string;
+    value: any;
+}
+
+export interface Attrs {
+    [key: string]: Attr;
+}
+
 function nameOf(xmlNode: XMLNode): string {
+    if (xmlNode.$ns) return xmlNode.$ns.local;
     return xmlNode["#name"];
+}
+
+function uriOf(xmlNode: XMLNode): string {
+    if (xmlNode.$ns) return xmlNode.$ns.uri;
+    return "";
 }
 
 export function handleShortProp(val: string): string | number {
@@ -123,8 +147,9 @@ function computeProps(xmlNodeIn: XMLNode): AnyProps {
 
     if (xmlNode.$ != null) {
         for (const prop in xmlNode.$) {
+            if (prop === "xmlns" || prop.startsWith("xmlns:")) continue;
             if (!Object.prototype.hasOwnProperty.apply(xmlNode.$, [prop])) continue;
-            ret[prop] = handleShortProp(xmlNode.$[prop]);
+            ret[prop] = handleShortProp(xmlNode.$[prop].value);
         }
     }
 
@@ -140,7 +165,7 @@ function computeProps(xmlNodeIn: XMLNode): AnyProps {
     if (propsNode.$$ != null) {
         for (const prop of propsNode.$$) {
             if (prop.$ != null) {
-                const name = prop.$.name;
+                const name = prop.$.name.value;
                 if (ret[name] != null) throw new Error("duplicate prop: " + name);
                 try {
                     const text = extractSoleText(prop);
@@ -157,6 +182,7 @@ function computeProps(xmlNodeIn: XMLNode): AnyProps {
 
 function buildFromXMLNode(xmlNode: XMLNode): DOMNode {
     const name = nameOf(xmlNode);
+    const uri = uriOf(xmlNode);
     const props = computeProps(xmlNode);
     const children: any[] = [];
     if (xmlNode.$$ != null) {
@@ -179,7 +205,7 @@ function buildFromXMLNode(xmlNode: XMLNode): DOMNode {
         }
     }
 
-    return new DOMNode(name, props, children);
+    return new DOMNode(name, props, uri, children);
 }
 
 export async function domFromXMLObj(xmlObj: XMLNode) {

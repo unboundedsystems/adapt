@@ -2,6 +2,8 @@ import { npm } from "@usys/utils";
 import callsites = require("callsites");
 import * as stringify from "json-stable-stringify";
 import * as path from "path";
+import URN = require("urn-lib");
+import { inspect } from "util";
 import { findPackageInfo } from "../packageinfo";
 
 // As long as utilsTypes is not used as a value, TS will only pull in the
@@ -23,6 +25,7 @@ const debugReanimate = false;
 const debugPackageRegistry = false;
 
 export type MummyJson = string;
+export type MummyUrn = string;
 
 // Exported for testing only
 export class MummyRegistry {
@@ -134,12 +137,12 @@ const mummyProps = ["name", "namespace", "pkgName", "pkgVersion", "relFilePath"]
 
 function isMummy(val: any): val is Mummy {
     if (val == null || typeof val !== "object") {
-        throw new Error(`Invalid JSON represenation of object`);
+        throw new Error(`Invalid represenation of object`);
     }
     for (const prop of mummyProps) {
         const t = typeof val[prop];
         if (t !== "string") {
-            throw new Error(`Invalid property '${prop}' type '${t}' in JSON representation of object`);
+            throw new Error(`Invalid property '${prop}' type '${t}' in representation of object`);
         }
     }
     return true;
@@ -166,7 +169,10 @@ export function registerObject(obj: any, name: string,
     if (obj == null) throw new Error(`Cannot register null or undefined`);
 
     const mod = findModule(modOrCallerNum);
-    if (mod.exports == null) throw new Error(`Internal error: exports unexpectedly null`);
+    if (mod.exports == null) {
+        throw new Error(`Internal error: exports unexpectedly null for ` +
+            `${mod.id}\n${inspect(mod)}`);
+    }
 
     // FIXME(mark): we should wait to run findExportName until
     // module.loaded === true. To do that, we should create a Promise, but
@@ -187,6 +193,11 @@ export function registerObject(obj: any, name: string,
         }
         exp[name] = obj;
     }
+}
+
+// tslint:disable-next-line:ban-types
+export function registerConstructor(ctor: Function) {
+    registerObject(ctor, ctor.name, findConstructorModule());
 }
 
 function findExportName(obj: any, defaultName: string,
@@ -214,6 +225,53 @@ function findModule(modOrCallerNum: NodeModule | number): NodeModule {
     } else {
         mod = modOrCallerNum;
     }
+
+    return mod;
+}
+
+// Exported for testing
+export function findConstructorModule(): NodeModule {
+    const stack = callsites();
+    let candidateFrame: number | undefined;
+
+    // Skip over first entry..that's this function
+    let frame = 1;
+
+    // Find the first frame inside a constructor
+    while (frame < stack.length) {
+        if (stack[frame].isConstructor()) break;
+        frame++;
+    }
+    if (frame === stack.length) throw new Error(`Unable to find constructor on stack`);
+
+    const constructingType = stack[frame].getTypeName();
+    if (!constructingType) throw new Error(`Unable to find type of constructor object`);
+
+    let lastConstructor = frame;
+    while (frame < stack.length) {
+        // Stop when we reach a frame not inside a constructor
+        if (!stack[frame].isConstructor()) break;
+        lastConstructor = frame;
+
+        if (stack[frame].getFunctionName() === constructingType) {
+            if (candidateFrame !== undefined) {
+                throw new Error(`Found two candidate constructor frames`);
+            }
+            candidateFrame = frame;
+        }
+        frame++;
+    }
+    if (candidateFrame === undefined) {
+        throw new Error(
+            `Unable to find constructor with correct name. Outer ` +
+            `constructor is: ${stack[lastConstructor].getFunctionName()}`);
+    }
+
+    const filename = stack[candidateFrame].getFileName();
+    if (!filename) throw new Error(`stack frame has no filename`);
+
+    const mod = require.cache[filename];
+    if (!mod) throw new Error(`Unable to find module for file ${filename}`);
 
     return mod;
 }
@@ -254,6 +312,47 @@ export function mockRegistry_(newRegistry?: MummyRegistry): MummyRegistry {
     if (newRegistry != null) registry = newRegistry;
     return oldRegistry;
 }
+
+/*
+ * URNs
+ */
+
+const urnDomain = "Adapt";
+const encoder = URN.create("urn", {
+    components: [
+        "domain",
+        "pkgName",
+        "pkgVersion",
+        "namespace",
+        "relFilePath",
+        "name",
+    ],
+    separator: ":",
+    allowEmpty: true,
+});
+
+export function findMummyUrn(obj: any): MummyUrn {
+    const mummyJson = registry.findMummy(obj);
+    const mummy: Mummy = JSON.parse(mummyJson);
+    return encoder.format({ domain: urnDomain, ...mummy });
+}
+
+export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
+    const { domain, protocol, ...mummy } = encoder.parse(mummyUrn);
+    if (protocol !== "urn") {
+        throw new Error(`Invalid protocol in URN '${mummyUrn}'`);
+    }
+    if (domain !== urnDomain) {
+        throw new Error(`Invalid domain in URN '${mummyUrn}'`);
+    }
+
+    if (!isMummy(mummy)) throw new Error(`Internal error isMummy returned false`);
+    return registry.awaken(stringify(mummy));
+}
+
+/*
+ * Package registry
+ */
 
 type PackageId = string;
 type PackagePath = string;

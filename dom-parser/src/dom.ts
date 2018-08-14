@@ -19,6 +19,7 @@ export class DOMNode {
     constructor(
         readonly componentType: string,
         props: AnyProps,
+        readonly uri: string,
         children?: any[]
     ) {
         this.props = ld.clone(props);

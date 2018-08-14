@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
-      "dist/src"
+    "dist/src"
   ],
   "scripts": {
     "clean": "rm -rf dist",
@@ -50,6 +50,7 @@
     "typescript": "^2.8.3"
   },
   "dependencies": {
+    "@usys/dom-parser": "0.0.1",
     "@usys/utils": "0.0.1",
     "callsites": "^2.0.0",
     "css-what": "^2.1.0",
@@ -64,6 +65,7 @@
     "stream-buffers": "^3.0.2",
     "ts-custom-error": "^2.2.1",
     "type-name": "^2.0.2",
+    "urn-lib": "^1.1.2",
     "when": "^3.7.8",
     "xmlbuilder": "^10.0.0"
   }
