@@ -95,8 +95,8 @@ function getUrn(elem: AdaptElement) {
     if (!isComponentElement(elem)) {
         throw new Error(
             `Unable to create reanimateable representation of ` +
-            `'${elem.componentType.name}' because it isn't an ` +
-            `Adapt Component`);
+            `'${elem.componentType.name}' because it doesn't extend ` +
+            `Adapt.Component`);
     }
 
     try {

@@ -40,25 +40,25 @@ export interface ModuleCache {
 }
 
 export class VmModule {
-    _extensions: Extensions;
-    _cache: ModuleCache;
+    extensions: Extensions;
+    cache: ModuleCache;
     _compile = this.runJs;
     ctxModule: NodeModule;
 
-    private _hostModCache: any;
+    private hostModCache: any;
 
     constructor(public id: string, private vmContext: vm.Context | undefined,
                 public host: ChainableHost,
                 public parent?: VmModule) {
         if (parent) {
-            this._extensions = parent._extensions;
-            this._cache = parent._cache;
-            this._hostModCache = parent._hostModCache;
+            this.extensions = parent.extensions;
+            this.cache = parent.cache;
+            this.hostModCache = parent.hostModCache;
         } else {
-            this._extensions = Object.create(null);
-            this._cache = Object.create(null);
-            this._hostModCache = Object.create(null);
-            this._extensions[".js"] = this.runJsModule.bind(this);
+            this.extensions = Object.create(null);
+            this.cache = Object.create(null);
+            this.hostModCache = Object.create(null);
+            this.extensions[".js"] = this.runJsModule.bind(this);
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
@@ -84,19 +84,19 @@ export class VmModule {
         if (resolved) {
             const resolvedPath = resolved.resolvedFileName;
 
-            const cached = this._cache[resolvedPath];
+            const cached = this.cache[resolvedPath];
             if (cached) return cached.ctxModule.exports;
 
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
                                         this);
 
-            this._cache[resolvedPath] = newMod;
+            this.cache[resolvedPath] = newMod;
             require.cache[resolvedPath] = newMod.ctxModule;
 
             const ext = path.extname(resolvedPath) || ".js";
 
             // Run the module
-            this._extensions[ext](newMod, resolvedPath);
+            this.extensions[ext](newMod, resolvedPath);
 
             newMod.ctxModule.loaded = true;
             return newMod.ctxModule.exports;
@@ -115,26 +115,26 @@ export class VmModule {
 
     @tracef(debugVm)
     registerExt(ext: string, func: (mod: VmModule, fileName: string) => void) {
-        this._extensions[ext] = func;
+        this.extensions[ext] = func;
     }
 
     private loadHostMod(modName: string) {
-        const cached = this._hostModCache[modName];
+        const cached = this.hostModCache[modName];
         if (cached !== undefined) return cached;
 
         const mod = require(modName);
-        this._hostModCache[modName] = mod;
+        this.hostModCache[modName] = mod;
 
         return mod;
     }
 
     private loadSelfMod() {
-        this._hostModCache["@usys/adapt"] = require("..");
+        this.hostModCache["@usys/adapt"] = require("..");
     }
 
     @tracef(debugVm)
     private requireHostMod(modName: string) {
-        return this._hostModCache[modName];
+        return this.hostModCache[modName];
     }
 
     @tracef(debugVm)
