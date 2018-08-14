@@ -17,35 +17,42 @@ export interface AdaptElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
 }
+export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
+    return val instanceof AdaptElementImpl;
+}
+export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
+    return isElement(val);
+}
+export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly id: string;
+}
+export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
+    return isElementImpl(val) && val.mounted;
 }
 
 export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
     updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
+}
+export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): elem is AdaptPrimitiveElement<P> {
+    return isPrimitive(elem.componentType.prototype);
+}
+
+export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
+    extends AdaptPrimitiveElement<P> {
+    readonly id: string;
     validate(): Message[];
+}
+export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
+    elem is AdaptMountedPrimitiveElement<P> {
+    return isElementImpl(elem) && isPrimitive(elem.componentType.prototype) && elem.mounted;
 }
 
 export interface AdaptComponentElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: ClassComponentTyp<P, AnyState>;
 }
-
-export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
-
-export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
-    return val instanceof AdaptElementImpl;
-}
-
-export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
-    return isElementImpl(val) && val.mounted;
-}
-
-export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
-    return isElement(val);
-}
-
 export function isComponentElement<P extends object = AnyProps>(val: any): val is AdaptComponentElement<P> {
     return isElement(val) && isComponent(val.componentType.prototype);
 }
@@ -94,10 +101,6 @@ export type SFC = (props: AnyProps) => AdaptElementOrNull;
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
     return func instanceof Component;
-}
-
-export function isPrimitiveElement(elem: AdaptElement): elem is AdaptPrimitiveElement<AnyProps> {
-    return isPrimitive(elem.componentType.prototype);
 }
 
 export interface ComponentStatic<P> {

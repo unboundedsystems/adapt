@@ -16,6 +16,7 @@ import {
     createElement,
     FunctionComponentTyp,
     isElementImpl,
+    isMountedPrimitiveElement,
     isPrimitive,
     isPrimitiveElement,
     simplifyChildren,
@@ -360,7 +361,7 @@ function pathBuild(
     }
 
     result.mountedElements.map((elem) => {
-        if (isPrimitiveElement(elem)) {
+        if (isMountedPrimitiveElement(elem)) {
             let msgs: (Message | Error)[];
             try {
                 msgs = elem.validate();
