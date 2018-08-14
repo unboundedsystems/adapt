@@ -1,4 +1,3 @@
-import { flags } from "@oclif/command";
 import { cantDeploy, DeployBase } from "../../base";
 import { UserError } from "../../error";
 import { DeployState, isDeploySuccess, UpdateOptions } from "../../types/adapt_shared";
@@ -19,14 +18,6 @@ an alternate description file, "somefile.tsx":
 
     static flags = {
         ...DeployBase.flags,
-        deployID: flags.string({
-            description: "Identifier for the deployment or 'new' for a new deployment",
-            default: "new",
-        }),
-        rootFile: flags.string({
-            description: "Project description file to deploy (.ts or .tsx)",
-            default: "index.tsx",
-        }),
     };
 
     static args = [
