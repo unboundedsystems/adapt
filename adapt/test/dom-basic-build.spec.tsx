@@ -3,6 +3,8 @@ import Adapt, {
     BuildNotImplemented,
     Component,
     PrimitiveComponent,
+    rule,
+    Style,
     WithChildren,
 } from "../src";
 
@@ -28,6 +30,10 @@ class AlwaysErrorPrimitive extends PrimitiveComponent<{}> {
     validate() {
         return "Always error instantiated!";
     }
+}
+
+function ReturnsNull(_props: {}): AdaptElementOrNull {
+    return null;
 }
 
 describe("DOM Basic Build Tests", () => {
@@ -197,6 +203,27 @@ describe("DOM Basic Build Tests", () => {
         should(dom.props.id).equal(10);
         should(dom.props.children[0].props.children)
             .match(/Component SFCThrows cannot be built/);
+    });
+
+    it("Should build DOM that returns null", () => {
+        const orig = <ReturnsNull />;
+        const res = Adapt.build(orig, null);
+        should(res.messages).have.length(0);
+        should(res.contents).be.Null();
+    });
+
+    it("Should build DOM where style returns null", () => {
+        const orig =
+            <Abstract id={10}>
+                <Empty id={11} />
+            </Abstract>;
+        const style =
+            <Style>
+                {Abstract} {rule(() => <ReturnsNull/>)}
+            </Style>;
+        const res = Adapt.build(orig, style);
+        should(res.messages).have.length(0);
+        should(res.contents).be.Null();
     });
 });
 

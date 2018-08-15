@@ -1,7 +1,7 @@
 import * as ld from "lodash";
 import * as xmlbuilder from "xmlbuilder";
 
-import { AdaptElement, isElement } from ".";
+import { AdaptElement, AdaptElementOrNull, isElement } from ".";
 import { childrenToArray, isComponentElement } from "./jsx";
 import { findMummyUrn } from "./reanimate";
 
@@ -129,9 +129,9 @@ function serializeElement(
     serializeChildren(node, elem, reanimateable);
 }
 
-export function serializeDom(root: AdaptElement, reanimateable = false): string {
+export function serializeDom(root: AdaptElementOrNull, reanimateable = false): string {
     const doc = xmlbuilder.create("Adapt");
-    serializeElement(doc, root, reanimateable);
+    if (root != null) serializeElement(doc, root, reanimateable);
     doc.end({
         headless: true,
         pretty: true

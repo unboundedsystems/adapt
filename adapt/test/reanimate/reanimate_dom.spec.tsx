@@ -47,6 +47,10 @@ describe("Reanimate DOM basic tests", () => {
     it("Should build a reanimated simple DOM", async () => {
         const origDom = <Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>;
         const zombie = await roundTrip(origDom);
+        if (zombie == null) {
+            should(zombie).not.be.Null();
+            return;
+        }
 
         const { messages, contents: built } = build(zombie, null);
         should(messages).have.length(0);

@@ -10,11 +10,11 @@ import * as should from "should";
 
 import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
 
-import { DeployState, isDeploySuccess } from "../../src/ops/common";
-import { createDeployment } from "../../src/ops/createDeployment";
-import { listDeployments } from "../../src/server/deployment";
+import { createDeployment, updateDeployment } from "../../src/ops";
+import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";
+import { destroyDeployment, listDeployments } from "../../src/server/deployment";
 import { LocalServer } from "../../src/server/local_server";
-import { adaptServer, AdaptServerType, mockServerTypes_ } from "../../src/server/server";
+import { adaptServer, AdaptServer, AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
 const simplePackageJson = {
     name: "test_project",
@@ -27,20 +27,32 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import Adapt, { PrimitiveComponent } from "@usys/adapt";
+import Adapt, { Component, PrimitiveComponent } from "@usys/adapt";
 import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {}
 class ActError extends PrimitiveComponent<{}> {}
 class AnalyzeError extends PrimitiveComponent<{}> {}
 
+class BuildNull extends Component<{}> {
+    build() { return null; }
+}
+
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
+Adapt.stack("null", null);
+Adapt.stack("BuildNull", <BuildNull />);
+`;
+
+const defaultDomXmlOutput =
+`<Adapt>
+  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
+</Adapt>
 `;
 
 const simplePluginTs = `
-import { Action, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+import { Action, AdaptElementOrNull, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -55,19 +67,23 @@ class EchoPlugin implements Plugin<{}> {
         this._log = options.log;
         this.log("start");
     }
-    async observe(_oldDom: any, dom: any) {
+    async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
         this.log("observe");
         return {};
     }
-    analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
         this.log("analyze");
-        if (dom.componentType.name === "AnalyzeError") {
+        if (dom != null && dom.componentType.name === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
-        if (dom.componentType.name === "ActError") {
+        if (dom != null && dom.componentType.name === "ActError") {
             return [
+                // First action is purposely NOT returning a promise and doing
+                // a synchronous throw
                 { description: "echo error", act: () => { throw new Error("ActError1"); } },
-                { description: "echo error", act: () => { throw new Error("ActError2"); } }
+                // Second action is correctly implemented as an async function
+                // so will return a rejected promise.
+                { description: "echo error", act: async () => { throw new Error("ActError2"); } }
             ];
         }
         return [
@@ -118,7 +134,15 @@ describe("createDeployment Tests", async function() {
     let origServerTypes: AdaptServerType[];
     let logger: MockLogger;
     let projectInit = false; // first test initialized project dir
-    let firstDeployID: string;
+    let adaptUrl: string;
+    let server_: AdaptServer;
+
+    async function server(): Promise<AdaptServer> {
+        if (!server_) {
+            server_ = await adaptServer(adaptUrl, {init: true});
+        }
+        return server_;
+    }
 
     this.timeout(30000);
     mochaLocalRegistry.all(localRegistryDefaults.config,
@@ -128,6 +152,7 @@ describe("createDeployment Tests", async function() {
     before(() => {
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
+        adaptUrl = `file://${process.cwd()}/db.json`;
     });
     after(() => {
         mockServerTypes_(origServerTypes);
@@ -135,6 +160,52 @@ describe("createDeployment Tests", async function() {
     beforeEach(() => {
         logger = createMockLogger();
     });
+    afterEach(async () => {
+        const s = await server();
+        const list = await listDeployments(s);
+        for (const id of list) {
+            await destroyDeployment(s, id);
+        }
+    });
+
+    async function doCreate(stackName: string): Promise<DeployState> {
+        return createDeployment({
+            adaptUrl,
+            fileName: "index.tsx",
+            initLocalServer: true,
+            initialStateJson: "{}",
+            logger,
+            projectName: "myproject",
+            stackName,
+        });
+    }
+
+    async function createError(stackName: string,
+                               expectedErrs: RegExp[]): Promise<DeployError> {
+        const ds = await doCreate(stackName);
+        if (isDeploySuccess(ds)) {
+            should(isDeploySuccess(ds)).be.False();
+            throw new Error();
+        }
+        checkErrors(ds, expectedErrs);
+
+        const list = await listDeployments(await server());
+        should(list).have.length(0);
+        return ds;
+    }
+
+    async function createSuccess(stackName: string): Promise<DeploySuccess> {
+        const ds = await doCreate(stackName);
+        if (!isDeploySuccess(ds)) {
+            should(isDeploySuccess(ds)).be.True();
+            throw new Error();
+        }
+
+        const list = await listDeployments(await server());
+        should(list).have.length(1);
+        should(list[0]).equal(ds.deployID);
+        return ds;
+    }
 
     it("Should build a single file", async () => {
         await fs.writeFile("index.tsx", simpleIndexTsx);
@@ -144,32 +215,13 @@ describe("createDeployment Tests", async function() {
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
         await npm.install(localRegistryDefaults.npmLocalProxyOpts);
+        projectInit = true;
 
-        const adaptUrl = `file://${process.cwd()}/db.json`;
-        const ds = await createDeployment({
-            adaptUrl,
-            fileName: "index.tsx",
-            initLocalServer: true,
-            initialStateJson: "{}",
-            logger,
-            projectName: "myproject",
-            stackName: "default",
-        });
-        if (!isDeploySuccess(ds)) {
-            should(isDeploySuccess(ds)).be.True();
-            return;
-        }
+        const ds = await createSuccess("default");
 
-        should(ds.summary.error).equal(0);
-        should(ds.domXml).equal(
-`<Adapt>
-  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
-</Adapt>
-`);
-
+        should(ds.domXml).equal(defaultDomXmlOutput);
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::default");
-        firstDeployID = ds.deployID;
 
         const stdout = logger.stdout;
         should(stdout).match(/EchoPlugin: start/);
@@ -179,53 +231,80 @@ describe("createDeployment Tests", async function() {
         should(stdout).match(/action2/);
         should(stdout).match(/EchoPlugin: finish/);
 
-        const server = await adaptServer(adaptUrl, {});
-        const list = await listDeployments(server);
-        should(list).have.length(1);
-        should(list[0]).equal(ds.deployID);
-
-        projectInit = true;
     });
 
-    async function checkPluginError(stackName: string, expected: RegExp[]) {
-        should(projectInit).equal(true, "Previous test did not complete");
-
-        const adaptUrl = `file://${process.cwd()}/db.json`;
-
-        const ds = await createDeployment({
-            adaptUrl,
-            fileName: "index.tsx",
-            initialStateJson: "{}",
-            logger,
-            projectName: "myproject",
-            stackName,
-        });
-        if (isDeploySuccess(ds)) {
-            should(isDeploySuccess(ds)).be.False();
-            return;
-        }
-
-        checkErrors(ds, expected);
-
-        // Only the previous deployment should be there
-        const server = await adaptServer(adaptUrl, {});
-        const list = await listDeployments(server);
-        should(list).have.length(1);
-        should(list[0]).equal(firstDeployID);
-    }
-
     it("Should log error on analyze", async () => {
-        await checkPluginError("AnalyzeError", [
+        should(projectInit).equal(true, "Previous test did not complete");
+        await createError("AnalyzeError", [
             /Error creating deployment: Error: AnalyzeError/
         ]);
     });
 
     it("Should log error on action", async () => {
-        await checkPluginError("ActError", [
+        should(projectInit).equal(true, "Previous test did not complete");
+        await createError("ActError", [
             /Error: ActError1/,
             /Error: ActError2/,
             /Error creating deployment: Error: Errors encountered during plugin action phase/
         ]);
+    });
+
+    it("Should deploy and update a stack with null root", async () => {
+        should(projectInit).equal(true, "Previous test did not complete");
+
+        const ds1 = await createSuccess("null");
+
+        should(ds1.summary.error).equal(0);
+        should(ds1.domXml).equal(`<Adapt/>\n`);
+
+        should(ds1.stateJson).equal("{}");
+
+        const stdout = logger.stdout;
+        should(stdout).match(/EchoPlugin: start/);
+        should(stdout).match(/EchoPlugin: observe/);
+        should(stdout).match(/EchoPlugin: analyze/);
+        should(stdout).match(/action1/);
+        should(stdout).match(/action2/);
+        should(stdout).match(/EchoPlugin: finish/);
+
+        // Now update the deployment
+        const ds2 = await updateDeployment({
+            adaptUrl,
+            deployID: ds1.deployID,
+            fileName: "index.tsx",
+            logger,
+            prevDomXml: ds1.domXml,
+            prevStateJson: "{}",
+            stackName: "default",
+        });
+        if (!isDeploySuccess(ds2)) {
+            should(isDeploySuccess(ds2)).be.True();
+            return;
+        }
+
+        should(ds2.summary.error).equal(0);
+        should(ds2.domXml).equal(defaultDomXmlOutput);
+        should(ds2.stateJson).equal("{}");
+    });
+
+    it("Should deploy a stack that builds to null", async () => {
+        should(projectInit).equal(true, "Previous test did not complete");
+
+        const ds1 = await createSuccess("BuildNull");
+
+        should(ds1.summary.error).equal(0);
+        should(ds1.domXml).equal(`<Adapt/>\n`);
+
+        should(ds1.stateJson).equal("{}");
+
+        const stdout = logger.stdout;
+        should(stdout).match(/EchoPlugin: start/);
+        should(stdout).match(/EchoPlugin: observe/);
+        should(stdout).match(/EchoPlugin: analyze/);
+        should(stdout).match(/action1/);
+        should(stdout).match(/action2/);
+        should(stdout).match(/EchoPlugin: finish/);
+
     });
 });
 

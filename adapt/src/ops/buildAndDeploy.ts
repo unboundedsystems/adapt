@@ -3,6 +3,7 @@ import * as path from "path";
 import {
     AdaptElementOrNull,
     build,
+    Message,
     MessageLogger,
     ProjectBuildError,
     serializeDom,
@@ -10,7 +11,7 @@ import {
 import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
 import { getStacks, } from "../stack";
-import { createStateStore } from "../state";
+import { createStateStore, StateStore } from "../state";
 import {
     exec,
     MemFileHost,
@@ -53,21 +54,28 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     if (!stacks) throw new Error(`No stacks found`);
     const stack = stacks[stackName];
     if (!stack) throw new Error(`Stack '${stackName}' not found`);
-    if (stack.root == null) {
-        throw new Error(`Invalid stack '${stackName}': root is null`);
+
+    let stateStore: StateStore;
+    try {
+        stateStore = createStateStore(options.prevStateJson);
+    } catch (err) {
+        let msg = `Invalid previous state JSON`;
+        if (err.message) msg += `: ${err.message}`;
+        throw new Error(msg);
     }
 
-    const stateStore = createStateStore(options.prevStateJson);
+    let newDom: AdaptElementOrNull = null;
+    let buildMessages: Message[] = [];
 
-    const output = build(stack.root, stack.style, {stateStore});
-    const newDom = output.contents;
-    if (newDom == null) {
-        throw new Error(`build returned a null DOM`);
+    if (stack.root != null) {
+        const output = build(stack.root, stack.style, {stateStore});
+        newDom = output.contents;
+        buildMessages = output.messages;
     }
     const domXml = serializeDom(newDom, true);
 
-    if (output.messages.length !== 0) {
-        logger.append(output.messages);
+    if (buildMessages.length !== 0) {
+        logger.append(buildMessages);
         throw new ProjectBuildError(domXml);
     }
 
