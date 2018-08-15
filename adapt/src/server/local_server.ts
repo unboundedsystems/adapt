@@ -1,5 +1,6 @@
 import * as fs from "fs-extra";
 import JsonDB = require("node-json-db");
+import * as path from "path";
 import { URL } from "url";
 
 import { AdaptServer, ServerOptions, SetOptions } from "./server";
@@ -14,6 +15,8 @@ const defaultOptions = {
 
 const currentVersion = 0;
 
+const openDbs = new Map<string, JsonDB>();
+
 export class LocalServer implements AdaptServer {
     static urlMatch = /^file:/;
     private db: JsonDB;
@@ -21,11 +24,17 @@ export class LocalServer implements AdaptServer {
     private options: LocalServerOptions;
 
     constructor(url: URL, options: Partial<LocalServerOptions>) {
-        this.filename = url.pathname;
+        this.filename = path.resolve(url.pathname);
         this.options = {...defaultOptions, ...options};
     }
 
     async init(): Promise<void> {
+        const alreadyOpen = openDbs.get(this.filename);
+        if (alreadyOpen !== undefined) {
+            this.db = alreadyOpen;
+            return;
+        }
+
         const exists = await fs.pathExists(this.filename);
         if (exists === false && this.options.init === false) {
             throw new Error(`Adapt local server file '${this.filename}' does not exist`);
@@ -49,6 +58,7 @@ export class LocalServer implements AdaptServer {
         } else {
             this.db.push("/adaptLocalServerVersion", currentVersion);
         }
+        openDbs.set(this.filename, this.db);
     }
 
     async set(dataPath: string, val: any, options?: SetOptions): Promise<void> {
