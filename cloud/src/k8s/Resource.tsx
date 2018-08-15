@@ -24,7 +24,7 @@ export interface PodSpec {
 export interface ResourceProps {
     config: object; //Legal kubeconfig object
     kind: Kind;
-    metadata: Metadata;
+    metadata?: Metadata;
     spec: Spec;
     children: AdaptElement | AdaptElement[];
 }

@@ -73,24 +73,33 @@ function kindToAPIPathPart(kind: Kind): string {
     return knownResourceKinds[kind];
 }
 
-async function getResourcesByKind(client: Client, kind: Kind): Promise<ResourceObject[]> {
+async function getResourcesByKind(client: Client, namespaces: string[], kind: Kind): Promise<ResourceObject[]> {
     if (client.api == null) throw new Error("Must initialize client before calling api");
+    const ret: ResourceObject[] = [];
 
-    const resources = await client.api.v1.namespaces("default")[kindToAPIPathPart(kind)].get();
-    if (resources.statusCode === 200) {
-        return resources.body.items.map((resObj: ResourceObject) => {
-            resObj.kind = kind;
-            return resObj;
-        });
+    for (const ns of namespaces) {
+        const resources = await client.api.v1.namespaces(ns)[kindToAPIPathPart(kind)].get();
+        if (resources.statusCode === 200) {
+            ret.push(...resources.body.items.map((resObj: ResourceObject) => {
+                resObj.kind = kind;
+                return resObj;
+            }));
+        } else {
+            throw new Error(`Unable to get ${kind} resources from namespace ${ns}, ` +
+                `status ${resources.statusCode}: ${resources}`);
+        }
     }
-    throw new Error(`Unable to get ${kind} resources, status ${resources.statusCode}: ${resources}`);
+    return ret;
 }
 
-async function getResources(client: Client): Promise<ResourceObject[]> {
+async function getResources(client: Client, namespaces?: string[]): Promise<ResourceObject[]> {
     const ret = [];
+    namespaces = ld.uniq(namespaces);
+    if (namespaces === undefined || namespaces.length === 0) namespaces = ["default"];
+
     for (const kind in Kind) {
         if (!Kind.hasOwnProperty(kind)) continue;
-        ret.push(...await getResourcesByKind(client, kind as Kind)); //why is the "as Kind" needed?
+        ret.push(...await getResourcesByKind(client, namespaces, Kind[kind] as Kind)); //why is the "as Kind" needed?
     }
     return ret;
 }
@@ -242,6 +251,12 @@ function specsEqual(kind: Kind, spec1: Spec, spec2: Spec) {
     }
 }
 
+function getResourceElementNamespace(elem: AdaptElement<ResourceProps>) {
+    const ns = elem.props.metadata && elem.props.metadata.namespace;
+    if (ns === undefined) return "default";
+    return ns;
+}
+
 function getResourceKind(res: ResourceObject) {
     switch (res.kind) {
         case "Pod":
@@ -260,6 +275,7 @@ function computeActionExceptDelete(
     const configJSON = canonicalConfigJSON(res.props.config);
     const manifest = makeManifest(res);
     const apiName = kindToAPIPathPart(res.props.kind);
+    const ns = getResourceElementNamespace(res);
 
     if (resObj === undefined) {
         return {
@@ -267,7 +283,7 @@ function computeActionExceptDelete(
             act: async () => {
                 const client = await getClientForConfigJSON(configJSON, { connCache });
                 if (client.api === undefined) throw new Error("Internal Error");
-                await client.api.v1.namespaces("default")[apiName].post({ body: manifest });
+                await client.api.v1.namespaces(ns)[apiName].post({ body: manifest });
             }
         };
     }
@@ -285,10 +301,14 @@ function computeActionExceptDelete(
             const client = await getClientForConfigJSON(configJSON, { connCache });
             if (client.api === undefined) throw new Error("Internal Error");
 
-            await client.api.v1.namespaces("default")[apiName](resourceElementToName(res)).delete();
-            await client.api.v1.namespaces("default")[apiName].post({ body: manifest });
+            await client.api.v1.namespaces(ns)[apiName](resourceElementToName(res)).delete();
+            await client.api.v1.namespaces(ns)[apiName].post({ body: manifest });
         }
     };
+}
+
+function notUndef(x: string | undefined): x is string {
+    return x !== undefined;
 }
 
 class K8sPluginImpl implements K8sPlugin {
@@ -310,10 +330,15 @@ class K8sPluginImpl implements K8sPlugin {
             client: await getClientForConfigJSON(config, { connCache: this.connCache })
         })));
 
+        const namespaces =
+            ld.filter(
+                allElems.map((e) => e.props.metadata && e.props.metadata.namespace),
+                notUndef);
+
         const existingResourcesP =
             clients.map(async (c) => ({
                 config: c.config,
-                resources: await getResources(c.client)
+                resources: await getResources(c.client, namespaces)
             }));
         const existingResources = await Promise.all(existingResourcesP);
         const ret: Observations = {};
@@ -337,12 +362,13 @@ class K8sPluginImpl implements K8sPlugin {
         for (const { configJSON, reply } of observedResources(obs)) {
             if (resourceShouldExist({ configJSON, reply }, newElems)) continue;
             const apiName = kindToAPIPathPart(reply.kind);
+
             ret.push({
                 description: `Destroying ${reply.kind} ${reply.metadata.name}`,
                 act: async () => {
                     const client = await getClientForConfigJSON(configJSON, { connCache: this.connCache });
                     if (client.api == null) throw new Error("Action uses uninitialized client");
-                    await client.api.v1.namespaces("default")[apiName](reply.metadata.name).delete();
+                    await client.api.v1.namespaces(reply.metadata.namespace)[apiName](reply.metadata.name).delete();
                 }
             });
         }
