@@ -1,6 +1,5 @@
 import * as ld from "lodash";
 import * as path from "path";
-import * as when from "when";
 import { AdaptElementOrNull } from ".";
 import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
@@ -195,27 +194,19 @@ class PluginManagerImpl implements PluginManager {
             this.transitionTo(PluginManagerState.PreAct);
             return actions.map((action) => ({ action }));
         } else {
-            const wrappedActions = actions.map(async (action) => {
+            const wrappedActions: Promise<ActionResult>[] = actions.map(async (action) => {
                 try {
                     await action.act();
-                } catch (e) {
-                    logError(action, e, (m) => log.error(m));
-                    throw e;
+                    return { action };
+                } catch (err) {
+                    errored = true;
+                    logError(action, err, (m) => log.error(m));
+                    return { action, err };
                 }
             });
 
-            const rawResults = await when.settle<void>(wrappedActions);
-            const results = ld.zipWith(actions, rawResults,
-                (act: Action, result: when.Descriptor<void>) => {
-                    if (result.state === "rejected") {
-                        errored = true;
-                        return { action: act, err: result.reason };
-                    } else {
-                        return { action: act };
-                    }
-                });
+            const results = await Promise.all(wrappedActions);
             if (errored) throw new Error(`Errors encountered during plugin action phase`);
-
             this.transitionTo(PluginManagerState.PreFinish);
             return results;
         }

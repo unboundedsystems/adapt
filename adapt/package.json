@@ -38,7 +38,6 @@
     "@types/sinon": "^5.0.1",
     "@types/stream-buffers": "^3.0.2",
     "@types/type-name": "^1.0.27",
-    "@types/when": "^2.4.31",
     "@types/xmlbuilder": "0.0.32",
     "execa": "^0.10.0",
     "fs-extra": "^6.0.1",
@@ -66,7 +65,6 @@
     "ts-custom-error": "^2.2.1",
     "type-name": "^2.0.2",
     "urn-lib": "^1.1.2",
-    "when": "^3.7.8",
     "xmlbuilder": "^10.0.0"
   }
 }
