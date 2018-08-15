@@ -209,8 +209,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 
 export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElementImpl<Props> {
-    componentInstance_?: PrimitiveComponent<AnyProps>;
-
+    component: PrimitiveComponent<Props> | null;
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
         props: Props,
@@ -219,15 +218,21 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
         super(componentType, props, children);
     }
 
-    get componentInstance() {
-        if (this.componentInstance_ == null) {
-            this.componentInstance_ = new this.componentType(this.props);
-        }
-        return this.componentInstance_;
-    }
-
     validate(): Message[] {
-        let ret = this.componentInstance.validate();
+        if (!this.mounted) {
+            throw new Error(
+                `Internal error: validate called on unmounted component at ` +
+                `${this.path}`
+            );
+        }
+        if (this.component == null) {
+            throw new Error(
+                `Internal error: validate called but component instance not ` +
+                `created at ${this.path}`
+            );
+        }
+
+        let ret = this.component.validate();
 
         if (ret === undefined) ret = [];
         else if (typeof ret === "string") ret = [ ret ];

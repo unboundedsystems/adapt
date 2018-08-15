@@ -266,6 +266,7 @@ function mountAndBuildComponent(
 
     if (isPrimitiveElement(elem)) {
         const ret = new ComputeContents();
+        elem.component = new elem.componentType(elem.props);
         ret.contents = elem;
         ret.buildDone = true;
         ret.mountedElements.push(elem);
