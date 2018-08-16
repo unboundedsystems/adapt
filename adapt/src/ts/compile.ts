@@ -28,6 +28,7 @@ const compilerDefaults: ts.CompilerOptions = {
     allowJs: true,
     jsx: ts.JsxEmit.React,
     jsxFactory: "Adapt.createElement",
+    resolveJsonModule: true,
     //traceResolution: true,
 };
 
