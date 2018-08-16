@@ -70,7 +70,6 @@ describe("Project basic tests", function() {
         expect(lock.version).equal("2.0.0");
 
         expect(p.getLockedVersion("xregexp")).equal("4.0.0");
-        expect(p.getLockedVersion("ava")).equal("0.25.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
 

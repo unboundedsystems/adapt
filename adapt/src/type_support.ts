@@ -26,4 +26,4 @@ export type ChildType<T> =
 
 export type Constructor<T extends object> = (new (...args: any[]) => T);
 
-export type Logger = (...args: any[]) => void;
+export type Logger = (arg: any, ...args: any[]) => void;

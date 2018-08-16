@@ -54,7 +54,8 @@ prepush: test lint $(prepush_submakes)
 #
 adapt-build: utils-build dom-parser-build
 cli-build: adapt-build cloud-build utils-build
-cloud-build: adapt-build
+cloud-build: adapt-build utils-build testutils-build
+testutils-build: utils-build
 
 
 #

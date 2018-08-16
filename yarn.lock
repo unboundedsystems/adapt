@@ -347,10 +347,6 @@
   version "1.0.27"
   resolved "https://registry.yarnpkg.com/@types/type-name/-/type-name-1.0.27.tgz#d742ba0984fc16311552fe644bcd218462d5ecd5"
 
-"@types/when@^2.4.31":
-  version "2.4.31"
-  resolved "https://registry.yarnpkg.com/@types/when/-/when-2.4.31.tgz#7a4dbf009957c48fcd7ac469cadb82758ac970bf"
-
 "@types/xml2js@^0.4.3":
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/@types/xml2js/-/xml2js-0.4.3.tgz#2f41bfc74d5a4022511721f872ed395a210ad3b7"
@@ -4599,10 +4595,6 @@ verror@1.10.0:
     assert-plus "^1.0.0"
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
-
-when@^3.7.8:
-  version "3.7.8"
-  resolved "https://registry.yarnpkg.com/when/-/when-3.7.8.tgz#c7130b6a7ea04693e842cdc9e7a1f2aa39a39f82"
 
 which-module@^2.0.0:
   version "2.0.0"

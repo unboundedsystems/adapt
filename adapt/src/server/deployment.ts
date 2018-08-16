@@ -43,11 +43,7 @@ export async function createDeployment(server: AdaptServer, projectName: string,
         deployID = makeName(baseName);
     }
 
-    const pluginConfig = createPluginConfig();
-    return {
-        deployID,
-        pluginConfig,
-    };
+    return new DeploymentImpl(deployID);
 }
 
 export async function loadDeployment(server: AdaptServer, deployID: string):
@@ -59,9 +55,33 @@ export async function loadDeployment(server: AdaptServer, deployID: string):
         throw new Error(`Deployment '${deployID}' does not exist`);
     }
 
-    const pluginConfig = createPluginConfig();
-    return {
-        deployID,
-        pluginConfig,
-    };
+    return new DeploymentImpl(deployID);
+}
+
+export async function destroyDeployment(server: AdaptServer, deployID: string):
+    Promise<void> {
+    try {
+        await server.delete(dpath(deployID));
+    } catch (err) {
+        throw new Error(`Error deleting deployment '${deployID}': ${err}`);
+    }
+}
+
+export async function listDeployments(server: AdaptServer): Promise<string[]> {
+    try {
+        return Object.keys(await server.get(deploymentPath));
+    } catch (err) {
+        throw new Error(`Error listing deployments: ${err}`);
+    }
+}
+
+class DeploymentImpl implements Deployment {
+    private pluginConfig_?: PluginConfig;
+
+    constructor(public deployID: string) {}
+
+    get pluginConfig(): PluginConfig {
+        if (!this.pluginConfig_) this.pluginConfig_ = createPluginConfig();
+        return this.pluginConfig_;
+    }
 }

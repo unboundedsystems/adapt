@@ -15,15 +15,21 @@ export class ValidationError extends CustomError {
  * Types related to AdaptModule
  */
 export interface AdaptModule {
-    CompileError: Constructor<Error>;
+    ProjectCompileError: Constructor<Error>;
+    ProjectRunError: Constructor<ProjectRunError>;
 
-    buildStack(options: BuildOptions): Promise<BuildState>;
+    createDeployment(options: CreateOptions): Promise<DeployState>;
+    updateDeployment(options: UpdateOptions): Promise<DeployState>;
 }
 
 export function verifyAdaptModule(val: any): AdaptModule {
     if (val == null) throw new ValidationError("AdaptModule", "value is null");
 
-    verifyProp("AdaptModule", val, "buildStack", "function");
+    verifyProp("AdaptModule", val, "ProjectCompileError", "function");
+    verifyProp("AdaptModule", val, "ProjectRunError", "function");
+
+    verifyProp("AdaptModule", val, "createDeployment", "function");
+    verifyProp("AdaptModule", val, "updateDeployment", "function");
 
     return val as AdaptModule;
 }
@@ -35,46 +41,119 @@ export type Constructor<T extends object> = (new (...args: any[]) => T);
 export type Logger = (...args: any[]) => void;
 
 /*
- * Types related to adapt.buildStack
+ * Error types
  */
-export interface BuildOptions {
+export interface ProjectRunError extends Error {
+    projectError: Error;
+    projectStack: string;
+    fullStack: string;
+}
+
+/*
+ * Types related to deployment
+ */
+export type DeployState = DeploySuccess | DeployError;
+
+export interface DeploySuccess {
+    type: "success";
+    messages: Message[];
+    summary: MessageSummary;
+
+    domXml: string;
+    stateJson: string;
+    deployID: string;
+}
+
+export interface DeployError {
+    type: "error";
+    messages: Message[];
+    summary: MessageSummary;
+
+    domXml?: string;
+    stateJson?: string;
+}
+
+export function verifyDeployState(val: any): DeployState {
+    if (val == null) throw new ValidationError("DeployState", "value is null");
+    if (val.type === "success") {
+        verifyProps("DeployState", val, {
+            messages: "object",
+            summary: "object",
+            domXml: "string",
+            stateJson: "string",
+            deployID: "string",
+        });
+    } else if (val.type === "error") {
+        verifyProps("DeployState", val, {
+            messages: "object",
+            summary: "object",
+        });
+    }
+    verifyMessages(val.messages);
+
+    return val as DeployState;
+}
+
+export function isDeploySuccess(val: DeployState): val is DeploySuccess {
+    return val.type === "success";
+}
+
+export interface DeployCommonOptions {
     adaptUrl: string;
     fileName: string;
-    initialStateJson: string;
-    projectName: string;
-    deployID: string;
     stackName: string;
 
     dryRun?: boolean;
-    initLocalServer?: boolean;
-    log?: Logger;
+    logger?: MessageLogger;
     projectRoot?: string;
 }
 
+/*
+ * Messages
+ */
 export enum MessageType {
+    info = "info",
     warning = "warning",
     error = "error",
 }
-
 export interface Message {
     type: MessageType;
+    timestamp: number;
+    from: string;
     content: string;
 }
 
-export interface BuildState {
-    domXml: string;
-    stateJson: string;
+export interface MessageSummary {
+    info: number;
+    warning: number;
+    error: number;
+}
+
+export interface MessageLogger {
     messages: Message[];
-    deployId?: string;
+    summary: MessageSummary;
+    info: Logger;
+    warning: Logger;
+    error: Logger;
+    log: (type: MessageType, arg: any, ...args: any[]) => void;
+    append: (this: MessageLogger, toAppend: Message[]) => void;
 }
 
 export function verifyMessage(m: any): Message {
     if (m == null) throw new ValidationError("Message", "value is null");
-    if (m.type !== "warning" && m.type !== "error") {
-        throw new ValidationError("Message", "bad type property");
-    }
-    if (typeof m.content !== "string") {
-        throw new ValidationError("Message", "content is not string");
+    verifyProps("Message", m, {
+        type: "string",
+        content: "string",
+        from: "string",
+        timestamp: "number",
+    });
+    switch (m.type) {
+        case "info":
+        case "warning":
+        case "error":
+            break;
+        default:
+            throw new ValidationError("Message", "bad type property");
     }
     return m as Message;
 }
@@ -89,13 +168,23 @@ export function verifyMessages(val: any): Message[] {
     return val as Message[];
 }
 
-export function verifyBuildState(val: any): BuildState {
-    if (val == null) throw new ValidationError("BuildState", "value is null");
-    if (typeof val.domXml !== "string") throw new ValidationError("BuildState", "domXml is invalid");
-    if (typeof val.stateJson !== "string") throw new ValidationError("BuildState", "stateJson is invalid");
-    verifyMessages(val.messages);
+/*
+ * Types related to adapt.createDeployment
+ */
+export interface CreateOptions extends DeployCommonOptions {
+    projectName: string;
 
-    return val as BuildState;
+    initLocalServer?: boolean;
+    initialStateJson?: string;
+}
+
+/*
+ * Types related to adapt.updateDeployment
+ */
+export interface UpdateOptions extends DeployCommonOptions {
+    deployID: string;
+    prevDomXml: string;
+    prevStateJson: string;
 }
 
 /*
@@ -109,5 +198,15 @@ function verifyProp(parentType: string, parent: any, prop: string,
     }
     if (typeof parent[prop] !== typeofProp) {
         throw new ValidationError(parentType, `property '${prop}' is not a ${typeofProp}`);
+    }
+}
+
+interface PropList {
+    [prop: string]: string; // typeof prop
+}
+
+function verifyProps(parentType: string, parent: any, props: PropList) {
+    for (const prop of Object.keys(props)) {
+        verifyProp(parentType, parent, prop, props[prop]);
     }
 }

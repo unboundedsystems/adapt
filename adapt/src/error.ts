@@ -7,6 +7,18 @@ export class BuildNotImplemented extends CustomError {
     }
 }
 
+export class ProjectBuildError extends CustomError {
+    constructor(public domXml: string) {
+        super(`Error building Adapt project`);
+    }
+}
+
+export class ProjectCompileError extends CustomError {
+    constructor(msg: string) {
+        super(`Error compiling Adapt project\n${msg}`);
+    }
+}
+
 export class ProjectRunError extends CustomError {
     projectError: Error;
     projectStack: string;

@@ -20,7 +20,10 @@
 		},
 		{
 			"path": "utils"
-		}
+		},
+		{
+			"path": "testutils"
+		},
 	],
 	"settings": {
 		"files.eol": "\n",

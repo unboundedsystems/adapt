@@ -1,0 +1,52 @@
+{
+  "name": "@usys/testutils",
+  "version": "0.0.1",
+  "description": "Unbounded Adapt Test Utilities Library",
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
+  "author": "Unbounded Systems",
+  "bugs": {
+    "url": "https://gitlab.com/unboundedsystems/adapt/issues"
+  },
+  "dependencies": {
+    "@usys/utils": "0.0.1",
+    "dockerode": "^2.5.5",
+    "fs-extra": "^6.0.1",
+    "js-yaml": "^3.12.0",
+    "kubernetes-client": "^5.3.1",
+    "lodash": "^4.17.10",
+    "stream-buffers": "^3.0.2",
+    "strip-ansi": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^2.5.5",
+    "@types/fs-extra": "^5.0.3",
+    "@types/js-yaml": "^3.11.2",
+    "@types/lodash": "^4.14.110",
+    "@types/node": "^8.10.20",
+    "mocha": "^5.2.0",
+    "nyc": "^12.0.2",
+    "should": "^13.2.1",
+    "typescript": "^2.9.2"
+  },
+  "peerDependencies": {},
+  "files": [
+    "/dist/src"
+  ],
+  "homepage": "https://gitlab.com/unboundedsystems/adapt",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:watch": "tsc -w -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "coverage": "nyc mocha --opts mocha.opts",
+    "lint": "tslint --project .",
+    "lint-and-fix": "tslint --project . --fix",
+    "pretest": "make build",
+    "test": "mocha --opts mocha.opts"
+  }
+}

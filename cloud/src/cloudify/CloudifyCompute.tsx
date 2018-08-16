@@ -1,12 +1,11 @@
 import {
-    filterProperties,
+    //filterProperties,
     PrimitiveComponent,
-    UpdateStateInfo
 } from "@usys/adapt";
 
 import { ComputeProps } from "../Compute";
 
-import { getBlueprintState } from "./Blueprint";
+//import { getBlueprintState } from "./Blueprint";
 
 export interface AgentConfig {
     install_method?: string;
@@ -34,6 +33,7 @@ export interface CloudifyComputeProps extends ComputeProps {
 }
 
 export class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps> {
+    /* FIXME(mark): Update with new setState API
     updateState(state: any, info: UpdateStateInfo) {
         const bp = getBlueprintState(state);
         bp.nodeTemplate(info.nodeName, {
@@ -41,4 +41,5 @@ export class CloudifyCompute extends PrimitiveComponent<CloudifyComputeProps> {
             properties: filterProperties(this.props, [ "ip", "install_agent"]),
         });
     }
+    */
 }

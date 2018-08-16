@@ -1,18 +1,18 @@
 import {
-    filterProperties,
+    //filterProperties,
     PrimitiveComponent,
-    UpdateStateInfo
 } from "@usys/adapt";
 
 import { ContainerProps } from "../Container";
 
-import { getBlueprintState } from "./Blueprint";
+//import { getBlueprintState } from "./Blueprint";
 
 export type CloudifyContainerProps = ContainerProps;
 
 export class CloudifyContainer
     extends PrimitiveComponent<CloudifyContainerProps> {
 
+    /* FIXME(mark): Update with new setState API
     updateState(state: any, info: UpdateStateInfo) {
         const createParams: any =
             filterProperties(this.props,
@@ -51,4 +51,5 @@ export class CloudifyContainer
             ],
         });
     }
+    */
 }

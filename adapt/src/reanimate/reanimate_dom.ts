@@ -1,6 +1,7 @@
 import { domFromString, DOMNode, isDOMNode } from "@usys/dom-parser";
 import {
     AdaptElement,
+    AdaptElementOrNull,
     AnyProps,
     AnyState,
     childrenToArray,
@@ -9,9 +10,9 @@ import {
 } from "../jsx";
 import { reanimateUrn } from "./reanimate";
 
-export async function reanimateDom(xmlString: string): Promise<AdaptElement> {
+export async function reanimateDom(xmlString: string): Promise<AdaptElementOrNull> {
     const domNodesRoot = await domFromString(xmlString);
-    if (domNodesRoot == null) throw new Error(`Unable to recreate DOM from XML`);
+    if (domNodesRoot === null) return null;
 
     return reanimateNode(domNodesRoot);
 }

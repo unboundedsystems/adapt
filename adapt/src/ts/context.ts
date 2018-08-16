@@ -4,19 +4,26 @@ import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
 
-import { isError, ProjectRunError, ThrewNonError } from "../error";
+import {
+    isError,
+    ProjectCompileError,
+    ProjectRunError,
+    ThrewNonError
+} from "../error";
 import { trace, tracef } from "../utils";
+import { CompileError } from "./compile";
 import { ChainableHost } from "./hosts";
 
 const debugVm = false;
 
 const packageDirs = findPackageDirs(__dirname);
 
-// Remove each line that has a filename that's in our dist/src/ts directory.
+// Remove each line that has a filename that's in our dist/src/ts directory
+// or our src/ts directory (depending on how the module is installed).
 // There are often 2-3 of these compilation-related frames between each
 // stack frame that the user cares about, which makes the backtraces super
 // confusing for them.
-const tsStackExclude = RegExp("^.*\\(" + path.join(packageDirs.dist, "src", "ts") + ".*$", "mg");
+const tsStackExclude = RegExp("\n.*?\\(" + packageDirs.root + "(?:/dist)?/src/ts/.*?$", "mg");
 
 // Script.runInContext is the call that starts the user's project script.
 // Delete that line and all following lines.
@@ -59,6 +66,7 @@ export class VmModule {
             this.cache = Object.create(null);
             this.hostModCache = Object.create(null);
             this.extensions[".js"] = this.runJsModule.bind(this);
+            this.extensions[".json"] = this.runJsonModule.bind(this);
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
@@ -148,6 +156,20 @@ export class VmModule {
     }
 
     @tracef(debugVm)
+    private runJsonModule(mod: VmModule, filename: string) {
+        const contents = this.host.readFile(filename);
+        if (!contents) {
+            throw new Error(`Unable to find file contents for ${filename}`);
+        }
+        try {
+            mod.ctxModule.exports = JSON.parse(contents);
+        } catch (err) {
+            err.message = filename + ": " + err.message;
+            throw err;
+        }
+    }
+
+    @tracef(debugVm)
     private runJsModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);
         if (!contents) {
@@ -168,7 +190,10 @@ export class VmModule {
             return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
                                  require, this.ctxModule, filename, dirname);
         } catch (err) {
-            if (err instanceof ProjectRunError) throw err;
+            if ((err instanceof ProjectRunError) ||
+                (err instanceof CompileError)) {
+                throw err;
+            }
             if (!isError(err)) err = new ThrewNonError(err);
             throw new ProjectRunError(err, getProjectStack(err), err.stack);
         }
@@ -259,12 +284,15 @@ export class VmContext {
             // Execute the program
             val = script.runInContext(this.vmGlobal);
         } catch (err) {
+            // Translate internal error that has all the diags in it
+            // to an external API text-only version.
+            if (err instanceof CompileError) {
+                throw new ProjectCompileError(err.message);
+            }
             if (!isError(err)) err = new ThrewNonError(err);
             if (!(err instanceof ProjectRunError)) {
                 err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
-            // tslint:disable-next-line:no-console
-            console.log(err.message);
             throw err;
         }
         if (debugVm) {

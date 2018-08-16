@@ -81,12 +81,55 @@ describe("Exec basic tests", () => {
             should(err.fullStack).match(/VmContext.run/);
         }
     });
+
 });
 
 describe("Exec module tests", function() {
     this.timeout(10000);
     const copyDir = path.resolve(projectsRoot, "import_module");
-    tmpdir.each("adapt-buildStack", {copy: copyDir});
+    tmpdir.each("adapt-exec", {copy: copyDir});
+
+    it("Should require relative json file", function() {
+        const projDir = tmpdir.getTmpdir(this);
+        const orig = {
+            avalue: 1,
+            another: "foo"
+        };
+        const host = MemFileHost("/", projDir);
+
+        const source = `
+            declare var require: any;
+            const ctxObj = require("./stuff.json");
+            ctxObj;
+        `;
+
+        host.writeFile("stuff.json", JSON.stringify(orig), false);
+        host.writeFile("index.ts", source, false);
+
+        const retObj = exec(path.join(projDir, "index.ts"), {host});
+        should(retObj).eql(orig);
+    });
+
+    it("Should require absolute json file", function() {
+        const projDir = tmpdir.getTmpdir(this);
+        const orig = {
+            avalue: 1,
+            another: "foo"
+        };
+        const host = MemFileHost("/", projDir);
+
+        const source = `
+            declare var require: any;
+            const ctxObj = require("${projDir}/stuff.json");
+            ctxObj;
+        `;
+
+        host.writeFile("stuff.json", JSON.stringify(orig), false);
+        host.writeFile("index.ts", source, false);
+
+        const retObj = exec(path.join(projDir, "index.ts"), {host});
+        should(retObj).eql(orig);
+    });
 
     it("Should import a node module", async function() {
         const projDir = tmpdir.getTmpdir(this);

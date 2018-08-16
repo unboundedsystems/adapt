@@ -1,10 +1,10 @@
 import * as ld from "lodash";
 import * as path from "path";
-import * as when from "when";
 import { AdaptElementOrNull } from ".";
 import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
 import { Logger } from "./type_support";
+import { MessageLogger } from "./utils";
 
 type RegisteredPlugins = Map<string, Plugin>; //string is the name of the plugin
 
@@ -29,7 +29,7 @@ export interface Plugin<Observations extends object = object> {
 }
 
 export interface PluginManagerStartOptions {
-    log: Logger;
+    logger: MessageLogger;
 }
 
 export interface ActionResult {
@@ -38,7 +38,8 @@ export interface ActionResult {
 }
 
 export interface PluginManager {
-    start(dom: AdaptElementOrNull, options: PluginManagerStartOptions): Promise<void>;
+    start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
+          options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<void>;
     analyze(): Action[];
     act(dryRun: boolean): Promise<ActionResult[]>;
@@ -49,10 +50,8 @@ export function createPluginManager(config: PluginConfig): PluginManager {
     return new PluginManagerImpl(config);
 }
 
-function logError(action: Action, err: any, logger: (e: string) => void) {
-    logger(`--Error during ${action.description}`);
-    logger(err);
-    logger(`----------`);
+function logError(action: Action, err: any, logger: Logger) {
+    logger(`--Error during ${action.description}\n${err}\n----------`);
 }
 
 enum PluginManagerState {
@@ -114,8 +113,9 @@ interface AnyObservation {
 class PluginManagerImpl implements PluginManager {
     plugins: Map<string, Plugin>;
     dom?: AdaptElementOrNull;
+    prevDom?: AdaptElementOrNull;
     actions?: Action[];
-    log?: Logger;
+    logger?: MessageLogger;
     state: PluginManagerState;
     observations: AnyObservation;
 
@@ -131,13 +131,14 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
+    async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
-        this.log = options.log;
+        this.prevDom = prevDom;
+        this.logger = options.logger;
         this.observations = {};
 
-        const loptions = { log: options.log }; //FIXME(manishv) have a per-plugin log here
+        const loptions = { log: options.logger.info }; //FIXME(manishv) have a per-plugin log here
         const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.start(loptions));
         await Promise.all(waitingFor);
         this.transitionTo(PluginManagerState.PreObserve);
@@ -146,10 +147,13 @@ class PluginManagerImpl implements PluginManager {
     async observe() {
         this.transitionTo(PluginManagerState.Observing);
         const dom = this.dom;
-        if (dom == undefined) throw new Error("Must call start before observe");
+        const prevDom = this.prevDom;
+        if (dom === undefined || prevDom === undefined) {
+            throw new Error("Must call start before observe");
+        }
         const observationsP = mapMap(
             this.plugins,
-            async (name, plugin) => ({ name, obs: await plugin.observe(null, dom) }));
+            async (name, plugin) => ({ name, obs: await plugin.observe(prevDom, dom) }));
         const observations = await Promise.all(observationsP);
         for (const { name, obs } of observations) {
             this.observations[name] = JSON.stringify(obs);
@@ -161,12 +165,15 @@ class PluginManagerImpl implements PluginManager {
     analyze() {
         this.transitionTo(PluginManagerState.Analyzing);
         const dom = this.dom;
-        if (dom == undefined) throw new Error("Must call start before analyze");
+        const prevDom = this.prevDom;
+        if (dom === undefined || prevDom === undefined) {
+            throw new Error("Must call start before analyze");
+        }
         const actionsTmp = mapMap(
             this.plugins,
             (name, plugin) => {
                 const obs = JSON.parse(this.observations[name]);
-                return plugin.analyze(null, dom, obs);
+                return plugin.analyze(prevDom, dom, obs);
             });
 
         this.actions = ld.flatten(actionsTmp);
@@ -175,36 +182,31 @@ class PluginManagerImpl implements PluginManager {
     }
 
     async act(dryRun: boolean) {
+        let errored = false;
         this.transitionTo(PluginManagerState.Acting);
         const actions = this.actions;
-        const log = this.log;
+        const log = this.logger;
         if (actions == undefined) throw new Error("Must call analyze before act");
         if (log == undefined) throw new Error("Must call start before act");
 
-        actions.map((action) => log(`Doing ${action.description}...`));
+        actions.map((action) => log.info(`Doing ${action.description}...`));
         if (dryRun) {
             this.transitionTo(PluginManagerState.PreAct);
             return actions.map((action) => ({ action }));
         } else {
-            const wrappedActions = actions.map(async (action) => {
+            const wrappedActions: Promise<ActionResult>[] = actions.map(async (action) => {
                 try {
                     await action.act();
-                } catch (e) {
-                    logError(action, e, (m) => log(m));
-                    throw e;
+                    return { action };
+                } catch (err) {
+                    errored = true;
+                    logError(action, err, (m) => log.error(m));
+                    return { action, err };
                 }
             });
 
-            const rawResults = await when.settle<void>(wrappedActions);
-            const results = ld.zipWith(actions, rawResults,
-                (act: Action, result: when.Descriptor<void>) => {
-                    if (result.state === "rejected") {
-                        return { action: act, err: result.reason };
-                    } else {
-                        return { action: act };
-                    }
-                });
-
+            const results = await Promise.all(wrappedActions);
+            if (errored) throw new Error(`Errors encountered during plugin action phase`);
             this.transitionTo(PluginManagerState.PreFinish);
             return results;
         }
@@ -215,8 +217,9 @@ class PluginManagerImpl implements PluginManager {
         const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.finish());
         await Promise.all(waitingFor);
         this.dom = undefined;
+        this.prevDom = undefined;
         this.actions = undefined;
-        this.log = undefined;
+        this.logger = undefined;
         this.observations = {};
         this.transitionTo(PluginManagerState.Initial);
     }

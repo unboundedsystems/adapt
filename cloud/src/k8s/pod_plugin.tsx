@@ -6,6 +6,7 @@ import Adapt, {
     BuiltinProps,
     findElementsInDom,
     isMountedElement,
+    registerPlugin,
     Style
 } from "@usys/adapt";
 import jsonStableStringify = require("json-stable-stringify");
@@ -38,6 +39,11 @@ export interface PodPlugin extends Adapt.Plugin<PodObservations> { }
 export function createPodPlugin() {
     return new PodPluginImpl();
 }
+
+registerPlugin({
+    create: createPodPlugin,
+    module
+});
 
 function isPodElement(e: AdaptElement): e is AdaptElement<PodProps & Adapt.BuiltinProps> {
     return e.componentType === Pod;

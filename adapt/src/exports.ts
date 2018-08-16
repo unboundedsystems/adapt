@@ -26,7 +26,6 @@ export {
 export {
     build,
     BuildOutput,
-    Message,
     DomPath
 } from "./dom";
 
@@ -44,16 +43,17 @@ export {
 } from "./dom_serialize";
 
 export * from "./dom_build_data_recorder";
-export * from "./error";
+export {
+    BuildNotImplemented,
+    ProjectBuildError,
+    ProjectCompileError,
+    ProjectRunError,
+} from "./error";
 
 export {
     Context,
     createContext,
 } from "./context";
-
-export {
-    UpdateStateInfo,
-} from "./keys";
 
 export {
     stack,
@@ -71,13 +71,7 @@ export {
     createStateStore
 } from "./state";
 
-export {
-    buildStack,
-} from "./ops";
-
-export {
-    CompileError,
-} from "./ts";
+export * from "./ops";
 
 export {
     Action,

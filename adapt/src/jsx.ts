@@ -4,10 +4,10 @@ import * as ld from "lodash";
 
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
-import { KeyTracker, UpdateStateInfo } from "./keys";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
+import { Message, MessageType } from "./utils";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
@@ -16,34 +16,41 @@ export interface AdaptElement<P extends object = AnyProps> {
     readonly props: P;
     readonly componentType: ComponentType<P>;
 }
+export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
+    return val instanceof AdaptElementImpl;
+}
+export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
+    return isElement(val);
+}
+export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly id: string;
 }
+export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
+    return isElementImpl(val) && val.mounted;
+}
 
 export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
-    updateState(state: any, keys: KeyTracker, info: UpdateStateInfo): void;
+}
+export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): elem is AdaptPrimitiveElement<P> {
+    return isPrimitive(elem.componentType.prototype);
+}
+
+export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
+    extends AdaptPrimitiveElement<P> {
+    readonly id: string;
+    validate(): Message[];
+}
+export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
+    elem is AdaptMountedPrimitiveElement<P> {
+    return isElementImpl(elem) && isPrimitive(elem.componentType.prototype) && elem.mounted;
 }
 
 export interface AdaptComponentElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: ClassComponentTyp<P, AnyState>;
 }
-
-export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
-
-export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
-    return val instanceof AdaptElementImpl;
-}
-
-export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
-    return isElementImpl(val) && val.mounted;
-}
-
-export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
-    return isElement(val);
-}
-
 export function isComponentElement<P extends object = AnyProps>(val: any): val is AdaptComponentElement<P> {
     return isElement(val) && isComponent(val.componentType.prototype);
 }
@@ -78,7 +85,7 @@ export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
 export abstract class PrimitiveComponent<Props extends object>
     extends Component<Props> {
 
-    updateState(_state: any, _info: UpdateStateInfo) { return; }
+    validate(): string | string[] | undefined { return; }
 }
 
 export function isPrimitive<P extends object>(component: Component<P>):
@@ -91,10 +98,6 @@ export type SFC = (props: AnyProps) => AdaptElementOrNull;
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
     return func instanceof Component;
-}
-
-export function isPrimitiveElement(elem: AdaptElement): elem is AdaptPrimitiveElement<AnyProps> {
-    return isPrimitive(elem.componentType.prototype);
 }
 
 export interface ComponentStatic<P> {
@@ -155,6 +158,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     stateNamespace: StateNamespace = [];
     mounted = false;
     component: GenericComponent | null;
+    path?: string;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -178,7 +182,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace) {
+    mount(parentNamespace: StateNamespace, path: string) {
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -188,6 +192,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         } else {
             throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
         }
+        this.path = path;
         this.mounted = true;
     }
 
@@ -204,8 +209,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 
 export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElementImpl<Props> {
-    componentInstance?: PrimitiveComponent<AnyProps>;
-
+    component: PrimitiveComponent<Props> | null;
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
         props: Props,
@@ -214,29 +218,37 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
         super(componentType, props, children);
     }
 
-    updateState(state: AnyState, keys: KeyTracker, info: UpdateStateInfo) {
-        if (this.componentInstance == null) {
-            this.componentInstance = new this.componentType(this.props);
+    validate(): Message[] {
+        if (!this.mounted) {
+            throw new Error(
+                `Internal error: validate called on unmounted component at ` +
+                `${this.path}`
+            );
+        }
+        if (this.component == null) {
+            throw new Error(
+                `Internal error: validate called but component instance not ` +
+                `created at ${this.path}`
+            );
         }
 
-        keys.addKey(this.componentInstance);
-        this.componentInstance.updateState(state, info);
-        if (this.props.children == null ||
-            !Array.isArray(this.props.children)) {
-            return;
+        let ret = this.component.validate();
+
+        if (ret === undefined) ret = [];
+        else if (typeof ret === "string") ret = [ ret ];
+        else if (!Array.isArray(ret)) {
+            throw new Error(`Incorrect type '${typeof ret}' returned from ` +
+                `component validate at ${this.path}`);
         }
 
-        keys.pathPush();
-        try {
-            for (const child of this.props.children) {
-                if (child == null) continue;
-                if (isPrimitiveElement(child)) {
-                    child.updateState(state, keys, info);
-                }
-            }
-        } finally {
-            keys.pathPop();
-        }
+        return ret.map((m) => ({
+            type: MessageType.warning,
+            timestamp: Date.now(),
+            from: "DOM validate",
+            content:
+                `Component validation error. [${this.path}] cannot be ` +
+                `built with current props: ${m}`,
+        }));
     }
 }
 
