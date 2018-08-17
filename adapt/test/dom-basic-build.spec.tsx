@@ -1,7 +1,9 @@
 import Adapt, {
     AdaptElementOrNull,
+    AnyProps,
     BuildNotImplemented,
     Component,
+    DeferredComponent,
     PrimitiveComponent,
     rule,
     Style,
@@ -31,6 +33,13 @@ class Abstract extends Component<AbstractProps> {
 class AlwaysErrorPrimitive extends PrimitiveComponent<{}> {
     validate() {
         return "Always error instantiated!";
+    }
+}
+
+class Flex extends PrimitiveComponent<AnyProps> { }
+class DeferredFlex extends DeferredComponent<AnyProps> {
+    build() {
+        return <Flex>{this.props.children}</Flex>;
     }
 }
 
@@ -143,6 +152,41 @@ describe("DOM Basic Build Tests", () => {
         }
         checkChildComponents(dom, Empty, Empty);
         const ref = deepFilterElemsToPublic([<Empty key="1" id={1} />, <Empty key="2" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+    });
+
+    it("Should build deferred component with no children", () => {
+        const orig = <Adapt.Group>
+            <DeferredFlex key="1" />
+        </Adapt.Group>;
+
+        const { contents: dom } = Adapt.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Flex);
+        const ref = deepFilterElemsToPublic(<Flex key="1-Flex" />);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+    });
+
+    it("Should build deferred component with no children", () => {
+        const orig = <Adapt.Group>
+            <DeferredFlex key="1">
+                <MakeEmpty key="a" id={1} />
+            </DeferredFlex>
+        </Adapt.Group>;
+
+        const { contents: dom } = Adapt.build(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Flex);
+        const ref = deepFilterElemsToPublic(
+            <Flex key="1-Flex">
+                <Empty key="a-Empty" id={1} />
+            </Flex>);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
@@ -290,12 +334,12 @@ describe("DOM Shallow Build Tests", () => {
             </MakeGroup>;
 
         for (let i = 0; i < 5; i++) {
-            const newDom = Adapt.build(dom, null, { depth: i });
+            const newDom = Adapt.build(dom, null, {depth: i });
             if (newDom == null) {
                 break;
-            }
-            // tslint:disable-next-line:no-console
-            console.log(Adapt.serializeDom(newDom));
         }
-    }); */
+        // tslint:disable-next-line:no-console
+        console.log(Adapt.serializeDom(newDom));
+    }
+}); */
 });

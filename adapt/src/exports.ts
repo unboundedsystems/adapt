@@ -4,6 +4,7 @@ export {
     cloneElement,
     createElement,
     Component,
+    DeferredComponent,
     PrimitiveComponent,
     AdaptElement,
     AdaptMountedElement,
