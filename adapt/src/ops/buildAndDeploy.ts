@@ -9,6 +9,7 @@ import {
     serializeDom,
 } from "..";
 import { createPluginManager } from "../plugin_support";
+import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
 import { getStacks, } from "../stack";
 import { createStateStore, StateStore } from "../state";
@@ -22,16 +23,22 @@ export interface BuildOptions {
     deployment: Deployment;
     dryRun: boolean;
     fileName: string;
-    prevDom: AdaptElementOrNull;
-    prevStateJson: string;
     logger: MessageLogger;
     stackName: string;
 
+    prevStateJson?: string;
     projectRoot?: string;
 }
 
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
-    const { deployment, logger, prevDom, stackName } = options;
+    const { deployment, logger, stackName } = options;
+
+    const prev = await deployment.lastEntry();
+    const prevDom = prev ? await reanimateDom(prev.domXml) : null;
+    const prevStateJson =
+        options.prevStateJson ||
+        (prev ? prev.stateJson : "");
+    const history = await deployment.historyWriter();
 
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
@@ -57,7 +64,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
 
     let stateStore: StateStore;
     try {
-        stateStore = createStateStore(options.prevStateJson);
+        stateStore = createStateStore(prevStateJson);
     } catch (err) {
         let msg = `Invalid previous state JSON`;
         if (err.message) msg += `: ${err.message}`;
@@ -85,6 +92,20 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     await mgr.start(prevDom, newDom, { logger });
     await mgr.observe();
     mgr.analyze();
+
+    /*
+     * NOTE: There should be no deployment side effects prior to here, but
+     * once act is called, that is no longer true.
+     */
+
+    await history.appendEntry({
+        domXml,
+        stateJson,
+        stackName,
+        projectRoot,
+        fileName,
+    });
+
     await mgr.act(options.dryRun);
     await mgr.finish();
 

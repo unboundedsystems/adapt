@@ -16,7 +16,7 @@ export default class CreateCommand extends DeployBase {
     static flags = {
         ...DeployBase.flags,
         init: flags.boolean({
-            description: "Initialize a new state history directory if it doesn't exist",
+            description: "Initialize a new local deployment server if it doesn't exist",
         }),
     };
 
@@ -43,9 +43,6 @@ export default class CreateCommand extends DeployBase {
                     if (ctx.project == null) {
                         throw new Error(`Internal error: project cannot be null`);
                     }
-                    if (ctx.history == null) {
-                        throw new Error(`Internal error: history cannot be null`);
-                    }
 
                     let deployState: DeployState;
                     try {
@@ -71,8 +68,6 @@ export default class CreateCommand extends DeployBase {
                     if (!isDeploySuccess(deployState)) {
                         return this.deployFailure(deployState);
                     }
-
-                    await ctx.history.appendState(deployState);
 
                     const id = deployState.deployID;
 

@@ -1,4 +1,3 @@
-import { reanimateDom } from "../reanimate";
 import { adaptServer } from "../server";
 import { loadDeployment } from "../server/deployment";
 import { buildAndDeploy } from "./buildAndDeploy";
@@ -10,8 +9,7 @@ import {
 
 export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
-    prevDomXml: string;
-    prevStateJson: string;
+    prevStateJson?: string;
 }
 
 const defaultOptions = {
@@ -23,16 +21,14 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
         ...defaultOptions,
         ...options
     };
-    const { adaptUrl, deployID, prevDomXml, ...buildOpts } = finalOptions;
+    const { adaptUrl, deployID, ...buildOpts } = finalOptions;
 
     try {
-        const prevDom = await reanimateDom(prevDomXml);
         const server = await adaptServer(adaptUrl, {});
         const deployment = await loadDeployment(server, deployID);
 
         return buildAndDeploy({
             deployment,
-            prevDom,
             ...buildOpts,
         });
 
