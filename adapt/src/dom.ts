@@ -143,6 +143,9 @@ function computeContentsFromElement<P extends object>(
     }
 
     try {
+        if (!ld.isFunction(component.build)) {
+            throw new BuildNotImplemented(`build is not a function, build = ${util.inspect(component.build)}`);
+        }
         ret.contents = component.build();
         if (component.cleanup) {
             ret.cleanups.push(component.cleanup.bind(component));
