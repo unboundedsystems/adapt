@@ -189,4 +189,15 @@ describe("DOM Parse Tests", () => {
         );
         should(dom).deepEqual(foo);
     });
+
+    it("Should error on empty XML", async () => {
+        const xmlStr = "\n";
+        return should(back.domFromString(xmlStr)).be.rejectedWith(/Invalid empty XML/);
+    });
+
+    it("Should throw error on bad XML", async () => {
+        const xmlStr = "Adapt></Adapt>";
+        return should(back.domFromString(xmlStr)).be.rejectedWith(/Non-whitespace before first tag/);
+    });
+
 });

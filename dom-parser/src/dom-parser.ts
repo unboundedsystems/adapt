@@ -236,7 +236,7 @@ export async function domFromXMLObj(xmlObj: XMLNode) {
 
 export async function domFromString(xmlStr: string) {
     const xmlObj: XMLNode | null = await parseXML(xmlStr);
-    if (xmlObj == null) throw new Error(`Invalid XML`);
+    if (xmlObj == null) throw new Error(`Invalid empty XML`);
     return domFromXMLObj(xmlObj);
 }
 

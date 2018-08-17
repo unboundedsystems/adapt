@@ -125,4 +125,29 @@ describe("DOM CSS find tests", () => {
         const elems = Adapt.findElementsInDom(<Adapt.Style>{MakeMakeEmpty} {Adapt.rule()}</Adapt.Style>, null);
         should(elems).empty();
     });
+
+    it("Should not error in DOM with non-element children", () => {
+        class Foo extends Adapt.PrimitiveComponent<{children: any}> { }
+        const orig =
+            <Foo>
+                {"string child"}
+                <Empty id={11} />
+                {() => 1}
+            </Foo>;
+        const res = Adapt.build(orig, null);
+        const dom = res.contents;
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        dom.componentType.should.equal(Foo);
+        should(dom.props.children[0]).have.type("string");
+
+        const rules = <Adapt.Style>{Empty} {Adapt.rule()}</Adapt.Style>;
+
+        const els = Adapt.findElementsInDom(rules, dom);
+        should(els).have.length(1);
+        should(els[0].componentType).equal(Empty);
+    });
+
 });

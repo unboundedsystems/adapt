@@ -57,10 +57,6 @@ function matchTag(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: bo
 
     const { elem } = last(path);
     if (elem == null) throw new Error("Internal error, null element");
-    if (elem.componentType == null) {
-        throw new Error("Internal error: null componentType. Dom may not " +
-                        "have built successfully");
-    }
 
     //FIXME(manishv) Need proper scoped naming here
     return { newPath: path, matched: elem.componentType.name === frag.name };
@@ -288,7 +284,9 @@ function findInDomImpl(styles: StyleList, path: DomPath):
 
     const children = jsx.childrenToArray(elem.props.children);
     for (const child of children) {
-        matches.push(...findInDomImpl(styles, [...path, child]));
+        if (jsx.isElement(child)) {
+            matches.push(...findInDomImpl(styles, [...path, child]));
+        }
     }
 
     return matches;
