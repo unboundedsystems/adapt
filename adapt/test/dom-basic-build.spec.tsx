@@ -24,7 +24,9 @@ import {
 interface AbstractProps extends WithChildren {
     id: number;
 }
-class Abstract extends Component<AbstractProps> { }
+class Abstract extends Component<AbstractProps> {
+    build(): never { throw new BuildNotImplemented(); }
+}
 
 class AlwaysErrorPrimitive extends PrimitiveComponent<{}> {
     validate() {
@@ -219,7 +221,7 @@ describe("DOM Basic Build Tests", () => {
             </Abstract>;
         const style =
             <Style>
-                {Abstract} {rule(() => <ReturnsNull/>)}
+                {Abstract} {rule(() => <ReturnsNull />)}
             </Style>;
         const res = Adapt.build(orig, style);
         should(res.messages).have.length(0);

@@ -13,6 +13,7 @@ export {
     BuiltinProps,
     isElement,
     isMountedElement,
+    isDeferredElement,
     isPrimitiveElement,
     WithChildren,
     PropsType
