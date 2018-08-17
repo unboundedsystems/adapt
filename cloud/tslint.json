@@ -1,45 +1,5 @@
 {
-    "extends": "tslint:latest",
+    "extends": "../tslint.json",
     "rules": {
-        "array-type": [
-            true,
-            "array"
-        ],
-        "align": [
-            true,
-            "statements",
-            "members"
-        ],
-        "comment-format": false,
-        "curly": [
-            true,
-            "ignore-same-line"
-        ],
-        "interface-name": false,
-        "max-classes-per-file": false,
-        "member-access": false,
-        "no-empty-interface": false,
-        "no-implicit-dependencies": [
-            true,
-            "dev"
-        ],
-        "no-namespace": false,
-        "no-unused-expression": false,
-        "space-before-function-paren": false,
-        "object-literal-sort-keys": [
-            false,
-            "match-declaration-order"
-        ],
-        "trailing-comma": false,
-        "triple-equals": [
-            true,
-            "allow-null-check",
-            "allow-undefined-check"
-        ],
-        "variable-name": [
-            true,
-            "check-format",
-            "allow-leading-underscore"
-        ]
     }
 }

@@ -146,7 +146,7 @@ async function act(actions: Adapt.Action[]) {
     }
 }
 
-describe("k8s Pod Plugin Tests", function () {
+describe("k8s Pod Plugin Tests", function() {
     this.timeout(4 * 60 * 1000);
 
     let plugin: PodPlugin;
