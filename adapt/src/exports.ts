@@ -20,7 +20,8 @@ export {
 
 export {
     Group,
-    DomError
+    DomError,
+    isDomErrorElement
 } from "./builtin_components";
 
 export {
