@@ -260,9 +260,9 @@ export class Compiler {
         const chain = this.primaryChain;
 
         // tslint:disable-next-line:only-arrow-functions
-        mainModule.registerExt(ext, function(mod: any, filename: string) {
+        mainModule.registerExt(ext, function (mod: any, filename: string) {
             const oldcompile = mod._compile;
-            mod._compile = function(code: string, fname: string) {
+            mod._compile = function (code: string, fname: string) {
                 return oldcompile.call(this, compiler._compile(code, fname),
                                        fname);
             };

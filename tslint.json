@@ -10,6 +10,7 @@
             "statements",
             "members"
         ],
+        "await-promise": true,
         "comment-format": false,
         "curly": [
             true,
@@ -19,6 +20,7 @@
         "max-classes-per-file": false,
         "member-access": false,
         "no-empty-interface": false,
+        "no-floating-promises": true,
         "no-implicit-dependencies": [
             true,
             "dev"
@@ -28,6 +30,12 @@
         "object-literal-sort-keys": [
             false,
             "match-declaration-order"
+        ],
+        "space-before-function-paren": [
+            true,
+            {
+                "anonymous": "always"
+            }
         ],
         "trailing-comma": false,
         "triple-equals": [

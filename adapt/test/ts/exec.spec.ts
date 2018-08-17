@@ -14,7 +14,7 @@ import {
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 describe("Exec basic tests", () => {
-    it("Should execute a string", function() {
+    it("Should execute a string", function () {
         this.timeout(5000);
 
         const source = `
@@ -33,7 +33,7 @@ describe("Exec basic tests", () => {
         should(ret).equal("5");
     });
 
-    it("Should import a builtin module", function() {
+    it("Should import a builtin module", function () {
         this.timeout(5000);
 
         const source = `
@@ -44,7 +44,7 @@ describe("Exec basic tests", () => {
         should(ret).equal("{ test: 5 }");
     });
 
-    it("Should modify context state", function() {
+    it("Should modify context state", function () {
         this.timeout(5000);
 
         const source = `
@@ -55,7 +55,7 @@ describe("Exec basic tests", () => {
         should(context.foo).eql({bar: 1});
     });
 
-    it("Should throw ProjectRunError upon error", function() {
+    it("Should throw ProjectRunError upon error", function () {
         this.timeout(5000);
 
         const source =
@@ -84,12 +84,12 @@ describe("Exec basic tests", () => {
 
 });
 
-describe("Exec module tests", function() {
+describe("Exec module tests", function () {
     this.timeout(10000);
     const copyDir = path.resolve(projectsRoot, "import_module");
     tmpdir.each("adapt-exec", {copy: copyDir});
 
-    it("Should require relative json file", function() {
+    it("Should require relative json file", function () {
         const projDir = tmpdir.getTmpdir(this);
         const orig = {
             avalue: 1,
@@ -110,7 +110,7 @@ describe("Exec module tests", function() {
         should(retObj).eql(orig);
     });
 
-    it("Should require absolute json file", function() {
+    it("Should require absolute json file", function () {
         const projDir = tmpdir.getTmpdir(this);
         const orig = {
             avalue: 1,
@@ -131,7 +131,7 @@ describe("Exec module tests", function() {
         should(retObj).eql(orig);
     });
 
-    it("Should import a node module", async function() {
+    it("Should import a node module", async function () {
         const projDir = tmpdir.getTmpdir(this);
         await npm.install();
         const index = path.resolve(projDir, "index.ts");

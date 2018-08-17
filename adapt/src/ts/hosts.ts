@@ -166,7 +166,7 @@ export abstract class ChainableHost implements ts.CompilerHost {
 
     private canonicalizeFunc(funcName: FunctionPropertyNames<this>, argNo: number) {
         const origFunc = this[funcName];
-        (this as any)[funcName] = function(this: ChainableHost, ...args: any[]) {
+        (this as any)[funcName] = function (this: ChainableHost, ...args: any[]) {
             args[argNo] = resolve(this.getCurrentDirectory(), args[argNo]);
             return (origFunc as any).apply(this, args);
         };
