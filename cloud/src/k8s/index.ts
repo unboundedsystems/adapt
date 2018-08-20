@@ -1,8 +1,9 @@
 export * from "./Container";
 export * from "./Pod";
+export * from "./Resource";
 
 export {
-    PodPlugin,
-    createPodPlugin,
-    podElementToName
-} from "./pod_plugin";
+    K8sPlugin,
+    createK8sPlugin,
+    resourceElementToName
+} from "./k8s_plugin";

@@ -1,6 +1,14 @@
-import { AdaptElement, childrenToArray, isElement, PrimitiveComponent } from "@usys/adapt";
+import Adapt, {
+    AdaptElement,
+    BuildNotImplemented,
+    BuiltinProps,
+    childrenToArray,
+    DeferredComponent,
+    isElement
+} from "@usys/adapt";
 import * as ld from "lodash";
-import { K8sContainer, K8sContainerProps } from "./Container";
+import { isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
+import { Kind, Resource } from "./Resource";
 
 export interface PodProps {
     config: any; //Legal configuration loaded from kubeconfig
@@ -26,17 +34,50 @@ function dups<T>(data: T[]): T[] {
     return ld.uniq(ld.flatten(filtered));
 }
 
-export class Pod extends PrimitiveComponent<PodProps> {
-    validate() {
+function makePodManifest(props: PodProps & BuiltinProps) {
+    const containers = ld.compact(
+        childrenToArray(props.children)
+            .map((c) => isContainerElement(c) ? c : null));
+
+    return {
+        apiVersion: "v1",
+        kind: "Pod",
+        metadata: {},
+        spec: {
+            containers: containers.map((c) => ({
+                name: c.props.name,
+                image: c.props.image,
+                command: c.props.command //FIXME(manishv)  What if we just have args and no command?
+            })),
+            terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
+        }
+    };
+}
+
+export class Pod extends DeferredComponent<PodProps & BuiltinProps> {
+    checkProps(): void {
         const children = childrenToArray(this.props.children);
 
-        if (ld.isEmpty(children)) return "Pods must have at least one container";
-        if (!isContainerArray(children)) return `Pod children must be of type ${K8sContainer.name}`;
+        if (ld.isEmpty(children)) throw new BuildNotImplemented("Pods must have at least one container");
+        if (!isContainerArray(children)) {
+            throw new BuildNotImplemented(`Pod children must be of type ${K8sContainer.name}`);
+        }
 
         const containerNames = children.map((child) => child.props.name);
         const dupNames = dups(containerNames);
         if (!ld.isEmpty(dupNames)) {
-            return `Duplicate names within a pod: ${dupNames.join(", ")}`;
+            throw new BuildNotImplemented(`Duplicate names within a pod: ${dupNames.join(", ")}`);
         }
+    }
+
+    build() {
+        this.checkProps();
+        const manifest = makePodManifest(this.props);
+        return (<Resource
+            key={this.props.key}
+            config={this.props.config}
+            kind={Kind.pod}
+            metadata={manifest.metadata}
+            spec={manifest.spec} />);
     }
 }
