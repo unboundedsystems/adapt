@@ -51,6 +51,9 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container): Prom
     const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
+    if (!ld.isArray(kubeconfig.clusters)) {
+        throw new Error(`Invalid kubeconfig\n ${configYAML}\n\n${util.inspect(kubeconfig)}`);
+    }
     for (const cluster of kubeconfig.clusters) {
         const server = (cluster.cluster.server as string);
         cluster.cluster.server = server.replace("localhost", "kubernetes");
