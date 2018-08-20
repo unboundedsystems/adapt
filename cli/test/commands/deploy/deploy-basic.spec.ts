@@ -1,16 +1,13 @@
 import { filePathToUrl, localRegistryDefaults, mochaTmpdir } from "@usys/utils";
 import * as fs from "fs-extra";
+import { last } from "lodash";
 import * as path from "path";
 import { clitest, expect } from "../../common/fancy";
 
-import { defaultStateHistoryDir } from "../../../src/base";
-import {
-    domFilename,
-    infoFilename,
-    stateFilename
-} from "../../../src/proj/statehistory";
-
 const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
+const domFilename = "adapt_dom.xml";
+const stateFilename = "adapt_state.json";
+const infoFilename = "adapt_deploy.json";
 
 const basicPackageJson = {
     name: "test",
@@ -107,7 +104,7 @@ const testCommon =
     .delayedenv(() => {
         return {
             ADAPT_NPM_REGISTRY: localRegistryUrl,
-            ADAPT_SERVER_URL: filePathToUrl("db.json"),
+            ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
         };
     });
 
@@ -134,28 +131,47 @@ const basicIndexTsx = `
     Adapt.stack("dev", app);
 `;
 
-async function checkBasicIndexTsxState(historyDir: string): Promise<void> {
+// Expects only 1 active deployment
+async function findDeploymentDir(): Promise<string> {
+    const deploymentList = await fs.readdir("deployments");
+    expect(deploymentList).to.be.length(1);
+    return path.resolve("deployments", deploymentList[0]);
+}
+
+async function findHistoryDir(): Promise<string> {
+    const deploymentDir = await findDeploymentDir();
+    const historyDirs = await fs.readdir(deploymentDir);
+    expect(historyDirs.length).to.be.greaterThan(0);
+    return path.join(deploymentDir, last(historyDirs)!);
+}
+
+async function checkBasicIndexTsxState(
+    fileName: string,
+    projectRoot: string,
+    stackName: string
+): Promise<void> {
+
+    const historyDir = await findHistoryDir();
     const fileList = await fs.readdir(historyDir);
-    expect(fileList).to.be.an("array").that.includes(infoFilename);
-    expect(fileList.length).equals(2);
-    // Remove infoFilename from fileList
-    fileList.splice(fileList.indexOf(infoFilename), 1);
-
-    const dir = path.join(historyDir, fileList[0]);
-
-    const domXml = await fs.readFile(path.join(dir, domFilename));
+    expect(fileList).eqls([
+        infoFilename,
+        domFilename,
+        stateFilename,
+    ]);
+    const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
 `<Adapt>
   <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root"/>
 </Adapt>
 `);
-    const state = await fs.readJson(path.join(dir, stateFilename));
+    const state = await fs.readJson(path.join(historyDir, stateFilename));
     expect(state).eqls({});
 
     const info = await fs.readJson(path.join(historyDir, infoFilename));
     expect(info).eqls({
-        version: 1,
-        stateDirs: [ fileList[0] ],
+        fileName,
+        projectRoot,
+        stackName,
     });
 }
 
@@ -191,13 +207,17 @@ describe("Deploy create basic tests", function () {
 
     .it("Should build basic default filename", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
         checkPluginStdout(ctx.stdout);
 
-        await checkBasicIndexTsxState(defaultStateHistoryDir);
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev"
+        );
+
     });
 
     testBaseTty
@@ -208,13 +228,16 @@ describe("Deploy create basic tests", function () {
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Opening state history");
         expect(ctx.stdout).contains("✔ Validating project");
         expect(ctx.stdout).contains("✔ Creating new project deployment");
 
         checkPluginStdout(ctx.stdout);
 
-        await checkBasicIndexTsxState(defaultStateHistoryDir);
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev"
+        );
     });
 
     basicTestChain
@@ -222,13 +245,13 @@ describe("Deploy create basic tests", function () {
 
     .it("Should not modify anything with --dryRun", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
         checkPluginStdout(ctx.stdout, true);
 
-        await checkBasicIndexTsxState(defaultStateHistoryDir);
+        const deploymentList = await fs.readdir("deployments");
+        expect(deploymentList).length(0);
     });
 });
 
@@ -264,23 +287,21 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
 `;
 }
 
-async function checkStateUpdateState(historyDir: string, count: number): Promise<void> {
-    const fileList = await fs.readdir(historyDir);
-    expect(fileList).to.be.an("array").that.includes(infoFilename);
-    expect(fileList.length).equals(1 + count);
-    // Remove infoFilename from fileList
-    fileList.splice(fileList.indexOf(infoFilename), 1);
+async function checkStateUpdateState(count: number): Promise<void> {
+    const deploymentDir = await findDeploymentDir();
+    const historyList = await fs.readdir(deploymentDir);
+    expect(historyList.length).equals(count);
 
-    fileList.sort();
+    historyList.sort();
     for (let i = 0; i < count; i++) {
-        const dirName = fileList[i];
+        const dirName = historyList[i];
 
         const matches = dirName.match(/^(\d{5})-/);
         expect(matches).to.be.an("array").with.lengthOf(2);
         if (matches == null) return;
         expect(parseInt(matches[1], 10)).to.equal(i);
 
-        const dir = path.join(historyDir, dirName);
+        const dir = path.join(deploymentDir, dirName);
 
         const domXml = await fs.readFile(path.join(dir, domFilename));
         expect(domXml.toString()).equals(
@@ -297,10 +318,6 @@ async function checkStateUpdateState(historyDir: string, count: number): Promise
             '["StateUpdater"]': { count: i + 1 }
         });
     }
-
-    const info = await fs.readJson(path.join(historyDir, infoFilename));
-    expect(info.version).equals(1);
-    expect(info.stateDirs).to.have.members(fileList);
 }
 
 const stateIncrementTestChain =
@@ -328,7 +345,6 @@ describe("Deploy update basic tests", () => {
 
     .it("Should create initial state", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment created successfully. DeployID is:`);
@@ -339,7 +355,7 @@ describe("Deploy update basic tests", () => {
 
         checkPluginStdout(ctx.stdout);
 
-        await checkStateUpdateState(defaultStateHistoryDir, 1);
+        await checkStateUpdateState(1);
     });
 
     stateIncrementTestChain
@@ -347,14 +363,13 @@ describe("Deploy update basic tests", () => {
 
     .it("Should create second state", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
 
         checkPluginStdout(ctx.stdout);
 
-        await checkStateUpdateState(defaultStateHistoryDir, 2);
+        await checkStateUpdateState(2);
     });
 
     stateIncrementTestChain
@@ -362,14 +377,13 @@ describe("Deploy update basic tests", () => {
 
     .it("Should create third state", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
 
         checkPluginStdout(ctx.stdout);
 
-        await checkStateUpdateState(defaultStateHistoryDir, 3);
+        await checkStateUpdateState(3);
     });
 });
 
@@ -399,11 +413,9 @@ describe("Build negative tests", () => {
     })
     .it("Should fail if package.json doesn't exist", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Opening state history [completed]");
         expect(ctx.stdout).contains("This project cannot be deployed");
         expect(ctx.stdout).contains(
             `The directory '${process.cwd()}' does not contain a package.json file`);
-        expect(await fs.pathExists(defaultStateHistoryDir)).to.be.false;
     });
 
     basicTestChain

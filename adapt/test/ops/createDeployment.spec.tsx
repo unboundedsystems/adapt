@@ -152,7 +152,7 @@ describe("createDeployment Tests", async function () {
     before(() => {
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
-        adaptUrl = `file://${process.cwd()}/db.json`;
+        adaptUrl = `file://${process.cwd()}/`;
     });
     after(() => {
         mockServerTypes_(origServerTypes);
@@ -162,10 +162,13 @@ describe("createDeployment Tests", async function () {
     });
     afterEach(async () => {
         const s = await server();
-        const list = await listDeployments(s);
+        let list = await listDeployments(s);
         for (const id of list) {
             await destroyDeployment(s, id);
         }
+
+        list = await listDeployments(await server());
+        should(list).have.length(0);
     });
 
     async function doCreate(stackName: string): Promise<DeployState> {
@@ -273,7 +276,6 @@ describe("createDeployment Tests", async function () {
             deployID: ds1.deployID,
             fileName: "index.tsx",
             logger,
-            prevDomXml: ds1.domXml,
             prevStateJson: "{}",
             stackName: "default",
         });

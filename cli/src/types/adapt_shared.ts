@@ -183,8 +183,7 @@ export interface CreateOptions extends DeployCommonOptions {
  */
 export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
-    prevDomXml: string;
-    prevStateJson: string;
+    prevStateJson?: string;
 }
 
 /*

@@ -46,14 +46,8 @@ an alternate description file, "somefile.tsx":
            {
                 title: "Updating project deployment",
                 task: async () => {
-                    if (ctx.history == null) {
-                        throw new Error(`Internal error: history cannot be null`);
-                    }
                     if (ctx.project == null) {
                         throw new Error(`Internal error: project cannot be null`);
-                    }
-                    if (ctx.lastState == null) {
-                        throw new Error(`Internal error: lastState cannot be null`);
                     }
 
                     let deployState: DeployState;
@@ -63,8 +57,6 @@ an alternate description file, "somefile.tsx":
                             deployID,
                             dryRun: ctx.dryRun,
                             fileName: ctx.projectFile,
-                            prevDomXml: ctx.lastState.domXml,
-                            prevStateJson: ctx.lastState.stateJson,
                             stackName: ctx.stackName,
                         };
                         deployState = await ctx.project.update(updateOptions);
@@ -80,8 +72,6 @@ an alternate description file, "somefile.tsx":
                     if (!isDeploySuccess(deployState)) {
                         return this.deployFailure(deployState);
                     }
-
-                    await ctx.history.appendState(deployState);
 
                     const id = deployState.deployID;
 

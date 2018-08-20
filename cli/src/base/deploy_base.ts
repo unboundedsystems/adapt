@@ -7,19 +7,14 @@ import { DeployError } from "../types/adapt_shared";
 import { getErrors, getWarnings } from "../utils";
 
 import {
-    createStateHistoryDir,
     getGen,
-    HistoryEntry,
     load,
     Project,
     ProjectOptions,
     Session,
-    StateHistory,
 } from "../proj";
 
 export const cantDeploy = "This project cannot be deployed.\n";
-
-export const defaultStateHistoryDir = "./state_history";
 
 export interface DeployCtx {
     // Provided by init
@@ -29,8 +24,6 @@ export interface DeployCtx {
     stackName: string;
 
     // Created by tasks
-    history?: StateHistory;
-    lastState?: HistoryEntry;
     project?: Project;
 }
 
@@ -50,10 +43,6 @@ export abstract class DeployBase extends Command {
         serverUrl: flags.string({
             description: "URL of Adapt server. Defaults to using local system.",
             env: "ADAPT_SERVER_URL",
-        }),
-        stateHistory: flags.string({
-            description: "Directory where state sequences will be stored",
-            default: defaultStateHistoryDir,
         }),
     };
 
@@ -101,7 +90,7 @@ export abstract class DeployBase extends Command {
         if (flags.serverUrl) {
             adaptUrl = flags.serverUrl;
         } else {
-            const dbFile = path.join(this.config.dataDir, "local_deploy.json");
+            const dbFile = path.join(this.config.dataDir, "local_deploy");
             adaptUrl = filePathToUrl(dbFile);
         }
         const ctx: DeployCtx = {
@@ -113,17 +102,6 @@ export abstract class DeployBase extends Command {
         this.ctx = ctx;
 
         this.tasks.add([
-            {
-                title: "Opening state history",
-                task: async () => {
-                    if (flags.stateHistory == null) {
-                        throw new Error(`Internal error: stateHistory cannot be null`);
-                    }
-                    ctx.history = await createStateHistoryDir(flags.stateHistory, flags.init);
-
-                    ctx.lastState = await ctx.history.lastState();
-                },
-            },
             {
                 title: "Validating project",
                 task: async () => {
@@ -147,18 +125,6 @@ export abstract class DeployBase extends Command {
                 },
             },
         ]);
-    }
-
-    async catch(err: any): Promise<any> {
-        const history = this.ctx && this.ctx.history;
-        if (history) {
-            try {
-                await history.revert();
-            } catch (e2) {
-                this.warn(e2);
-            }
-        }
-        return super.catch(err);
     }
 
     deployFailure(deployErr: DeployError) {

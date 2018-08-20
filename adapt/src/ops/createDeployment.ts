@@ -44,7 +44,6 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
                                                finalOptions.stackName);
         ds = await buildAndDeploy({
             deployment,
-            prevDom: null,
             prevStateJson: initialStateJson,
             ...buildOpts
         });
