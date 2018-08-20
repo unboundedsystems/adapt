@@ -69,6 +69,7 @@ class BuildResults {
         this.buildErr = this.buildErr || other.buildErr;
         other.messages = [];
         other.cleanups = [];
+        other.builtElements = [];
         other.mountedElements = [];
         return this;
     }
@@ -370,6 +371,7 @@ function pathBuild(
     let result: BuildResults;
     try {
         result = realBuild(path, null, styles, options);
+        result.cleanup();
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
