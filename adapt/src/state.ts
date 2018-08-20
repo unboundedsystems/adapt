@@ -2,7 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { AdaptElement, AnyProps, AnyState, Component, isElementImpl } from "./jsx";
+import { AdaptElement, AnyProps, AnyState, Component, isElementImpl, isMountedElement } from "./jsx";
 import { StateNamespace } from "./state";
 
 export interface StateStore {
@@ -129,7 +129,7 @@ export function stateNamespaceForPath(path: AdaptElement[]): StateNamespace {
     const elem = ld.last(path);
     if (!elem) return [];
     if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
-    if (elem.mounted) {
+    if (isMountedElement(elem)) {
         return elem.stateNamespace;
     } else {
         throw new Error("Cannot compute state namespace for path with unmounted elements" + util.inspect(path));

@@ -6,7 +6,7 @@ import Adapt, {
     PrimitiveComponent,
     serializeDom
 } from "../../src";
-import { AdaptPrimitiveElementImpl } from "../../src/jsx";
+import { AdaptPrimitiveElementImpl, isMountedElement } from "../../src/jsx";
 import { findMummy, reanimate } from "../../src/reanimate";
 import { reanimateDom } from "../../src/reanimate/reanimate_dom";
 
@@ -62,7 +62,7 @@ describe("Reanimate DOM basic tests", () => {
             should(built instanceof AdaptPrimitiveElementImpl).be.True();
             return;
         }
-        should(built.mounted).be.True();
+        should(isMountedElement(built)).be.True();
         should(built.props.key).equal("Group");
     });
 

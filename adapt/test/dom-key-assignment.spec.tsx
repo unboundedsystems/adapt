@@ -4,7 +4,7 @@ import Adapt, { Group } from "../src";
 import { childrenToArray, isElement } from "../src/jsx";
 import { Empty, MakeEmpty, MakeMakeEmpty } from "./testlib";
 
-class Dummy extends Adapt.Component { }
+class Dummy extends Adapt.PrimitiveComponent { }
 
 function checkChildKeys(element: Adapt.AdaptElement, refKeys: string[]) {
     if (element.props.children == null) {

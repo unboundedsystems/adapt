@@ -46,7 +46,7 @@ describe("Build Data Recorder", () => {
         ]);
     });
 
-    it("should record step, step, elementBuild", () => {
+    it("should record step, step, elementBuilt", () => {
         const dom = <MakeEmpty id={1} />;
         const { contents: newElem } = AdaptBuild(dom, null, { recorder });
         const record1Out = (record[1] as BuildOpStep).newElem;

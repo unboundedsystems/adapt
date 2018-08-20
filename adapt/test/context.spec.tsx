@@ -98,10 +98,10 @@ describe("Context basic tests", () => {
         const expected = deepFilterElemsToPublic(
             // @ts-ignore
             <TestContext.Provider key="Provider" value={2}>
-                <DomError key="DomError">Component Provider cannot be built with current
+                <DomError>Component Provider cannot be built with current
                     props: A context Provider may only have a single child</DomError>
-                <Empty key="Empty" id={1} />
-                <Empty key="Empty1" id={2} />
+                <Empty id={1} />
+                <Empty id={2} />
             </TestContext.Provider>);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
@@ -123,10 +123,10 @@ describe("Context basic tests", () => {
         const expected = deepFilterElemsToPublic(
             // @ts-ignore
             <TestContext.Consumer key="Consumer" value={2}>
-                <DomError key="DomError">Component Consumer cannot be built with current
+                <DomError>Component Consumer cannot be built with current
                     props: Children of a context Consumer must be a single function</DomError>
-                <Empty key="Empty" id={1} />
-                <Empty key="Empty1" id={2} />
+                <Empty id={1} />
+                <Empty id={2} />
             </TestContext.Consumer>);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });

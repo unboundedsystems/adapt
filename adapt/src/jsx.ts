@@ -31,8 +31,20 @@ export function isMountedElement<P extends object = AnyProps>(val: any): val is 
     return isElementImpl(val) && val.mounted;
 }
 
-export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptElement<P> {
+export interface AdaptDeferredElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly componentType: PrimitiveClassComponentTyp<P>;
+}
+
+export function isDeferredElement<P extends object = AnyProps>(val: AdaptElement<P>): val is AdaptDeferredElement<P> {
+    return isDeferred(val.componentType.prototype);
+}
+
+export function isDeferredElementImpl<P extends object = AnyProps>(val: AdaptElement<P>):
+    val is AdaptDeferredElementImpl<P> {
+    return val instanceof AdaptDeferredElementImpl;
+}
+
+export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptDeferredElement<P> {
 }
 export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): elem is AdaptPrimitiveElement<P> {
     return isPrimitive(elem.componentType.prototype);
@@ -45,7 +57,7 @@ export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
     elem is AdaptMountedPrimitiveElement<P> {
-    return isElementImpl(elem) && isPrimitive(elem.componentType.prototype) && elem.mounted;
+    return isPrimitiveElement(elem) && isMountedElement(elem);
 }
 
 export interface AdaptComponentElement<P extends object = AnyProps> extends AdaptElement<P> {
@@ -73,18 +85,25 @@ export abstract class Component<Props extends object = {}, State extends object 
         this.stateUpdates.push(upd);
     }
 
-    build(): AdaptElementOrNull {
-        throw new BuildNotImplemented();
-    }
+    abstract build(): AdaptElementOrNull;
 }
 
 export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
     Comp extends tySup.Constructor<Component<infer CProps, any>> ? CProps :
     never;
 
-export abstract class PrimitiveComponent<Props extends object>
-    extends Component<Props> {
+export abstract class DeferredComponent<Props extends object = {}, State extends object = {}>
+    extends Component<Props, State> { }
 
+export function isDeferred<P extends object, S extends object>(component: Component<P, S>):
+    component is DeferredComponent<P, S> {
+    return component instanceof DeferredComponent;
+}
+
+export abstract class PrimitiveComponent<Props extends object = {}>
+    extends DeferredComponent<Props> {
+
+    build(): AdaptElementOrNull { throw new BuildNotImplemented(); }
     validate(): string | string[] | undefined { return; }
 }
 
@@ -109,6 +128,9 @@ export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P): Component<P, S>;
 }
+export interface DeferredClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
+    new(props: P): DeferredComponent<P, S>;
+}
 export interface PrimitiveClassComponentTyp<P extends object> extends ComponentStatic<P> {
     new(props: P): PrimitiveComponent<P>;
 }
@@ -116,6 +138,7 @@ export interface PrimitiveClassComponentTyp<P extends object> extends ComponentS
 export type ComponentType<P extends object> =
     FunctionComponentTyp<P> |
     ClassComponentTyp<P, AnyState> |
+    DeferredClassComponentTyp<P, AnyState> |
     PrimitiveClassComponentTyp<P>;
 
 export interface AnyProps {
@@ -208,7 +231,29 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     get id() { return JSON.stringify(this.stateNamespace); }
 }
 
-export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElementImpl<Props> {
+enum DeferredState {
+    initial = "initial",
+    deferred = "deferred",
+    built = "built"
+}
+
+export class AdaptDeferredElementImpl<Props extends object> extends AdaptElementImpl<Props> {
+    state = DeferredState.initial;
+
+    deferred() {
+        this.state = DeferredState.deferred;
+    }
+
+    built() {
+        this.state = DeferredState.built;
+    }
+
+    shouldBuild() {
+        return this.state === DeferredState.deferred; //Build if we've deferred once
+    }
+}
+
+export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferredElementImpl<Props> {
     component: PrimitiveComponent<Props> | null;
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
@@ -235,7 +280,7 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptElemen
         let ret = this.component.validate();
 
         if (ret === undefined) ret = [];
-        else if (typeof ret === "string") ret = [ ret ];
+        else if (typeof ret === "string") ret = [ret];
         else if (!Array.isArray(ret)) {
             throw new Error(`Incorrect type '${typeof ret}' returned from ` +
                 `component validate at ${this.path}`);
@@ -283,6 +328,12 @@ export function createElement<Props extends object>(
             ctor as PrimitiveClassComponentTyp<Props>,
             fixedProps,
             children);
+    } else if (isDeferred(ctor.prototype)) {
+        return new AdaptDeferredElementImpl(
+            ctor as DeferredClassComponentTyp<Props, AnyState>,
+            fixedProps,
+            children
+        );
     } else {
         return new AdaptElementImpl(ctor, fixedProps, children);
     }
@@ -300,6 +351,8 @@ export function cloneElement(
 
     if (isPrimitiveElement(element)) {
         return new AdaptPrimitiveElementImpl(element.componentType, newProps, children);
+    } else if (isDeferredElement(element)) {
+        return new AdaptDeferredElementImpl(element.componentType, newProps, children);
     } else {
         return new AdaptElementImpl(element.componentType, newProps, children);
     }

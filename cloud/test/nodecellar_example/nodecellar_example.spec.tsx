@@ -33,12 +33,10 @@ describe("NodeCellar", () => {
         checkDom(result.contents, "nodecellar_nostyle.xml");
 
         // Make sure there are 4 warning messages in the build
-        result.messages.length.should.equal(4);
+        result.messages.length.should.equal(1);
         for (const m of result.messages) {
             switch (true) {
-                case /Component Container cannot be built/.test(m.content):
                 case /Component Compute cannot be built/.test(m.content):
-                case /Component DockerHost cannot be built/.test(m.content):
                     continue;
                 default:
                     throw new Error(`build message not expected: ${m.content}`);

@@ -4,6 +4,7 @@ export {
     cloneElement,
     createElement,
     Component,
+    DeferredComponent,
     PrimitiveComponent,
     AdaptElement,
     AdaptMountedElement,
@@ -13,6 +14,7 @@ export {
     BuiltinProps,
     isElement,
     isMountedElement,
+    isDeferredElement,
     isPrimitiveElement,
     WithChildren,
     PropsType
@@ -20,7 +22,8 @@ export {
 
 export {
     Group,
-    DomError
+    DomError,
+    isDomErrorElement
 } from "./builtin_components";
 
 export {

@@ -6,7 +6,6 @@ import * as css from "./css";
 
 import {
     AdaptElement,
-    AdaptElementImpl,
     AdaptElementOrNull,
     AnyProps,
     AnyState,
@@ -15,9 +14,11 @@ import {
     cloneElement,
     createElement,
     FunctionComponentTyp,
+    isDeferredElementImpl,
+    isElement,
     isElementImpl,
+    isMountedElement,
     isMountedPrimitiveElement,
-    isPrimitive,
     isPrimitiveElement,
     simplifyChildren,
     WithChildren,
@@ -27,7 +28,7 @@ import {
     createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
-import { DomError } from "./builtin_components";
+import { DomError, isDomErrorElement } from "./builtin_components";
 import {
     BuildListener,
     BuildOp,
@@ -39,21 +40,37 @@ import { Message, MessageType } from "./utils";
 export type DomPath = AdaptElement[];
 
 type CleanupFunc = () => void;
-class ComputeContents {
-    buildDone = false;
-    buildErr = false;
+class BuildResults {
     contents: AdaptElementOrNull = null;
     messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
     mountedElements: AdaptElement[] = [];
+    builtElements: AdaptElement[] = [];
 
-    combine(other: ComputeContents) {
+    constructor(
+        contents?: AdaptElementOrNull,
+        other?: BuildResults,
+        public buildErr: boolean = false) {
+
+        if (contents !== undefined) {
+            this.contents = contents;
+        }
+
+        if (other !== undefined) {
+            this.combine(other);
+        }
+    }
+
+    combine(other: BuildResults): BuildResults {
         this.messages.push(...other.messages);
         this.cleanups.push(...other.cleanups);
         this.mountedElements.push(...other.mountedElements);
+        this.builtElements.push(...other.builtElements);
+        this.buildErr = this.buildErr || other.buildErr;
         other.messages = [];
         other.cleanups = [];
         other.mountedElements = [];
+        return this;
     }
     cleanup() {
         let clean: CleanupFunc | undefined;
@@ -70,7 +87,7 @@ function isClassConstructorError(err: any) {
 }
 
 function recordDomError(
-    cc: ComputeContents,
+    cc: BuildResults,
     element: AdaptElement,
     err: Error | Message,
 ): { domError: AdaptElement<{}>, message: string } {
@@ -102,8 +119,8 @@ function recordDomError(
 
 function computeContentsFromElement<P extends object>(
     element: AdaptElement<P & WithChildren>,
-    state: StateStore): ComputeContents {
-    const ret = new ComputeContents();
+    state: StateStore): BuildResults {
+    const ret = new BuildResults();
 
     try {
         ret.contents =
@@ -125,9 +142,10 @@ function computeContentsFromElement<P extends object>(
         }
     }
 
-    if (isPrimitive(component)) return buildDone();
-
     try {
+        if (!ld.isFunction(component.build)) {
+            throw new BuildNotImplemented(`build is not a function, build = ${util.inspect(component.build)}`);
+        }
         ret.contents = component.build();
         if (component.cleanup) {
             ret.cleanups.push(component.cleanup.bind(component));
@@ -140,7 +158,6 @@ function computeContentsFromElement<P extends object>(
     }
 
     function buildDone(err?: Error) {
-        ret.buildDone = true;
         ret.contents = element;
         if (err) recordDomError(ret, element, err);
         return ret;
@@ -162,12 +179,11 @@ function findOverride(styles: css.StyleList, path: DomPath) {
 
 function computeContents(
     path: DomPath,
-    options: BuildOptionsReq): ComputeContents {
+    options: BuildOptionsReq): BuildResults {
 
     const element = ld.last(path);
     if (element == null) {
-        const ret = new ComputeContents();
-        ret.buildDone = true;
+        const ret = new BuildResults();
         return ret;
     }
 
@@ -230,11 +246,17 @@ function mountElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): AdaptElement {
+    options: BuildOptionsReq): BuildResults {
 
     let elem = ld.last(path);
-    if (elem == null) {
-        throw new Error(`Cannot mount null element: ${path}`);
+    if (elem === undefined) {
+        throw new Error("Internal Error: Attempt to mount empty path");
+    }
+
+    if (elem === null) return new BuildResults(elem, undefined, false);
+
+    if (isMountedElement(elem)) {
+        throw new Error("Attempt to remount element: " + util.inspect(elem));
     }
 
     const newKey = computeMountKey(elem, parentStateNamespace);
@@ -244,7 +266,9 @@ function mountElement(
         throw new Error("Elements must derive from ElementImpl");
     }
     elem.mount(parentStateNamespace, domPathToString(path));
-    return elem;
+    const out = new BuildResults(elem, undefined, false);
+    out.mountedElements.push(elem);
+    return out;
 }
 
 function subLastPathElem(path: DomPath, elem: AdaptElement): DomPath {
@@ -253,30 +277,32 @@ function subLastPathElem(path: DomPath, elem: AdaptElement): DomPath {
     return ret;
 }
 
-function mountAndBuildComponent(
+function buildElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): ComputeContents {
+    options: BuildOptionsReq): BuildResults {
 
-    const elem = mountElement(path, parentStateNamespace, styles, options);
-    if ((elem != null) && !isElementImpl(elem)) {
+    const elem = ld.last(path);
+    if (elem === undefined) {
+        throw new Error("Internal Error: buildElement called with empty path");
+    }
+
+    if (elem === null) return new BuildResults(null, undefined);
+
+    if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
 
     if (isPrimitiveElement(elem)) {
-        const ret = new ComputeContents();
+        if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
         elem.component = new elem.componentType(elem.props);
-        ret.contents = elem;
-        ret.buildDone = true;
-        ret.mountedElements.push(elem);
-        return ret;
+        const res = new BuildResults(elem, undefined);
+        res.builtElements.push(elem);
+        return res;
     }
 
-    const revisedPath = subLastPathElem(path, elem);
-
-    const out = computeContents(revisedPath, options);
-    out.mountedElements.push(elem);
+    const out = computeContents(path, options);
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
@@ -285,17 +311,9 @@ function mountAndBuildComponent(
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
-
-        //Ignore buildDone here because a style rule could cause the build to continue
-        if (out.buildErr) {
-            return out;
-        }
-
-        const newPath = subLastPathElem(path, out.contents);
-        const ret = mountAndBuildComponent(newPath, elem.stateNamespace, styles, options);
-        out.combine(ret);
-        out.contents = ret.contents;
     }
+
+    out.builtElements.push(elem);
     return out;
 }
 
@@ -349,7 +367,7 @@ function pathBuild(
     const options = { ...defaultBuildOptions, ...optionsIn };
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
-    let result: ComputeContents;
+    let result: BuildResults;
     try {
         result = realBuild(path, null, styles, options);
     } catch (error) {
@@ -361,7 +379,7 @@ function pathBuild(
         return { contents: result.contents, messages: result.messages };
     }
 
-    result.mountedElements.map((elem) => {
+    result.builtElements.map((elem) => {
         if (isMountedPrimitiveElement(elem)) {
             let msgs: (Message | Error)[];
             try {
@@ -379,7 +397,7 @@ function pathBuild(
     }
 
     options.recorder({ type: "done", root: result.contents });
-    result.mountedElements.map((elem) => {
+    result.builtElements.map((elem) => {
         if (isElementImpl(elem)) {
             elem.postBuild(options.stateStore);
         }
@@ -390,47 +408,27 @@ function pathBuild(
     };
 }
 
-function realBuild(
-    path: DomPath,
-    parentStateNamespace: StateNamespace | null,
+function buildChildren(
+    newRoot: AdaptElement,
+    workingPath: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq): ComputeContents {
+    options: BuildOptionsReq): { newChildren: any, childBldResults: BuildResults } {
 
-    let out = new ComputeContents();
+    if (!isElementImpl(newRoot)) throw new Error(`Elements must inherit from ElementImpl ${util.inspect(newRoot)}`);
 
-    if (options.depth === 0) {
-        out.contents = path[0];
-        return out;
-    }
-
-    if (parentStateNamespace == null) {
-        parentStateNamespace = stateNamespaceForPath(path.slice(0, -1));
-    }
-
-    const oldElem = path[path.length - 1];
-    out = mountAndBuildComponent(path, parentStateNamespace, styles, options);
-    const newRoot = out.contents;
-    options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
-
-    if (newRoot == null || atDepth(options, path.length)) {
-        return out;
-    }
-
-    if (!isElementImpl(newRoot)) {
-        throw new Error(`Internal Error: element is not ElementImpl: ${util.inspect(newRoot)}`);
-    }
+    const out = new BuildResults();
 
     const children = newRoot.props.children;
     let newChildren: any = null;
     if (children == null) {
-        return out;
+        return { newChildren: null, childBldResults: out };
     }
 
     //FIXME(manishv) Make this use an explicit stack
     //instead of recursion to avoid blowing the call stack
     //For deep DOMs
     let childList: any[] = [];
-    if (children instanceof AdaptElementImpl) {
+    if (isElement(children)) {
         childList = [children];
     } else if (ld.isArray(children)) {
         childList = children;
@@ -438,9 +436,10 @@ function realBuild(
 
     assignKeysAtPlacement(childList);
     newChildren = childList.map((child) => {
-        if (child instanceof AdaptElementImpl) {
+        if (isMountedElement(child)) return child; //Must be from a deferred build
+        if (isElementImpl(child)) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = realBuild([...path, child], newRoot.stateNamespace, styles, options);
+            const ret = realBuild([...workingPath, child], newRoot.stateNamespace, styles, options, child);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
@@ -451,9 +450,103 @@ function realBuild(
     });
 
     newChildren = newChildren.filter(notNull);
+    return { newChildren, childBldResults: out };
+}
 
-    replaceChildren(newRoot, newChildren);
-    return out;
+function realBuild(
+    pathIn: DomPath,
+    parentStateNamespace: StateNamespace | null,
+    styles: css.StyleList,
+    options: BuildOptionsReq,
+    workingElem?: AdaptElement): BuildResults {
+
+    let deferring = false;
+    const atDepthFlag = atDepth(options, pathIn.length);
+
+    if (options.depth === 0) return new BuildResults(pathIn[0], undefined);
+
+    if (parentStateNamespace == null) {
+        parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
+    }
+
+    const oldElem = ld.last(pathIn);
+    if (oldElem === undefined) throw new Error("Internal Error: realBuild called with empty path");
+    if (oldElem === null) return new BuildResults(null, undefined);
+    if (workingElem === undefined) {
+        workingElem = oldElem;
+    }
+
+    const out = new BuildResults();
+    let mountedElem: AdaptElementOrNull = oldElem;
+    if (!isMountedElement(oldElem)) {
+        const mountOut = mountElement(pathIn, parentStateNamespace, styles, options);
+        if (mountOut.buildErr) return mountOut;
+        out.contents = mountedElem = mountOut.contents;
+        out.combine(mountOut);
+    }
+
+    if (mountedElem === null) {
+        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
+        return out;
+    }
+
+    //Element is mounted
+    const mountedPath = subLastPathElem(pathIn, mountedElem);
+
+    let newRoot: AdaptElementOrNull = null;
+    let newPath = mountedPath;
+    if (!isElementImpl(mountedElem)) {
+        throw new Error("Elements must inherit from ElementImpl:" + util.inspect(newRoot));
+    }
+
+    if (!isDeferredElementImpl(mountedElem) || mountedElem.shouldBuild()) {
+        const computeOut = buildElement(mountedPath, parentStateNamespace, styles, options);
+        out.combine(computeOut);
+        out.contents = newRoot = computeOut.contents;
+
+        if (computeOut.buildErr) return out;
+        if (newRoot !== null) {
+            if (newRoot !== mountedElem) {
+                newPath = subLastPathElem(mountedPath, newRoot);
+                return realBuild(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
+            }
+        }
+    } else {
+        deferring = true;
+        mountedElem.deferred();
+        newRoot = mountedElem;
+        out.contents = newRoot;
+    }
+
+    if (newRoot === null) {
+        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
+        return new BuildResults(newRoot, out, true);
+    }
+
+    //Do not process children of DomError nodes in case they result in more DomError children
+    if (!isDomErrorElement(newRoot)) {
+        if (!atDepthFlag) {
+            const { newChildren, childBldResults } = buildChildren(newRoot, mountedPath, styles, options);
+            out.combine(childBldResults);
+
+            replaceChildren(newRoot, newChildren);
+        }
+    } else {
+        out.buildErr = true;
+    }
+
+    //We are here either because mountedElem was deferred, or because mountedElem === newRoot
+    if (!deferring || atDepthFlag) {
+        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
+        return out;
+    }
+
+    //FIXME(manishv)? Should this check be if there were no element children instead of just no children?
+    //No built event in this case since we've exited early
+    if (atDepthFlag && newRoot.props.children === undefined) return out;
+
+    //We must have deferred to get here
+    return realBuild(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
 }
 
 function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {
