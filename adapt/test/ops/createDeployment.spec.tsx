@@ -130,7 +130,7 @@ function checkErrors(ds: DeployState, expected: RegExp[]) {
     should(ds.summary.error).equal(expected.length);
 }
 
-describe("createDeployment Tests", async function() {
+describe("createDeployment Tests", async function () {
     let origServerTypes: AdaptServerType[];
     let logger: MockLogger;
     let projectInit = false; // first test initialized project dir

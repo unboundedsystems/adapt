@@ -32,7 +32,7 @@ describe("Mocha-tmpdir each", () => {
         expect(startingSet.has(cwd)).equals(false);
         expect(previous.has(cwd)).equals(false);
 
-        const currentSet = await getTmpdirList(prefixRe);
+        const currentSet = getTmpdirList(prefixRe);
         previous.forEach((name) => {
             expect(currentSet.has(name)).equals(false);
         });

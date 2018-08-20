@@ -12,12 +12,12 @@ describe("DOM Parse Tests", () => {
 
     it("Should not parse unknown root", async () => {
         const xmlStr = "<bogus></bogus>";
-        should(back.domFromString(xmlStr)).rejectedWith(Error);
+        return should(back.domFromString(xmlStr)).rejectedWith(Error);
     });
 
     it("Should reject multiple top-level nodes", async () => {
         const xmlStr = "<Adapt><foo/><bar/></Adapt>";
-        should(back.domFromString(xmlStr)).rejectedWith(Error);
+        return should(back.domFromString(xmlStr)).rejectedWith(Error);
     });
 
     it("Should parse node with no children", async () => {
@@ -90,7 +90,7 @@ describe("DOM Parse Tests", () => {
 
     it("Should reject ambiguous short form props", () => {
         const xmlStr = `<Adapt><foo x="12px"/></Adapt>`;
-        should(back.domFromString(xmlStr)).rejectedWith(Error);
+        return should(back.domFromString(xmlStr)).rejectedWith(Error);
     });
 
     it("Should parse long form props", async () => {
@@ -121,7 +121,7 @@ describe("DOM Parse Tests", () => {
                     </__props__>
                 </foo>
             </Adapt>`;
-        should(back.domFromString(xmlStr)).rejectedWith(Error);
+        return should(back.domFromString(xmlStr)).rejectedWith(Error);
     });
 
     it("Should parse xmlns", async () => {

@@ -504,7 +504,7 @@ function checkMummyVictim(which: string, mummyJson: MummyJson) {
     should(mummy.pkgVersion).equal(which + ".0.0");
 }
 
-describe("Reanimate in package tests", function() {
+describe("Reanimate in package tests", function () {
     let mummy1: string;
     let mummy2: string;
 

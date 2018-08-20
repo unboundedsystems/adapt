@@ -125,7 +125,7 @@ describe("k8s Pod Component Tests", () => {
 });
 
 async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = await Adapt.build(elem, null);
+    const { messages, contents: dom } = Adapt.build(elem, null);
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
@@ -190,7 +190,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
-        const actions = await plugin.analyze(null, dom, obs);
+        const actions = plugin.analyze(null, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].description).match(/Creating\s.+test/);
 
@@ -224,7 +224,7 @@ describe("k8s Pod Plugin Tests", function () {
         };
 
         obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
-        const actions = await plugin.analyze(null, dom, obs);
+        const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Replacing\s.+test/);
 
@@ -241,7 +241,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
-        const actions = await plugin.analyze(null, dom, obs);
+        const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Creating\s.+test/);
 
@@ -273,7 +273,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
-        const actions = await plugin.analyze(oldDom, dom, obs);
+        const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Replacing\s.+test/);
 
@@ -302,7 +302,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
-        const actions = await plugin.analyze(oldDom, dom, obs);
+        const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(0);
         await plugin.finish();
     });
@@ -313,7 +313,7 @@ describe("k8s Pod Plugin Tests", function () {
         const dom = await doBuild(<Group />);
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
-        const actions = await plugin.analyze(oldDom, dom, obs);
+        const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].description).match(/Destroying\s.+fixme-manishv-[0-9A-Fa-f]+/);
 

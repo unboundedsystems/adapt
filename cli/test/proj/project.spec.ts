@@ -26,11 +26,11 @@ const projOpts: proj.ProjectOptions = {
     loglevel: "error",
 };
 
-describe("Project basic tests", function() {
+describe("Project basic tests", function () {
     this.timeout(20000);
     mochaTmpdir.each("adapt-cli-test-proj");
 
-    it("Should open a local directory", async function() {
+    it("Should open a local directory", async function () {
         const projDir = mochaTmpdir.getTmpdir(this);
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
@@ -43,7 +43,7 @@ describe("Project basic tests", function() {
         expect(p.manifest.dependencies.typescript).equal("^2.9.2");
     });
 
-    it("Should open a local relative directory", async function() {
+    it("Should open a local relative directory", async function () {
         const projDir = mochaTmpdir.getTmpdir(this);
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
@@ -83,7 +83,7 @@ describe("Project basic tests", function() {
         expect(p.manifest.dependencies.typescript).equal("^2.9.2");
     });
 
-    it("Should get a github package", async function() {
+    it("Should get a github package", async function () {
         this.timeout(40000);
         const p = await proj.load("substack/json-stable-stringify#1.0.1", projOpts);
         expect(p).to.be.an("object");

@@ -84,7 +84,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const mgr = createPluginManager(deployment.pluginConfig);
     await mgr.start(prevDom, newDom, { logger });
     await mgr.observe();
-    await mgr.analyze();
+    mgr.analyze();
     await mgr.act(options.dryRun);
     await mgr.finish();
 

@@ -79,7 +79,7 @@ describe("Plugin Support Basic Tests", () => {
     it("Should call analyze after observe", async () => {
         await mgr.start(null, dom, { logger });
         await mgr.observe();
-        await mgr.analyze();
+        mgr.analyze();
         should(spy.callCount).equal(3);
         should(spy.getCall(0).args[0]).equal("start");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
@@ -89,7 +89,7 @@ describe("Plugin Support Basic Tests", () => {
     it("Should call actions", async () => {
         await mgr.start(null, dom, { logger });
         await mgr.observe();
-        await mgr.analyze();
+        mgr.analyze();
         await mgr.act(false);
         await mgr.finish();
         should(spy.callCount).equal(6);
@@ -107,7 +107,7 @@ describe("Plugin Support Basic Tests", () => {
     it("Should not call actions on dry run", async () => {
         await mgr.start(null, dom, { logger });
         await mgr.observe();
-        await mgr.analyze();
+        mgr.analyze();
         await mgr.act(true);
         await mgr.finish();
         should(spy.callCount).equal(4);
@@ -130,7 +130,7 @@ describe("Plugin Support Basic Tests", () => {
         await should(mgr.act(false)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
 
-        await mgr.analyze();
+        mgr.analyze();
         await mgr.act(true); //dry run
         await mgr.act(false);
         await mgr.finish();
@@ -139,7 +139,7 @@ describe("Plugin Support Basic Tests", () => {
     it("Should allow finish without acting", async () => {
         await mgr.start(null, dom, { logger });
         await mgr.observe();
-        await mgr.analyze();
+        mgr.analyze();
         await mgr.finish();
     });
 });
