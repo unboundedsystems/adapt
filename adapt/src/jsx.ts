@@ -85,9 +85,7 @@ export abstract class Component<Props extends object = {}, State extends object 
         this.stateUpdates.push(upd);
     }
 
-    abstract build(): AdaptElementOrNull; /*{
-        throw new BuildNotImplemented();
-    }*/
+    abstract build(): AdaptElementOrNull;
 }
 
 export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
