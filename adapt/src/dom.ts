@@ -69,6 +69,7 @@ class BuildResults {
         this.buildErr = this.buildErr || other.buildErr;
         other.messages = [];
         other.cleanups = [];
+        other.builtElements = [];
         other.mountedElements = [];
         return this;
     }
