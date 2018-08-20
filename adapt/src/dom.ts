@@ -371,6 +371,7 @@ function pathBuild(
     let result: BuildResults;
     try {
         result = realBuild(path, null, styles, options);
+        result.cleanup();
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
