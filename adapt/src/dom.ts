@@ -486,7 +486,7 @@ function realBuild(
     }
 
     if (mountedElem === null) {
-        //        options.recorder({ type: "elementBuilt", oldElem, newElem: newRoot });
+        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
         return out;
     }
 
