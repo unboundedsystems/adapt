@@ -6,6 +6,7 @@ import Adapt, {
     BuiltinProps,
     findElementsInDom,
     isMountedElement,
+    registerPlugin,
     Style
 } from "@usys/adapt";
 import jsonStableStringify = require("json-stable-stringify");
@@ -17,6 +18,11 @@ import { isResourceElement, Kind, Metadata, PodSpec, Resource, ResourceProps, Sp
 // Typings are for deprecated API :(
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
+
+registerPlugin({
+    create: createK8sPlugin,
+    module
+});
 
 interface MetadataInResourceObject extends Required<Metadata> {
     name: string;

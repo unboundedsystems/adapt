@@ -18,14 +18,15 @@ import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
 import * as abs from "../../src";
 import {
-    createPodPlugin,
+    createK8sPlugin,
     K8sContainer,
     k8sContainerProps,
+    K8sPlugin,
+    Kind,
     Pod,
-    podElementToName,
-    PodPlugin
+    resourceElementToName
 } from "../../src/k8s";
-import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
+import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 
 const { deleteAllPods, getK8sConfig, getPods } = k8sutils;
 const { startTestMinikube, stopTestMinikube } = minikube;
@@ -99,24 +100,25 @@ describe("k8s Pod Component Tests", () => {
         const domXml = Adapt.serializeDom(dom);
         const expected =
 `<Adapt>
-  <Pod>
+  <Resource kind="Pod">
     <__props__>
       <prop name="config">{}</prop>
       <prop name="key">"Compute-Pod"</prop>
+      <prop name="metadata">{}</prop>
+      <prop name="spec">{
+  "containers": [
+    {
+      "name": "one",
+      "image": "alpine"
+    },
+    {
+      "name": "two",
+      "image": "alpine"
+    }
+  ]
+}</prop>
     </__props__>
-    <K8sContainer image="alpine" name="one">
-      <__props__>
-        <prop name="key">"Container-K8sContainer"</prop>
-        <prop name="tty">false</prop>
-      </__props__>
-    </K8sContainer>
-    <K8sContainer image="alpine" name="two">
-      <__props__>
-        <prop name="key">"Container1-K8sContainer"</prop>
-        <prop name="tty">false</prop>
-      </__props__>
-    </K8sContainer>
-  </Pod>
+  </Resource>
 </Adapt>
 `;
         should(domXml).eql(expected);
@@ -146,10 +148,10 @@ async function act(actions: Adapt.Action[]) {
     }
 }
 
-describe("k8s Pod Plugin Tests", function () {
+describe("k8s Pod Operation Tests", function () {
     this.timeout(4 * 60 * 1000);
 
-    let plugin: PodPlugin;
+    let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
     let kubeconfig: object;
@@ -169,7 +171,7 @@ describe("k8s Pod Plugin Tests", function () {
     });
 
     beforeEach(async () => {
-        plugin = createPodPlugin();
+        plugin = createK8sPlugin();
         logs = new WritableStreamBuffer();
         options = {
             log: new Console(logs, logs).log
@@ -208,8 +210,9 @@ describe("k8s Pod Plugin Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const mockObservation = {
+            kind: Kind.pod,
             metadata: {
-                name: podElementToName(dom),
+                name: resourceElementToName(dom),
                 namespace: "default",
                 labels: []
             },
@@ -249,7 +252,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         const pods = await getPods(k8sConfig);
         should(pods).length(1);
-        should(pods[0].metadata.name).equal(podElementToName(dom));
+        should(pods[0].metadata.name).equal(resourceElementToName(dom));
 
         await plugin.finish();
         return dom;
@@ -281,7 +284,7 @@ describe("k8s Pod Plugin Tests", function () {
 
         const pods = await getPods(k8sConfig);
         should(pods).length(1);
-        should(pods[0].metadata.name).equal(podElementToName(dom));
+        should(pods[0].metadata.name).equal(resourceElementToName(dom));
         should(pods[0].spec.containers).length(1);
         should(pods[0].spec.containers[0].command).eql(command);
 

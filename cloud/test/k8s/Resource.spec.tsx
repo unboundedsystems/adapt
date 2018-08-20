@@ -6,7 +6,7 @@ import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
 import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } from "../../src/k8s";
-import { canonicalConfigJSON } from "../../src/k8s/pod_plugin";
+import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 
 type MinikubeInfo = minikube.MinikubeInfo;
 const { startTestMinikube, stopTestMinikube } = minikube;

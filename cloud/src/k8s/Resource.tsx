@@ -26,11 +26,10 @@ export interface ResourceProps {
     kind: Kind;
     metadata?: Metadata;
     spec: Spec;
-    children: AdaptElement | AdaptElement[];
 }
 
 function validateProps(props: ResourceProps) {
-    const children = childrenToArray(props.children);
+    const children = childrenToArray((props as any).children);
 
     if (!ld.isEmpty(children)) throw new Error("Resource elements cannot have children");
 
