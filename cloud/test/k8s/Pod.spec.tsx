@@ -214,7 +214,8 @@ describe("k8s Pod Operation Tests", function () {
             metadata: {
                 name: resourceElementToName(dom),
                 namespace: "default",
-                labels: []
+                labels: {},
+                annotations: {}
             },
             spec: {
                 containers: [{

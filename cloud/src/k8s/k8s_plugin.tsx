@@ -31,7 +31,6 @@ interface MetadataInResourceObject extends Required<Metadata> {
 
 interface MetadataInRequest extends Metadata {
     name: string;
-    annotations?: { [key: string]: string };
 }
 
 interface ResourceObject {
@@ -88,10 +87,13 @@ async function getResourcesByKind(client: Client, namespaces: string[], kind: Ki
     for (const ns of namespaces) {
         const resources = await client.api.v1.namespaces(ns)[kindToAPIPathPart(kind)].get();
         if (resources.statusCode === 200) {
-            ret.push(...resources.body.items.map((resObj: ResourceObject) => {
+            const adaptResources = ld.filter<ResourceObject>(resources.body.items.map((resObj: ResourceObject) => {
                 resObj.kind = kind;
+                if (resObj.metadata.annotations.adaptName === undefined) return undefined;
                 return resObj;
             }));
+
+            ret.push(...adaptResources);
         } else {
             throw new Error(`Unable to get ${kind} resources from namespace ${ns}, ` +
                 `status ${resources.statusCode}: ${resources}`);
