@@ -5,8 +5,8 @@ import {
     Container,
     ContainerProps,
     k8s,
-    //NetworkService,
-    //NetworkServiceProps,
+    NetworkService,
+    NetworkServiceProps,
 } from "@usys/cloud";
 
 // tslint:disable-next-line:no-var-requires
@@ -24,10 +24,9 @@ export const k8sStyle =
             </k8s.Pod>
         ))}
 
-    </Style>;
-export default k8sStyle;
-/*
         {NetworkService} {rule<NetworkServiceProps>((props) => (
             <k8s.Service {...k8s.k8sServiceProps(props)} />
         ))}
-*/
+
+    </Style>;
+export default k8sStyle;

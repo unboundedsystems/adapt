@@ -1,5 +1,5 @@
-import Adapt, { Component } from "@usys/adapt";
-import { Compute } from "@usys/cloud";
+import Adapt, { Component, Group } from "@usys/adapt";
+import { Compute, NetworkService } from "@usys/cloud";
 
 import awsStyle from "./aws";
 import { AppContainer, MongoContainer } from "./containers";
@@ -26,21 +26,26 @@ class Nodecellar extends Component<Props, {}> {
         const props = this.props;
 
         return (
-            <Compute>
-                <MongoContainer
-                    name={props.mongoHostname}
-                    mongoPort={props.mongoPort}
-                    webStatusPort={props.webStatusPort}
-                    dockerHost={props.dockerHost!}
-                />
+            <Group>
+                <NetworkService port={props.webPort} />
+                <NetworkService port={props.webStatusPort} />
+                <Compute>
 
-                <AppContainer
-                    port={props.webPort!}
-                    mongoHostname={props.mongoHostname!}
-                    mongoPort={props.mongoPort!}
-                    dockerHost={props.dockerHost!}
-                />
-            </Compute>
+                    <MongoContainer
+                        name={props.mongoHostname}
+                        mongoPort={props.mongoPort}
+                        webStatusPort={props.webStatusPort}
+                        dockerHost={props.dockerHost!}
+                    />
+
+                    <AppContainer
+                        port={props.webPort!}
+                        mongoHostname={props.mongoHostname!}
+                        mongoPort={props.mongoPort!}
+                        dockerHost={props.dockerHost!}
+                    />
+                </Compute>
+            </Group>
         );
     }
 }
