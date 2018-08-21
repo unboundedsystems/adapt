@@ -58,8 +58,7 @@ function matchTag(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: bo
     const { elem } = last(path);
     if (elem == null) throw new Error("Internal error, null element");
 
-    //FIXME(manishv) Need proper scoped naming here
-    return { newPath: path, matched: elem.componentType.name === frag.name };
+    return { newPath: path, matched: uniqueName(elem.componentType) === frag.name };
 }
 
 function matchChild(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: boolean } {
@@ -234,6 +233,30 @@ function isStylesComponent(componentType: any):
     return componentType === Style;
 }
 
+const objToName = new WeakMap<object, string>();
+const uniqueNamePrefix = "UniqueName";
+let nextUniqueNameIndex = 0;
+
+function hasName(o: any): o is { name: string } {
+    if (Object.hasOwnProperty.apply(o, ["name"])) {
+        return ld.isString(o.name);
+    }
+    return false;
+}
+
+function uniqueName(o: object): string {
+    let ret = objToName.get(o);
+
+    if (ret === undefined) {
+        const objName = hasName(o) ? o.name : "";
+        ret = uniqueNamePrefix + nextUniqueNameIndex + objName;
+        objToName.set(o, ret);
+        nextUniqueNameIndex++;
+    }
+
+    return ret;
+}
+
 export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
     if (styleElem == null) {
         return [];
@@ -249,7 +272,7 @@ export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
     const rawStyles: RawStyle[] = [];
     for (const child of props.children) {
         if (typeof child === "function") {
-            curSelector = curSelector + child.name;
+            curSelector = curSelector + uniqueName(child);
         } else if (typeof child === "string") {
             curSelector += child;
         } else if (isRule(child)) {
