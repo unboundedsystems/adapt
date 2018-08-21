@@ -13,6 +13,7 @@ import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 //import * as when from "when";
 
+import { createHash } from "crypto";
 import { isResourceElement, Kind, Metadata, PodSpec, Resource, ResourceProps, Spec } from ".";
 
 // Typings are for deprecated API :(
@@ -86,10 +87,13 @@ async function getResourcesByKind(client: Client, namespaces: string[], kind: Ki
     for (const ns of namespaces) {
         const resources = await client.api.v1.namespaces(ns)[kindToAPIPathPart(kind)].get();
         if (resources.statusCode === 200) {
-            ret.push(...resources.body.items.map((resObj: ResourceObject) => {
+            const adaptResources = ld.filter<ResourceObject>(resources.body.items.map((resObj: ResourceObject) => {
                 resObj.kind = kind;
+                if (resObj.metadata.annotations.adaptName === undefined) return undefined;
                 return resObj;
             }));
+
+            ret.push(...adaptResources);
         } else {
             throw new Error(`Unable to get ${kind} resources from namespace ${ns}, ` +
                 `status ${resources.statusCode}: ${resources}`);
@@ -176,21 +180,35 @@ interface Manifest {
     spec: Spec;
 }
 
+function sha256(data: Buffer) {
+    const sha = createHash("sha256");
+    sha.update(data);
+    return sha.digest("hex");
+}
+
 export function resourceElementToName(elem: Adapt.AdaptElement<AnyProps>): string {
     if (!isResourceElement(elem)) throw new Error("Can only compute name of Resource elements");
     if (!isMountedElement(elem)) throw new Error("Can only compute name of mounted elements");
-    return "fixme-manishv-" + Buffer.from(elem.id).toString("hex");
+    return "fixme-manishv-" + sha256(Buffer.from(elem.id)).slice(0, 32);
 }
 
 function makeManifest(elem: AdaptElement<ResourceProps>): Manifest {
     if (!isMountedElement(elem)) throw new Error("Can only create manifest for mounted elements!");
 
-    return {
+    const ret: Manifest = {
         apiVersion: "v1",
         kind: elem.props.kind,
-        metadata: { ...elem.props.metadata, name: resourceElementToName(elem) },
+        metadata: {
+            ...elem.props.metadata,
+            name: resourceElementToName(elem)
+        },
         spec: elem.props.spec
     };
+
+    if (ret.metadata.annotations === undefined) ret.metadata.annotations = {};
+    ret.metadata.annotations.adaptName = elem.id;
+
+    return ret;
 }
 
 class Connections {

@@ -1,4 +1,4 @@
-import Adapt, { AdaptElementOrNull, Group, PluginOptions } from "@usys/adapt";
+import Adapt, { AdaptElementOrNull, Group, isMountedElement, PluginOptions } from "@usys/adapt";
 import * as should from "should";
 
 import { minikube } from "@usys/testutils";
@@ -165,6 +165,9 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             </Resource>;
 
         const dom = await doBuild(resElem);
+        if (!isMountedElement(dom)) {
+            throw should(isMountedElement(dom)).True();
+        }
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -173,7 +176,8 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             metadata: {
                 name: resourceElementToName(dom),
                 namespace: "default",
-                labels: []
+                labels: {},
+                annotations: { adaptName: dom.id }
             },
             spec: {
                 containers: [{
@@ -209,6 +213,9 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             </Resource>;
 
         const dom = await doBuild(resElem);
+        if (!isMountedElement(dom)) {
+            throw should(isMountedElement(dom)).True();
+        }
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -221,6 +228,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const pods = await getPods(k8sConfig);
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
+        should(pods[0].metadata.annotations).containEql({ adaptName: dom.id });
 
         await plugin.finish();
         return dom;
@@ -313,6 +321,35 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             should(pods[0].metadata.deletionGracePeriod).not.Undefined();
         }
 
+        await plugin.finish();
+    });
+
+    it("Should not delete unmanaged pod", async () => {
+        const manifest = {
+            apiVersion: "v1",
+            kind: "Pod",
+            metadata: {
+                name: "unmanaged-pod"
+            },
+            spec: {
+                containers: [{
+                    name: "sleep",
+                    image: "alpine:latest",
+                    command: ["sleep", "5s"]
+                }],
+                terminationGracePeriodSeconds: 0
+            }
+        };
+
+        const client = await getClient(k8sConfig);
+        const result = await client.api.v1.namespaces("default").pods.post({ body: manifest });
+        should(result.statusCode).equal(201);
+
+        const dom = await doBuild(<Group />);
+        await plugin.start(options);
+        const obs = await plugin.observe(null, dom);
+        const actions = plugin.analyze(null, dom, obs);
+        should(actions.length).equal(0);
         await plugin.finish();
     });
 

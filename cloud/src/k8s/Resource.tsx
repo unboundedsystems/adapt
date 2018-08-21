@@ -8,7 +8,8 @@ export enum Kind {
 export type Spec = PodSpec; // | DeploymentSpec | etc.
 export interface Metadata {
     namespace?: string;
-    labels?: any[];
+    labels?: { [key: string]: string };
+    annotations?: { [key: string]: string };
 }
 
 export interface PodSpec {
