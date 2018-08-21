@@ -88,6 +88,23 @@ describe("Selector matching", () => {
             {Dummy} {Foo} {css.rule(() => null)}
         </css.Style>, dom, noMatchDom);
     });
+
+    it("Should distinguish identical names", () => {
+        const outerFooDom = <Adapt.Group><Foo /></Adapt.Group>;
+        const outerStyle =
+            <css.Style>
+                {Adapt.Group} {Foo} {css.rule(() => null)}
+            </css.Style>;
+        {
+            // tslint:disable-next-line:no-shadowed-variable
+            function Foo() { return null; }
+            const innerFooDom = <Adapt.Group><Foo /></Adapt.Group>;
+            testStyleDom(<css.Style>
+                {Adapt.Group} {Foo} {css.rule(() => null)}
+            </css.Style>, innerFooDom, outerFooDom);
+            testStyleDom(outerStyle, outerFooDom, innerFooDom);
+        }
+    });
 });
 
 describe("concatStyles", () => {
