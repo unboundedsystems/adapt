@@ -108,12 +108,18 @@ describe("k8s Pod Component Tests", () => {
       <prop name="spec">{
   "containers": [
     {
+      "env": [],
+      "image": "alpine",
       "name": "one",
-      "image": "alpine"
+      "ports": [],
+      "tty": false
     },
     {
+      "env": [],
+      "image": "alpine",
       "name": "two",
-      "image": "alpine"
+      "ports": [],
+      "tty": false
     }
   ]
 }</prop>

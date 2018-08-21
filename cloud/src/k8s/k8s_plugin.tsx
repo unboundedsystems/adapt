@@ -162,10 +162,14 @@ function findResourceElems(dom: AdaptElementOrNull): AdaptElement<ResourceProps 
 }
 
 const knownContainerPaths = [
-    "name",
     "args",
     "command",
-    "image"
+    "env",
+    "image",
+    "name",
+    "ports",
+    "tty",
+    "workingDir",
 ];
 
 const knownPodSpecPaths = [

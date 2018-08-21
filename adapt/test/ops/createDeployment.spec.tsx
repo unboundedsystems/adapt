@@ -309,34 +309,3 @@ describe("createDeployment Tests", async function () {
 
     });
 });
-
-/*****
- * FIXME(mark): This is a system test and needs moved to cli in an
- * upcoming commit
- *
-describe("buildStack Nodecellar example project", function() {
-    this.timeout(20000);
-    tmpdir.each("adapt-buildStack",
-                {copy: path.join(pkgRootDir, "test_projects", "nodecellar")});
-
-    it("Should build nodecellar demo", () => {
-
-        const packages = [
-            "file:" + pkgRootDir,
-            "file:" + path.join(pkgRootDir, "..", "cloud")
-        ];
-        await npm.install();
-        await npm.install({packages});
-
-        const out = buildStack("index.tsx", "dev", {});
-
-        if (out.dom == null) {
-            should(out.dom).not.be.Null();
-            return;
-        }
-        should(out.dom instanceof AdaptPrimitiveElementImpl).be.True();
-        const el = out.dom as AdaptPrimitiveElementImpl<any>;
-        should(el.componentInstance instanceof PrimitiveComponent).be.True();
-    });
-});
-*/

@@ -6,9 +6,10 @@ import Adapt, {
     DeferredComponent,
     isElement
 } from "@usys/adapt";
+import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
 import { isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
-import { Kind, Resource } from "./Resource";
+import { Kind, PodSpec, Resource } from "./Resource";
 
 export interface PodProps {
     config: any; //Legal configuration loaded from kubeconfig
@@ -39,18 +40,25 @@ function makePodManifest(props: PodProps & BuiltinProps) {
         childrenToArray(props.children)
             .map((c) => isContainerElement(c) ? c : null));
 
+    const spec: PodSpec = {
+        containers: containers.map((c) => removeUndef({
+                args: c.props.args,
+                command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
+                env: c.props.env,
+                image: c.props.image,
+                name: c.props.name,
+                ports: c.props.ports,
+                tty: c.props.tty,
+                workingDir: c.props.workingDir,
+            })),
+        terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
+    };
+
     return {
         apiVersion: "v1",
         kind: "Pod",
         metadata: {},
-        spec: {
-            containers: containers.map((c) => ({
-                name: c.props.name,
-                image: c.props.image,
-                command: c.props.command //FIXME(manishv)  What if we just have args and no command?
-            })),
-            terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
-        }
+        spec,
     };
 }
 

@@ -1,12 +1,14 @@
 import Adapt, { Component } from "@usys/adapt";
-import { Compute, DockerHost } from "@usys/cloud";
+import { Compute } from "@usys/cloud";
 
+import awsStyle from "./aws";
 import { AppContainer, MongoContainer } from "./containers";
-import { awsStyle, localStyle } from "./styles";
+import k8sStyle from "./k8s";
+import localStyle from "./local";
 
 interface Props {
     webPort?: number;
-    webStatusPort?: 8081;
+    webStatusPort?: number;
     mongoHostname?: string;
     mongoPort?: number;
     dockerHost?: string;
@@ -25,8 +27,6 @@ class Nodecellar extends Component<Props, {}> {
 
         return (
             <Compute>
-                <DockerHost />
-
                 <MongoContainer
                     name={props.mongoHostname}
                     mongoPort={props.mongoPort}
@@ -49,3 +49,4 @@ const app = <Nodecellar />;
 
 Adapt.stack("dev", app, localStyle);
 Adapt.stack("aws", app, awsStyle);
+Adapt.stack("k8s", app, k8sStyle);

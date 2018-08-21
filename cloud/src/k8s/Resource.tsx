@@ -1,5 +1,6 @@
 import Adapt, { AdaptElement, childrenToArray, PrimitiveComponent } from "@usys/adapt";
 import * as ld from "lodash";
+import { ContainerPort, EnvVar } from "./Container";
 
 export enum Kind {
     pod = "Pod",
@@ -12,13 +13,19 @@ export interface Metadata {
     annotations?: { [key: string]: string };
 }
 
+export interface ContainerSpec {
+    name: string;
+    args?: string[];
+    command?: string[];
+    env?: EnvVar[];
+    image: string;
+    tty?: boolean;
+    ports?: ContainerPort[];
+    workingDir?: string;
+}
+
 export interface PodSpec {
-    containers: {
-        name: string;
-        args?: string[];
-        command?: string[];
-        image: string;
-    }[];
+    containers: ContainerSpec[];
     terminationGracePeriodSeconds?: number;
 }
 

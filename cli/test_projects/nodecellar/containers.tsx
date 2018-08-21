@@ -17,9 +17,7 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
         name: "nodecellar",
         ctrPort: 8080,
         port: 8080,
-        image: {
-            repository: "uric/nodecellar"
-        }
+        image: "uric/nodecellar",
     };
 
     build() {
@@ -33,7 +31,7 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
                 ports={[ props.ctrPort! ]}
                 stdinOpen={true}
                 tty={true}
-                command="nodejs server.js"
+                command={["nodejs", "server.js"]}
                 environment={{
                     NODECELLAR_PORT: props.ctrPort!.toString(),
                     MONGO_PORT: props.mongoPort.toString(),
@@ -68,10 +66,7 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
         webStatusCtrPort: 28017,
         mongoPort: 27017,
         webStatusPort: 28017,
-        image: {
-            repository: "mongo",
-            tag: "3.1",
-        }
+        image: "mongo:3.1",
     };
 
     build() {
@@ -85,7 +80,7 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
                 ports={[props.mongoCtrPort!, props.webStatusCtrPort!]}
                 stdinOpen={true}
                 tty={true}
-                command="mongod --rest --httpinterface --smallfiles"
+                command={["mongod", "--rest", "--httpinterface", "--smallfiles"]}
                 portBindings={{
                     // ctr port : host port
                     [props.mongoCtrPort!]: props.mongoPort!,
