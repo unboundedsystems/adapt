@@ -25,7 +25,7 @@ registerPlugin({
     module
 });
 
-interface MetadataInResourceObject extends Required<Metadata> {
+interface MetadataInResourceObject extends Metadata {
     name: string;
 }
 
@@ -89,7 +89,10 @@ async function getResourcesByKind(client: Client, namespaces: string[], kind: Ki
         if (resources.statusCode === 200) {
             const adaptResources = ld.filter<ResourceObject>(resources.body.items.map((resObj: ResourceObject) => {
                 resObj.kind = kind;
-                if (resObj.metadata.annotations.adaptName === undefined) return undefined;
+                if ((resObj.metadata.annotations === undefined) ||
+                    (resObj.metadata.annotations.adaptName === undefined)) {
+                    return undefined;
+                }
                 return resObj;
             }));
 
