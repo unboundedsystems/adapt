@@ -221,6 +221,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const pods = await getPods(k8sConfig);
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
+        should(pods[0].metadata.annotations).containEql({ adaptName: (dom as any).id});
 
         await plugin.finish();
         return dom;
