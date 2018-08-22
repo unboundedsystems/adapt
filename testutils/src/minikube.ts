@@ -141,7 +141,7 @@ async function waitFor(
 
 async function waitForKubeConfig(docker: Docker, container: Docker.Container): Promise<object | undefined> {
     let config: object | undefined;
-    await waitFor(20, 5, "Timed out waiting for kubeconfig", async () => {
+    await waitFor(100, 1, "Timed out waiting for kubeconfig", async () => {
         try {
             config = await getKubeconfig(docker, container);
             return true;
@@ -154,11 +154,16 @@ async function waitForKubeConfig(docker: Docker, container: Docker.Container): P
 }
 
 async function waitForMiniKube(container: Docker.Container) {
-    await waitFor(20, 5, "Timed out waiting for Minikube", async () => {
+    await waitFor(100, 1, "Timed out waiting for Minikube", async () => {
         try {
             const statusColor = await dockerExec(container, ["kubectl", "cluster-info"]);
             const status = stripAnsi(statusColor) as string;
-            if (/^Kubernetes master is running at/.test(status)) {
+            if (! /^Kubernetes master is running at/.test(status)) {
+                return false;
+            }
+
+            const accts = await dockerExec(container, ["kubectl", "get", "serviceaccounts"]);
+            if (/^default\s/m.test(accts)) {
                 return true;
             }
         } catch (err) {
