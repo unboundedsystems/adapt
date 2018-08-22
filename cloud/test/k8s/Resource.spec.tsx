@@ -1,18 +1,16 @@
 import Adapt, { AdaptElementOrNull, Group, isMountedElement, PluginOptions } from "@usys/adapt";
 import * as should from "should";
 
-import { minikube } from "@usys/testutils";
+import { k8sutils } from "@usys/testutils";
+import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import * as util from "util";
 import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { mkInstance } from "./run_minikube";
 
-type MinikubeInfo = minikube.MinikubeInfo;
-const { startTestMinikube, stopTestMinikube } = minikube;
-
-// tslint:disable-next-line:no-var-requires
-const k8s = require("kubernetes-client");
+const { getClient, getPods } = k8sutils;
 
 describe("k8s Resource Component Tests", () => {
     it("Should Instantiate Resource", () => {
@@ -51,37 +49,6 @@ async function act(actions: Adapt.Action[]) {
     }
 }
 
-async function getClient(config: any) {
-    const client = new k8s.Client({ config });
-    await client.loadSpec();
-    should(client.api).not.Null();
-    should(client.api).not.Undefined();
-    return client;
-}
-
-async function getPodsWithClient(client: any) {
-    should(client.api).not.Null();
-    should(client.api).not.Undefined();
-    const pods = await client.api.v1.namespaces("default").pods.get();
-    should(pods.statusCode).equal(200);
-    return pods.body.items;
-}
-
-async function getPods(config: any) {
-    const client = await getClient(config);
-    return getPodsWithClient(client);
-}
-
-async function sleep(wait: number): Promise<void> {
-    await new Promise((res) => {
-        setTimeout(() => {
-            res();
-            return;
-        }, wait);
-        return;
-    });
-}
-
 describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
     this.timeout(4 * 60 * 1000);
 
@@ -90,18 +57,12 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
     let options: PluginOptions;
     let kubeconfig: object;
     let k8sConfig: object;
-    let minikubeInfo: MinikubeInfo;
 
-    before(async () => {
-        minikubeInfo = await startTestMinikube();
-        kubeconfig = minikubeInfo.kubeconfig;
-        k8sConfig = k8s.config.fromKubeconfig(kubeconfig);
-    });
-
-    after(async () => {
-        if (minikubeInfo != null) {
-            await stopTestMinikube(minikubeInfo);
-        }
+    before(() => {
+        if (mkInstance.kubeconfig == null ||
+            mkInstance.k8sConfig == null) throw new Error(`Minikube not running?`);
+        kubeconfig = mkInstance.kubeconfig;
+        k8sConfig = mkInstance.k8sConfig;
     });
 
     beforeEach(async () => {
@@ -110,27 +71,6 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         options = {
             log: new Console(logs, logs).log
         };
-    });
-
-    afterEach(async () => {
-        const client = await getClient(k8sConfig);
-        let pods = await getPodsWithClient(client);
-
-        for (const pod of pods) {
-            await client.api.v1.namespaces("default").pods(pod.metadata.name).delete();
-        }
-
-        const retries = 3;
-        let count = 0;
-        do {
-            pods = await getPodsWithClient(client);
-            await sleep(5000);
-            count++;
-        } while (pods.length !== 0 && count < retries);
-
-        if (pods.length !== 0) {
-            throw new Error(`Failed to remove pods: ${JSON.stringify(pods, null, 2)}`);
-        }
     });
 
     it("Should compute actions with no resources from k8s", async () => {

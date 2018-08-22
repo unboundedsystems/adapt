@@ -11,7 +11,7 @@ import Adapt, {
 import * as ld from "lodash";
 import * as should from "should";
 
-import { k8sutils, minikube } from "@usys/testutils";
+import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
@@ -27,9 +27,9 @@ import {
     resourceElementToName
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { mkInstance } from "./run_minikube";
 
-const { deleteAllPods, getK8sConfig, getPods } = k8sutils;
-const { startTestMinikube, stopTestMinikube } = minikube;
+const { getPods } = k8sutils;
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
@@ -162,18 +162,12 @@ describe("k8s Pod Operation Tests", function () {
     let options: PluginOptions;
     let kubeconfig: object;
     let k8sConfig: object;
-    let minikubeInfo: minikube.MinikubeInfo;
 
-    before(async () => {
-        minikubeInfo = await startTestMinikube();
-        kubeconfig = minikubeInfo.kubeconfig;
-        k8sConfig = getK8sConfig(kubeconfig);
-    });
-
-    after(async () => {
-        if (minikubeInfo != null) {
-            await stopTestMinikube(minikubeInfo);
-        }
+    before(() => {
+        if (mkInstance.kubeconfig == null ||
+            mkInstance.k8sConfig == null) throw new Error(`Minikube not running?`);
+        kubeconfig = mkInstance.kubeconfig;
+        k8sConfig = mkInstance.k8sConfig;
     });
 
     beforeEach(async () => {
@@ -182,10 +176,6 @@ describe("k8s Pod Operation Tests", function () {
         options = {
             log: new Console(logs, logs).log
         };
-    });
-
-    afterEach(async () => {
-        await deleteAllPods(k8sConfig);
     });
 
     it("Should compute actions with no pods from k8s", async () => {
