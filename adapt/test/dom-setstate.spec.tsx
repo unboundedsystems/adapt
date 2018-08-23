@@ -8,6 +8,7 @@ interface StateUpdaterProps {
     newState: any;
     initialState?: any;
     prevObserver?: (prev: any) => void;
+    stateObserver?: (state: any) => void;
 }
 
 class StateUpdater extends Component<StateUpdaterProps, AnyState> {
@@ -22,6 +23,9 @@ class StateUpdater extends Component<StateUpdaterProps, AnyState> {
     }
 
     build() {
+        if (this.props.stateObserver != null) {
+            this.props.stateObserver(this.state);
+        }
         this.setState((prev: any, props) => {
             if (this.props.prevObserver != null) {
                 this.props.prevObserver(prev);
@@ -63,12 +67,15 @@ describe("DOM setState Tests", () => {
         };
 
         let previousState: any;
-        const observer = (prev: any) => { previousState = prev; };
+        let stateVar: any;
+        const prevArgObserver = (prev: any) => { previousState = prev; };
+        const stateObserver = (s: any) => { stateVar = s; };
 
         const dom = <StateUpdater
             key="root"
             newState={nextState}
-            prevObserver={observer} />;
+            prevObserver={prevArgObserver}
+            stateObserver={stateObserver} />;
 
         state.setElementState(["root"], prevState);
         Adapt.build(dom, null, { stateStore: state });
@@ -76,6 +83,7 @@ describe("DOM setState Tests", () => {
 
         should(actual).eql(nextState);
         should(previousState).eql(prevState);
+        should(stateVar).eql(prevState);
     });
 
     it("Should update state within DOM", () => {
