@@ -147,8 +147,9 @@ async function waitForKubeConfig(docker: Docker, container: Docker.Container): P
             config = await getKubeconfig(docker, container);
             return true;
         } catch (err) {
-            if (! /exited with error/.test(err.message)) throw err;
-            return false;
+            if (/exited with error/.test(err.message) ||
+                /Invalid kubeconfig/.test(err.message)) return false;
+            throw err;
         }
     });
     return config;
