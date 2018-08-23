@@ -1,15 +1,14 @@
 import Adapt, {
     AdaptElement,
     BuildNotImplemented,
-    BuiltinProps,
     childrenToArray,
     DeferredComponent,
     isElement
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
-import { isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
-import { Kind, PodSpec, Resource } from "./Resource";
+import { ContainerSpec, isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
+import { Kind, Resource } from "./Resource";
 
 export interface PodProps {
     config: any; //Legal configuration loaded from kubeconfig
@@ -35,7 +34,7 @@ function dups<T>(data: T[]): T[] {
     return ld.uniq(ld.flatten(filtered));
 }
 
-function makePodManifest(props: PodProps & BuiltinProps) {
+function makePodManifest(props: PodProps) {
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isContainerElement(c) ? c : null));
@@ -55,14 +54,13 @@ function makePodManifest(props: PodProps & BuiltinProps) {
     };
 
     return {
-        apiVersion: "v1",
         kind: "Pod",
         metadata: {},
         spec,
     };
 }
 
-export class Pod extends DeferredComponent<PodProps & BuiltinProps> {
+export class Pod extends DeferredComponent<PodProps> {
     checkProps(): void {
         const children = childrenToArray(this.props.children);
 
@@ -89,3 +87,49 @@ export class Pod extends DeferredComponent<PodProps & BuiltinProps> {
             spec={manifest.spec} />);
     }
 }
+
+/*
+ * Plugin info
+ */
+
+export interface PodSpec {
+    containers: ContainerSpec[];
+    terminationGracePeriodSeconds?: number;
+}
+
+const knownContainerPaths = [
+    "args",
+    "command",
+    "env",
+    "image",
+    "name",
+    "ports",
+    "tty",
+    "workingDir",
+];
+
+const knownPodSpecPaths = [
+    "containers",
+    "terminationGracePeriodSeconds"
+];
+
+function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
+    function processContainers(spec: PodSpec) {
+        if (spec.containers === undefined) return;
+        spec.containers = spec.containers
+            .map((c) => ld.pick(c, knownContainerPaths) as any);
+        spec.containers = ld.sortBy(spec.containers, (c) => c.name);
+    }
+    const s1 = ld.pick(spec1, knownPodSpecPaths) as PodSpec;
+    const s2 = ld.pick(spec2, knownPodSpecPaths) as PodSpec;
+    processContainers(s1);
+    processContainers(s2);
+
+    return ld.isEqual(s1, s2);
+}
+
+export const podResourceInfo = {
+    kind: Kind.pod,
+    apiName: "pods",
+    specsEqual: podSpecsEqual,
+};

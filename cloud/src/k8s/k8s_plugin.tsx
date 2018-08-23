@@ -3,7 +3,6 @@ import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
-    BuiltinProps,
     findElementsInDom,
     isMountedElement,
     registerPlugin,
@@ -11,10 +10,12 @@ import Adapt, {
 } from "@usys/adapt";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
-//import * as when from "when";
 
 import { createHash } from "crypto";
-import { isResourceElement, Kind, Metadata, PodSpec, Resource, ResourceProps, Spec } from ".";
+import { isResourceElement, Kind, Metadata, Resource, ResourceProps, Spec } from ".";
+
+import { podResourceInfo } from "./Pod";
+import { serviceResourceInfo } from "./Service";
 
 // Typings are for deprecated API :(
 // tslint:disable-next-line:no-var-requires
@@ -55,6 +56,22 @@ export function createK8sPlugin() {
     return new K8sPluginImpl();
 }
 
+export interface ResourceInfo {
+    kind: Kind;
+    apiName: string;
+    specsEqual(spec1: Spec, spec2: Spec): boolean;
+}
+
+const resourceInfo = {
+    [Kind.pod]: podResourceInfo,
+    [Kind.service]: serviceResourceInfo,
+    // NOTE: ResourceAdd
+};
+
+function getResourceInfo(kind: keyof typeof resourceInfo): ResourceInfo {
+    return resourceInfo[kind];
+}
+
 async function getClientForConfigJSON(
     kubeconfigJSON: string,
     options: { connCache: Connections }): Promise<Client> {
@@ -72,20 +89,13 @@ async function getClientForConfigJSON(
     return client;
 }
 
-function kindToAPIPathPart(kind: Kind): string {
-    const knownResourceKinds = {
-        Pod: "pods",
-    };
-
-    return knownResourceKinds[kind];
-}
-
 async function getResourcesByKind(client: Client, namespaces: string[], kind: Kind): Promise<ResourceObject[]> {
     if (client.api == null) throw new Error("Must initialize client before calling api");
     const ret: ResourceObject[] = [];
+    const info = getResourceInfo(kind);
 
     for (const ns of namespaces) {
-        const resources = await client.api.v1.namespaces(ns)[kindToAPIPathPart(kind)].get();
+        const resources = await client.api.v1.namespaces(ns)[info.apiName].get();
         if (resources.statusCode === 200) {
             const adaptResources = ld.filter<ResourceObject>(resources.body.items.map((resObj: ResourceObject) => {
                 resObj.kind = kind;
@@ -159,26 +169,10 @@ function resourceShouldExist(
 
 const rules = <Style>{Resource} {Adapt.rule()}</Style>;
 
-function findResourceElems(dom: AdaptElementOrNull): AdaptElement<ResourceProps & Adapt.BuiltinProps>[] {
+function findResourceElems(dom: AdaptElementOrNull): AdaptElement<ResourceProps>[] {
     const candidateElems = findElementsInDom(rules, dom);
     return ld.compact(candidateElems.map((e) => isResourceElement(e) ? e : null));
 }
-
-const knownContainerPaths = [
-    "args",
-    "command",
-    "env",
-    "image",
-    "name",
-    "ports",
-    "tty",
-    "workingDir",
-];
-
-const knownPodSpecPaths = [
-    "containers",
-    "terminationGracePeriodSeconds"
-];
 
 interface Manifest {
     apiVersion: "v1" | "v1beta1" | "v1beta2";
@@ -258,54 +252,25 @@ enum K8sAction {
     destroying = "Destroying"
 }
 
-//FIXME(manishv) somehow generate comparison for all kinds here
-
-function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
-    function processContainers(spec: PodSpec) {
-        if (spec.containers === undefined) return;
-        spec.containers = spec.containers
-            .map((c) => ld.pick(c, knownContainerPaths) as any);
-        spec.containers = ld.sortBy(spec.containers, (c) => c.name);
-    }
-    const s1 = ld.pick(spec1, knownPodSpecPaths) as PodSpec;
-    const s2 = ld.pick(spec2, knownPodSpecPaths) as PodSpec;
-    processContainers(s1);
-    processContainers(s2);
-
-    return ld.isEqual(s1, s2);
-}
-
-function specsEqual(kind: Kind, spec1: Spec, spec2: Spec) {
-    switch (kind) {
-        case Kind.pod:
-            return podSpecsEqual(spec1 as PodSpec, spec2 as PodSpec);
-    }
-}
-
 function getResourceElementNamespace(elem: AdaptElement<ResourceProps>) {
     const ns = elem.props.metadata && elem.props.metadata.namespace;
     if (ns === undefined) return "default";
     return ns;
 }
 
-function getResourceKind(res: ResourceObject) {
-    switch (res.kind) {
-        case "Pod":
-            return Kind.pod;
-        default:
-            return;
-    }
-}
-
 function computeActionExceptDelete(
-    res: AdaptElement<ResourceProps & BuiltinProps>,
+    res: AdaptElement<ResourceProps>,
     obs: Observations,
     connCache: Connections): Action | undefined {
 
+    const info = getResourceInfo(res.props.kind);
+    if (info == null) {
+        throw new Error(`Cannot create action for unknown kind ${res.props.kind}`);
+    }
     const resObj = findResObjsInObs(res, obs);
     const configJSON = canonicalConfigJSON(res.props.config);
     const manifest = makeManifest(res);
-    const apiName = kindToAPIPathPart(res.props.kind);
+    const apiName = info.apiName;
     const ns = getResourceElementNamespace(res);
 
     if (resObj === undefined) {
@@ -319,12 +284,7 @@ function computeActionExceptDelete(
         };
     }
 
-    const kind = getResourceKind(resObj);
-    if (kind == null) {
-        throw new Error(`Cannot create action for unknown kind ${resObj.kind}`);
-    }
-
-    if (specsEqual(kind, resObj.spec, manifest.spec)) return;
+    if (info.specsEqual(resObj.spec, manifest.spec)) return;
 
     return {
         description: `${K8sAction.replacing} ${res.props.kind} ${res.props.key}`,
@@ -392,7 +352,8 @@ class K8sPluginImpl implements K8sPlugin {
 
         for (const { configJSON, reply } of observedResources(obs)) {
             if (resourceShouldExist({ configJSON, reply }, newElems)) continue;
-            const apiName = kindToAPIPathPart(reply.kind);
+            const info = getResourceInfo(reply.kind);
+            const apiName = info.apiName;
 
             ret.push({
                 description: `Destroying ${reply.kind} ${reply.metadata.name}`,

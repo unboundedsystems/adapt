@@ -1,7 +1,7 @@
 import { AdaptElement, PrimitiveComponent } from "@usys/adapt";
 import * as ctr from "../Container";
 
-export interface K8sContainerProps {
+export interface ContainerSpec {
     name: string; //Must be unique within pod
     image: string;
 
@@ -12,6 +12,8 @@ export interface K8sContainerProps {
     ports?: ContainerPort[];
     workingDir?: string;
 }
+
+export interface K8sContainerProps extends ContainerSpec {}
 
 export interface ContainerPort {
     // Number of port to expose on the pod's IP address. This must be a

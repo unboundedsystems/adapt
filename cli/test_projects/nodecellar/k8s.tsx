@@ -25,7 +25,7 @@ export const k8sStyle =
         ))}
 
         {NetworkService} {rule<NetworkServiceProps>((props) => (
-            <k8s.Service {...k8s.k8sServiceProps(props)} />
+            <k8s.Service config={kubeconfig} {...k8s.k8sServiceProps(props)} />
         ))}
 
     </Style>;

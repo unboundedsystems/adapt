@@ -1,11 +1,19 @@
-import { PrimitiveComponent } from "@usys/adapt";
+import Adapt, { Component } from "@usys/adapt";
+import * as stringify from "json-stable-stringify";
+import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
+import { Kind, Resource, ResourceService } from "./Resource";
 
 // FIXME(mark): Remove comment when working
 // CLI that exposes a port
+// tslint:disable-next-line:max-line-length
 // kubectl expose pod fixme-manishv-nodecellar.nodecellar-compute.nodecellar-compute0 --port 8080 --target-port 8080 --name nodecellar
 
-export interface ServiceProps {
+export interface ServiceProps extends ServiceSpec {
+    config: any; //Legal configuration loaded from kubeconfig
+}
+
+export interface ServiceSpec {
     // clusterIP is the IP address of the service and is usually assigned
     // randomly by the master. If an address is specified manually and is not
     // in use by others, it will be allocated to the service; otherwise,
@@ -122,7 +130,7 @@ export interface ServicePort {
     targetPort?: number | string;
 }
 
-export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): ServiceProps {
+export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): ServiceSpec {
     if (typeof abstractProps.port !== "number") throw new Error(`Service: Port string not yet implemented`);
     if (abstractProps.ip != null) throw new Error(`Service: IP not yet implemented`);
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
@@ -134,12 +142,114 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): Service
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 
-    const ret: ServiceProps = {
+    const ret: ServiceSpec = {
         ports: [port],
     };
 
     return ret;
 }
 
-export class Service extends PrimitiveComponent<ServiceProps> {
+export class Service extends Component<ServiceProps> {
+    static defaultProps = {
+        sessionAffinity: "None",
+        type: "ClusterIP",
+    };
+
+    build() {
+        const manifest = makeSvcManifest(this.props);
+        return (
+            <Resource
+                key={this.props.key}
+                config={this.props.config}
+                kind={manifest.kind}
+                metadata={manifest.metadata}
+                spec={manifest.spec}
+            />);
+    }
 }
+
+/*
+ * Plugin info
+ */
+const knownServiceSpecPaths = [
+    // FIXME(mark): Requires more complex compare logic
+    //"clusterIP",
+
+    "externalIPs",  // array
+    "externalName",
+    "externalTrafficPolicy",
+    "healthCheckNodePort",
+    "loadBalancerIP",
+    "loadBalancerSourceRanges",  // array
+    "ports",  // array
+    "publishNotReadyAddresses",
+    "selector", // object
+    "sessionAffinity",
+    //"sessionAffinityConfig", // object
+    "type",
+];
+
+type ArrayKeys<T> = { [K in keyof T]: Required<T>[K] extends any[] ? K : never }[keyof T];
+/**
+ * Given an object, will sort any properties of that object that are arrays.
+ * The sort of each array happens in-place, modifying the original arrays.
+ * @param obj An object whose array properties will be sorted
+ * @param keys  The specific property names to sort
+ */
+function sortArrays<T extends object>(obj: T, keys: ArrayKeys<T>[]): void {
+    for (const k of keys) {
+        const arr = obj[k];
+        if (arr === undefined) continue;
+        if (!Array.isArray(arr)) throw new Error(`Unable to sort non-array (key=${k})`);
+        if (arr.length === 0) continue;
+        if (typeof arr[0] === "string") arr.sort();
+        else {
+            arr.sort((a, b) => {
+                a = stringify(a);
+                b = stringify(b);
+                return a === b ? 0 :
+                    a < b ? -1 : 1;
+            });
+        }
+    }
+}
+
+function canonicalize(spec: ServiceSpec): ServiceSpec {
+    const s = pick(spec, knownServiceSpecPaths) as ServiceSpec;
+    sortArrays(s, [
+        "externalIPs",
+        "loadBalancerSourceRanges",
+        "ports",
+    ]);
+    return s;
+}
+
+function serviceSpecsEqual(spec1: ServiceSpec, spec2: ServiceSpec) {
+    spec1 = canonicalize(spec1);
+    spec2 = canonicalize(spec2);
+
+    return isEqual(spec1, spec2);
+}
+
+function makeSvcManifest(props: ServiceProps): ResourceService {
+    const { config, ...spec } = props;
+
+    // Explicit default for ports.protocol
+    if (spec.ports) {
+        for (const p of spec.ports) {
+            if (p.protocol === undefined) p.protocol = "TCP";
+        }
+    }
+    return  {
+        kind: Kind.service,
+        metadata: {},
+        spec,
+        config,
+    };
+}
+
+export const serviceResourceInfo = {
+    kind: Kind.service,
+    apiName: "services",
+    specsEqual: serviceSpecsEqual,
+};

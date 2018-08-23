@@ -1,6 +1,6 @@
 import { k8sutils, minikube } from "@usys/testutils";
 const { startTestMinikube, stopTestMinikube } = minikube;
-const { deleteAllPods, getK8sConfig } = k8sutils;
+const { deleteAll, getK8sConfig } = k8sutils;
 
 export interface MinikubeInstance {
     kubeconfig?: object;
@@ -25,5 +25,8 @@ after(async function () {
 
 afterEach(async function () {
     this.timeout(20 * 1000);
-    if (mkInstance.k8sConfig) await deleteAllPods(mkInstance.k8sConfig);
+    if (mkInstance.k8sConfig) {
+        await deleteAll("pods", mkInstance.k8sConfig);
+        await deleteAll("services", mkInstance.k8sConfig);
+    }
 });
