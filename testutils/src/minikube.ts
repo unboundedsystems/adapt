@@ -15,6 +15,7 @@ export interface MinikubeInfo {
     network: Docker.Network;
     kubeconfig: object;
     stop: () => Promise<void>;
+    exec: (command: string[]) => Promise<string>;
 }
 
 async function dockerExec(container: Docker.Container, command: string[]): Promise<string> {
@@ -225,7 +226,8 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
 
         stops.unshift(async () => removeFromNetwork(self, network));
 
-        return { docker, container, network, kubeconfig, stop };
+        const exec = (command: string[]) => dockerExec(container, command);
+        return { docker, container, network, kubeconfig, stop, exec };
     } catch (e) {
         await stop();
         throw e;
