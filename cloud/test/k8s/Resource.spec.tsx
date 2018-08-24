@@ -10,7 +10,7 @@ import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } fro
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "./run_minikube";
 
-const { getClient, getPods } = k8sutils;
+const { getAll } = k8sutils;
 
 describe("k8s Resource Component Tests", () => {
     it("Should Instantiate Resource", () => {
@@ -55,14 +55,14 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
-    let kubeconfig: object;
-    let k8sConfig: object;
+    let kubeconfig: k8sutils.KubeConfig;
+    let client: k8sutils.KubeClient;
 
     before(() => {
         if (mkInstance.kubeconfig == null ||
-            mkInstance.k8sConfig == null) throw new Error(`Minikube not running?`);
+            mkInstance.client == null) throw new Error(`Minikube not running?`);
         kubeconfig = mkInstance.kubeconfig;
-        k8sConfig = mkInstance.k8sConfig;
+        client = mkInstance.client;
     });
 
     beforeEach(async () => {
@@ -165,7 +165,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
 
         await act(actions);
 
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
         should(pods[0].metadata.annotations).containEql({ adaptName: dom.id });
@@ -206,7 +206,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
 
         await act(actions);
 
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
         should(pods[0].spec.containers).length(1);
@@ -255,7 +255,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         await act(actions);
 
         await sleep(6); // Sleep longer than termination grace period
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         if (pods.length !== 0) {
             should(pods.length).equal(1);
             should(pods[0].metadata.deletionGracePeriod).not.Undefined();
@@ -281,7 +281,6 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             }
         };
 
-        const client = await getClient(k8sConfig);
         const result = await client.api.v1.namespaces("default").pods.post({ body: manifest });
         should(result.statusCode).equal(201);
 

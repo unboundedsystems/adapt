@@ -108,14 +108,14 @@ describe("k8s Service Operation Tests", function () {
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
-    let kubeconfig: object;
-    let k8sConfig: object;
+    let kubeconfig: k8sutils.KubeConfig;
+    let client: k8sutils.KubeClient;
 
     before(() => {
         if (mkInstance.kubeconfig == null ||
-            mkInstance.k8sConfig == null) throw new Error(`Minikube not running?`);
+            mkInstance.client == null) throw new Error(`Minikube not running?`);
         kubeconfig = mkInstance.kubeconfig;
-        k8sConfig = mkInstance.k8sConfig;
+        client = mkInstance.client;
     });
 
     beforeEach(async () => {
@@ -195,7 +195,7 @@ describe("k8s Service Operation Tests", function () {
 
         await act(actions);
 
-        const svcs = await getAll("services", k8sConfig);
+        const svcs = await getAll("services", { client });
         should(svcs).length(1);
         should(svcs[0].metadata.name).equal(resourceElementToName(dom));
 
@@ -226,7 +226,7 @@ describe("k8s Service Operation Tests", function () {
 
         await act(actions);
 
-        const svcs = await getAll("services", k8sConfig);
+        const svcs = await getAll("services", { client });
         should(svcs).length(1);
         should(svcs[0].metadata.name).equal(resourceElementToName(dom));
         should(svcs[0].spec.ports[0].targetPort).equal(9002);
@@ -257,7 +257,7 @@ describe("k8s Service Operation Tests", function () {
         await act(actions);
 
         await sleep(10);
-        const svcs = await getAll("services", k8sConfig);
+        const svcs = await getAll("services", { client });
         should(svcs).have.length(0);
 
         await plugin.finish();

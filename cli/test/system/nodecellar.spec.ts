@@ -7,7 +7,7 @@ import { pkgRootDir } from "../common/paths";
 
 const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
 
-const { deleteAllPods, getK8sConfig, getPods } = k8sutils;
+const { deleteAll, getK8sConfig, getAll, getClient } = k8sutils;
 const { startTestMinikube, stopTestMinikube } = minikube;
 
 const ncTestChain =
@@ -26,8 +26,8 @@ const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 describe("Nodecellar system tests", function () {
     this.timeout(60 * 1000);
-    let kubeconfig: object;
-    let k8sConfig: object;
+    let kubeconfig: k8sutils.KubeConfig;
+    let client: k8sutils.KubeClient;
     let minikubeInfo: minikube.MinikubeInfo;
 
     const copyDir = path.join(projectsRoot, "nodecellar");
@@ -35,10 +35,13 @@ describe("Nodecellar system tests", function () {
 
     before(async function () {
         this.timeout(20 * 1000);
+
         minikubeInfo = await startTestMinikube();
         kubeconfig = minikubeInfo.kubeconfig;
+        const k8sConfig = getK8sConfig(kubeconfig);
+        client = await getClient(k8sConfig);
+
         await fs.outputJson("kubeconfig.json", kubeconfig);
-        k8sConfig = getK8sConfig(kubeconfig);
     });
 
     after(async () => {
@@ -49,7 +52,8 @@ describe("Nodecellar system tests", function () {
 
     afterEach(async function () {
         this.timeout(2 * 1000);
-        await deleteAllPods(k8sConfig);
+        await deleteAll("pods", { client });
+        await deleteAll("services", { client });
     });
 
     ncTestChain
@@ -62,7 +66,7 @@ describe("Nodecellar system tests", function () {
 
         let pods: any;
         for (let i = 0; i < 120; i++) {
-            pods = await getPods(k8sConfig);
+            pods = await getAll("pods", { client });
             expect(pods).to.have.length(1);
             expect(pods[0].status.containerStatuses).to.have.length(2);
             if ((pods[0].status.phase === "Running") &&
