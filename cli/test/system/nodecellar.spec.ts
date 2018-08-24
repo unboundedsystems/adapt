@@ -68,7 +68,12 @@ describe("Nodecellar system tests", function () {
         for (let i = 0; i < 120; i++) {
             pods = await getAll("pods", { client });
             expect(pods).to.have.length(1);
-            expect(pods[0].status.containerStatuses).to.have.length(2);
+            expect(pods[0] && pods[0].status).to.be.an("object").and.not.null;
+
+            // containerStatuses can take a moment to populate
+            if (pods[0].status.containerStatuses == null) continue;
+
+            expect(pods[0].status.containerStatuses).to.be.an("array").with.length(2);
             if ((pods[0].status.phase === "Running") &&
                 (pods[0].status.containerStatuses[0].ready) &&
                 (pods[0].status.containerStatuses[1].ready)) {
