@@ -15,6 +15,7 @@ export interface MinikubeInfo {
     network: Docker.Network;
     kubeconfig: object;
     stop: () => Promise<void>;
+    exec: (command: string[]) => Promise<string>;
 }
 
 async function dockerExec(container: Docker.Container, command: string[]): Promise<string> {
@@ -141,24 +142,30 @@ async function waitFor(
 
 async function waitForKubeConfig(docker: Docker, container: Docker.Container): Promise<object | undefined> {
     let config: object | undefined;
-    await waitFor(20, 5, "Timed out waiting for kubeconfig", async () => {
+    await waitFor(100, 1, "Timed out waiting for kubeconfig", async () => {
         try {
             config = await getKubeconfig(docker, container);
             return true;
         } catch (err) {
-            if (! /exited with error/.test(err.message)) throw err;
-            return false;
+            if (/exited with error/.test(err.message) ||
+                /Invalid kubeconfig/.test(err.message)) return false;
+            throw err;
         }
     });
     return config;
 }
 
 async function waitForMiniKube(container: Docker.Container) {
-    await waitFor(20, 5, "Timed out waiting for Minikube", async () => {
+    await waitFor(100, 1, "Timed out waiting for Minikube", async () => {
         try {
             const statusColor = await dockerExec(container, ["kubectl", "cluster-info"]);
             const status = stripAnsi(statusColor) as string;
-            if (/^Kubernetes master is running at/.test(status)) {
+            if (! /^Kubernetes master is running at/.test(status)) {
+                return false;
+            }
+
+            const accts = await dockerExec(container, ["kubectl", "get", "serviceaccounts"]);
+            if (/^default\s/m.test(accts)) {
                 return true;
             }
         } catch (err) {
@@ -220,7 +227,8 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
 
         stops.unshift(async () => removeFromNetwork(self, network));
 
-        return { docker, container, network, kubeconfig, stop };
+        const exec = (command: string[]) => dockerExec(container, command);
+        return { docker, container, network, kubeconfig, stop, exec };
     } catch (e) {
         await stop();
         throw e;

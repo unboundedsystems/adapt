@@ -11,7 +11,7 @@ import Adapt, {
 import * as ld from "lodash";
 import * as should from "should";
 
-import { k8sutils, minikube } from "@usys/testutils";
+import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
@@ -27,9 +27,9 @@ import {
     resourceElementToName
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { mkInstance } from "./run_minikube";
 
-const { deleteAllPods, getK8sConfig, getPods } = k8sutils;
-const { startTestMinikube, stopTestMinikube } = minikube;
+const { getAll } = k8sutils;
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
@@ -108,12 +108,18 @@ describe("k8s Pod Component Tests", () => {
       <prop name="spec">{
   "containers": [
     {
+      "env": [],
+      "image": "alpine",
       "name": "one",
-      "image": "alpine"
+      "ports": [],
+      "tty": false
     },
     {
+      "env": [],
+      "image": "alpine",
       "name": "two",
-      "image": "alpine"
+      "ports": [],
+      "tty": false
     }
   ]
 }</prop>
@@ -154,20 +160,14 @@ describe("k8s Pod Operation Tests", function () {
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
-    let kubeconfig: object;
-    let k8sConfig: object;
-    let minikubeInfo: minikube.MinikubeInfo;
+    let kubeconfig: k8sutils.KubeConfig;
+    let client: k8sutils.KubeClient;
 
-    before(async () => {
-        minikubeInfo = await startTestMinikube();
-        kubeconfig = minikubeInfo.kubeconfig;
-        k8sConfig = getK8sConfig(kubeconfig);
-    });
-
-    after(async () => {
-        if (minikubeInfo != null) {
-            await stopTestMinikube(minikubeInfo);
-        }
+    before(() => {
+        if (mkInstance.kubeconfig == null ||
+            mkInstance.client == null) throw new Error(`Minikube not running?`);
+        kubeconfig = mkInstance.kubeconfig;
+        client = mkInstance.client;
     });
 
     beforeEach(async () => {
@@ -176,10 +176,6 @@ describe("k8s Pod Operation Tests", function () {
         options = {
             log: new Console(logs, logs).log
         };
-    });
-
-    afterEach(async () => {
-        await deleteAllPods(k8sConfig);
     });
 
     it("Should compute actions with no pods from k8s", async () => {
@@ -251,7 +247,7 @@ describe("k8s Pod Operation Tests", function () {
 
         await act(actions);
 
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
 
@@ -283,7 +279,7 @@ describe("k8s Pod Operation Tests", function () {
 
         await act(actions);
 
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         should(pods).length(1);
         should(pods[0].metadata.name).equal(resourceElementToName(dom));
         should(pods[0].spec.containers).length(1);
@@ -324,7 +320,7 @@ describe("k8s Pod Operation Tests", function () {
         await act(actions);
 
         await sleep(6); // Sleep longer than termination grace period
-        const pods = await getPods(k8sConfig);
+        const pods = await getAll("pods", { client });
         if (pods.length !== 0) {
             should(pods.length).equal(1);
             should(pods[0].metadata.deletionGracePeriod).not.Undefined();

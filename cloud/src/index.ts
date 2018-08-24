@@ -4,6 +4,7 @@ export * from "./DockerHost";
 export * from "./LocalCompute";
 export * from "./LocalContainer";
 export * from "./LocalDockerHost";
+export * from "./NetworkService";
 
 import * as aws from "./aws";
 import * as cloudify from "./cloudify";

@@ -13,7 +13,7 @@ import { Message, MessageType } from "./utils";
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
 export interface AdaptElement<P extends object = AnyProps> {
-    readonly props: P;
+    readonly props: P & BuiltinProps;
     readonly componentType: ComponentType<P>;
 }
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
@@ -76,7 +76,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     cleanup?: (this: this) => void;
     private stateUpdates: Partial<State>[] = [];
 
-    constructor(readonly props: Props) {
+    constructor(readonly props: Props & BuiltinProps) {
         registerConstructor(this.constructor);
     }
 
@@ -123,16 +123,16 @@ export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
-    (props: P): AdaptElementOrNull;
+    (props: P & BuiltinProps): AdaptElementOrNull;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
-    new(props: P): Component<P, S>;
+    new(props: P & BuiltinProps): Component<P, S>;
 }
 export interface DeferredClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
-    new(props: P): DeferredComponent<P, S>;
+    new(props: P & BuiltinProps): DeferredComponent<P, S>;
 }
 export interface PrimitiveClassComponentTyp<P extends object> extends ComponentStatic<P> {
-    new(props: P): PrimitiveComponent<P>;
+    new(props: P & BuiltinProps): PrimitiveComponent<P>;
 }
 
 export type ComponentType<P extends object> =
@@ -176,7 +176,7 @@ export interface WithMatchProps {
 }
 
 export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
-    readonly props: Props & WithChildren & Required<WithMatchProps>;
+    readonly props: Props & BuiltinProps & WithChildren & Required<WithMatchProps>;
 
     stateNamespace: StateNamespace = [];
     mounted = false;
@@ -185,7 +185,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 
     constructor(
         readonly componentType: ComponentType<Props>,
-        props: Props,
+        props: Props & BuiltinProps,
         children: any[]) {
 
         this.props = {
@@ -257,7 +257,7 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferr
     component: PrimitiveComponent<Props> | null;
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
-        props: Props,
+        props: Props & BuiltinProps,
         children: any[]
     ) {
         super(componentType, props, children);
@@ -314,7 +314,7 @@ export function createElement<Props extends object>(
         tySup.ExcludeInterface<Props, tySup.Children<any>>;
 
     //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren;
+    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren & BuiltinProps;
     if (ctor.defaultProps) {
         // The 'as any' below is due to open TS bugs/PR:
         // https://github.com/Microsoft/TypeScript/pull/13288

@@ -41,6 +41,7 @@
     "@types/mocha": "^5.2.1",
     "@types/node": "^8.10.20",
     "@types/semver": "^5.5.0",
+    "@usys/testutils": "0.0.1",
     "@usys/utils": "0.0.1",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
