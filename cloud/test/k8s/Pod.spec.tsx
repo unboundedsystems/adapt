@@ -41,7 +41,7 @@ describe("k8s Pod Component Tests", () => {
         should(pod).not.Undefined();
     });
 
-    it("Should enforce unique container names", () => {
+    it("Should enforce unique container names", async () => {
         const pod =
             <Pod key="test" config={{}}>
                 <K8sContainer name="container" image="node:latest" />
@@ -50,7 +50,7 @@ describe("k8s Pod Component Tests", () => {
             </Pod>;
 
         should(pod).not.Undefined();
-        const { contents: dom } = Adapt.build(pod, null);
+        const { contents: dom } = await Adapt.build(pod, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -72,7 +72,7 @@ describe("k8s Pod Component Tests", () => {
         should(err.props.children).match(/dupContainer/);
     });
 
-    it("Should translate from abstract to k8s", () => {
+    it("Should translate from abstract to k8s", async () => {
         const absDom =
             <abs.Compute>
                 <abs.Container name="one" dockerHost="" image="alpine" />
@@ -89,7 +89,7 @@ describe("k8s Pod Component Tests", () => {
                     </Pod>
                 ))}
             </Style>;
-        const result = Adapt.build(absDom, style);
+        const result = await Adapt.build(absDom, style);
         const dom = result.contents;
         if (dom == null) {
             should(dom).not.be.Null();
@@ -133,7 +133,7 @@ describe("k8s Pod Component Tests", () => {
 });
 
 async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = Adapt.build(elem, null);
+    const { messages, contents: dom } = await Adapt.build(elem, null);
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();

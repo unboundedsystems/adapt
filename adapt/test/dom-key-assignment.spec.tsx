@@ -25,7 +25,7 @@ function checkChildKeys(element: Adapt.AdaptElement, refKeys: string[]) {
 describe("DOM Key Assignment Tests", () => {
     it("Should assign key to root", () => {
         const root = <Group />;
-        const { contents: dom } = Adapt.build(root, null);
+        const { contents: dom } = Adapt.buildOnce(root, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -44,7 +44,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Dummy />
             </Group>;
 
-        const { contents: dom } = Adapt.build(root, null);
+        const { contents: dom } = Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();
@@ -63,7 +63,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Empty id={2} />
             </Group>;
 
-        const { contents: dom } = Adapt.build(root, null);
+        const { contents: dom } = Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();
@@ -82,7 +82,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Empty id={2} />
             </Group>;
 
-        const { contents: dom } = Adapt.build(root, null);
+        const { contents: dom } = Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();

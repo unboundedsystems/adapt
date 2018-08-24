@@ -69,7 +69,7 @@ function ReturnsNull(_props: {}): AdaptElementOrNull {
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", () => {
         const orig = <Adapt.Group key="root" />;
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
 
         const ref = deepFilterElemsToPublic(orig);
 
@@ -88,7 +88,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should validate primitive component", () => {
         const orig = <AlwaysErrorPrimitive key="root" />;
-        const { contents: dom, messages } = Adapt.build(orig, null);
+        const { contents: dom, messages } = Adapt.buildOnce(orig, null);
 
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
@@ -112,7 +112,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="a" id={1} />
         </MakeGroup>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -129,7 +129,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="b" id={2} />
         </MakeGroup>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -146,7 +146,7 @@ describe("DOM Basic Build Tests", () => {
             <MakeMakeEmpty key="b" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -164,7 +164,7 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="2" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -179,7 +179,7 @@ describe("DOM Basic Build Tests", () => {
             <DeferredFlex key="1" />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -197,7 +197,7 @@ describe("DOM Basic Build Tests", () => {
             </DeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -221,7 +221,7 @@ describe("DOM Basic Build Tests", () => {
             </NonDeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -238,7 +238,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should use defaultProps", () => {
         const orig = <WithDefaults />;
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -249,7 +249,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should override defaultProps", () => {
         const orig = <WithDefaults prop1={1234} />;
-        const { contents: dom } = Adapt.build(orig, null);
+        const { contents: dom } = Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -263,7 +263,7 @@ describe("DOM Basic Build Tests", () => {
             <Abstract id={10}>
                 <Empty id={11} />
             </Abstract>;
-        const res = Adapt.build(orig, null);
+        const res = Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -284,7 +284,7 @@ describe("DOM Basic Build Tests", () => {
             <SFCThrows id={10}>
                 <Empty id={11} />
             </SFCThrows>;
-        const res = Adapt.build(orig, null);
+        const res = Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -299,7 +299,7 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should build DOM that returns null", () => {
         const orig = <ReturnsNull />;
-        const res = Adapt.build(orig, null);
+        const res = Adapt.buildOnce(orig, null);
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
@@ -313,7 +313,7 @@ describe("DOM Basic Build Tests", () => {
             <Style>
                 {Abstract} {rule(() => <ReturnsNull />)}
             </Style>;
-        const res = Adapt.build(orig, style);
+        const res = Adapt.buildOnce(orig, style);
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
@@ -325,7 +325,7 @@ describe("DOM Shallow Build Tests", () => {
         const orig = <MakeGroup key="orig">{body}</MakeGroup>;
         const expected = deepFilterElemsToPublic(<Adapt.Group key="orig-Group" >{body}</Adapt.Group>);
 
-        const { contents: dom } = Adapt.build(orig, null, { shallow: true });
+        const { contents: dom } = Adapt.buildOnce(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -335,7 +335,7 @@ describe("DOM Shallow Build Tests", () => {
 
     it("Should respect depth 0 as no-op", () => {
         const orig = <MakeMakeEmpty id={1} />;
-        const { contents: dom } = Adapt.build(orig, null, { depth: 0 });
+        const { contents: dom } = Adapt.buildOnce(orig, null, { depth: 0 });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -359,7 +359,7 @@ describe("DOM Shallow Build Tests", () => {
                 <Empty key="outer-Empty" id={2} />
             </Adapt.Group>);
 
-        const { contents: dom } = Adapt.build(orig, null, { depth: 2 });
+        const { contents: dom } = Adapt.buildOnce(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;

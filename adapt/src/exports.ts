@@ -28,6 +28,7 @@ export {
 
 export {
     build,
+    buildOnce,
     BuildOutput,
     DomPath
 } from "./dom";

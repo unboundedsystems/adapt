@@ -1,5 +1,5 @@
 import * as should from "should";
-import Adapt, { build, createContext, Group } from "../src";
+import Adapt, { buildOnce, createContext, Group } from "../src";
 
 import { DomError } from "../src/builtin_components";
 import { deepFilterElemsToPublic, Empty } from "./testlib";
@@ -13,7 +13,7 @@ describe("Context basic tests", () => {
                 {(val) => <Empty id={val} />}
             </TestContext.Consumer>;
 
-        const { contents: dom } = build(orig, null);
+        const { contents: dom } = buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -33,7 +33,7 @@ describe("Context basic tests", () => {
                 </TestContext.Consumer>
             </TestContext.Provider>;
 
-        const { contents: dom } = build(orig, null);
+        const { contents: dom } = buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -64,7 +64,7 @@ describe("Context basic tests", () => {
                 </TestContext.Consumer>
             </Group>;
 
-        const { contents: dom } = build(orig, null);
+        const { contents: dom } = buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -90,7 +90,7 @@ describe("Context basic tests", () => {
                 <Empty id={1} />
                 <Empty id={2} />
             </TestContext.Provider>;
-        const { contents: dom } = build(orig, null);
+        const { contents: dom } = buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -115,7 +115,7 @@ describe("Context basic tests", () => {
                 <Empty id={1} />
                 <Empty id={2} />
             </TestContext.Consumer>;
-        const { contents: dom } = build(orig, null);
+        const { contents: dom } = buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;

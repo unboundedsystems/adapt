@@ -28,8 +28,8 @@ function checkDom(dom: AdaptElement | null, xmlFilename: string) {
 
 describe("NodeCellar", () => {
 
-    it("Should build without style", () => {
-        const result = build(<Nodecellar />, null);
+    it("Should build without style", async () => {
+        const result = await build(<Nodecellar />, null);
         checkDom(result.contents, "nodecellar_nostyle.xml");
 
         // Make sure there are 4 warning messages in the build
@@ -44,8 +44,8 @@ describe("NodeCellar", () => {
         }
     });
 
-    it("Should build local style", () => {
-        const result = build(<Nodecellar />, localStyle);
+    it("Should build local style", async () => {
+        const result = await build(<Nodecellar />, localStyle);
         checkDom(result.contents, "nodecellar_local.xml");
         result.messages.length.should.equal(0);
     });

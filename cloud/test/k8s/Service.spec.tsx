@@ -35,7 +35,7 @@ describe("k8s Service Component Tests", () => {
         should(svc).not.Undefined();
     });
 
-    it("Should translate from abstract to k8s", () => {
+    it("Should translate from abstract to k8s", async () => {
         const absDom =
             <abs.NetworkService port={8080} />;
         const style =
@@ -44,7 +44,7 @@ describe("k8s Service Component Tests", () => {
                     <Service {...k8sServiceProps(props)} config={{}} />
                 ))}
             </Style>;
-        const result = Adapt.build(absDom, style);
+        const result = await Adapt.build(absDom, style);
         const dom = result.contents;
         if (dom == null) {
             should(dom).not.be.Null();
@@ -82,7 +82,7 @@ describe("k8s Service Component Tests", () => {
 });
 
 async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = Adapt.build(elem, null);
+    const { messages, contents: dom } = await Adapt.build(elem, null);
     if (dom == null) {
         should(dom).not.Null();
         throw should(dom).not.Undefined();

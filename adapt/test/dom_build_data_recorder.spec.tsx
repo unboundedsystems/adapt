@@ -3,7 +3,7 @@ import * as Adapt from "../src";
 
 // tslint:disable-next-line:no-duplicate-imports
 import {
-    build as AdaptBuild,
+    buildOnce as AdaptBuild,
     BuildOp,
     BuildOpStep,
     cloneElement,

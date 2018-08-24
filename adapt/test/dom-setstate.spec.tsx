@@ -51,7 +51,7 @@ describe("DOM setState Tests", () => {
 
         const dom = <StateUpdater key="root" newState={newState} />;
 
-        Adapt.build(dom, null, { stateStore: state });
+        Adapt.buildOnce(dom, null, { stateStore: state });
 
         const actual = state.elementState(["root"]);
         should(actual).eql(newState);
@@ -78,7 +78,7 @@ describe("DOM setState Tests", () => {
             stateObserver={stateObserver} />;
 
         state.setElementState(["root"], prevState);
-        Adapt.build(dom, null, { stateStore: state });
+        Adapt.buildOnce(dom, null, { stateStore: state });
         const actual = state.elementState(["root"]);
 
         should(actual).eql(nextState);
@@ -97,7 +97,7 @@ describe("DOM setState Tests", () => {
                 <StateUpdater key="updater" newState={newState} />
             </MakeGroup>;
 
-        Adapt.build(dom, null, { stateStore: state });
+        Adapt.buildOnce(dom, null, { stateStore: state });
 
         const actual = state.elementState(["root", "root-Group", "updater"]);
         should(actual).eql(newState);
@@ -121,7 +121,7 @@ describe("DOM setState Tests", () => {
             initialState={initialState}
             prevObserver={observer} />;
 
-        Adapt.build(dom, null, { stateStore: state });
+        Adapt.buildOnce(dom, null, { stateStore: state });
         const actual = state.elementState(["root"]);
 
         should(actual).eql(nextState);
