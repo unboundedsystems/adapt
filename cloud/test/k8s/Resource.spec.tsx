@@ -10,7 +10,7 @@ import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } fro
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "./run_minikube";
 
-const { getAll } = k8sutils;
+const { deleteAll, getAll } = k8sutils;
 
 describe("k8s Resource Component Tests", () => {
     it("Should Instantiate Resource", () => {
@@ -290,6 +290,10 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const actions = plugin.analyze(null, dom, obs);
         should(actions.length).equal(0);
         await plugin.finish();
+
+        // The normal afterEach will only delete pods that have an adaptName,
+        // so go ahead and clean up the unmanaged pod here.
+        await deleteAll("pods", { client, onlyAdapt: false });
     });
 
 });
