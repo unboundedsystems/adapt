@@ -28,7 +28,7 @@ describe("k8s Resource Component Tests", () => {
 });
 
 async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = Adapt.build(elem, null);
+    const { messages, contents: dom } = await Adapt.build(elem, null);
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();

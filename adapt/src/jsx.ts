@@ -219,13 +219,17 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.mounted = true;
     }
 
-    postBuild(stateStore: StateStore) {
+    postBuild(stateStore: StateStore): { stateChanged: boolean } {
+        let stateChanged = false;
         if (this.component != null) {
             const updates = ((this.component as any) as { stateUpdates: AnyState[] }).stateUpdates;
             if (updates.length > 0) {
-                applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
+                const updated =
+                    applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
+                stateChanged = stateChanged || updated;
             }
         }
+        return { stateChanged };
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }

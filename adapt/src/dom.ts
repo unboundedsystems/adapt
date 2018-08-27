@@ -46,6 +46,7 @@ class BuildResults {
     cleanups: CleanupFunc[] = [];
     mountedElements: AdaptElement[] = [];
     builtElements: AdaptElement[] = [];
+    stateChanged = false;
 
     constructor(
         contents?: AdaptElementOrNull,
@@ -67,6 +68,7 @@ class BuildResults {
         this.mountedElements.push(...other.mountedElements);
         this.builtElements.push(...other.builtElements);
         this.buildErr = this.buildErr || other.buildErr;
+        this.stateChanged = this.stateChanged || other.stateChanged;
         other.messages = [];
         other.cleanups = [];
         other.builtElements = [];
@@ -344,14 +346,22 @@ export interface BuildOutput {
     contents: AdaptElementOrNull;
     messages: Message[];
 }
-export function build(
+export async function build(
+    root: AdaptElement,
+    styles: AdaptElementOrNull,
+    options?: BuildOptions): Promise<BuildOutput> {
+
+    const styleList = css.buildStyles(styles);
+    return pathBuild([root], styleList, options);
+}
+
+export function buildOnce(
     root: AdaptElement,
     styles: AdaptElement | null,
     options?: BuildOptions): BuildOutput {
 
     const styleList = css.buildStyles(styles);
-
-    return pathBuild([root], styleList, options);
+    return pathBuildOnce([root], styleList, options);
 }
 
 function atDepth(options: BuildOptionsReq, depth: number) {
@@ -360,17 +370,56 @@ function atDepth(options: BuildOptionsReq, depth: number) {
     return depth >= options.depth;
 }
 
-function pathBuild(
+async function nextTick(): Promise<void> {
+    await new Promise((res) => {
+        process.nextTick(res);
+    });
+}
+
+async function pathBuild(
+    path: DomPath,
+    styles: css.StyleList,
+    optionsIn?: BuildOptions): Promise<BuildOutput> {
+
+    const options = { ...defaultBuildOptions, ...optionsIn };
+    const out = new BuildResults();
+
+    const iterOutput = pathBuildOnceGuts(path, styles, options);
+    out.contents = iterOutput.contents;
+    out.combine(iterOutput);
+    if (iterOutput.buildErr) {
+        return out;
+    }
+    if (out.stateChanged) {
+        await nextTick();
+        return pathBuild(path, styles, options);
+    }
+    return out;
+}
+
+function pathBuildOnce(
     path: DomPath,
     styles: css.StyleList,
     optionsIn?: BuildOptions): BuildOutput {
 
     const options = { ...defaultBuildOptions, ...optionsIn };
+    const result = pathBuildOnceGuts(path, styles, options);
+    return {
+        contents: result.contents,
+        messages: (result.messages) || []
+    };
+}
+
+function pathBuildOnceGuts(
+    path: DomPath,
+    styles: css.StyleList,
+    options: Required<BuildOptions>): BuildResults {
+
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
     let result: BuildResults;
     try {
-        result = realBuild(path, null, styles, options);
+        result = realBuildOnce(path, null, styles, options);
         result.cleanup();
     } catch (error) {
         options.recorder({ type: "error", error });
@@ -378,7 +427,7 @@ function pathBuild(
     }
 
     if (result.buildErr) {
-        return { contents: result.contents, messages: result.messages };
+        return result;
     }
 
     result.builtElements.map((elem) => {
@@ -395,19 +444,20 @@ function pathBuild(
     });
 
     if (result.buildErr) {
-        return { contents: result.contents, messages: result.messages };
+        return result;
     }
 
     options.recorder({ type: "done", root: result.contents });
     result.builtElements.map((elem) => {
         if (isElementImpl(elem)) {
-            elem.postBuild(options.stateStore);
+            const { stateChanged } = elem.postBuild(options.stateStore);
+            if (stateChanged) {
+                result.stateChanged = true;
+            }
         }
     });
-    return {
-        contents: result.contents,
-        messages: (result.messages) || [],
-    };
+
+    return result;
 }
 
 function buildChildren(
@@ -441,7 +491,7 @@ function buildChildren(
         if (isMountedElement(child)) return child; //Must be from a deferred build
         if (isElementImpl(child)) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = realBuild([...workingPath, child], newRoot.stateNamespace, styles, options, child);
+            const ret = realBuildOnce([...workingPath, child], newRoot.stateNamespace, styles, options, child);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
@@ -455,7 +505,7 @@ function buildChildren(
     return { newChildren, childBldResults: out };
 }
 
-function realBuild(
+function realBuildOnce(
     pathIn: DomPath,
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
@@ -510,7 +560,7 @@ function realBuild(
         if (newRoot !== null) {
             if (newRoot !== mountedElem) {
                 newPath = subLastPathElem(mountedPath, newRoot);
-                return realBuild(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
+                return realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
             }
         }
     } else {
@@ -548,7 +598,7 @@ function realBuild(
     if (atDepthFlag && newRoot.props.children === undefined) return out;
 
     //We must have deferred to get here
-    return realBuild(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
+    return realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
 }
 
 function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {

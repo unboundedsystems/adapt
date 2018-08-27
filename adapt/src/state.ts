@@ -2,6 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
+import { removeUndef } from "@usys/utils";
 import { AdaptElement, AnyProps, AnyState, Component, isElementImpl, isMountedElement } from "./jsx";
 import { StateNamespace } from "./state";
 
@@ -116,13 +117,12 @@ export function applyStateUpdate<
     }
 
     // https://github.com/Microsoft/TypeScript/pull/13288
-    const newState: Partial<S> = ld.pickBy(
-        // tslint:disable-next-line:no-object-literal-type-assertion
-        { ...(prev as any), ...(update as any) } as S,
-        (val) => val !== undefined);
+    // tslint:disable-next-line:no-object-literal-type-assertion
+    const newState = removeUndef({ ...(prev as any), ...(update as any) } as S);
 
     store.setElementState(path, newState);
-    writableState(component).state = newState as S; //FIXME(manishv) validate type of newState
+    writableState(component).state = newState;
+    return !ld.isEqual(prev, newState);
 }
 
 export function stateNamespaceForPath(path: AdaptElement[]): StateNamespace {

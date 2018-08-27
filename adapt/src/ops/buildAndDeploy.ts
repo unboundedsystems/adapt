@@ -75,7 +75,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     let buildMessages: Message[] = [];
 
     if (stack.root != null) {
-        const output = build(stack.root, stack.style, {stateStore});
+        const output = await build(stack.root, stack.style, {stateStore});
         newDom = output.contents;
         buildMessages = output.messages;
     }

@@ -17,7 +17,7 @@ describe("DOM CSS Build Tests", () => {
         const replace = <Empty id={1} />;
         const styles = <Adapt.Style>{Adapt.Group} {Adapt.rule(() => replace)}</Adapt.Style>;
 
-        const { contents: dom } = Adapt.build(orig, styles);
+        const { contents: dom } = Adapt.buildOnce(orig, styles);
 
         should(Adapt).not.Null();
         should(Adapt.isElement(dom)).True();
@@ -40,7 +40,7 @@ describe("DOM CSS Build Tests", () => {
             })}
         </Adapt.Style>;
 
-        const { contents: dom } = Adapt.build(orig, styles);
+        const { contents: dom } = Adapt.buildOnce(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -68,7 +68,7 @@ describe("DOM CSS Build Tests", () => {
                 {Empty} {Adapt.rule(fakes[2])}
             </Adapt.Style>;
 
-        const { contents: dom } = Adapt.build(orig, styles);
+        const { contents: dom } = Adapt.buildOnce(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -134,7 +134,7 @@ describe("DOM CSS find tests", () => {
                 <Empty id={11} />
                 {() => 1}
             </Foo>;
-        const res = Adapt.build(orig, null);
+        const res = Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
