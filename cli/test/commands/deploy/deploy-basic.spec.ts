@@ -323,11 +323,7 @@ async function checkStateUpdateState(count: number): Promise<void> {
 const stateIncrementTestChain =
     testBase
     .do(async () => {
-        const indexTsx = stateUpdateIndexTsx("{count: 1}",
-            `(prev: any, props) => {
-                if (prev === undefined) return props.initialState;
-                return { count: prev.count + 1 };
-            }`);
+        const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
         await createProject(basicPackageJson, indexTsx, "index.tsx");
     });
 
@@ -341,6 +337,8 @@ describe("Deploy update basic tests", () => {
     mochaTmpdir.all("adapt-cli-test-deploy");
 
     stateIncrementTestChain
+    .do(async () => fs.outputFile("index.tsx",
+        stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })")))
     .command(["deploy:create", "--init", "dev"])
 
     .it("Should create initial state", async (ctx) => {
@@ -359,6 +357,8 @@ describe("Deploy update basic tests", () => {
     });
 
     stateIncrementTestChain
+    .do(async () => fs.outputFile("index.tsx",
+        stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 2 })")))
     .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
     .it("Should create second state", async (ctx) => {
@@ -373,6 +373,8 @@ describe("Deploy update basic tests", () => {
     });
 
     stateIncrementTestChain
+    .do(async () => fs.outputFile("index.tsx",
+        stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 3 })")))
     .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
     .it("Should create third state", async (ctx) => {
