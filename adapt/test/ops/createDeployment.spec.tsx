@@ -105,6 +105,7 @@ export function create() {
 }
 
 registerPlugin({
+    name: "echo",
     module,
     create,
 });

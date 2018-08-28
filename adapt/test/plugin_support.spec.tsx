@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import { last } from "lodash";
 import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
@@ -172,6 +173,14 @@ function cleanupTestPlugins() {
     testPluginsLoaded = [];
 }
 
+function outputLines(logger: MockLogger): string[] {
+    const stdout = logger.stdout;
+    const lines = stdout.split("\n");
+    const l = last(lines);
+    if (l === "") lines.pop();
+    return lines;
+}
+
 describe("Plugin register and deploy", () => {
     let logger: MockLogger;
     const dom = <Group />;
@@ -194,17 +203,48 @@ describe("Plugin register and deploy", () => {
 
         const mgr = pluginSupport.createPluginManager(config);
         await mgr.start(null, dom, { logger });
-        const stdout = logger.stdout;
-        should(stdout).match(/EchoPlugin: start/);
+        const lines = outputLines(logger);
+        should(lines).have.length(1);
+        should(lines[0]).match(/EchoPlugin: start/);
     });
 
     it("Should error if no plugins registered", () => {
         should(() => pluginSupport.createPluginConfig()).throw(/No plugins registered/);
     });
 
-    it("Should throw on registering same plugin twice", async () => {
+    it("Should throw on registering same name, different create", async () => {
         await requireTestPlugin("echo_plugin");
-        return should(requireTestPlugin("echo_plugin", "second.js"))
-            .be.rejectedWith(/Attempt to register multiple plugins with the same name 'echo_plugin'/);
+        return should(requireTestPlugin("echo_plugin", "error.js"))
+            .be.rejectedWith(
+                /Attempt to register two plugins with the same name from the same package: echo \[echo_plugin@1.0.0]/);
+    });
+
+    it("Should register two plugins from same package", async () => {
+        await requireTestPlugin("echo_plugin");
+        await requireTestPlugin("echo_plugin", "second.js");
+        const config = pluginSupport.createPluginConfig();
+        should(config.plugins).size(2);
+
+        const mgr = pluginSupport.createPluginManager(config);
+        await mgr.start(null, dom, { logger });
+
+        const lines = outputLines(logger);
+        should(lines).have.length(2);
+        should(lines[0]).match(/EchoPlugin: start/);
+        should(lines[1]).match(/EchoPlugin: start/);
+    });
+
+    it("Should ignore second registration with same info", async () => {
+        await requireTestPlugin("echo_plugin");
+        await requireTestPlugin("echo_plugin", "duplicate.js");
+        const config = pluginSupport.createPluginConfig();
+        should(config.plugins).size(1);
+
+        const mgr = pluginSupport.createPluginManager(config);
+        await mgr.start(null, dom, { logger });
+
+        const lines = outputLines(logger);
+        should(lines).have.length(1);
+        should(lines[0]).match(/EchoPlugin: start/);
     });
 });

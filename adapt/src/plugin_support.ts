@@ -6,7 +6,8 @@ import { getAdaptContext } from "./ts";
 import { Logger } from "./type_support";
 import { MessageLogger } from "./utils";
 
-type RegisteredPlugins = Map<string, Plugin>; //string is the name of the plugin
+type PluginKey = string;
+type RegisteredPlugins = Map<PluginKey, Plugin>;
 
 export interface PluginConfig {
     plugins: RegisteredPlugins;
@@ -111,7 +112,7 @@ interface AnyObservation {
 }
 
 class PluginManagerImpl implements PluginManager {
-    plugins: Map<string, Plugin>;
+    plugins: Map<PluginKey, Plugin>;
     dom?: AdaptElementOrNull;
     prevDom?: AdaptElementOrNull;
     actions?: Action[];
@@ -226,44 +227,59 @@ class PluginManagerImpl implements PluginManager {
 }
 
 export interface PluginRegistration {
+    name: string;
     module: NodeModule;
     create(): Plugin;
 }
 
 interface PluginModule extends PluginRegistration {
     name: string;
+    packageName: string;
     version: string;
 }
 
-type PluginModules = Map<string, PluginModule>;
+function pluginKey(pMod: PluginModule): PluginKey {
+    return `${pMod.name} [${pMod.packageName}@${pMod.version}]`;
+}
+
+type PluginModules = Map<PluginKey, PluginModule>;
 
 export function registerPlugin(plugin: PluginRegistration) {
     const modules = getPluginModules(true);
     const pInfo = findPackageInfo(path.dirname(plugin.module.filename));
-    const mod = { ...plugin, ...pInfo };
+    const mod = {
+        ...plugin,
+        packageName: pInfo.name,
+        version: pInfo.version,
+    };
+    const key = pluginKey(mod);
 
-    const existing = modules.get(mod.name);
+    const existing = modules.get(key);
     if (existing !== undefined) {
-        throw new Error(`Attempt to register multiple plugins with the same name '${mod.name}'`);
+        // Ignore if they're registering the exact same info
+        if (existing.create === plugin.create) return;
+        throw new Error(
+            `Attempt to register two plugins with the same name from the ` +
+            `same package: ${key}`);
     }
-    modules.set(mod.name, mod);
+    modules.set(key, mod);
 }
 
 export function createPluginConfig(): PluginConfig {
-    const plugins: RegisteredPlugins = new Map<string, Plugin>();
+    const plugins: RegisteredPlugins = new Map<PluginKey, Plugin>();
     const modules = getPluginModules();
     if (modules == null) throw new Error(`No plugins registered`);
 
-    modules.forEach((mod) => {
-        plugins.set(mod.name, mod.create());
-    });
+    for (const [ key, mod ] of modules) {
+        plugins.set(key, mod.create());
+    }
     return { plugins };
 }
 
 function getPluginModules(create = false): PluginModules {
     const aContext = getAdaptContext();
     if (!aContext.pluginModules && create === true) {
-        aContext.pluginModules = new Map<string, PluginModule>();
+        aContext.pluginModules = new Map<PluginKey, PluginModule>();
     }
     return aContext.pluginModules;
 }

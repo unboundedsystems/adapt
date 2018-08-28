@@ -22,6 +22,7 @@ import { serviceResourceInfo } from "./Service";
 const k8s = require("kubernetes-client");
 
 registerPlugin({
+    name: "k8s",
     create: createK8sPlugin,
     module
 });
