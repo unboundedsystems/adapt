@@ -25,7 +25,7 @@ export function computeMountKey(elem: AdaptElement, parentStateNamespace: StateN
     let newKey: string | undefined = elem.props.key;
     if (newKey == null) {
         const lastKey = ld.last(parentStateNamespace);
-        const name = elem.componentType.name;
+        const name = (elem.componentType.name === "") ? "anonymous" : elem.componentType.name;
         newKey = (lastKey == null) ? name : `${lastKey}-${name}`;
     }
     return newKey;
