@@ -10,6 +10,7 @@ import Adapt, {
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;
     awsSecretAccessKey: string;
+    awsRegion: string;
 }
 export interface WithCredentials {
     awsCredentials?: AwsCredentialsProps;
@@ -24,6 +25,7 @@ export function awsCredentialsContext(defaultCreds: AwsCredentialsProps) {
 export const awsDefaultCredentialsContext = awsCredentialsContext({
     awsAccessKeyId: "",
     awsSecretAccessKey: "",
+    awsRegion: "",
 });
 
 export function withCredentials<
