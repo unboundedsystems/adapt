@@ -14,10 +14,11 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx":"react",
+    "jsx": "react",
     "jsxFactory": "Adapt.createElement",
     "lib": [
-      "es6"
+      "es6",
+      "esnext.asynciterable" //For @types/graphql
     ],
     "module": "commonjs",
     "moduleResolution": "node",
