@@ -130,4 +130,40 @@ describe("Context basic tests", () => {
             </TestContext.Consumer>);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
+
+    xit("Should build SFC with Consumer", () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(11);
+
+        // tslint:disable-next-line:variable-name
+        function withId(El: any) {
+            return (props: any) => {
+                const { children, ...rest } = props;
+                return (
+                    <TestContext.Consumer>
+                        { (id) => (
+                            <El id={id} {...rest} >
+                                {children}
+                            </El>
+                        )}
+                    </TestContext.Consumer>
+                );
+            };
+        }
+
+        // tslint:disable-next-line:variable-name
+        const EmptyEleven = withId(Empty);
+
+        const orig = <EmptyEleven />;
+        const res = Adapt.build(orig, null);
+        should(res.messages).have.length(0);
+        const domXml = Adapt.serializeDom(res.contents);
+        const expected =
+`<Adapt>
+  <Empty id="11" key="EmptyEleven-Empty"/>
+</Adapt>
+`;
+        should(domXml).eql(expected);
+    });
+
 });
