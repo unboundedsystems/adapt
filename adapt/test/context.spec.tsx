@@ -131,7 +131,7 @@ describe("Context basic tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    xit("Should build SFC with Consumer", () => {
+    it("Should build SFC with Consumer", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(11);
 
@@ -155,7 +155,7 @@ describe("Context basic tests", () => {
         const EmptyEleven = withId(Empty);
 
         const orig = <EmptyEleven />;
-        const res = Adapt.build(orig, null);
+        const res = await Adapt.build(orig, null);
         should(res.messages).have.length(0);
         const domXml = Adapt.serializeDom(res.contents);
         const expected =
