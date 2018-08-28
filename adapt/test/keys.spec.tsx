@@ -3,6 +3,7 @@ import * as should from "should";
 import Adapt, { Group, } from "../src";
 import {
     assignKeysAtPlacement,
+    computeMountKey,
     KeyTracker,
 } from "../src/keys";
 import {
@@ -39,6 +40,16 @@ describe("Assign Keys", () => {
 
         assignKeysAtPlacement(tree.props.children);
         should(tree.props.children.props.key).equal("Empty");
+    });
+
+    it("Should assign key for anonymous SFCs", async () => {
+        function makeAnon<T>(x: T) { return x; }
+        // tslint:disable-next-line:variable-name
+        const Foo = makeAnon(() => <Empty id={1} />);
+        const tree = <Foo />;
+
+        const newKey = computeMountKey(tree, []);
+        should(newKey).equal("anonymous");
     });
 });
 
