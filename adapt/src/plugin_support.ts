@@ -19,6 +19,7 @@ export interface Action {
 }
 
 export interface PluginOptions {
+    deployID: string;
     log: Logger;
 }
 
@@ -30,6 +31,7 @@ export interface Plugin<Observations extends object = object> {
 }
 
 export interface PluginManagerStartOptions {
+    deployID: string;
     logger: MessageLogger;
 }
 
@@ -132,14 +134,18 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, options: PluginManagerStartOptions) {
+    async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
+                options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.prevDom = prevDom;
         this.logger = options.logger;
         this.observations = {};
 
-        const loptions = { log: options.logger.info }; //FIXME(manishv) have a per-plugin log here
+        const loptions = {
+            deployID: options.deployID,
+            log: options.logger.info, //FIXME(manishv) have a per-plugin log here
+        };
         const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.start(loptions));
         await Promise.all(waitingFor);
         this.transitionTo(PluginManagerState.PreObserve);

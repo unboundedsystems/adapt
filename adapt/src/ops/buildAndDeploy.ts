@@ -89,7 +89,10 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const stateJson = stateStore.serialize();
 
     const mgr = createPluginManager(deployment.pluginConfig);
-    await mgr.start(prevDom, newDom, { logger });
+    await mgr.start(prevDom, newDom, {
+        deployID: deployment.deployID,
+        logger,
+    });
     await mgr.observe();
     mgr.analyze();
 

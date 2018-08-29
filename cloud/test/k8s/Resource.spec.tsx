@@ -69,6 +69,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         plugin = createK8sPlugin();
         logs = new WritableStreamBuffer();
         options = {
+            deployID: "abc123",
             log: new Console(logs, logs).log
         };
     });
