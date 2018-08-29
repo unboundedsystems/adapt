@@ -1,3 +1,4 @@
+export * from "./crypto";
 export * from "./paths";
 
 import * as localRegistry from "./local-registry";
