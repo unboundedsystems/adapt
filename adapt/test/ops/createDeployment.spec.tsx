@@ -8,7 +8,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
 
-import { createMockLogger, MockLogger } from "../testlib";
+import { createMockLogger, MockLogger } from "@usys/testutils";
 
 import { createDeployment, updateDeployment } from "../../src/ops";
 import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";

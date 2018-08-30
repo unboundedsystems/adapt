@@ -4,10 +4,11 @@ import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
+import { createMockLogger, MockLogger } from "@usys/testutils";
 import Adapt, { AdaptElementOrNull, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
-import { createMockLogger, MockLogger, packageDirs } from "./testlib";
+import { packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));

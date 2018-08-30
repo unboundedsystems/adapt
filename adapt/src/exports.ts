@@ -65,7 +65,6 @@ export {
 
 export {
     Constructor,
-    Logger,
 } from "./type_support";
 
 export * from "./utils";
@@ -84,3 +83,9 @@ export {
     registerPlugin,
     PluginRegistration,
 } from "./plugin_support";
+
+export {
+    Logger,
+    Message,
+    MessageLogger,
+} from "@usys/utils";

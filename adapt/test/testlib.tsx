@@ -1,10 +1,8 @@
 import { findPackageDirs } from "@usys/utils";
 import * as ld from "lodash";
 import * as should from "should";
-import { WritableStreamBuffer } from "stream-buffers";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
-import { MessageLogger, MessageStreamer } from "../src/utils";
 
 export const packageDirs = findPackageDirs(__dirname);
 export const pkgRootDir = packageDirs.root;
@@ -89,31 +87,6 @@ export function deepFilterElemsToPublic(o: any): any {
         ret[key] = deepFilterElemsToPublic(o[key]);
     }
     return ret;
-}
-
-export interface MockLogger extends MessageLogger {
-    stdout: string;
-    stderr: string;
-}
-
-class MockLoggerImpl extends MessageStreamer {
-    protected outStream: WritableStreamBuffer;
-    protected errStream: WritableStreamBuffer;
-
-    constructor() {
-        super("MockLogger", new WritableStreamBuffer(),
-              new WritableStreamBuffer());
-    }
-    get stdout() {
-        return this.outStream.getContentsAsString();
-    }
-    get stderr() {
-        return this.errStream.getContentsAsString();
-    }
-}
-
-export function createMockLogger(): MockLogger {
-    return new MockLoggerImpl();
 }
 
 // Constructor data that doesn't actually keep track of state

@@ -25,5 +25,3 @@ export type ChildType<T> =
     T extends Children<any> ? ExtractType<T, keyof Children<any>> : null;
 
 export type Constructor<T extends object> = (new (...args: any[]) => T);
-
-export type Logger = (arg: any, ...args: any[]) => void;

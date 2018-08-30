@@ -1,4 +1,4 @@
-import { Message, MessageLogger, MessageStreamer, MessageSummary } from "../utils";
+import { Message, MessageLogger, MessageStreamer, MessageSummary } from "@usys/utils";
 
 export type DeployState = DeploySuccess | DeployError;
 

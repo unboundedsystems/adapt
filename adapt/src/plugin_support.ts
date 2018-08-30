@@ -1,10 +1,12 @@
 import * as ld from "lodash";
 import * as path from "path";
-import { AdaptElementOrNull } from ".";
+import {
+    AdaptElementOrNull,
+    Logger,
+    MessageLogger,
+} from ".";
 import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
-import { Logger } from "./type_support";
-import { MessageLogger } from "./utils";
 
 type PluginKey = string;
 type RegisteredPlugins = Map<PluginKey, Plugin>;

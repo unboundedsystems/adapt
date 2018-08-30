@@ -2,12 +2,12 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
+import { Message, MessageType } from "@usys/utils";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
-import { Message, MessageType } from "./utils";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
