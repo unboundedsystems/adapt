@@ -26,6 +26,7 @@ export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly id: string;
+    readonly path: string;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -53,6 +54,7 @@ export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): ele
 export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
     extends AdaptPrimitiveElement<P> {
     readonly id: string;
+    readonly path: string;
     validate(): Message[];
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
