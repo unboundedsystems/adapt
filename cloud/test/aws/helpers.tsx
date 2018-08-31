@@ -73,8 +73,11 @@ export function isTerminal(stackStatus: AWS.CloudFormation.StackStatus) {
     return !isInProgress(stackStatus);
 }
 
-export async function getStacks(client: AWS.CloudFormation, deployID?: string) {
-    const resp = await client.describeStacks().promise();
+export async function getStacks(client: AWS.CloudFormation, deployID?: string,
+                                stackName?: string) {
+    const resp = stackName ?
+        await client.describeStacks({ StackName: stackName }).promise() :
+        await client.describeStacks().promise();
     if (deployID !== undefined) return filterStacks(resp.Stacks, deployID);
     return resp.Stacks || [];
 }
@@ -99,24 +102,36 @@ export async function deleteAllStacks(client: AWS.CloudFormation, deployID: stri
 export interface WaitOptions {
     timeoutMs?: number;
     terminalOnly?: boolean;
+    searchDeleted?: boolean;
 }
 const waitDefaults = {
     timeoutMs: 30 * 1000,
     terminalOnly: true,
+    searchDeleted: false,
 };
 
 export async function waitForStacks(client: AWS.CloudFormation, deployID: string,
                                     stackNames: string[], options?: WaitOptions) {
     const opts = { ...waitDefaults, ...options };
     let timeoutMs = opts.timeoutMs;
+    let singleStackName: string | undefined;
+
+    if (opts.searchDeleted) {
+        if (stackNames.length !== 1) {
+            throw new Error(
+                `Must specify exactly one stack name when using searchDeleted`);
+        }
+        singleStackName = stackNames[0];
+    }
+
     let actual: string[][];
     do {
-        let stacks = await getStacks(client, deployID);
+        let stacks = await getStacks(client, deployID, singleStackName);
         actual = stacks.map((s) => [s.StackName, s.StackStatus]);
         if (opts.terminalOnly) {
             stacks = stacks.filter((s) => isTerminal(s.StackStatus));
         }
-        const names = stacks.map((s) => s.StackName);
+        const names = stacks.map((s) => opts.searchDeleted ? s.StackId : s.StackName);
         if (xor(names, stackNames).length === 0) return stacks;
         await sleep(1000);
         timeoutMs -= 1000;

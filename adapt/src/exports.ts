@@ -85,6 +85,7 @@ export {
     GenericPlugin,
     QueryDomain,
     ResourcePair,
+    UpdateType,
 } from "./plugin_generic";
 
 export {

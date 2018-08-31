@@ -9,10 +9,11 @@ import Adapt, {
     registerPlugin,
     ResourcePair,
     Style,
+    UpdateType,
 } from "@usys/adapt";
-import { sha256hex } from "@usys/utils";
+import { isEqualUnorderedArrays, sha256hex } from "@usys/utils";
 import * as AWS from "aws-sdk";
-import { compact } from "lodash";
+import { compact, pick } from "lodash";
 
 import {
     CFResource,
@@ -55,19 +56,43 @@ interface QDSecret {
 type StackInfo = AWS.CloudFormation.Stack;
 
 const adaptDeployIdTag = "adapt:deployID";
+const adaptIdTag = "adapt:ID";
 
-function addDeployIdTag(input: AWS.CloudFormation.CreateStackInput, deployID: string) {
+function addTag(input: AWS.CloudFormation.CreateStackInput, tag: string, value: string) {
     if (input.Tags == null) input.Tags = [];
     for (const t of input.Tags) {
-        if (t.Key === adaptDeployIdTag) {
-            t.Value = deployID;
+        if (t.Key === tag) {
+            t.Value = value;
             return;
         }
     }
     input.Tags.push({
-        Key: adaptDeployIdTag,
-        Value: deployID,
+        Key: tag,
+        Value: value,
     });
+}
+
+export function getTag(stack: StackInfo, tag: string) {
+    if (stack.Tags) {
+        for (const t of stack.Tags) {
+            if (t.Key === tag) return t.Value;
+        }
+    }
+    return undefined;
+}
+
+function addAdaptDeployId(input: AWS.CloudFormation.CreateStackInput, deployID: string) {
+    addTag(input, adaptDeployIdTag, deployID);
+}
+export function getAdaptDeployId(stack: StackInfo) {
+    return getTag(stack, adaptDeployIdTag);
+}
+
+function addAdaptId(input: AWS.CloudFormation.CreateStackInput, id: string) {
+    addTag(input, adaptIdTag, id);
+}
+export function getAdaptId(stack: StackInfo) {
+    return getTag(stack, adaptIdTag);
 }
 
 // Exported for testing
@@ -86,6 +111,10 @@ export function createTemplate(stackEl: AdaptElement<CFStackProps>): Template {
     }
 
     return template;
+}
+
+function toTemplateBody(template: Template): string {
+    return JSON.stringify(template, null, 2);
 }
 
 function queryDomain(stackEl: AdaptElement<CFStackProps>): QueryDomain<QDId, QDSecret> {
@@ -134,13 +163,85 @@ export function findStackElems(dom: AdaptElementOrNull): AdaptElement<CFStackPro
 
 export function filterStacks(stacks: StackInfo[] | undefined, deployID: string): StackInfo[] {
     if (stacks == null) return [];
-    return stacks.filter((s) => {
-        if (!s.Tags) return false;
-        for (const t of s.Tags) {
-            if (t.Key === adaptDeployIdTag && t.Value === deployID) return true;
-        }
-        return false;
-    });
+    return stacks.filter((s) => (getAdaptDeployId(s) === deployID));
+}
+
+const createDefaults = {
+    Capabilities: [],
+    NotificationARNs: [],
+    Parameters: [],
+    Tags: [],
+    RollbackConfiguration: {},
+};
+
+export function createStackParams(el: AdaptElement<CFStackProps>, deployID: string) {
+    const { key, awsCredentials, children, ...params } = el.props;
+    addAdaptDeployId(params, deployID);
+    addAdaptId(params, adaptStackId(el));
+    params.TemplateBody = toTemplateBody(createTemplate(el));
+
+    return { ...createDefaults, ...params };
+}
+
+const modifyProps: (keyof StackParams)[] = [
+    "Capabilities",
+    "Description",
+    "DisableRollback",
+    "EnableTerminationProtection", // UpdateTerminationProtection API
+    "NotificationARNs",
+    "Parameters",
+    "RoleARN",
+    "RollbackConfiguration",
+    "Tags",
+    "TemplateBody",
+    // Stack policy?
+];
+const replaceProps: (keyof StackParams)[] = [
+    "StackName", // Have to replace?
+];
+
+interface StackParams extends Partial<AWS.CloudFormation.Stack> {
+    TemplateBody?: string;
+}
+
+function areEqual<T extends object>(
+    expected: T,
+    actual: T,
+    propsToCompare: (keyof T)[],
+) {
+    const exp = pick(expected, propsToCompare);
+    const act = pick(actual, propsToCompare);
+    return isEqualUnorderedArrays(exp, act);
+}
+
+export function compareStack(
+    el: AdaptElement<CFStackProps>,
+    actual: StackInfo,
+    deployID: string,
+): UpdateType {
+
+    const expected = createStackParams(el, deployID);
+    // Ugh. Special case. OnFailure doesn't show up in describeStacks output,
+    // but instead transforms into DisableRollback.
+    const onFailure = expected.OnFailure;
+    switch (onFailure) {
+        case "DO_NOTHING":
+            expected.DisableRollback = true;
+            break;
+        case "DELETE":
+        case "ROLLBACK":
+            expected.DisableRollback = false;
+            break;
+    }
+
+    if (!areEqual<StackParams>(expected, actual, replaceProps)) {
+        return UpdateType.replace;
+    }
+    if (!areEqual<StackParams>(expected, actual, modifyProps)) {
+        return UpdateType.modify;
+    }
+
+    return UpdateType.none;
 }
 
 type AwsQD = QueryDomain<QDId, QDSecret>;
@@ -153,14 +254,14 @@ export class AwsPluginImpl
     findElems(dom: AdaptElementOrNull): AdaptElement<CFStackProps>[] {
         return findStackElems(dom);
     }
-    getQueryDomain(el: AdaptElement<CFStackProps>) {
+    getElemQueryDomain(el: AdaptElement<CFStackProps>) {
         return queryDomain(el);
     }
     getObservationType(_obs: StackInfo): string {
         return "CloudFormation Stack";
     }
-    getObservationId(_obs: StackInfo): string {
-        return "SOMEID";
+    getObservationId(obs: StackInfo): string {
+        return getAdaptId(obs) || obs.StackId || obs.StackName;
     }
     getElemType(_el: AdaptElement<CFStackProps>): string {
         return "CloudFormation Stack";
@@ -168,21 +269,32 @@ export class AwsPluginImpl
     getElemId(el: AdaptElement<CFStackProps>): string {
         return adaptStackId(el);
     }
-    needsUpdate(el: AdaptElement<CFStackProps>, obs: StackInfo): boolean {
-        console.log("needsupdate", el, obs);
-        return true;
+
+    needsUpdate(el: AdaptElement<CFStackProps>, obs: StackInfo): UpdateType {
+        if (!this.deployID) throw new Error(`deployID cannot be null`);
+
+        return compareStack(el, obs, this.deployID);
     }
+
     async getObservations(domain: AwsQD, deployID: string): Promise<StackInfo[]> {
         console.log("get", deployID, domain);
 
         const client = this.getClient(domain);
         const resp = await client.describeStacks().promise();
-        console.log(`Got describeStacks`, resp);
 
-        return filterStacks(resp.Stacks, deployID);
+        const stacks = filterStacks(resp.Stacks, deployID);
+        let s: StackParams;
+        for (s of stacks) {
+            const r = await client.getTemplate({
+                StackName: s.StackId || s.StackName
+            }).promise();
+            s.TemplateBody = r.TemplateBody;
+        }
+        return stacks;
     }
 
     async createResource(
+        domain: AwsQD,
         deployID: string,
         resource: ResourcePair<AdaptElement<CFStackProps>, StackInfo>): Promise<void> {
 
@@ -190,11 +302,8 @@ export class AwsPluginImpl
         const el = resource.element;
         if (!el) throw new Error(`resource element null`);
 
-        const { key, awsCredentials, children, ...params } = el.props;
-        addDeployIdTag(params, deployID);
-        params.TemplateBody = JSON.stringify(createTemplate(el), null, 2);
-
-        const client = this.getClient(queryDomain(el));
+        const params = createStackParams(el, deployID);
+        const client = this.getClient(domain);
         try {
             const resp = await client.createStack(params).promise();
             const stackId = resp.StackId || "<Unknown StackId>";
@@ -207,14 +316,24 @@ export class AwsPluginImpl
     }
 
     async destroyResource(
+        domain: AwsQD,
         deployID: string,
         resource: ResourcePair<AdaptElement<CFStackProps>, StackInfo>): Promise<void> {
+
         console.log("destroy", deployID, resource);
+        const stackName =
+            resource.observed && (resource.observed.StackId || resource.observed.StackName);
+        if (!stackName) throw new Error(`Unable to delete stack that doesn't exist`);
+
+        const client = this.getClient(domain);
+        await client.deleteStack({ StackName: stackName }).promise();
     }
+
     async updateResource(
+        domain: AwsQD,
         deployID: string,
         resource: ResourcePair<AdaptElement<CFStackProps>, StackInfo>): Promise<void> {
-        console.log("update", deployID, resource);
+        console.log("update", domain, deployID, resource);
     }
 
     getClient(domain: AwsQD) {

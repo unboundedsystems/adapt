@@ -1,4 +1,4 @@
-import Adapt, { Group, PluginOptions } from "@usys/adapt";
+import Adapt, { AdaptElementOrNull, Group, PluginOptions } from "@usys/adapt";
 import * as should from "should";
 
 import { createMockLogger, MockLogger } from "@usys/testutils";
@@ -83,7 +83,7 @@ const describeStackResp = {
 
 // tslint:disable-next-line:variable-name
 const Creds = awsDefaultCredentialsContext;
-function simpleDom(creds: AwsCredentialsProps) {
+function simpleDom(creds: AwsCredentialsProps, secondStack = true) {
     return (
         <Creds.Provider value={creds}>
             <Group>
@@ -93,23 +93,30 @@ function simpleDom(creds: AwsCredentialsProps) {
                         instanceType="t2.micro"
                         sshKeyName={sshKeyName}
                         securityGroups={[defaultSecurityGroup]}
+                        name="testInstance1"
                     />
                     <EC2Instance
                         imageId={ubuntuAmi}
                         instanceType="t2.micro"
                         sshKeyName={sshKeyName}
                         securityGroups={[defaultSecurityGroup]}
+                        name="testInstance2"
                     />
                 </CFStack>
 
-                <CFStack StackName="testStack2" OnFailure="DO_NOTHING">
-                    <EC2Instance
-                        imageId={ubuntuAmi}
-                        instanceType="t2.micro"
-                        sshKeyName={sshKeyName}
-                        securityGroups={[defaultSecurityGroup]}
-                    />
-                </CFStack>
+                { secondStack ?
+                    <CFStack StackName="testStack2" OnFailure="DO_NOTHING">
+                        <EC2Instance
+                            imageId={ubuntuAmi}
+                            instanceType="t2.micro"
+                            sshKeyName={sshKeyName}
+                            securityGroups={[defaultSecurityGroup]}
+                            name="testInstance3"
+                        />
+                    </CFStack>
+                    :
+                    null
+                }
             </Group>
         </Creds.Provider>
     );
@@ -168,6 +175,9 @@ describe("AWS plugin live tests", function () {
     let options: PluginOptions;
     let logger: MockLogger;
     let client: AWS.CloudFormation;
+    let stepComplete = 0;
+    let prevDom: AdaptElementOrNull = null;
+    let toDestroyStack: string | undefined;
     const deployID = "abc123";
 
     this.timeout(5 * 60 * 1000);
@@ -185,18 +195,18 @@ describe("AWS plugin live tests", function () {
             log: logger.info,
         };
     });
-    afterEach(async function () {
+    after(async function () {
         this.timeout(65 * 1000);
         await deleteAllStacks(client, deployID, 60 * 1000);
     });
 
-    it("Should create stacks", async () => {
+    it("Should create stacks [step 1]", async () => {
         const orig = simpleDom(creds);
         const dom = await doBuild(orig);
 
         await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const actions = plugin.analyze(null, dom, obs);
+        const obs = await plugin.observe(prevDom, dom);
+        const actions = plugin.analyze(prevDom, dom, obs);
         should(actions.length).equal(2, "wrong number of actions");
         should(actions[0].description).match(/Creating\s.+CFStack/);
         should(actions[1].description).match(/Creating\s.+CFStack/);
@@ -211,5 +221,47 @@ describe("AWS plugin live tests", function () {
         console.log(JSON.stringify(stacks, null, 2));
         await checkStackStatus(stacks[0], "CREATE_COMPLETE", true, client);
         await checkStackStatus(stacks[1], "CREATE_COMPLETE", true, client);
+
+        for (const s of stacks) {
+            if (s.StackName === "testStack2") {
+                toDestroyStack = s.StackId;
+                break;
+            }
+        }
+        should(toDestroyStack).be.type("string");
+        prevDom = dom;
+        stepComplete = 1;
+    });
+
+    it("Should destroy stack [step 2]", async () => {
+        should(stepComplete).equal(1, "Previous test did not complete");
+        if (!toDestroyStack) throw new Error(`Previous test did not complete`);
+
+        // Remove one of the stacks from the dom
+        const orig = simpleDom(creds, false);
+        const dom = await doBuild(orig);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(prevDom, dom);
+        const actions = plugin.analyze(prevDom, dom, obs);
+        should(actions.length).equal(1, "wrong number of actions");
+        should(actions[0].description).match(/Destroying\s.+CFStack/);
+
+        await act(actions);
+        await plugin.finish();
+
+        const stacks = await waitForStacks(client, deployID,
+                                           ["testStack1"],
+                                           {timeoutMs: 4 * 60 * 1000});
+        should(stacks).have.length(1, "wrong number of stacks");
+        console.log(JSON.stringify(stacks, null, 2));
+        await checkStackStatus(stacks[0], "CREATE_COMPLETE", true, client);
+
+        const deleted = await waitForStacks(
+            client, deployID, [toDestroyStack],
+            { timeoutMs: 4 * 60 * 1000, searchDeleted: true });
+        should(deleted).have.length(1);
+        should(deleted[0].StackName).equal("testStack2");
+        await checkStackStatus(deleted[0], "DELETE_COMPLETE");
     });
 });
