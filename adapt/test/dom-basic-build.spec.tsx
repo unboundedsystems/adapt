@@ -67,9 +67,9 @@ function ReturnsNull(_props: {}): AdaptElementOrNull {
 }
 
 describe("DOM Basic Build Tests", () => {
-    it("Should build empty primitive", () => {
+    it("Should build empty primitive", async () => {
         const orig = <Adapt.Group key="root" />;
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
 
         const ref = deepFilterElemsToPublic(orig);
 
@@ -86,9 +86,9 @@ describe("DOM Basic Build Tests", () => {
         should(dom.id).eql(JSON.stringify(["root"]));
     });
 
-    it("Should validate primitive component", () => {
+    it("Should validate primitive component", async () => {
         const orig = <AlwaysErrorPrimitive key="root" />;
-        const { contents: dom, messages } = Adapt.buildOnce(orig, null);
+        const { contents: dom, messages } = await Adapt.buildOnce(orig, null);
 
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
@@ -107,12 +107,12 @@ describe("DOM Basic Build Tests", () => {
         should(messages[0].content).match(/Always error instantiated/);
     });
 
-    it("Should build single child", () => {
+    it("Should build single child", async () => {
         const orig = <MakeGroup>
             <Empty key="a" id={1} />
         </MakeGroup>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -123,13 +123,13 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should substitute props.children as flat", () => {
+    it("Should substitute props.children as flat", async () => {
         const orig = <MakeGroup>
             <Empty key="a" id={1} />
             <Empty key="b" id={2} />
         </MakeGroup>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -140,13 +140,13 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should build recursively", () => {
+    it("Should build recursively", async () => {
         const orig = <Adapt.Group>
             <MakeMakeEmpty key="a" id={1} />
             <MakeMakeEmpty key="b" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -158,13 +158,13 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should pass through primitives with children", () => {
+    it("Should pass through primitives with children", async () => {
         const orig = <Adapt.Group>
             <Empty key="1" id={1} />
             <Empty key="2" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -174,12 +174,12 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should build deferred component with no children", () => {
+    it("Should build deferred component with no children", async () => {
         const orig = <Adapt.Group>
             <DeferredFlex key="1" />
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -189,7 +189,7 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should build deferred component with children", () => {
+    it("Should build deferred component with children", async () => {
         let origChild: AdaptElement[] = [];
         const orig = <Adapt.Group>
             <DeferredFlex key="1" recordChildren={(children) => { origChild = childrenToArray(children); }}>
@@ -197,7 +197,7 @@ describe("DOM Basic Build Tests", () => {
             </DeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -212,7 +212,7 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should build non-deferred component before children", () => {
+    it("Should build non-deferred component before children", async () => {
         let recordedChild: AdaptElement[] = [];
         const child = <MakeEmpty key="a" id={1} />;
         const orig = <Adapt.Group>
@@ -221,7 +221,7 @@ describe("DOM Basic Build Tests", () => {
             </NonDeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -236,9 +236,9 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should use defaultProps", () => {
+    it("Should use defaultProps", async () => {
         const orig = <WithDefaults />;
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -247,9 +247,9 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should override defaultProps", () => {
+    it("Should override defaultProps", async () => {
         const orig = <WithDefaults prop1={1234} />;
-        const { contents: dom } = Adapt.buildOnce(orig, null);
+        const { contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -258,12 +258,12 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
-    it("Should insert DomError for abstract component", () => {
+    it("Should insert DomError for abstract component", async () => {
         const orig =
             <Abstract id={10}>
                 <Empty id={11} />
             </Abstract>;
-        const res = Adapt.buildOnce(orig, null);
+        const res = await Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -276,7 +276,7 @@ describe("DOM Basic Build Tests", () => {
             .match(/Component Abstract cannot be built/);
     });
 
-    it("Should insert DomError for SFC that throws BuildNotImplemented", () => {
+    it("Should insert DomError for SFC that throws BuildNotImplemented", async () => {
         function SFCThrows(_props: AbstractProps): AdaptElementOrNull {
             throw new BuildNotImplemented();
         }
@@ -284,7 +284,7 @@ describe("DOM Basic Build Tests", () => {
             <SFCThrows id={10}>
                 <Empty id={11} />
             </SFCThrows>;
-        const res = Adapt.buildOnce(orig, null);
+        const res = await Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -297,14 +297,14 @@ describe("DOM Basic Build Tests", () => {
             .match(/Component SFCThrows cannot be built/);
     });
 
-    it("Should build DOM that returns null", () => {
+    it("Should build DOM that returns null", async () => {
         const orig = <ReturnsNull />;
-        const res = Adapt.buildOnce(orig, null);
+        const res = await Adapt.buildOnce(orig, null);
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
 
-    it("Should build DOM where style returns null", () => {
+    it("Should build DOM where style returns null", async () => {
         const orig =
             <Abstract id={10}>
                 <Empty id={11} />
@@ -313,19 +313,19 @@ describe("DOM Basic Build Tests", () => {
             <Style>
                 {Abstract} {rule(() => <ReturnsNull />)}
             </Style>;
-        const res = Adapt.buildOnce(orig, style);
+        const res = await Adapt.buildOnce(orig, style);
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
 });
 
 describe("DOM Shallow Build Tests", () => {
-    it("Should respect shallow option", () => {
+    it("Should respect shallow option", async () => {
         const body = <MakeEmpty key="body" id={1} />;
         const orig = <MakeGroup key="orig">{body}</MakeGroup>;
         const expected = deepFilterElemsToPublic(<Adapt.Group key="orig-Group" >{body}</Adapt.Group>);
 
-        const { contents: dom } = Adapt.buildOnce(orig, null, { shallow: true });
+        const { contents: dom } = await Adapt.buildOnce(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -333,9 +333,9 @@ describe("DOM Shallow Build Tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should respect depth 0 as no-op", () => {
+    it("Should respect depth 0 as no-op", async () => {
         const orig = <MakeMakeEmpty id={1} />;
-        const { contents: dom } = Adapt.buildOnce(orig, null, { depth: 0 });
+        const { contents: dom } = await Adapt.buildOnce(orig, null, { depth: 0 });
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -343,7 +343,7 @@ describe("DOM Shallow Build Tests", () => {
         should(dom).eql(orig);
     });
 
-    it("Should respect depth option", () => {
+    it("Should respect depth option", async () => {
         const noChange = <Adapt.Group key="noChange">
             <MakeEmpty key="inner" id={1} />
         </Adapt.Group>;
@@ -359,7 +359,7 @@ describe("DOM Shallow Build Tests", () => {
                 <Empty key="outer-Empty" id={2} />
             </Adapt.Group>);
 
-        const { contents: dom } = Adapt.buildOnce(orig, null, { depth: 2 });
+        const { contents: dom } = await Adapt.buildOnce(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;

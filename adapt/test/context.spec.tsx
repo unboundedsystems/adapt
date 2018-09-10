@@ -5,7 +5,7 @@ import { DomError } from "../src/builtin_components";
 import { deepFilterElemsToPublic, Empty } from "./testlib";
 
 describe("Context basic tests", () => {
-    it("Consumer should get default value", () => {
+    it("Consumer should get default value", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(11);
         const orig =
@@ -13,7 +13,7 @@ describe("Context basic tests", () => {
                 {(val) => <Empty id={val} />}
             </TestContext.Consumer>;
 
-        const { contents: dom } = buildOnce(orig, null);
+        const { contents: dom } = await buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -23,7 +23,7 @@ describe("Context basic tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Consumer should get Provider value", () => {
+    it("Consumer should get Provider value", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(11);
         const orig =
@@ -33,7 +33,7 @@ describe("Context basic tests", () => {
                 </TestContext.Consumer>
             </TestContext.Provider>;
 
-        const { contents: dom } = buildOnce(orig, null);
+        const { contents: dom } = await buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -42,7 +42,7 @@ describe("Context basic tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Consumers should get different Provider values", () => {
+    it("Consumers should get different Provider values", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(11);
         const orig =
@@ -64,7 +64,7 @@ describe("Context basic tests", () => {
                 </TestContext.Consumer>
             </Group>;
 
-        const { contents: dom } = buildOnce(orig, null);
+        const { contents: dom } = await buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -81,7 +81,7 @@ describe("Context basic tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should error if Provider has more than one child", () => {
+    it("Should error if Provider has more than one child", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(1);
         const orig =
@@ -90,7 +90,7 @@ describe("Context basic tests", () => {
                 <Empty id={1} />
                 <Empty id={2} />
             </TestContext.Provider>;
-        const { contents: dom } = buildOnce(orig, null);
+        const { contents: dom } = await buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -106,7 +106,7 @@ describe("Context basic tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should error if Consumer has more than one child", () => {
+    it("Should error if Consumer has more than one child", async () => {
         // tslint:disable-next-line:variable-name
         const TestContext = createContext(1);
         const orig =
@@ -115,7 +115,7 @@ describe("Context basic tests", () => {
                 <Empty id={1} />
                 <Empty id={2} />
             </TestContext.Consumer>;
-        const { contents: dom } = buildOnce(orig, null);
+        const { contents: dom } = await buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;

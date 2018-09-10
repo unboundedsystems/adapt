@@ -52,7 +52,7 @@ describe("Reanimate DOM basic tests", () => {
             return;
         }
 
-        const { messages, contents: built } = buildOnce(zombie, null);
+        const { messages, contents: built } = await buildOnce(zombie, null);
         should(messages).have.length(0);
         if (built == null) {
             should(built).not.be.Null();

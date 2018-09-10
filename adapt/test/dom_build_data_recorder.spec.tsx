@@ -3,7 +3,7 @@ import * as Adapt from "../src";
 
 // tslint:disable-next-line:no-duplicate-imports
 import {
-    buildOnce as AdaptBuild,
+    buildOnce as adaptBuild,
     BuildOp,
     BuildOpStep,
     cloneElement,
@@ -30,15 +30,15 @@ describe("Build Data Recorder", () => {
         should(deepFilterElemsToPublic(lrec)).eql(deepFilterElemsToPublic(ref));
     }
 
-    it("should start", () => {
+    it("should start", async () => {
         const dom = <Empty id={1} />;
-        AdaptBuild(dom, null, { recorder });
+        await adaptBuild(dom, null, { recorder });
         should(record[0]).deepEqual({ type: "start", root: dom });
     });
 
-    it("should record step, elementBuilt", () => {
+    it("should record step, elementBuilt", async () => {
         const dom = <Empty id={1} />;
-        const { contents: newElem } = AdaptBuild(dom, null, { recorder });
+        const { contents: newElem } = await adaptBuild(dom, null, { recorder });
         matchRecord(record, [
             { type: "start", root: dom },
             { type: "elementBuilt", oldElem: dom, newElem },
@@ -46,9 +46,9 @@ describe("Build Data Recorder", () => {
         ]);
     });
 
-    it("should record step, step, elementBuilt", () => {
+    it("should record step, step, elementBuilt", async () => {
         const dom = <MakeEmpty id={1} />;
-        const { contents: newElem } = AdaptBuild(dom, null, { recorder });
+        const { contents: newElem } = await adaptBuild(dom, null, { recorder });
         const record1Out = (record[1] as BuildOpStep).newElem;
         matchRecord(record, [
             { type: "start", root: dom },
@@ -62,13 +62,13 @@ describe("Build Data Recorder", () => {
         ]);
     });
 
-    it("should record ascend, descend", () => {
+    it("should record ascend, descend", async () => {
         const empty1 = <Empty key="empty1" id={1} />;
         const empty2 = <Empty key="empty2" id={2} />;
         const layer1 = <Group key="layer1">{empty1}{empty2}</Group>;
         const dom = <Group key="root">{layer1}</Group>;
 
-        const { contents: newDom } = AdaptBuild(dom, null, { recorder });
+        const { contents: newDom } = await adaptBuild(dom, null, { recorder });
 
         if (newDom == null) {
             should(newDom).not.Null();

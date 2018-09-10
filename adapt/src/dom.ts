@@ -120,9 +120,9 @@ function recordDomError(
     return { domError, message: message.content };
 }
 
-function computeContentsFromElement<P extends object>(
+async function computeContentsFromElement<P extends object>(
     element: AdaptElement<P & WithChildren>,
-    state: StateStore): BuildResults {
+    state: StateStore): Promise<BuildResults> {
     const ret = new BuildResults();
 
     try {
@@ -149,7 +149,7 @@ function computeContentsFromElement<P extends object>(
         if (!ld.isFunction(component.build)) {
             throw new BuildNotImplemented(`build is not a function, build = ${util.inspect(component.build)}`);
         }
-        ret.contents = component.build();
+        ret.contents = await component.build();
         if (component.cleanup) {
             ret.cleanups.push(component.cleanup.bind(component));
         }
@@ -180,9 +180,9 @@ function findOverride(styles: css.StyleList, path: DomPath) {
     return null;
 }
 
-function computeContents(
+async function computeContents(
     path: DomPath,
-    options: BuildOptionsReq): BuildResults {
+    options: BuildOptionsReq): Promise<BuildResults> {
 
     const element = ld.last(path);
     if (element == null) {
@@ -190,7 +190,7 @@ function computeContents(
         return ret;
     }
 
-    const out = computeContentsFromElement(element, options.stateStore);
+    const out = await computeContentsFromElement(element, options.stateStore);
 
     options.recorder({
         type: "step",
@@ -280,11 +280,11 @@ function subLastPathElem(path: DomPath, elem: AdaptElement): DomPath {
     return ret;
 }
 
-function buildElement(
+async function buildElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): BuildResults {
+    options: BuildOptionsReq): Promise<BuildResults> {
 
     const elem = ld.last(path);
     if (elem === undefined) {
@@ -305,7 +305,7 @@ function buildElement(
         return res;
     }
 
-    const out = computeContents(path, options);
+    const out = await computeContents(path, options);
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
@@ -355,10 +355,10 @@ export async function build(
     return pathBuild([root], styleList, options);
 }
 
-export function buildOnce(
+export async function buildOnce(
     root: AdaptElement,
     styles: AdaptElement | null,
-    options?: BuildOptions): BuildOutput {
+    options?: BuildOptions): Promise<BuildOutput> {
 
     const styleList = css.buildStyles(styles);
     return pathBuildOnce([root], styleList, options);
@@ -384,7 +384,7 @@ async function pathBuild(
     const options = { ...defaultBuildOptions, ...optionsIn };
     const out = new BuildResults();
 
-    const iterOutput = pathBuildOnceGuts(path, styles, options);
+    const iterOutput = await pathBuildOnceGuts(path, styles, options);
     out.contents = iterOutput.contents;
     out.combine(iterOutput);
     if (iterOutput.buildErr) {
@@ -397,29 +397,29 @@ async function pathBuild(
     return out;
 }
 
-function pathBuildOnce(
+async function pathBuildOnce(
     path: DomPath,
     styles: css.StyleList,
-    optionsIn?: BuildOptions): BuildOutput {
+    optionsIn?: BuildOptions): Promise<BuildOutput> {
 
     const options = { ...defaultBuildOptions, ...optionsIn };
-    const result = pathBuildOnceGuts(path, styles, options);
+    const result = await pathBuildOnceGuts(path, styles, options);
     return {
         contents: result.contents,
         messages: (result.messages) || []
     };
 }
 
-function pathBuildOnceGuts(
+async function pathBuildOnceGuts(
     path: DomPath,
     styles: css.StyleList,
-    options: Required<BuildOptions>): BuildResults {
+    options: Required<BuildOptions>): Promise<BuildResults> {
 
     const root = path[path.length - 1];
     options.recorder({ type: "start", root });
     let result: BuildResults;
     try {
-        result = realBuildOnce(path, null, styles, options);
+        result = await realBuildOnce(path, null, styles, options);
         result.cleanup();
     } catch (error) {
         options.recorder({ type: "error", error });
@@ -460,11 +460,11 @@ function pathBuildOnceGuts(
     return result;
 }
 
-function buildChildren(
+async function buildChildren(
     newRoot: AdaptElement,
     workingPath: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq): { newChildren: any, childBldResults: BuildResults } {
+    options: BuildOptionsReq): Promise<{ newChildren: any, childBldResults: BuildResults }> {
 
     if (!isElementImpl(newRoot)) throw new Error(`Elements must inherit from ElementImpl ${util.inspect(newRoot)}`);
 
@@ -487,30 +487,36 @@ function buildChildren(
     }
 
     assignKeysAtPlacement(childList);
-    newChildren = childList.map((child) => {
-        if (isMountedElement(child)) return child; //Must be from a deferred build
+    newChildren = [];
+    for (const child of childList) {
+        if (isMountedElement(child)) {
+            newChildren.push(child); //Must be from a deferred build
+            continue;
+        }
         if (isElementImpl(child)) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = realBuildOnce([...workingPath, child], newRoot.stateNamespace, styles, options, child);
+            const ret = await realBuildOnce([...workingPath, child], newRoot.stateNamespace, styles, options, child);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
-            return ret.contents;
+            newChildren.push(ret.contents);
+            continue;
         } else {
-            return child;
+            newChildren.push(child);
+            continue;
         }
-    });
+    }
 
     newChildren = newChildren.filter(notNull);
     return { newChildren, childBldResults: out };
 }
 
-function realBuildOnce(
+async function realBuildOnce(
     pathIn: DomPath,
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
     options: BuildOptionsReq,
-    workingElem?: AdaptElement): BuildResults {
+    workingElem?: AdaptElement): Promise<BuildResults> {
 
     let deferring = false;
     const atDepthFlag = atDepth(options, pathIn.length);
@@ -552,7 +558,7 @@ function realBuildOnce(
     }
 
     if (!isDeferredElementImpl(mountedElem) || mountedElem.shouldBuild()) {
-        const computeOut = buildElement(mountedPath, parentStateNamespace, styles, options);
+        const computeOut = await buildElement(mountedPath, parentStateNamespace, styles, options);
         out.combine(computeOut);
         out.contents = newRoot = computeOut.contents;
 
@@ -560,7 +566,12 @@ function realBuildOnce(
         if (newRoot !== null) {
             if (newRoot !== mountedElem) {
                 newPath = subLastPathElem(mountedPath, newRoot);
-                return realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
+                return (await realBuildOnce(
+                    newPath,
+                    mountedElem.stateNamespace,
+                    styles,
+                    options,
+                    workingElem)).combine(out);
             }
         }
     } else {
@@ -578,7 +589,7 @@ function realBuildOnce(
     //Do not process children of DomError nodes in case they result in more DomError children
     if (!isDomErrorElement(newRoot)) {
         if (!atDepthFlag) {
-            const { newChildren, childBldResults } = buildChildren(newRoot, mountedPath, styles, options);
+            const { newChildren, childBldResults } = await buildChildren(newRoot, mountedPath, styles, options);
             out.combine(childBldResults);
 
             replaceChildren(newRoot, newChildren);
@@ -598,7 +609,7 @@ function realBuildOnce(
     if (atDepthFlag && newRoot.props.children === undefined) return out;
 
     //We must have deferred to get here
-    return realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem).combine(out);
+    return (await realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem)).combine(out);
 }
 
 function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {
