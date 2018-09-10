@@ -7,13 +7,14 @@
 import {
     DocumentNode as Query,
     execute as gqlExecute,
+    ExecutionResult,
     GraphQLSchema
 } from "graphql";
 import { ObserverResponse } from ".";
 
 export interface ObserverManagerDeployment {
     registerSchema(name: string, schema: GraphQLSchema, observations: ObserverResponse): void;
-    executeQuery<O, R extends object = any>(observer: string, q: Query): Promise<R>;
+    executeQuery<R = any>(observer: string, q: Query, vars?: { [n: string]: any }): Promise<ExecutionResult<R>>;
 }
 
 export function createObserverManagerDeployment() {
@@ -33,9 +34,10 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         this.observable[name] = { schema, observations };
     }
 
-    async executeQuery<O, R extends object>(schemaName: string, q: Query): Promise<R> {
+    async executeQuery<R = any>(schemaName: string, q: Query, vars?: { [n: string]: any }):
+        Promise<ExecutionResult<R>> {
         if (!(schemaName in this.observable)) throw new Error("Unknown observation schema queried: " + schemaName);
         const { schema, observations } = this.observable[schemaName];
-        return await gqlExecute(schema, q, observations.data, observations.context) as R | Promise<R>;
+        return Promise.resolve(gqlExecute<R>(schema, q, observations.data, observations.context, vars));
     }
 }

@@ -1,3 +1,4 @@
+import * as uutil from "@usys/utils";
 import * as fs from "fs";
 import {
     GraphQLSchema,
@@ -22,6 +23,7 @@ const resolvers = {
     Query: {
         fooById: id<QueryResolvers.FooByIdResolver<Foo | null, typeof modelData, null>>(
             async (obj, args, _context, _info) => {
+                await uutil.sleep(0);
                 const ret = obj.foos.find((foo) => foo.id.toString() === args.id);
                 return ret === undefined ? null : ret;
             })
