@@ -43,7 +43,7 @@ describe("DOM setState Tests", () => {
         state = createStateStore();
     });
 
-    it("Should record state for single components", () => {
+    it("Should record state for single components", async () => {
         const newState = {
             elem1: "data1",
             elem2: "data2"
@@ -51,13 +51,13 @@ describe("DOM setState Tests", () => {
 
         const dom = <StateUpdater key="root" newState={newState} />;
 
-        Adapt.buildOnce(dom, null, { stateStore: state });
+        await Adapt.buildOnce(dom, null, { stateStore: state });
 
         const actual = state.elementState(["root"]);
         should(actual).eql(newState);
     });
 
-    it("Should correctly send previous state", () => {
+    it("Should correctly send previous state", async () => {
         const prevState = {
             elem: "data"
         };
@@ -78,7 +78,7 @@ describe("DOM setState Tests", () => {
             stateObserver={stateObserver} />;
 
         state.setElementState(["root"], prevState);
-        Adapt.buildOnce(dom, null, { stateStore: state });
+        await Adapt.buildOnce(dom, null, { stateStore: state });
         const actual = state.elementState(["root"]);
 
         should(actual).eql(nextState);
@@ -86,7 +86,7 @@ describe("DOM setState Tests", () => {
         should(stateVar).eql(prevState);
     });
 
-    it("Should update state within DOM", () => {
+    it("Should update state within DOM", async () => {
         const newState = {
             elem1: "data1",
             elem2: "data2"
@@ -97,13 +97,13 @@ describe("DOM setState Tests", () => {
                 <StateUpdater key="updater" newState={newState} />
             </MakeGroup>;
 
-        Adapt.buildOnce(dom, null, { stateStore: state });
+        await Adapt.buildOnce(dom, null, { stateStore: state });
 
         const actual = state.elementState(["root", "root-Group", "updater"]);
         should(actual).eql(newState);
     });
 
-    it("Should honor initial state from constructor", () => {
+    it("Should honor initial state from constructor", async () => {
         const initialState = {
             elem: "data"
         };
@@ -121,7 +121,7 @@ describe("DOM setState Tests", () => {
             initialState={initialState}
             prevObserver={observer} />;
 
-        Adapt.buildOnce(dom, null, { stateStore: state });
+        await Adapt.buildOnce(dom, null, { stateStore: state });
         const actual = state.elementState(["root"]);
 
         should(actual).eql(nextState);

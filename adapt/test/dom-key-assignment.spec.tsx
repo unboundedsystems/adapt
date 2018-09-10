@@ -23,9 +23,9 @@ function checkChildKeys(element: Adapt.AdaptElement, refKeys: string[]) {
 }
 
 describe("DOM Key Assignment Tests", () => {
-    it("Should assign key to root", () => {
+    it("Should assign key to root", async () => {
         const root = <Group />;
-        const { contents: dom } = Adapt.buildOnce(root, null);
+        const { contents: dom } = await Adapt.buildOnce(root, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -33,7 +33,7 @@ describe("DOM Key Assignment Tests", () => {
         should(dom.props.key).equal("Group");
     });
 
-    it("Should assign keys to children by node type", () => {
+    it("Should assign keys to children by node type", async () => {
         const root =
             <Group>
                 <Empty id={0} />
@@ -44,7 +44,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Dummy />
             </Group>;
 
-        const { contents: dom } = Adapt.buildOnce(root, null);
+        const { contents: dom } = await Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();
@@ -55,7 +55,7 @@ describe("DOM Key Assignment Tests", () => {
         checkChildKeys(dom, childKeys);
     });
 
-    it("Should only assign keys if not set by user", () => {
+    it("Should only assign keys if not set by user", async () => {
         const root =
             <Group>
                 <Empty id={0} />
@@ -63,7 +63,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Empty id={2} />
             </Group>;
 
-        const { contents: dom } = Adapt.buildOnce(root, null);
+        const { contents: dom } = await Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();
@@ -74,7 +74,7 @@ describe("DOM Key Assignment Tests", () => {
         checkChildKeys(dom, childKeys);
     });
 
-    it("Should propagate key on recursive build", () => {
+    it("Should propagate key on recursive build", async () => {
         const root =
             <Group>
                 <MakeMakeEmpty id={0} />
@@ -82,7 +82,7 @@ describe("DOM Key Assignment Tests", () => {
                 <Empty id={2} />
             </Group>;
 
-        const { contents: dom } = Adapt.buildOnce(root, null);
+        const { contents: dom } = await Adapt.buildOnce(root, null);
 
         if (dom == null) {
             should(dom).not.Null();

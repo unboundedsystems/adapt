@@ -12,12 +12,12 @@ import {
 } from "./testlib";
 
 describe("DOM CSS Build Tests", () => {
-    it("Should replace empty primitive", () => {
+    it("Should replace empty primitive", async () => {
         const orig = <Adapt.Group key="root" />;
         const replace = <Empty id={1} />;
         const styles = <Adapt.Style>{Adapt.Group} {Adapt.rule(() => replace)}</Adapt.Style>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, styles);
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
 
         should(Adapt).not.Null();
         should(Adapt.isElement(dom)).True();
@@ -25,7 +25,7 @@ describe("DOM CSS Build Tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should replace and simplify primitve", () => {
+    it("Should replace and simplify primitve", async () => {
         const orig = <Adapt.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
@@ -40,7 +40,7 @@ describe("DOM CSS Build Tests", () => {
             })}
         </Adapt.Style>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, styles);
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -52,7 +52,7 @@ describe("DOM CSS Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(expected);
     });
 
-    it("Should process all matching rules once", () => {
+    it("Should process all matching rules once", async () => {
         const orig = <Adapt.Group>
             <MakeMakeEmpty id={1} />
             <MakeMakeEmpty id={2} />
@@ -68,7 +68,7 @@ describe("DOM CSS Build Tests", () => {
                 {Empty} {Adapt.rule(fakes[2])}
             </Adapt.Style>;
 
-        const { contents: dom } = Adapt.buildOnce(orig, styles);
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -126,7 +126,7 @@ describe("DOM CSS find tests", () => {
         should(elems).empty();
     });
 
-    it("Should not error in DOM with non-element children", () => {
+    it("Should not error in DOM with non-element children", async () => {
         class Foo extends Adapt.PrimitiveComponent<{children: any}> { }
         const orig =
             <Foo>
@@ -134,7 +134,7 @@ describe("DOM CSS find tests", () => {
                 <Empty id={11} />
                 {() => 1}
             </Foo>;
-        const res = Adapt.buildOnce(orig, null);
+        const res = await Adapt.buildOnce(orig, null);
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
