@@ -8,7 +8,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
 
-import { createMockLogger, MockLogger, pkgRootDir } from "../testlib";
+import { createMockLogger, MockLogger } from "../testlib";
 
 import { createDeployment, updateDeployment } from "../../src/ops";
 import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";
@@ -22,7 +22,7 @@ const simplePackageJson = {
     dependencies: {
         "source-map-support": "^0.5.5",
         "@types/node": "^8.10.14",
-        "@usys/adapt": `file:${pkgRootDir}/../adapt`,
+        "@usys/adapt": "0.0.1",
     }
 };
 
