@@ -34,6 +34,7 @@ describe("Observer Component Tests", () => {
         const mgr = createObserverManagerDeployment();
         const observations = await observerPlugin.observe();
         mgr.registerSchema("test", observerPlugin.schema, observations);
+        let sawUndefinedProps = false;
 
         const root =
             <Observer
@@ -49,6 +50,7 @@ describe("Observer Component Tests", () => {
                     if (props) {
                         return <Empty key="props" id={2} />;
                     } else {
+                        sawUndefinedProps = true;
                         return <Empty key="default" id={1} />;
                     }
                 }} />;
@@ -57,5 +59,6 @@ describe("Observer Component Tests", () => {
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="props" id={2} />));
+        should(sawUndefinedProps).True();
     });
 });
