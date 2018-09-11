@@ -1,5 +1,5 @@
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
-import { AdaptElement, Component } from "..";
+import { AdaptElement, AdaptElementOrNull, Component } from "..";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
 
 type QueryResult<R = any> = ExecutionResult<R>;
@@ -13,7 +13,7 @@ export interface ObserverProps<P extends object> {
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
-    build: (error: Error | null, props: P | undefined) => AdaptElement;
+    build: (error: Error | null, props: P | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull> ;
 }
 
 interface ObserverState {
