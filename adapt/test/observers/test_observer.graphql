@@ -1,0 +1,13 @@
+type Foo {
+    id: ID!
+    payload: String!
+}
+
+type Query {
+    fooById(id: ID!): Foo
+    foos: [Foo]
+}
+
+schema {
+    query: Query
+}

@@ -331,16 +331,19 @@ export interface BuildOptions {
     stateStore?: StateStore;
 }
 
-const defaultBuildOptions = {
-    depth: -1,
-    shallow: false,
-    // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
-    // tslint:disable-next-line:object-literal-sort-keys
-    recorder: (_op: BuildOp) => { return; },
-    stateStore: createStateStore(),
-};
-
 type BuildOptionsReq = Required<BuildOptions>;
+
+function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
+    const defaultBuildOptions = {
+        depth: -1,
+        shallow: false,
+        // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
+        // tslint:disable-next-line:object-literal-sort-keys
+        recorder: (_op: BuildOp) => { return; },
+        stateStore: createStateStore()
+    };
+    return { ...defaultBuildOptions, ...optionsIn };
+}
 
 export interface BuildOutput {
     contents: AdaptElementOrNull;
@@ -381,7 +384,7 @@ async function pathBuild(
     styles: css.StyleList,
     optionsIn?: BuildOptions): Promise<BuildOutput> {
 
-    const options = { ...defaultBuildOptions, ...optionsIn };
+    const options = computeOptions(optionsIn);
     const out = new BuildResults();
 
     const iterOutput = await pathBuildOnceGuts(path, styles, options);
@@ -402,7 +405,7 @@ async function pathBuildOnce(
     styles: css.StyleList,
     optionsIn?: BuildOptions): Promise<BuildOutput> {
 
-    const options = { ...defaultBuildOptions, ...optionsIn };
+    const options = computeOptions(optionsIn);
     const result = await pathBuildOnceGuts(path, styles, options);
     return {
         contents: result.contents,

@@ -14,14 +14,15 @@
   "compilerOptions": {
     "alwaysStrict": true,
     "baseUrl": ".",
-    "declaration": true,  
+    "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
-    "jsx":"react",
+    "jsx": "react",
     "jsxFactory": "Adapt.createElement",
     "lib": [
-      "es6"
+      "es6",
+      "esnext.asynciterable" //For @types/graphql
     ],
     "module": "commonjs",
     "moduleResolution": "node",
@@ -33,7 +34,9 @@
     "noUnusedParameters": true,
     "outDir": "dist",
     "paths": {
-      "css-what": [ "./types/css-what" ]
+      "css-what": [
+        "./types/css-what"
+      ]
     },
     "sourceMap": true,
     "strictNullChecks": true,
