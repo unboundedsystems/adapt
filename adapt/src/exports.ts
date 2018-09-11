@@ -63,10 +63,6 @@ export {
     stack,
 } from "./stack";
 
-export {
-    Constructor,
-} from "./type_support";
-
 export * from "./utils";
 
 export {
@@ -89,3 +85,11 @@ export {
     Message,
     MessageLogger,
 } from "@usys/utils";
+
+import {
+    Constructor,
+} from "@usys/utils";
+
+export {
+    Constructor,
+};

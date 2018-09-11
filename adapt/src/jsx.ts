@@ -2,7 +2,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { Message, MessageType } from "@usys/utils";
+import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { registerConstructor } from "./reanimate";
@@ -127,8 +127,8 @@ export abstract class Component<Props extends object = {}, State extends object 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
 }
 
-export type PropsType<Comp extends tySup.Constructor<Component<any, any>>> =
-    Comp extends tySup.Constructor<Component<infer CProps, any>> ? CProps :
+export type PropsType<Comp extends Constructor<Component<any, any>>> =
+    Comp extends Constructor<Component<infer CProps, any>> ? CProps :
     never;
 
 export abstract class DeferredComponent<Props extends object = {}, State extends object = {}>
@@ -342,7 +342,7 @@ export function createElement<Props extends object>(
         ClassComponentTyp<Props, AnyState>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
-    props: tySup.ExcludeInterface<Props, tySup.Children<any>> & BuiltinProps,
+    props: ExcludeInterface<Props, tySup.Children<any>> & BuiltinProps,
     ...children: tySup.ChildType<Props>[]): AdaptElement {
 
     if (typeof ctor === "string") {
@@ -350,7 +350,7 @@ export function createElement<Props extends object>(
     }
 
     type PropsNoChildren =
-        tySup.ExcludeInterface<Props, tySup.Children<any>>;
+        ExcludeInterface<Props, tySup.Children<any>>;
 
     //props===null PropsNoChildren == {}
     let fixedProps = ((props === null) ? {} : props) as PropsNoChildren & BuiltinProps;

@@ -1,3 +1,4 @@
+export * from "./common_types";
 export * from "./crypto";
 export * from "./message";
 export * from "./paths";
