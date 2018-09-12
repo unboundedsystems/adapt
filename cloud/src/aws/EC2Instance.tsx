@@ -17,12 +17,14 @@ class EC2InstanceNC extends Component<EC2Props> {
         const props = this.props;
         const userData = (typeof props.userData === "string") ?
             new Buffer(props.userData).toString("base64") : undefined;
+        const tags = props.name ? [ { Key: "Name", Value: props.name } ] : undefined;
 
         const properties = removeUndef({
             InstanceType: props.instanceType,
             KeyName: props.sshKeyName,
             ImageId: props.imageId,
             SecurityGroups: props.securityGroups,
+            Tags: tags,
             UserData: userData,
         });
 
