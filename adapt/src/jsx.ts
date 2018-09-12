@@ -5,7 +5,7 @@ import * as ld from "lodash";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
 import { registerConstructor } from "./reanimate";
-import { applyStateUpdate, computeStateUpdate, StateNamespace, StateStore, StateUpdater } from "./state";
+import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
 import { Message, MessageType } from "./utils";
 
@@ -69,21 +69,58 @@ export function isComponentElement<P extends object = AnyProps>(val: any): val i
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {
 
-    readonly state: State;
-
     // cleanup gets called after build of this component's
     // subtree has completed.
     cleanup?: (this: this) => void;
-    private stateUpdates: Partial<State>[] = [];
+
+    private stateUpdates: StateUpdater<Props, State>[] = [];
+    private getState?: () => any;
+
+    get state(): Readonly<State> {
+        if (this.getState == null) {
+            throw new Error(`this.state cannot be accessed before calling super()`);
+        }
+        if (this.initialState == null) {
+            throw new Error(`cannot access this.state in a Component that ` +
+                            `lacks an initialState method`);
+        }
+        return this.getState();
+    }
+    set state(_: Readonly<State>) {
+        throw new Error(`State for a component can only be changed by calling this.setState`);
+    }
 
     constructor(readonly props: Props & BuiltinProps) {
         registerConstructor(this.constructor);
+
+        const cData = getComponentConstructorData();
+        const curState = cData.getState();
+        if (curState === undefined && this.initialState != null) {
+            const init = this.initialState();
+            if (init == null) {
+                throw new Error(`initialState function returned invalid value ` +
+                                `'${init}'. initialState must return an object.`);
+            }
+            cData.setInitialState(init);
+        }
+
+        // Prevent subclass constructors from accessing this.state too early
+        // by waiting to init getState.
+        this.getState = cData.getState;
     }
 
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
-        const upd = computeStateUpdate(this.state, this.props, stateUpdate);
-        this.stateUpdates.push(upd);
+        if (this.initialState == null) {
+            throw new Error(`Component ${this.constructor.name}: cannot access ` +
+                            `this.setState in a Component that lacks an ` +
+                            `initialState method`);
+        }
+        this.stateUpdates.push(ld.isFunction(stateUpdate) ?
+                               stateUpdate : () => stateUpdate);
     }
+
+    // If a component uses state, it MUST define initialState
+    initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
 }
@@ -220,16 +257,12 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     }
 
     postBuild(stateStore: StateStore): { stateChanged: boolean } {
-        let stateChanged = false;
-        if (this.component != null) {
-            const updates = ((this.component as any) as { stateUpdates: AnyState[] }).stateUpdates;
-            if (updates.length > 0) {
-                const updated =
-                    applyStateUpdate(this.stateNamespace, this.component, stateStore, Object.assign.apply({}, updates));
-                stateChanged = stateChanged || updated;
-            }
-        }
-        return { stateChanged };
+        if (this.component == null) return { stateChanged: false };
+        const updates: StateUpdater[] = (this.component as any).stateUpdates;
+        return {
+            stateChanged: applyStateUpdates(this.stateNamespace, stateStore,
+                                            this.props, updates)
+        };
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }
@@ -382,4 +415,34 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
     }
 
     return children;
+}
+
+export interface ComponentConstructorData {
+    getState: () => any;
+    setInitialState: <T extends object>(init: T) => void;
+}
+
+let componentConstructorStack: ComponentConstructorData[] = [];
+
+// exported as support utility for testing only
+export function setComponentConstructorStack_(stack: ComponentConstructorData[]): ComponentConstructorData[] {
+    const old = componentConstructorStack;
+    componentConstructorStack = stack;
+    return old;
+}
+
+export function pushComponentConstructorData(d: ComponentConstructorData) {
+    componentConstructorStack.push(d);
+}
+
+export function popComponentConstructorData() {
+    componentConstructorStack.pop();
+}
+
+function getComponentConstructorData(): ComponentConstructorData {
+    const data = ld.last(componentConstructorStack);
+    if (data == null) {
+        throw new Error(`Internal error: componentConstructorStack is empty`);
+    }
+    return data;
 }

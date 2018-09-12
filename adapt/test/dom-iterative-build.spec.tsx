@@ -16,11 +16,8 @@ interface GroupThenEmptyProps {
 interface GroupThenEmptyState { didGroup: boolean; }
 
 class GroupThenEmpty extends Component<GroupThenEmptyProps, GroupThenEmptyState> {
-    readonly state: GroupThenEmptyState;
-
-    constructor(props: GroupThenEmptyProps) {
-        super(props);
-        this.state = { didGroup: false };
+    initialState() {
+        return { didGroup: false };
     }
 
     build() {

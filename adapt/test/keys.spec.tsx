@@ -7,6 +7,7 @@ import {
     KeyTracker,
 } from "../src/keys";
 import {
+    componentConstructorDataFixture,
     Empty,
 } from "./testlib";
 
@@ -54,6 +55,9 @@ describe("Assign Keys", () => {
 });
 
 describe("KeyTracker", () => {
+
+    componentConstructorDataFixture();
+
     it("Should generate unique keys for a base name", () => {
         const tracker = new KeyTracker();
         const comp = new Empty({ id: 1 });

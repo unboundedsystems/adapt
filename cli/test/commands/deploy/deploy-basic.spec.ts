@@ -272,6 +272,9 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
     }
 
     class StateUpdater extends Component<StateUpdaterProps, AnyState> {
+        initialState() {
+            return this.props.initialState;
+        }
 
         build() {
             this.setState(this.props.newState);

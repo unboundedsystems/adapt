@@ -5,21 +5,24 @@ import * as ld from "lodash";
 import * as css from "./css";
 
 import {
+    AdaptComponentElement,
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
-    AnyState,
     childrenToArray,
-    ClassComponentTyp,
     cloneElement,
+    Component,
     createElement,
     FunctionComponentTyp,
+    isComponentElement,
     isDeferredElementImpl,
     isElement,
     isElementImpl,
     isMountedElement,
     isMountedPrimitiveElement,
     isPrimitiveElement,
+    popComponentConstructorData,
+    pushComponentConstructorData,
     simplifyChildren,
     WithChildren,
 } from "./jsx";
@@ -33,7 +36,7 @@ import {
     BuildListener,
     BuildOp,
 } from "./dom_build_data_recorder";
-import { BuildNotImplemented, ThrewNonError } from "./error";
+import { BuildNotImplemented, isError, ThrewNonError } from "./error";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
 import { Message, MessageType } from "./utils";
 
@@ -136,13 +139,18 @@ async function computeContentsFromElement<P extends object>(
         // element.componentType is a class, not a function. Fall through.
     }
 
-    const component = new (element.componentType as ClassComponentTyp<P, AnyState>)(element.props);
-    if (isElementImpl(element)) {
-        element.component = component;
-        const prevState = state.elementState(element.stateNamespace);
-        if (prevState != null) {
-            (component as any).state = prevState;
+    if (!isComponentElement(element)) {
+        throw new Error(`Internal error: trying to construct non-component`);
+    }
+    let component: Component;
+    try {
+        component = constructComponent(element, state);
+    } catch (e) {
+        if (e instanceof BuildNotImplemented) return buildDone(e);
+        if (isError(e)) {
+            return buildDone(new Error(`Component construction failed: ${e.message}`));
         }
+        throw e;
     }
 
     try {
@@ -299,9 +307,16 @@ async function buildElement(
 
     if (isPrimitiveElement(elem)) {
         if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
-        elem.component = new elem.componentType(elem.props);
-        const res = new BuildResults(elem, undefined);
-        res.builtElements.push(elem);
+        const res = new BuildResults(elem);
+        try {
+            constructComponent(elem, options.stateStore);
+            res.builtElements.push(elem);
+        } catch (err) {
+            if (!isError(err)) throw err;
+            recordDomError(res, elem,
+                new Error(`Component construction failed: ${err.message}`));
+            res.buildErr = true;
+        }
         return res;
     }
 
@@ -318,6 +333,27 @@ async function buildElement(
 
     out.builtElements.push(elem);
     return out;
+}
+
+function constructComponent<P extends object = {}>(
+    elem: AdaptComponentElement<P>, stateStore: StateStore): Component<P> {
+
+    if (!isElementImpl(elem)) {
+        throw new Error(`Internal error: Element is not an ElementImpl`);
+    }
+
+    pushComponentConstructorData({
+        getState: () => stateStore.elementState(elem.stateNamespace),
+        setInitialState: (init) => stateStore.setElementState(elem.stateNamespace, init),
+    });
+
+    try {
+        const component = new elem.componentType(elem.props);
+        elem.component = component;
+        return component;
+    } finally {
+        popComponentConstructorData();
+    }
 }
 
 function notNull(x: any): boolean {
