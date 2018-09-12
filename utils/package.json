@@ -13,7 +13,8 @@
     "execa": "^0.10.0",
     "fs-extra": "^6.0.1",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "type-ops": "^3.0.1"
   },
   "devDependencies": {
     "@types/decamelize": "^1.2.0",
