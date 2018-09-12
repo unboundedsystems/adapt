@@ -41,8 +41,8 @@ export function MakeGroup(props: { children?: Adapt.AdaptElement[] | Adapt.Adapt
 }
 
 export interface WithDefaultsProps {
-    prop1?: number;
-    prop2?: number;
+    prop1: number;
+    prop2: number;
 }
 export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
     static defaultProps = {
