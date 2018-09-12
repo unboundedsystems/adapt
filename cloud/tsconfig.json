@@ -9,7 +9,6 @@
   ],
   "compilerOptions": {
     "alwaysStrict": true,
-    "baseUrl": ".",
     "declaration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -28,7 +27,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "outDir": "./dist",
-    "paths": {},
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es6",

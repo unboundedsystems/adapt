@@ -1,6 +1,8 @@
+declare module "css-what" {
+
 import { FlowArrayMutation } from "typescript";
 
-declare namespace parser {
+namespace parser {
     export interface ParserOptions {
         xmlMode: boolean;
     }
@@ -48,6 +50,7 @@ declare namespace parser {
     export type ParsedSelector = ParsedSelectorBlock[];
 }
 
-declare function parser(selector: string,
+function parser(selector: string,
     options?: parser.ParserOptions): parser.ParsedSelector;
 export = parser;
+}
