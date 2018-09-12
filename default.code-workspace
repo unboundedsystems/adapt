@@ -27,5 +27,6 @@
 	],
 	"settings": {
 		"files.eol": "\n",
+		"typescript.tsdk": "adapt/node_modules/typescript/lib",
 	}
 }
