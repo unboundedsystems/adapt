@@ -9,10 +9,13 @@ import Adapt, {
 import { AdaptPrimitiveElementImpl, isMountedElement } from "../../src/jsx";
 import { findMummy, reanimate } from "../../src/reanimate";
 import { reanimateDom } from "../../src/reanimate/reanimate_dom";
+import { componentConstructorDataFixture } from "../testlib";
 
 export class Flex extends PrimitiveComponent<AnyProps> { }
 
 describe("Reanimate DOM basic tests", () => {
+    componentConstructorDataFixture();
+
     async function roundTrip(origDom: AdaptElement) {
         const xmlString = serializeDom(origDom, true);
         const newDom = await reanimateDom(xmlString);

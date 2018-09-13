@@ -3,7 +3,7 @@ import * as util from "util";
 import * as ld from "lodash";
 
 import { removeUndef } from "@usys/utils";
-import { AdaptElement, AnyProps, AnyState, Component, isElementImpl, isMountedElement } from "./jsx";
+import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
 import { StateNamespace } from "./state";
 
 export interface StateStore {
@@ -77,52 +77,37 @@ class StateStoreImpl implements StateStore {
 }
 
 export type StateUpdater<P = AnyProps, S = AnyState> =
-    (prev: S | undefined, props: P) => Partial<S>;
+    (prev: S, props: P) => Partial<S>;
 
-interface WritableState<S> {
-    state: S;
-}
-
-function writableState<P extends object, S extends object>(c: Component<P, S>): WritableState<S> {
-    return c as WritableState<S>;
-}
-
-function isStateUpdater<P, S>(x: AnyState | StateUpdater<P, S>):
-    x is StateUpdater<P, S> {
-    return ld.isFunction(x);
-}
-
-export function computeStateUpdate<P extends object = AnyProps,
-    S extends object = AnyState>(
-        prev: S,
-        props: P,
-        update: Partial<S> | StateUpdater<P, S>): Partial<S> {
-
-    return isStateUpdater(update) ?
-        update(prev, props) :
-        update;
-}
-
-export function applyStateUpdate<
+export function applyStateUpdates<
     P extends object = AnyProps,
     S extends object = AnyState>(
         path: StateNamespace,
-        component: Component<P, S>,
         store: StateStore,
-        update: Partial<S>) {
+        props: P,
+        updaters: StateUpdater<P, S>[]) {
 
-    let prev: S | {} | undefined = store.elementState(path) as S;
+    if (updaters.length === 0) return false;
+
+    const prev: S | undefined = store.elementState(path) as S;
     if (prev === undefined) {
-        prev = ("state" in component) ? component.state : {};
+        throw new Error(`Internal error: previous Component state should have been initialized`);
     }
 
-    // https://github.com/Microsoft/TypeScript/pull/13288
-    // tslint:disable-next-line:no-object-literal-type-assertion
-    const newState = removeUndef({ ...(prev as any), ...(update as any) } as S);
+    let newState = prev;
+    for (const updater of updaters) {
+        // Copy current state so updater can't modify newState
+        // https://github.com/Microsoft/TypeScript/pull/13288
+        const u = updater({ ...newState as any }, props);
 
+        newState = { ...newState as any, ...u as any };
+    }
+
+    newState = removeUndef(newState);
+
+    if (ld.isEqual(prev, newState)) return false;
     store.setElementState(path, newState);
-    writableState(component).state = newState;
-    return !ld.isEqual(prev, newState);
+    return true;
 }
 
 export function stateNamespaceForPath(path: AdaptElement[]): StateNamespace {

@@ -115,3 +115,14 @@ class MockLoggerImpl extends MessageStreamer {
 export function createMockLogger(): MockLogger {
     return new MockLoggerImpl();
 }
+
+// Constructor data that doesn't actually keep track of state
+const noStoreConstructorData: jsx.ComponentConstructorData = {
+    getState: () => ({}),
+    setInitialState: () => {/**/}
+};
+
+export function componentConstructorDataFixture(ccData = noStoreConstructorData) {
+    before(() => jsx.pushComponentConstructorData(ccData));
+    after(() => jsx.popComponentConstructorData());
+}

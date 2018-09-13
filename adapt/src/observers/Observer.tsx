@@ -21,13 +21,8 @@ interface ObserverState {
 }
 
 export class Observer<P extends object = any> extends Component<ObserverProps<P>, ObserverState> {
-    readonly state: ObserverState;
-
-    constructor(props: ObserverProps<P>) {
-        super(props);
-        this.state = {
-            result: {}
-        };
+    initialState() {
+        return { result: {} };
     }
 
     async build(): Promise<AdaptElement | null> {
