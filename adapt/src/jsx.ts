@@ -97,7 +97,7 @@ export abstract class Component<Props extends object = {}, State extends object 
         const curState = cData.getState();
         if (curState === undefined && this.initialState != null) {
             const init = this.initialState();
-            if (init == null) {
+            if (init == null || !ld.isObject(init)) {
                 throw new Error(`initialState function returned invalid value ` +
                                 `'${init}'. initialState must return an object.`);
             }
