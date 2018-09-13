@@ -3,6 +3,8 @@ import { sortArray } from "./sort_arrays";
 
 const sorted = Symbol();
 
+// LoDash isEqualWith says that a true comparison means equal, false means unequal, and undefined means
+// I don't know, do the normal isEqual thing at this level.
 function compareArrays(x: any, y: any): boolean | undefined {
     if (x[sorted] && y[sorted]) return;
     if (!ld.isArray(x)) return;
@@ -19,7 +21,7 @@ function compareArrays(x: any, y: any): boolean | undefined {
 
 /**
  * Given two values, this will do a deep comparison like lodash isEqual, but
- * will compare array properties as if order does not matter.  If an array has a non-numeric index
+ * will compare array properties as if order does not matter.
  * @param obj first object to be compared
  * @param other object to comapre to.
  */
