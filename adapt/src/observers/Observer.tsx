@@ -9,24 +9,25 @@ export interface ObserverEnvironment {
     observerManager: ObserverManagerDeployment;
 }
 
-export type ResultsEqualType = (old: QueryResult, newRes: QueryResult) => boolean;
+export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
 
-export interface ObserverProps<P extends object> {
+export interface ObserverProps<QueryData extends object> {
     environment: ObserverEnvironment;
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
-    build: (error: Error | null, props: P | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull>;
-    compareResults: ResultsEqualType;
+    build: (error: Error | null, props: QueryData | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull>;
+    isEqual: ResultsEqualType<QueryData>;
 }
 
 interface ObserverState {
     result: QueryResult;
 }
 
-export class Observer<P extends object = any> extends Component<ObserverProps<P>, ObserverState> {
+export class Observer<QueryData extends object = any>
+    extends Component<ObserverProps<QueryData>, ObserverState> {
 
-    static defaultProps = { compareResults: isEqualUnorderedArrays };
+    static defaultProps = { isEqual: isEqualUnorderedArrays };
 
     initialState() { return { result: {} }; }
 
@@ -40,7 +41,7 @@ export class Observer<P extends object = any> extends Component<ObserverProps<P>
             return this.props.build(err, undefined);
         }
 
-        if (!this.props.compareResults(this.state.result, result)) {
+        if (!this.props.isEqual(this.state.result, result)) {
             this.setState({ result });
         }
 
