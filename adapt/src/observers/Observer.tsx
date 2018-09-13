@@ -1,3 +1,4 @@
+import { isEqualUnorderedArrays } from "@usys/utils";
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
 import { AdaptElement, AdaptElementOrNull, Component } from "..";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
@@ -8,22 +9,27 @@ export interface ObserverEnvironment {
     observerManager: ObserverManagerDeployment;
 }
 
-export interface ObserverProps<P extends object> {
+export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
+
+export interface ObserverProps<QueryData extends object> {
     environment: ObserverEnvironment;
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
-    build: (error: Error | null, props: P | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull> ;
+    build: (error: Error | null, props: QueryData | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull>;
+    isEqual: ResultsEqualType<QueryData>;
 }
 
 interface ObserverState {
     result: QueryResult;
 }
 
-export class Observer<P extends object = any> extends Component<ObserverProps<P>, ObserverState> {
-    initialState() {
-        return { result: {} };
-    }
+export class Observer<QueryData extends object = any>
+    extends Component<ObserverProps<QueryData>, ObserverState> {
+
+    static defaultProps = { isEqual: isEqualUnorderedArrays };
+
+    initialState() { return { result: {} }; }
 
     async build(): Promise<AdaptElement | null> {
         const env = this.props.environment;
@@ -35,7 +41,9 @@ export class Observer<P extends object = any> extends Component<ObserverProps<P>
             return this.props.build(err, undefined);
         }
 
-        this.setState({ result });
+        if (!this.props.isEqual(this.state.result, result)) {
+            this.setState({ result });
+        }
 
         let err: Error | null = null;
         if (this.state.result.errors) {

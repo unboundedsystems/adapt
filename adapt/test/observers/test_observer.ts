@@ -2,17 +2,16 @@ import * as uutil from "@usys/utils";
 import * as fs from "fs";
 import {
     GraphQLSchema,
-    validateSchema as gqlValidateSchema
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import * as should from "should";
+import * as ld from "lodash";
 import { Foo, QueryResolvers } from "../../generated/observers/test_observer_schema_types";
 import { Observer } from "../../src/observers";
 
 export const modelData = {
     foos: (Array(10).fill(undefined).map((_, i) => ({
         id: i.toString(),
-        payload: i.toString()
+        payload: [i.toString(), (i + 1).toString()]
     }))),
 };
 
@@ -30,25 +29,58 @@ const resolvers = {
     }
 };
 
-const schema = makeExecutableSchema({
-    typeDefs: schemaStr,
-    resolvers
-});
+function rotate<T>(x: T[], amt: number): T[] {
+    if (x.length === 0) return ld.clone(x);
+    const normAmt = amt % x.length;
+    const prefix = x.slice(0, normAmt);
+    const suffix = x.slice(normAmt);
+    return suffix.concat(prefix);
+}
 
-export class TestObserver implements Observer<typeof modelData, typeof modelData> {
-    get schema(): GraphQLSchema {
-        return schema;
+let rotation = 0;
+const rotatingPayloadResolvers = {
+    Query: {
+        fooById: id<QueryResolvers.FooByIdResolver<Foo | null, typeof modelData, null>>(
+            async (obj, args, _context, _info) => {
+                await uutil.sleep(0);
+                let ret = obj.foos.find((foo) => foo.id.toString() === args.id);
+                if (ret === undefined) return null;
+                ret = ld.cloneDeep(ret);
+                ret.payload = rotate(ret.payload, rotation);
+                rotation++;
+                return ret;
+            })
     }
+};
 
-    constructor() {
-        const errors = gqlValidateSchema(schema);
-        should(errors).eql([]);
-    }
+abstract class BaseTestObserver implements Observer<typeof modelData, typeof modelData> {
+    abstract get schema(): GraphQLSchema;
 
     async observe() {
         return {
             data: modelData,
             context: modelData
         };
+    }
+}
+export class TestObserver extends BaseTestObserver {
+    static schema_ = makeExecutableSchema({
+        typeDefs: schemaStr,
+        resolvers
+    });
+
+    get schema(): GraphQLSchema {
+        return TestObserver.schema_;
+    }
+}
+
+export class RotatingPayloadTestObserver extends BaseTestObserver {
+    static schema_ = makeExecutableSchema({
+        typeDefs: schemaStr,
+        resolvers: rotatingPayloadResolvers
+    });
+
+    get schema(): GraphQLSchema {
+        return RotatingPayloadTestObserver.schema_;
     }
 }

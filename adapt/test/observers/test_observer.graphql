@@ -1,6 +1,6 @@
 type Foo {
     id: ID!
-    payload: String!
+    payload: [String]!
 }
 
 type Query {

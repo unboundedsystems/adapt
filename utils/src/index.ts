@@ -9,6 +9,15 @@ import { removeUndef } from "./removeUndef";
 import { sleep } from "./sleep";
 
 export {
+    sortArray,
+    sortArraysInObject
+} from "./sort_arrays";
+
+export {
+    isEqualUnorderedArrays
+} from "./is_equal_unordered_arrays";
+
+export {
     localRegistry,
     localRegistryDefaults,
     mochaLocalRegistry,

@@ -55,13 +55,13 @@ describe("Deployment Observer Manager Tests", () => {
         await registerTestSchema();
 
         const altData = ld.cloneDeep(modelData);
-        altData.foos[1].payload = "test2";
+        altData.foos[1].payload = ["test2"];
         await registerTestSchema("test2", altData);
 
         const result1 = await mgr.executeQuery("test1", query);
-        should(ld.cloneDeep(result1)).eql({ data: { fooById: { id: "1", payload: "1" } } });
+        should(ld.cloneDeep(result1)).eql({ data: { fooById: { id: "1", payload: ["1", "2"] } } });
 
         const result2 = await mgr.executeQuery("test2", query);
-        should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "1", payload: "test2" } } });
+        should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "1", payload: ["test2"] } } });
     });
 });
