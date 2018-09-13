@@ -19,7 +19,7 @@ function compareArrays(x: any, y: any): boolean | undefined {
 
 /**
  * Given two values, this will do a deep comparison like lodash isEqual, but
- * will compare array properties as if order does not matter.  If an array has a non-numeric index
+ * will compare array properties as if order does not matter.
  * @param obj first object to be compared
  * @param other object to comapre to.
  */
