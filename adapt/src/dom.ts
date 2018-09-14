@@ -31,6 +31,7 @@ import {
     createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
+import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {
     BuildListener,
@@ -45,16 +46,17 @@ export type DomPath = AdaptElement[];
 type CleanupFunc = () => void;
 class BuildResults {
     contents: AdaptElementOrNull = null;
-    messages: Message[] = [];
     cleanups: CleanupFunc[] = [];
     mountedElements: AdaptElement[] = [];
     builtElements: AdaptElement[] = [];
     stateChanged = false;
+    buildErr = false;
+    private messages: Message[] = [];
 
     constructor(
+        readonly recorder: BuildListener,
         contents?: AdaptElementOrNull,
-        other?: BuildResults,
-        public buildErr: boolean = false) {
+        other?: BuildResults) {
 
         if (contents !== undefined) {
             this.contents = contents;
@@ -62,6 +64,51 @@ class BuildResults {
 
         if (other !== undefined) {
             this.combine(other);
+        }
+    }
+
+    // Terminology is a little confusing here. Anything that allows the
+    // build to keep progressing should be MessageType.warning.
+    // MessageType.error should only be for catastrophic things where
+    // the build cannot keep running (i.e. an exception that can't be
+    // handled within build).
+    // However, either MessageType.warning or MessageType.error indicates
+    // an unsuccessful build, therefore buildErr = true.
+
+    /**
+     * Record an error in build data recorder and log a message and mark
+     * the build as errored.
+     * This is the primary interface for most build errors.
+     */
+    error(err: string | Error, from?: string) {
+        const error = ld.isError(err) ? err : new Error(err);
+        this.recorder({ type: "error", error });
+
+        this.message({ type: MessageType.warning, from }, error);
+    }
+
+    /**
+     * Lower-level message log interface. Does not record to build data
+     * recorder, but does mark build as errored, depending on MessageType.
+     */
+    message(msg: WithPartialT<Message, "from" | "timestamp">): void;
+    message(msg: WithPartialT<OmitT<Message, "content">, "from" | "timestamp">, err: Error): void;
+    message(msg: WithPartialT<Message, "from" | "timestamp" | "content">, err?: Error): void {
+        const content = err ? err.message : msg.content;
+        if (!content) throw new Error(`Internal error: build message doesn't have content or err`);
+
+        const copy = {
+            ...msg,
+            content,
+            timestamp: msg.timestamp ? msg.timestamp : Date.now(),
+            from: msg.from ? msg.from : "DOM build",
+        };
+        this.messages.push(copy);
+
+        switch (copy.type) {
+            case MessageType.warning:
+            case MessageType.error:
+                this.buildErr = true;
         }
     }
 
@@ -85,6 +132,16 @@ class BuildResults {
             if (clean) clean();
         } while (clean);
     }
+    toBuildOutput(): BuildOutput {
+        if (this.buildErr && this.messages.length === 0) {
+            throw new Error(`Internal error: buildErr is true, but there are ` +
+                            `no messages to describe why`);
+        }
+        return {
+            messages: this.messages,
+            contents: this.contents,
+        };
+    }
 }
 
 function isClassConstructorError(err: any) {
@@ -97,36 +154,29 @@ function recordDomError(
     element: AdaptElement,
     err: Error | Message,
 ): { domError: AdaptElement<{}>, message: string } {
+    let message: string;
 
-    let message: Message;
     if (ld.isError(err)) {
-        message = {
-            type: MessageType.warning,
-            timestamp: Date.now(),
-            from: "DOM build",
-            content:
-                `Component ${element.componentType.name} cannot be ` +
-                `built with current props` +
-                (err.message ? ": " + err.message : "")
-        };
+        message = `Component ${element.componentType.name} cannot be built ` +
+            `with current props` + (err.message ? ": " + err.message : "");
+        cc.error(message);
     } else {
-        message = err;
+        message = err.content;
+        cc.message(err);
     }
-    const domError = createElement(DomError, {}, message.content);
+    const domError = createElement(DomError, {}, message);
 
-    cc.buildErr = true;
     const kids = childrenToArray(element.props.children);
-    cc.messages.push(message);
     kids.unshift(domError);
     replaceChildren(element, kids);
 
-    return { domError, message: message.content };
+    return { domError, message };
 }
 
 async function computeContentsFromElement<P extends object>(
     element: AdaptElement<P & WithChildren>,
-    state: StateStore): Promise<BuildResults> {
-    const ret = new BuildResults();
+    options: BuildOptionsReq): Promise<BuildResults> {
+    const ret = new BuildResults(options.recorder);
 
     try {
         ret.contents =
@@ -144,7 +194,7 @@ async function computeContentsFromElement<P extends object>(
     }
     let component: Component;
     try {
-        component = constructComponent(element, state);
+        component = constructComponent(element, options.stateStore);
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (isError(e)) {
@@ -194,11 +244,11 @@ async function computeContents(
 
     const element = ld.last(path);
     if (element == null) {
-        const ret = new BuildResults();
+        const ret = new BuildResults(options.recorder);
         return ret;
     }
 
-    const out = await computeContentsFromElement(element, options.stateStore);
+    const out = await computeContentsFromElement(element, options);
 
     options.recorder({
         type: "step",
@@ -264,7 +314,7 @@ function mountElement(
         throw new Error("Internal Error: Attempt to mount empty path");
     }
 
-    if (elem === null) return new BuildResults(elem, undefined, false);
+    if (elem === null) return new BuildResults(options.recorder, elem);
 
     if (isMountedElement(elem)) {
         throw new Error("Attempt to remount element: " + util.inspect(elem));
@@ -277,7 +327,7 @@ function mountElement(
         throw new Error("Elements must derive from ElementImpl");
     }
     elem.mount(parentStateNamespace, domPathToString(path));
-    const out = new BuildResults(elem, undefined, false);
+    const out = new BuildResults(options.recorder, elem);
     out.mountedElements.push(elem);
     return out;
 }
@@ -299,7 +349,7 @@ async function buildElement(
         throw new Error("Internal Error: buildElement called with empty path");
     }
 
-    if (elem === null) return new BuildResults(null, undefined);
+    if (elem === null) return new BuildResults(options.recorder, null);
 
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
@@ -307,7 +357,7 @@ async function buildElement(
 
     if (isPrimitiveElement(elem)) {
         if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
-        const res = new BuildResults(elem);
+        const res = new BuildResults(options.recorder, elem);
         try {
             constructComponent(elem, options.stateStore);
             res.builtElements.push(elem);
@@ -315,7 +365,6 @@ async function buildElement(
             if (!isError(err)) throw err;
             recordDomError(res, elem,
                 new Error(`Component construction failed: ${err.message}`));
-            res.buildErr = true;
         }
         return res;
     }
@@ -421,19 +470,14 @@ async function pathBuild(
     optionsIn?: BuildOptions): Promise<BuildOutput> {
 
     const options = computeOptions(optionsIn);
-    const out = new BuildResults();
 
-    const iterOutput = await pathBuildOnceGuts(path, styles, options);
-    out.contents = iterOutput.contents;
-    out.combine(iterOutput);
-    if (iterOutput.buildErr) {
-        return out;
-    }
+    const out = await pathBuildOnceGuts(path, styles, options);
+    if (out.buildErr) return out.toBuildOutput();
     if (out.stateChanged) {
         await nextTick();
         return pathBuild(path, styles, options);
     }
-    return out;
+    return out.toBuildOutput();
 }
 
 async function pathBuildOnce(
@@ -443,10 +487,7 @@ async function pathBuildOnce(
 
     const options = computeOptions(optionsIn);
     const result = await pathBuildOnceGuts(path, styles, options);
-    return {
-        contents: result.contents,
-        messages: (result.messages) || []
-    };
+    return result.toBuildOutput();
 }
 
 async function pathBuildOnceGuts(
@@ -507,7 +548,7 @@ async function buildChildren(
 
     if (!isElementImpl(newRoot)) throw new Error(`Elements must inherit from ElementImpl ${util.inspect(newRoot)}`);
 
-    const out = new BuildResults();
+    const out = new BuildResults(options.recorder);
 
     const children = newRoot.props.children;
     let newChildren: any = null;
@@ -560,7 +601,7 @@ async function realBuildOnce(
     let deferring = false;
     const atDepthFlag = atDepth(options, pathIn.length);
 
-    if (options.depth === 0) return new BuildResults(pathIn[0], undefined);
+    if (options.depth === 0) return new BuildResults(options.recorder, pathIn[0]);
 
     if (parentStateNamespace == null) {
         parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
@@ -568,12 +609,12 @@ async function realBuildOnce(
 
     const oldElem = ld.last(pathIn);
     if (oldElem === undefined) throw new Error("Internal Error: realBuild called with empty path");
-    if (oldElem === null) return new BuildResults(null, undefined);
+    if (oldElem === null) return new BuildResults(options.recorder, null);
     if (workingElem === undefined) {
         workingElem = oldElem;
     }
 
-    const out = new BuildResults();
+    const out = new BuildResults(options.recorder);
     let mountedElem: AdaptElementOrNull = oldElem;
     if (!isMountedElement(oldElem)) {
         const mountOut = mountElement(pathIn, parentStateNamespace, styles, options);
@@ -590,7 +631,7 @@ async function realBuildOnce(
     //Element is mounted
     const mountedPath = subLastPathElem(pathIn, mountedElem);
 
-    let newRoot: AdaptElementOrNull = null;
+    let newRoot: AdaptElementOrNull | undefined;
     let newPath = mountedPath;
     if (!isElementImpl(mountedElem)) {
         throw new Error("Elements must inherit from ElementImpl:" + util.inspect(newRoot));
@@ -620,9 +661,14 @@ async function realBuildOnce(
         out.contents = newRoot;
     }
 
+    if (newRoot === undefined) {
+        out.error(`Root element undefined after build`);
+        out.contents = null;
+        return out;
+    }
     if (newRoot === null) {
-        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
-        return new BuildResults(newRoot, out, true);
+        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: null });
+        return out;
     }
 
     //Do not process children of DomError nodes in case they result in more DomError children
@@ -634,7 +680,11 @@ async function realBuildOnce(
             replaceChildren(newRoot, newChildren);
         }
     } else {
-        out.buildErr = true;
+        if (!out.buildErr) {
+            // This could happen if a user instantiates a DomError element.
+            // Treat that as a build error too.
+            out.error("User-created DomError component present in the DOM tree");
+        }
     }
 
     //We are here either because mountedElem was deferred, or because mountedElem === newRoot
