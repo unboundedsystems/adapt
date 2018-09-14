@@ -45,18 +45,24 @@ export type DomPath = AdaptElement[];
 
 type CleanupFunc = () => void;
 class BuildResults {
-    contents: AdaptElementOrNull = null;
-    cleanups: CleanupFunc[] = [];
-    mountedElements: AdaptElement[] = [];
-    builtElements: AdaptElement[] = [];
-    stateChanged = false;
+    // These reset each build pass
+    contents: AdaptElementOrNull;
+    cleanups: CleanupFunc[];
+    mountedElements: AdaptElement[];
+    builtElements: AdaptElement[];
+    stateChanged: boolean;
+
+    // These accumulate across build passes
     buildErr = false;
+    buildPassStarts = 0;
     private messages: Message[] = [];
 
     constructor(
         readonly recorder: BuildListener,
         contents?: AdaptElementOrNull,
         other?: BuildResults) {
+
+        this.buildPassReset();
 
         if (contents !== undefined) {
             this.contents = contents;
@@ -65,6 +71,14 @@ class BuildResults {
         if (other !== undefined) {
             this.combine(other);
         }
+    }
+
+    buildPassReset() {
+        this.contents = null;
+        this.cleanups = [];
+        this.mountedElements = [];
+        this.builtElements = [];
+        this.stateChanged = false;
     }
 
     // Terminology is a little confusing here. Anything that allows the
@@ -119,10 +133,12 @@ class BuildResults {
         this.builtElements.push(...other.builtElements);
         this.buildErr = this.buildErr || other.buildErr;
         this.stateChanged = this.stateChanged || other.stateChanged;
+        this.buildPassStarts += other.buildPassStarts;
         other.messages = [];
         other.cleanups = [];
         other.builtElements = [];
         other.mountedElements = [];
+        other.buildPassStarts = 0;
         return this;
     }
     cleanup() {
@@ -414,6 +430,8 @@ export interface BuildOptions {
     shallow?: boolean;
     recorder?: BuildListener;
     stateStore?: StateStore;
+    maxBuildPasses?: number;
+    buildOnce?: boolean;
 }
 
 type BuildOptionsReq = Required<BuildOptions>;
@@ -425,7 +443,9 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
         // Next line shouldn't be needed.  VSCode tslint is ok, CLI is not.
         // tslint:disable-next-line:object-literal-sort-keys
         recorder: (_op: BuildOp) => { return; },
-        stateStore: createStateStore()
+        stateStore: createStateStore(),
+        maxBuildPasses: 200,
+        buildOnce: false,
     };
     return { ...defaultBuildOptions, ...optionsIn };
 }
@@ -439,8 +459,12 @@ export async function build(
     styles: AdaptElementOrNull,
     options?: BuildOptions): Promise<BuildOutput> {
 
+    const optionsReq = computeOptions(options);
+    const results = new BuildResults(optionsReq.recorder);
     const styleList = css.buildStyles(styles);
-    return pathBuild([root], styleList, options);
+
+    await pathBuild([root], styleList, optionsReq, results);
+    return results.toBuildOutput();
 }
 
 export async function buildOnce(
@@ -448,8 +472,7 @@ export async function buildOnce(
     styles: AdaptElement | null,
     options?: BuildOptions): Promise<BuildOutput> {
 
-    const styleList = css.buildStyles(styles);
-    return pathBuildOnce([root], styleList, options);
+    return build(root, styles, { ...options, buildOnce: true });
 }
 
 function atDepth(options: BuildOptionsReq, depth: number) {
@@ -467,50 +490,47 @@ async function nextTick(): Promise<void> {
 async function pathBuild(
     path: DomPath,
     styles: css.StyleList,
-    optionsIn?: BuildOptions): Promise<BuildOutput> {
+    options: BuildOptionsReq,
+    results: BuildResults): Promise<void> {
 
-    const options = computeOptions(optionsIn);
-
-    const out = await pathBuildOnceGuts(path, styles, options);
-    if (out.buildErr) return out.toBuildOutput();
-    if (out.stateChanged) {
+    await pathBuildOnceGuts(path, styles, options, results);
+    if (results.buildErr || options.buildOnce) return;
+    if (results.stateChanged) {
         await nextTick();
-        return pathBuild(path, styles, options);
+        return pathBuild(path, styles, options, results);
     }
-    return out.toBuildOutput();
-}
-
-async function pathBuildOnce(
-    path: DomPath,
-    styles: css.StyleList,
-    optionsIn?: BuildOptions): Promise<BuildOutput> {
-
-    const options = computeOptions(optionsIn);
-    const result = await pathBuildOnceGuts(path, styles, options);
-    return result.toBuildOutput();
 }
 
 async function pathBuildOnceGuts(
     path: DomPath,
     styles: css.StyleList,
-    options: Required<BuildOptions>): Promise<BuildResults> {
+    options: BuildOptionsReq,
+    results: BuildResults): Promise<void> {
 
     const root = path[path.length - 1];
+
+    if (results.buildPassStarts++ > options.maxBuildPasses) {
+        results.error(`DOM build exceeded maximum number of build iterations ` +
+                     `(${options.maxBuildPasses})`);
+        return;
+    }
+
     options.recorder({ type: "start", root });
-    let result: BuildResults;
+    results.buildPassReset();
+
     try {
-        result = await realBuildOnce(path, null, styles, options);
-        result.cleanup();
+        const once = await realBuildOnce(path, null, styles, options);
+        once.cleanup();
+        results.combine(once);
+        results.contents = once.contents;
     } catch (error) {
         options.recorder({ type: "error", error });
         throw error;
     }
 
-    if (result.buildErr) {
-        return result;
-    }
+    if (results.buildErr) return;
 
-    result.builtElements.map((elem) => {
+    results.builtElements.map((elem) => {
         if (isMountedPrimitiveElement(elem)) {
             let msgs: (Message | Error)[];
             try {
@@ -519,25 +539,21 @@ async function pathBuildOnceGuts(
                 if (!ld.isError(err)) err = new ThrewNonError(err);
                 msgs = [err];
             }
-            for (const m of msgs) recordDomError(result, elem, m);
+            for (const m of msgs) recordDomError(results, elem, m);
         }
     });
 
-    if (result.buildErr) {
-        return result;
-    }
+    if (results.buildErr) return;
 
-    options.recorder({ type: "done", root: result.contents });
-    result.builtElements.map((elem) => {
+    options.recorder({ type: "done", root: results.contents });
+    results.builtElements.map((elem) => {
         if (isElementImpl(elem)) {
             const { stateChanged } = elem.postBuild(options.stateStore);
             if (stateChanged) {
-                result.stateChanged = true;
+                results.stateChanged = true;
             }
         }
     });
-
-    return result;
 }
 
 async function buildChildren(
