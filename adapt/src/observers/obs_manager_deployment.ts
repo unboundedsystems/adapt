@@ -46,7 +46,7 @@ function addExecutedQuery(o: ExecutedQueryStorage, query: ExecutedQuery) {
     const entry = o.get(key);
     if (entry === undefined) {
         const vars = new Set<Variables | undefined>([query.variables]);
-        o.set(key, { doc: query.query, vars });
+        o.set(key, { doc: query.query, vars: ld.cloneDeep(vars) });
         return;
     }
 
