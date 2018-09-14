@@ -32,7 +32,7 @@ export function sortArraysInObject<T extends object>(
     }
 }
 
-export function sortArray<T>(arr: T[]): void {
+export function sortArray<T>(arr: T[]): T[] {
     if (typeof arr[0] === "string") arr.sort();
     else {
         arr.sort((a, b) => {
@@ -42,4 +42,5 @@ export function sortArray<T>(arr: T[]): void {
                 aS < bS ? -1 : 1;
         });
     }
+    return arr;
 }
