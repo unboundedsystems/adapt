@@ -64,4 +64,28 @@ describe("Deployment Observer Manager Tests", () => {
         const result2 = await mgr.executeQuery("test2", query);
         should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "1", payload: ["test2"] } } });
     });
+
+    it("Should record schema queries", async () => {
+        await registerTestSchema();
+
+        const query2 =
+            gql`query Foo {
+            fooById(id: "2") {
+                id
+                payload
+            }
+        }`;
+
+        should(mgr.executedQueries().test1.size).equal(0);
+
+        const result1 = await mgr.executeQuery("test1", query);
+        should(ld.cloneDeep(result1)).eql({ data: { fooById: { id: "1", payload: ["1", "2"] } } });
+
+        const result2 = await mgr.executeQuery("test1", query2);
+        should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "2", payload: ["2", "3"] } } });
+
+        should(mgr.executedQueries().test1.has(query)).True();
+        should(mgr.executedQueries().test1.has(query2)).True();
+        should(mgr.executedQueries().test1.size).equal(2);
+    });
 });
