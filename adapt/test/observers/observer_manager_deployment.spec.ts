@@ -1,3 +1,4 @@
+import * as uutils from "@usys/utils";
 import * as ld from "lodash";
 import * as should from "should";
 import { createObserverManagerDeployment, gql, Observer, ObserverManagerDeployment } from "../../src/observers";
@@ -30,7 +31,7 @@ describe("Deployment Observer Manager Tests", () => {
         const obs: Observer = new TestObserver();
         const schema = obs.schema;
 
-        const observations = await obs.observe(schema, [query]);
+        const observations = await obs.observe(schema, [{ query }]);
         if (data !== undefined) {
             observations.data = data;
         }
@@ -63,5 +64,39 @@ describe("Deployment Observer Manager Tests", () => {
 
         const result2 = await mgr.executeQuery("test2", query);
         should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "1", payload: ["test2"] } } });
+    });
+
+    it("Should record schema queries", async () => {
+        await registerTestSchema();
+
+        const query2 =
+            gql`query Bar($id: ID!) {
+            fooById(id: $id) {
+                id
+                payload
+            }
+        }`;
+
+        should(mgr.executedQueries().test1.length).equal(0);
+
+        const result1 = await mgr.executeQuery("test1", query);
+        should(ld.cloneDeep(result1)).eql({ data: { fooById: { id: "1", payload: ["1", "2"] } } });
+
+        const result2 = await mgr.executeQuery("test1", query2, { id: 2 });
+        should(ld.cloneDeep(result2)).eql({ data: { fooById: { id: "2", payload: ["2", "3"] } } });
+
+        const result3 = await mgr.executeQuery("test1", query2, { id: 3 });
+        should(ld.cloneDeep(result3)).eql({ data: { fooById: { id: "3", payload: ["3", "4"] } } });
+
+        //Repeat last result to make sure identical queries are collapsed.
+        //not guaranteed in interface but is in current implementation if print(query) is identical.
+        const result4 = await mgr.executeQuery("test1", query2, { id: 3 });
+        should(ld.cloneDeep(result4)).eql({ data: { fooById: { id: "3", payload: ["3", "4"] } } });
+
+        should(uutils.sortArray(mgr.executedQueries().test1)).eql([
+            { query: query2, variables: { id: 2 } },
+            { query: query2, variables: { id: 3 } },
+            { query, variables: undefined },
+        ]);
     });
 });
