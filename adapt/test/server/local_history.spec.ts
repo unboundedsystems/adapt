@@ -9,7 +9,8 @@ import {
     createLocalHistoryStore,
     domFilename,
     infoFilename,
-    stateFilename,
+    observationsFilename,
+    stateFilename
 } from "../../src/server/local_history";
 
 async function initLocalHistory() {
@@ -43,6 +44,7 @@ describe("Local history store tests", () => {
         const entry: HistoryEntry = {
             domXml: "<Adapt/>",
             stateJson: `{"stateJson":true}`,
+            observationsJson: `{ "test": { data: { "foo": 1 }, context: {"bar": 1}  } }`,
             ...origInfo
         };
         await writer.appendEntry(entry);
@@ -52,10 +54,12 @@ describe("Local history store tests", () => {
 
         const domXml = await fs.readFile(path.resolve(hDirs[0], domFilename));
         const stateJson = await fs.readFile(path.resolve(hDirs[0], stateFilename));
+        const observationsJson = await fs.readFile(path.resolve(hDirs[0], observationsFilename));
         const info = await fs.readJson(path.resolve(hDirs[0], infoFilename));
 
         should(domXml.toString()).equal(entry.domXml);
         should(stateJson.toString()).equal(entry.stateJson);
+        should(observationsJson.toString()).equal(entry.observationsJson);
         should(info).eql(origInfo);
 
         should(db.getData("/deployments/dep1")).eql({

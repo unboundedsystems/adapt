@@ -74,6 +74,10 @@ export {
 export * from "./ops";
 
 export {
+    registerObserver
+} from "./observers";
+
+export {
     Action,
     Plugin,
     PluginOptions,

@@ -31,6 +31,10 @@ import {
     createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
+import {
+    createObserverManagerDeployment, ObserverManagerDeployment
+} from "./observers";
+
 import { Message, MessageType, removeUndef } from "@usys/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
@@ -210,7 +214,7 @@ async function computeContentsFromElement<P extends object>(
     }
     let component: Component;
     try {
-        component = constructComponent(element, options.stateStore);
+        component = constructComponent(element, options.stateStore, options.observerManager);
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (isError(e)) {
@@ -375,7 +379,7 @@ async function buildElement(
         if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
         const res = new BuildResults(options.recorder, elem);
         try {
-            constructComponent(elem, options.stateStore);
+            constructComponent(elem, options.stateStore, options.observerManager);
             res.builtElements.push(elem);
         } catch (err) {
             if (!isError(err)) throw err;
@@ -401,7 +405,7 @@ async function buildElement(
 }
 
 function constructComponent<P extends object = {}>(
-    elem: AdaptComponentElement<P>, stateStore: StateStore): Component<P> {
+    elem: AdaptComponentElement<P>, stateStore: StateStore, observerManager: ObserverManagerDeployment): Component<P> {
 
     if (!isElementImpl(elem)) {
         throw new Error(`Internal error: Element is not an ElementImpl`);
@@ -410,6 +414,7 @@ function constructComponent<P extends object = {}>(
     pushComponentConstructorData({
         getState: () => stateStore.elementState(elem.stateNamespace),
         setInitialState: (init) => stateStore.setElementState(elem.stateNamespace, init),
+        observerManager
     });
 
     try {
@@ -430,6 +435,7 @@ export interface BuildOptions {
     shallow?: boolean;
     recorder?: BuildListener;
     stateStore?: StateStore;
+    observerManager?: ObserverManagerDeployment;
     maxBuildPasses?: number;
     buildOnce?: boolean;
 }
@@ -445,6 +451,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
         // tslint:disable-next-line:object-literal-sort-keys
         recorder: (_op: BuildOp) => { return; },
         stateStore: createStateStore(),
+        observerManager: createObserverManagerDeployment(),
         maxBuildPasses: 200,
         buildOnce: false,
     };

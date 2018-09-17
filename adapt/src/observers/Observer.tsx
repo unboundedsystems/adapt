@@ -1,18 +1,19 @@
 import { isEqualUnorderedArrays } from "@usys/utils";
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
 import { AdaptElement, AdaptElementOrNull, Component } from "..";
+import { getComponentConstructorData } from "../jsx";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
 
 type QueryResult<R = any> = ExecutionResult<R>;
 
 export interface ObserverEnvironment {
-    observerManager: ObserverManagerDeployment;
+    observerManager?: ObserverManagerDeployment;
 }
 
 export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
 
 export interface ObserverProps<QueryData extends object> {
-    environment: ObserverEnvironment;
+    environment?: ObserverEnvironment;
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
@@ -29,14 +30,25 @@ export class Observer<QueryData extends object = any>
 
     static defaultProps = { isEqual: isEqualUnorderedArrays };
 
+    private readonly mgr: ObserverManagerDeployment;
+
+    constructor(props: ObserverProps<QueryData>) {
+        super(props);
+        const env = this.props.environment;
+        if (env && env.observerManager) {
+            this.mgr = env.observerManager;
+        } else {
+            const ccd = getComponentConstructorData();
+            this.mgr = ccd.observerManager;
+        }
+    }
+
     initialState() { return { result: {} }; }
 
     async build(): Promise<AdaptElement | null> {
-        const env = this.props.environment;
-        const mgr = env.observerManager;
         let result: QueryResult;
         try {
-            result = await mgr.executeQuery(this.props.observerName, this.props.query, this.props.variables);
+            result = await this.mgr.executeQuery(this.props.observerName, this.props.query, this.props.variables);
         } catch (err) {
             return this.props.build(err, undefined);
         }

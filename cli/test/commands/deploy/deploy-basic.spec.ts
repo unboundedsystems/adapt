@@ -6,6 +6,7 @@ import { clitest, expect } from "../../common/fancy";
 
 const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
 const domFilename = "adapt_dom.xml";
+const observationsFilename = "adapt_observations.json";
 const stateFilename = "adapt_state.json";
 const infoFilename = "adapt_deploy.json";
 
@@ -157,6 +158,7 @@ async function checkBasicIndexTsxState(
     expect(fileList).eqls([
         infoFilename,
         domFilename,
+        observationsFilename,
         stateFilename,
     ]);
     const domXml = await fs.readFile(path.join(historyDir, domFilename));

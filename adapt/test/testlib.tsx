@@ -4,6 +4,8 @@ import * as should from "should";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
 
+import { makeObserverManagerDeployment } from "../src/observers";
+
 export const packageDirs = findPackageDirs(__dirname);
 export const pkgRootDir = packageDirs.root;
 export const pkgTestDir = packageDirs.test;
@@ -92,7 +94,8 @@ export function deepFilterElemsToPublic(o: any): any {
 // Constructor data that doesn't actually keep track of state
 const noStoreConstructorData: jsx.ComponentConstructorData = {
     getState: () => ({}),
-    setInitialState: () => {/**/}
+    setInitialState: () => {/**/},
+    observerManager: makeObserverManagerDeployment({})
 };
 
 export function componentConstructorDataFixture(ccData = noStoreConstructorData) {

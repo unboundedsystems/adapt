@@ -8,6 +8,7 @@ import {
     ProjectBuildError,
     serializeDom,
 } from "..";
+import { makeObserverManagerDeployment, Observations, parseObservationsJson } from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
@@ -26,6 +27,7 @@ export interface BuildOptions {
     logger: MessageLogger;
     stackName: string;
 
+    observations?: Observations;
     prevStateJson?: string;
     projectRoot?: string;
 }
@@ -38,6 +40,12 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const prevStateJson =
         options.prevStateJson ||
         (prev ? prev.stateJson : "");
+    const observations: Observations = (() => {
+        if (options.observations) return options.observations;
+        if (prev && prev.observationsJson) return parseObservationsJson(prev.observationsJson);
+        return {};
+    })();
+
     const history = await deployment.historyWriter();
 
     const fileName = path.resolve(options.fileName);
@@ -71,11 +79,13 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         throw new Error(msg);
     }
 
+    const observerManager = makeObserverManagerDeployment(observations);
+
     let newDom: AdaptElementOrNull = null;
     let buildMessages: Message[] = [];
 
     if (stack.root != null) {
-        const output = await build(stack.root, stack.style, {stateStore});
+        const output = await build(stack.root, stack.style, { stateStore, observerManager });
         newDom = output.contents;
         buildMessages = output.messages;
     }
@@ -100,6 +110,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
      * NOTE: There should be no deployment side effects prior to here, but
      * once act is called, that is no longer true.
      */
+    const observationsJson = JSON.stringify(observations);
 
     await history.appendEntry({
         domXml,
@@ -107,6 +118,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         stackName,
         projectRoot,
         fileName,
+        observationsJson
     });
 
     await mgr.act(options.dryRun);

@@ -5,6 +5,7 @@ import * as ld from "lodash";
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
+import { ObserverManagerDeployment } from "./observers";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import * as tySup from "./type_support";
@@ -84,7 +85,7 @@ export abstract class Component<Props extends object = {}, State extends object 
         }
         if (this.initialState == null) {
             throw new Error(`cannot access this.state in a Component that ` +
-                            `lacks an initialState method`);
+                `lacks an initialState method`);
         }
         return this.getState();
     }
@@ -101,7 +102,7 @@ export abstract class Component<Props extends object = {}, State extends object 
             const init = this.initialState();
             if (init == null || !ld.isObject(init)) {
                 throw new Error(`initialState function returned invalid value ` +
-                                `'${init}'. initialState must return an object.`);
+                    `'${init}'. initialState must return an object.`);
             }
             cData.setInitialState(init);
         }
@@ -114,11 +115,11 @@ export abstract class Component<Props extends object = {}, State extends object 
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
         if (this.initialState == null) {
             throw new Error(`Component ${this.constructor.name}: cannot access ` +
-                            `this.setState in a Component that lacks an ` +
-                            `initialState method`);
+                `this.setState in a Component that lacks an ` +
+                `initialState method`);
         }
         this.stateUpdates.push(ld.isFunction(stateUpdate) ?
-                               stateUpdate : () => stateUpdate);
+            stateUpdate : () => stateUpdate);
     }
 
     // If a component uses state, it MUST define initialState
@@ -263,7 +264,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         const updates: StateUpdater[] = (this.component as any).stateUpdates;
         return {
             stateChanged: applyStateUpdates(this.stateNamespace, stateStore,
-                                            this.props, updates)
+                this.props, updates)
         };
     }
 
@@ -422,6 +423,7 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
 export interface ComponentConstructorData {
     getState: () => any;
     setInitialState: <T extends object>(init: T) => void;
+    observerManager: ObserverManagerDeployment;
 }
 
 let componentConstructorStack: ComponentConstructorData[] = [];
@@ -441,7 +443,7 @@ export function popComponentConstructorData() {
     componentConstructorStack.pop();
 }
 
-function getComponentConstructorData(): ComponentConstructorData {
+export function getComponentConstructorData(): ComponentConstructorData {
     const data = ld.last(componentConstructorStack);
     if (data == null) {
         throw new Error(`Internal error: componentConstructorStack is empty`);

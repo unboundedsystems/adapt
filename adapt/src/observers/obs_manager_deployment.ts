@@ -12,7 +12,8 @@ import {
     print as gqlPrint
 } from "graphql";
 import * as ld from "lodash";
-import { ObserverResponse } from ".";
+import * as util from "util";
+import { Observations, ObserverResponse } from ".";
 
 interface Variables {
     [n: string]: any;
@@ -93,4 +94,36 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         addExecutedQuery(executedQueries, { query: q, variables: vars });
         return Promise.resolve(gqlExecute<R>(schema, q, observations.data, observations.context, vars));
     }
+}
+
+function isObject(x: unknown): x is object {
+    return ld.isObject(x);
+}
+
+function checkObservationObj(observerName: string, candidate: unknown) {
+    if (!isObject(candidate)) throw new Error(`Stored observation is not an observation for ${observerName}`);
+    const storedObj = candidate;
+    const storedObjKeys = Object.keys(storedObj);
+    const illegalKeys = storedObjKeys.filter((val) => {
+        switch (val) {
+            case "data":
+            case "context":
+                return false;
+            default:
+                return true;
+        }
+    });
+    if (illegalKeys.length !== 0) {
+        throw new Error(`Extra keys ${util.inspect(illegalKeys)} for ${observerName} observations`);
+    }
+}
+
+export function parseObservationsJson(json: string): Observations {
+    const topObj = JSON.parse(json);
+    for (const key in topObj) {
+        if (!Object.hasOwnProperty.call(topObj, key)) continue;
+        checkObservationObj(key, topObj[key]);
+        //FIXME(manishv) drop observations for unregistered observers here
+    }
+    return topObj;
 }
