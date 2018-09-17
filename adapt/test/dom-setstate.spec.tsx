@@ -1,6 +1,13 @@
 import * as should from "should";
 
-import Adapt, { AdaptElement, AnyState, Component, createStateStore, StateStore } from "../src";
+import Adapt, {
+    AdaptElement,
+    AnyState,
+    Component,
+    createStateStore,
+    PrimitiveComponent,
+    StateStore,
+} from "../src";
 import * as st from "../src/state";
 
 import { Empty, MakeGroup } from "./testlib";
@@ -64,6 +71,18 @@ class NoInitialState extends Component<NoInitialStateProps, AnyState> {
     build() {
         return <Empty id={2}/>;
     }
+}
+
+interface PWSState {
+    counter: number;
+}
+class PrimitiveWithState extends PrimitiveComponent<{}, PWSState> {
+    constructor(props: {}) {
+        super(props);
+        this.setState((prev) => ({ counter: prev.counter + 1 }));
+    }
+
+    initialState() { return { counter: 0 }; }
 }
 
 describe("DOM setState Tests", () => {
@@ -299,5 +318,17 @@ describe("DOM setState Tests", () => {
         should(out.messages[0].content).match(
             RegExp("Component NoInitialState: cannot access this.setState in " +
                    "a Component that lacks an initialState method"));
+    });
+
+    it("Should allow PrimitiveComponent with state", async () => {
+        const dom = <PrimitiveWithState key="root" />;
+
+        await checkBuild(dom);
+        let actual = state.elementState(["root"]);
+        should(actual).eql({ counter: 1 });
+
+        await checkBuild(dom);
+        actual = state.elementState(["root"]);
+        should(actual).eql({ counter: 2 });
     });
 });

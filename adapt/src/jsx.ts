@@ -139,8 +139,8 @@ export function isDeferred<P extends object, S extends object>(component: Compon
     return component instanceof DeferredComponent;
 }
 
-export abstract class PrimitiveComponent<Props extends object = {}>
-    extends DeferredComponent<Props> {
+export abstract class PrimitiveComponent<Props extends object = {}, State extends object = {}>
+    extends DeferredComponent<Props, State> {
 
     build(): AdaptElementOrNull { throw new BuildNotImplemented(); }
     validate(): string | string[] | undefined { return; }
