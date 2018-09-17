@@ -31,7 +31,7 @@ import {
     createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
-import { Message, MessageType } from "@usys/utils";
+import { Message, MessageType, removeUndef } from "@usys/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {
@@ -437,6 +437,7 @@ export interface BuildOptions {
 type BuildOptionsReq = Required<BuildOptions>;
 
 function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
+    if (optionsIn != null) optionsIn = removeUndef(optionsIn);
     const defaultBuildOptions = {
         depth: -1,
         shallow: false,
