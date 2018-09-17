@@ -240,7 +240,7 @@ export interface PluginRegistration {
     create(): Plugin;
 }
 
-interface PluginModule extends PluginRegistration {
+export interface PluginModule extends PluginRegistration {
     name: string;
     packageName: string;
     version: string;
