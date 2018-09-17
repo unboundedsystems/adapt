@@ -1,4 +1,7 @@
 export * from "./CFResource";
 export * from "./credentials";
-export * from "./CFStack";
+export {
+    CFStack,
+    CFStackProps,
+} from "./CFStack";
 export * from "./EC2Instance";

@@ -82,11 +82,11 @@ export {
 } from "./plugin_support";
 
 export {
-    GenericPlugin,
+    WidgetPlugin,
     QueryDomain,
-    ResourcePair,
+    WidgetPair,
     UpdateType,
-} from "./plugin_generic";
+} from "./widget_plugin";
 
 export {
     Constructor,

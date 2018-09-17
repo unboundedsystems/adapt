@@ -8,17 +8,17 @@ import {
     PluginOptions,
 } from ".";
 
-export interface ResourcePair<E extends AdaptElement, O extends object> {
+export interface WidgetPair<E extends AdaptElement, O extends object> {
     queryDomainKey: QueryDomainKey;
     element?: E;
     observed?: O;
 }
 
-interface Actions<E extends AdaptElement, O extends object> {
-    toCreate: ResourcePair<E, O>[];
-    toDestroy: ResourcePair<E, O>[];
-    toModify: ResourcePair<E, O>[];
-    toReplace: ResourcePair<E, O>[];
+interface WidgetActions<E extends AdaptElement, O extends object> {
+    toCreate: WidgetPair<E, O>[];
+    toDestroy: WidgetPair<E, O>[];
+    toModify: WidgetPair<E, O>[];
+    toReplace: WidgetPair<E, O>[];
 }
 
 export interface QueryDomain<Id, Secret> {
@@ -42,8 +42,13 @@ export enum UpdateType {
     replace = "replace",
 }
 type NeedsUpdate<E extends AdaptElement, O extends object> = (e: E, o: O) => UpdateType;
+type TranslateAction<
+    QD extends QueryDomain<any, any>,
+    E extends AdaptElement,
+    O extends object
+    > = (d: QD, p: WidgetPair<E, O>) => void | Promise<void>;
 
-export abstract class GenericPlugin<
+export abstract class WidgetPlugin<
     Props extends object,
     Obs extends object,
     QDId,
@@ -54,24 +59,32 @@ export abstract class GenericPlugin<
     log_?: Logger;
     queryDomains = new Map<QueryDomainKey, QueryDomain<QDId, QDSecret>>();
 
-    abstract findElems(dom: AdaptElementOrNull): AdaptElement<Props>[];
-    abstract getElemQueryDomain(el: AdaptElement<Props>): QueryDomain<QDId, QDSecret>;
-    abstract getObservations(domain: QueryDomain<QDId, QDSecret>, deployID: string): Promise<Obs[]>;
-    abstract getObservationType(obs: Obs): string;
-    abstract getObservationId(obs: Obs): string;
-    abstract getElemType(el: AdaptElement<Props>): string;
-    abstract getElemId(el: AdaptElement<Props>): string;
-    abstract needsUpdate(el: AdaptElement<Props>, obs: Obs): UpdateType;
+    /*
+     * Methods that each subclass is required to implement
+     */
 
-    abstract createResource(
+    findElems: (dom: AdaptElementOrNull) => AdaptElement<Props>[];
+    getElemQueryDomain: (el: AdaptElement<Props>) => QueryDomain<QDId, QDSecret>;
+    getObservations: (domain: QueryDomain<QDId, QDSecret>, deployID: string) => Promise<Obs[]>;
+    getWidgetTypeFromElem: (el: AdaptElement<Props>) => string;
+    getWidgetTypeFromObs: (obs: Obs) => string;
+    getWidgetIdFromElem: (el: AdaptElement<Props>) => string;
+    getWidgetIdFromObs: (obs: Obs) => string;
+    needsUpdate: (el: AdaptElement<Props>, obs: Obs) => UpdateType;
+
+    createWidget: (
         domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: ResourcePair<AdaptElement<Props>, Obs>): Promise<void>;
-    abstract destroyResource(
+        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+    destroyWidget: (
         domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: ResourcePair<AdaptElement<Props>, Obs>): Promise<void>;
-    abstract updateResource(
+        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+    modifyWidget: (
         domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: ResourcePair<AdaptElement<Props>, Obs>): Promise<void>;
+        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+
+    /*
+     * Methods that implement the Plugin interface
+     */
 
     async start(options: PluginOptions) {
         this.deployID = options.deployID;
@@ -112,66 +125,33 @@ export abstract class GenericPlugin<
         const actions = diffObservations<AdaptElement<Props>, Obs>(
             expected,
             obs,
-            (el) => this.getElemId(el),
-            (o) => this.getObservationId(o),
+            (el) => this.getWidgetIdFromElem(el),
+            (o) => this.getWidgetIdFromObs(o),
             (el, o) => this.needsUpdate(el, o)
         );
         const ret: Action[] = [];
 
-        for (const a of actions.toCreate) {
-            if (!a.element) throw new Error(`Internal error: element null`);
-            const type = this.getElemType(a.element);
-            const id = this.getElemId(a.element);
-            const domain = this.queryDomain(a.queryDomainKey);
-            if (domain == null) throw new Error(`Internal error: domain null`);
-            ret.push({
-                description: `Creating ${type} ${id}`,
-                act: async () => this.createResource(domain, deployID, a)
-            });
-        }
-        for (const a of actions.toModify) {
-            if (!a.element) throw new Error(`Internal error: element null`);
-            const type = this.getElemType(a.element);
-            const id = this.getElemId(a.element);
-            const domain = this.queryDomain(a.queryDomainKey);
-            if (domain == null) throw new Error(`Internal error: domain null`);
-            ret.push({
-                description: `Modifying ${type} ${id}`,
-                act: async () => this.updateResource(domain, deployID, a)
-            });
-        }
-        for (const a of actions.toReplace) {
-            if (!a.element) throw new Error(`Internal error: element null`);
-            const type = this.getElemType(a.element);
-            const id = this.getElemId(a.element);
-            const domain = this.queryDomain(a.queryDomainKey);
-            if (domain == null) throw new Error(`Internal error: domain null`);
-            ret.push({
-                description: `Replacing ${type} ${id}`,
-                act: async () => {
-                    await this.destroyResource(domain, deployID, a);
-                    await this.createResource(domain, deployID, a);
-                }
-            });
-        }
-        for (const a of actions.toDestroy) {
-            if (!a.observed) throw new Error(`Internal error: observed null`);
-            const type = this.getObservationType(a.observed);
-            const id = this.getObservationId(a.observed);
-            const domain = this.queryDomain(a.queryDomainKey);
-            if (domain == null) throw new Error(`Internal error: domain null`);
-            ret.push({
-                description: `Destroying ${type} ${id}`,
-                act: async () => this.destroyResource(domain, deployID, a)
-            });
-        }
-
+        this.translatePairs(ret, actions.toCreate, "Creating",
+                            (d, p) => this.createWidget(d, deployID, p));
+        this.translatePairs(ret, actions.toModify, "Modifying",
+                            (d, p) => this.modifyWidget(d, deployID, p));
+        this.translatePairs(ret, actions.toReplace, "Replacing",
+                            async (d, p) => {
+                                await this.destroyWidget(d, deployID, p);
+                                await this.createWidget(d, deployID, p);
+                            });
+        this.translatePairs(ret, actions.toDestroy, "Destroying",
+                            (d, p) => this.destroyWidget(d, deployID, p));
         return ret;
     }
 
     async finish() {
         this.log_ = undefined;
     }
+
+    /*
+     * Additional class methods
+     */
 
     log(arg: any, ...args: any[]): void {
         if (this.log_) this.log_(arg, ...args);
@@ -180,6 +160,42 @@ export abstract class GenericPlugin<
     queryDomain(key: QueryDomainKey) {
         return this.queryDomains.get(key);
     }
+
+    getTypeAndId(pair: WidgetPair<AdaptElement<Props>, Obs>) {
+        let type: string;
+        let id: string;
+        if (pair.element !== undefined) {
+            type = this.getWidgetTypeFromElem(pair.element);
+            id = this.getWidgetIdFromElem(pair.element);
+        } else if (pair.observed !== undefined) {
+            type = this.getWidgetTypeFromObs(pair.observed);
+            id = this.getWidgetIdFromObs(pair.observed);
+        } else {
+            throw new Error(`Internal error: WidgetPair with no content`);
+        }
+        return { type, id };
+    }
+
+    /**
+     * Translate WidgetPairs into plugin Actions
+     */
+    translatePairs(
+        actions: Action[],
+        pairs: WidgetPair<AdaptElement<Props>, Obs>[],
+        actionType: string,
+        action: TranslateAction<QueryDomain<QDId, QDSecret>, AdaptElement<Props>, Obs>
+    ) {
+        for (const p of pairs) {
+            const { type, id } = this.getTypeAndId(p);
+            const domain = this.queryDomain(p.queryDomainKey);
+            if (domain == null) throw new Error(`Internal error: domain null`);
+            actions.push({
+                description: `${actionType} ${type} ${id}`,
+                act: async () => action(domain, p),
+            });
+        }
+    }
+
 }
 
 function makeQueryDomainKey(queryDomain: QueryDomain<any, any>): QueryDomainKey {
@@ -193,7 +209,7 @@ function diffArrays<E extends AdaptElement, O extends object>(
     expectedId: GetId<E>,
     observedId: GetId<O>,
     needsUpdate: NeedsUpdate<E, O>,
-    actions: Actions<E, O>,
+    actions: WidgetActions<E, O>,
 ): void {
 
     const obsMap = new Map(observed.map((o) => [observedId(o), o] as [string, O]));
@@ -229,8 +245,8 @@ function diffObservations<E extends AdaptElement, O extends object>(
     expectedId: GetId<E>,
     observedId: GetId<O>,
     needsUpdate: NeedsUpdate<E, O>,
-): Actions<E, O> {
-    const actions: Actions<E, O> = {
+): WidgetActions<E, O> {
+    const actions: WidgetActions<E, O> = {
         toCreate: [],
         toDestroy: [],
         toModify: [],

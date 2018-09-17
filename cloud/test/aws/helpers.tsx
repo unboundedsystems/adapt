@@ -1,4 +1,4 @@
-import { Action, AdaptElement, build } from "@usys/adapt";
+import { Action, AdaptElement, build, buildPrinter, StateStore } from "@usys/adapt";
 import { sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import { xor } from "lodash";
@@ -8,7 +8,8 @@ import * as util from "util";
 
 import { AwsCredentialsProps } from "../../src/aws";
 import {
-    filterStacks,
+    findStackElems,
+    stacksWithDeployID,
 } from "../../src/aws/aws_plugin";
 
 /*
@@ -25,8 +26,12 @@ export const sshKeyName = "DefaultKeyPair";
 // FIXME(mark): The security group can be created as part of each stack.
 export const defaultSecurityGroup = "http-https-ssh";
 
-export async function doBuild(elem: AdaptElement) {
-    const { messages, contents: dom } = await build(elem, null);
+const debugBuild = false;
+const buildOpts = debugBuild ? { recorder: buildPrinter() } : undefined;
+
+export async function doBuild(elem: AdaptElement, stateStore?: StateStore) {
+    const { contents: dom, messages } = await build(elem, null,
+        { ...buildOpts, stateStore });
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
@@ -35,6 +40,10 @@ export async function doBuild(elem: AdaptElement) {
 
     should(messages).have.length(0);
     return dom;
+}
+
+export function getStackNames(dom: AdaptElement): string[] {
+    return findStackElems(dom).map((s) => s.props.StackName).sort();
 }
 
 export async function act(actions: Action[]) {
@@ -72,18 +81,21 @@ export function isInProgress(stackStatus: AWS.CloudFormation.StackStatus) {
 export function isTerminal(stackStatus: AWS.CloudFormation.StackStatus) {
     return !isInProgress(stackStatus);
 }
+export function isProbablyDeleted(stackStatus: AWS.CloudFormation.StackStatus) {
+    return stackStatus === "DELETE_IN_PROGRESS" || stackStatus === "DELETE_COMPLETE";
+}
 
 export async function getStacks(client: AWS.CloudFormation, deployID?: string,
                                 stackName?: string) {
     const resp = stackName ?
         await client.describeStacks({ StackName: stackName }).promise() :
         await client.describeStacks().promise();
-    if (deployID !== undefined) return filterStacks(resp.Stacks, deployID);
+    if (deployID !== undefined) return stacksWithDeployID(resp.Stacks, deployID);
     return resp.Stacks || [];
 }
 
 export async function deleteAllStacks(client: AWS.CloudFormation, deployID: string,
-                                      timeoutMs = 10 * 1000) {
+                                      timeoutMs = 20 * 1000, definite = true) {
     let stacks = await getStacks(client, deployID);
     for (const s of stacks) {
         const name = s.StackId || s.StackName;
@@ -92,27 +104,35 @@ export async function deleteAllStacks(client: AWS.CloudFormation, deployID: stri
 
     do {
         stacks = await getStacks(client, deployID);
+        // !definite allows stacks in progress of deletion to count as
+        // deleted, so filter those out.
+        if (!definite) stacks = stacks.filter((s) => !isProbablyDeleted(s.StackStatus));
         if (stacks.length === 0) return;
+
         await sleep(1000);
         timeoutMs -= 1000;
     } while (timeoutMs > 0);
     throw new Error(`Unable to delete stacks`);
 }
 
+type StatusFilter = (status: AWS.CloudFormation.StackStatus) => boolean;
+
 export interface WaitOptions {
     timeoutMs?: number;
     terminalOnly?: boolean;
     searchDeleted?: boolean;
+    statusFilter?: StatusFilter;
 }
 const waitDefaults = {
     timeoutMs: 30 * 1000,
     terminalOnly: true,
     searchDeleted: false,
+    statusFilter: undefined,
 };
 
 export async function waitForStacks(client: AWS.CloudFormation, deployID: string,
                                     stackNames: string[], options?: WaitOptions) {
-    const opts = { ...waitDefaults, ...options };
+    const { statusFilter, ...opts } = { ...waitDefaults, ...options };
     let timeoutMs = opts.timeoutMs;
     let singleStackName: string | undefined;
 
@@ -128,9 +148,10 @@ export async function waitForStacks(client: AWS.CloudFormation, deployID: string
     do {
         let stacks = await getStacks(client, deployID, singleStackName);
         actual = stacks.map((s) => [s.StackName, s.StackStatus]);
-        if (opts.terminalOnly) {
-            stacks = stacks.filter((s) => isTerminal(s.StackStatus));
-        }
+
+        if (statusFilter) stacks = stacks.filter((s) => statusFilter(s.StackStatus));
+        if (opts.terminalOnly) stacks = stacks.filter((s) => isTerminal(s.StackStatus));
+
         const names = stacks.map((s) => opts.searchDeleted ? s.StackId : s.StackName);
         if (xor(names, stackNames).length === 0) return stacks;
         await sleep(1000);
