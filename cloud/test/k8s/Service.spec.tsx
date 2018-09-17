@@ -122,6 +122,7 @@ describe("k8s Service Operation Tests", function () {
         plugin = createK8sPlugin();
         logs = new WritableStreamBuffer();
         options = {
+            deployID: "abc123",
             log: new Console(logs, logs).log
         };
     });

@@ -1,6 +1,7 @@
 import * as stream from "stream";
 import { format } from "util";
-import { Logger } from "../type_support";
+
+export type Logger = (arg: any, ...args: any[]) => void;
 
 export enum MessageType {
     info = "info",

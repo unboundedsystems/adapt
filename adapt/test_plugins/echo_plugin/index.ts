@@ -1,6 +1,6 @@
 import { Action, Plugin, PluginOptions, registerPlugin } from "../../src";
 
-class EchoPlugin implements Plugin<{}> {
+export class EchoPlugin implements Plugin<{}> {
     log_?: PluginOptions["log"];
 
     log(...args: any[]) {
@@ -38,6 +38,7 @@ export function create() {
 }
 
 registerPlugin({
+    name: "echo",
     module,
     create,
 });

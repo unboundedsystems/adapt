@@ -1,6 +1,6 @@
 import * as should from "should";
 import { WritableStreamBuffer } from "stream-buffers";
-import { MessageStreamer } from "../../src/utils";
+import { MessageStreamer } from "../src/message";
 
 describe("MessageStreamer tests", () => {
     it("Should allow using info and error as standalone function", () => {

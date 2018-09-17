@@ -1,4 +1,5 @@
 import {
+    Constructor,
     localRegistryDefaults,
     mochaLocalRegistry,
     mochaTmpdir,
@@ -10,7 +11,6 @@ import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import * as should from "should";
-import { Constructor } from "../../src/type_support";
 import { Package, writePackage } from "../package_maker";
 import { packageDirs } from "../testlib";
 

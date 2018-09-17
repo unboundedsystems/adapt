@@ -1,12 +1,14 @@
 import * as fs from "fs-extra";
+import { last } from "lodash";
 import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
+import { createMockLogger, MockLogger } from "@usys/testutils";
 import Adapt, { AdaptElementOrNull, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { setAdaptContext } from "../src/ts/context";
-import { createMockLogger, MockLogger, packageDirs } from "./testlib";
+import { packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -45,6 +47,7 @@ describe("Plugin Support Basic Tests", () => {
     let mgr: pluginSupport.PluginManager;
     let spy: sinon.SinonSpy;
     let logger: MockLogger;
+    let options: pluginSupport.PluginManagerStartOptions;
     const dom = <Group />;
 
     beforeEach(() => {
@@ -56,6 +59,10 @@ describe("Plugin Support Basic Tests", () => {
         mgr = pluginSupport.createPluginManager({
             plugins: registered
         });
+        options = {
+            logger,
+            deployID: "deploy123",
+        };
     });
 
     it("Should construct a PluginManager", () => {
@@ -63,37 +70,41 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call start on each plugin", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         should(spy.calledOnce).True();
-        should(spy.args[0][0]).equal("start");
+        should(spy.getCall(0).args[0]).eql("start");
+        should(spy.getCall(0).args[1].deployID).eql("deploy123");
     });
 
     it("Should call observe after start", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         await mgr.observe();
         should(spy.callCount).equal(2);
-        should(spy.getCall(0).args[0]).equal("start");
+        should(spy.getCall(0).args[0]).eql("start");
+        should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
     });
 
     it("Should call analyze after observe", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
         should(spy.callCount).equal(3);
-        should(spy.getCall(0).args[0]).equal("start");
+        should(spy.getCall(0).args[0]).eql("start");
+        should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
         should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
     });
 
     it("Should call actions", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act(false);
         await mgr.finish();
         should(spy.callCount).equal(6);
-        should(spy.getCall(0).args[0]).equal("start");
+        should(spy.getCall(0).args[0]).eql("start");
+        should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
         should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
         should(spy.getCall(3).args).eql(["action1"]);
@@ -105,13 +116,14 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not call actions on dry run", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act(true);
         await mgr.finish();
         should(spy.callCount).equal(4);
-        should(spy.getCall(0).args[0]).equal("start");
+        should(spy.getCall(0).args[0]).eql("start");
+        should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
         should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
         should(spy.getCall(3).args).eql(["finish"]);
@@ -121,7 +133,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not allow illegal call sequences", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         should(() => mgr.analyze()).throw();
         await should(mgr.act(false)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
@@ -137,7 +149,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should allow finish without acting", async () => {
-        await mgr.start(null, dom, { logger });
+        await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
         await mgr.finish();
@@ -172,14 +184,27 @@ function cleanupTestPlugins() {
     testPluginsLoaded = [];
 }
 
+function outputLines(logger: MockLogger): string[] {
+    const stdout = logger.stdout;
+    const lines = stdout.split("\n");
+    const l = last(lines);
+    if (l === "") lines.pop();
+    return lines;
+}
+
 describe("Plugin register and deploy", () => {
     let logger: MockLogger;
+    let options: pluginSupport.PluginManagerStartOptions;
     const dom = <Group />;
 
     beforeEach(() => {
         cleanupTestPlugins();
         setAdaptContext(Object.create(null));
         logger = createMockLogger();
+        options = {
+            logger,
+            deployID: "deploy123",
+        };
     });
 
     after(() => {
@@ -193,18 +218,49 @@ describe("Plugin register and deploy", () => {
         should(config.plugins).size(1);
 
         const mgr = pluginSupport.createPluginManager(config);
-        await mgr.start(null, dom, { logger });
-        const stdout = logger.stdout;
-        should(stdout).match(/EchoPlugin: start/);
+        await mgr.start(null, dom, options);
+        const lines = outputLines(logger);
+        should(lines).have.length(1);
+        should(lines[0]).match(/EchoPlugin: start/);
     });
 
     it("Should error if no plugins registered", () => {
         should(() => pluginSupport.createPluginConfig()).throw(/No plugins registered/);
     });
 
-    it("Should throw on registering same plugin twice", async () => {
+    it("Should throw on registering same name, different create", async () => {
         await requireTestPlugin("echo_plugin");
-        return should(requireTestPlugin("echo_plugin", "second.js"))
-            .be.rejectedWith(/Attempt to register multiple plugins with the same name 'echo_plugin'/);
+        return should(requireTestPlugin("echo_plugin", "error.js"))
+            .be.rejectedWith(
+                /Attempt to register two plugins with the same name from the same package: echo \[echo_plugin@1.0.0]/);
+    });
+
+    it("Should register two plugins from same package", async () => {
+        await requireTestPlugin("echo_plugin");
+        await requireTestPlugin("echo_plugin", "second.js");
+        const config = pluginSupport.createPluginConfig();
+        should(config.plugins).size(2);
+
+        const mgr = pluginSupport.createPluginManager(config);
+        await mgr.start(null, dom, options);
+
+        const lines = outputLines(logger);
+        should(lines).have.length(2);
+        should(lines[0]).match(/EchoPlugin: start/);
+        should(lines[1]).match(/EchoPlugin: start/);
+    });
+
+    it("Should ignore second registration with same info", async () => {
+        await requireTestPlugin("echo_plugin");
+        await requireTestPlugin("echo_plugin", "duplicate.js");
+        const config = pluginSupport.createPluginConfig();
+        should(config.plugins).size(1);
+
+        const mgr = pluginSupport.createPluginManager(config);
+        await mgr.start(null, dom, options);
+
+        const lines = outputLines(logger);
+        should(lines).have.length(1);
+        should(lines[0]).match(/EchoPlugin: start/);
     });
 });

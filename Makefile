@@ -52,7 +52,7 @@ prepush: test lint $(prepush_submakes)
 #
 # Build dependencies between directories
 #
-adapt-build: utils-build dom-parser-build
+adapt-build: utils-build dom-parser-build testutils-build
 cli-build: adapt-build cloud-build utils-build testutils-build
 cloud-build: adapt-build utils-build testutils-build
 testutils-build: utils-build

@@ -31,6 +31,7 @@ import {
     createStateStore, StateNamespace, stateNamespaceForPath, StateStore
 } from "./state";
 
+import { Message, MessageType, removeUndef } from "@usys/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {
@@ -39,7 +40,6 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, isError, ThrewNonError } from "./error";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
-import { Message, MessageType } from "./utils";
 
 export type DomPath = AdaptElement[];
 
@@ -437,6 +437,7 @@ export interface BuildOptions {
 type BuildOptionsReq = Required<BuildOptions>;
 
 function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
+    if (optionsIn != null) optionsIn = removeUndef(optionsIn);
     const defaultBuildOptions = {
         depth: -1,
         shallow: false,

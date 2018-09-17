@@ -63,11 +63,6 @@ export {
     stack,
 } from "./stack";
 
-export {
-    Constructor,
-    Logger,
-} from "./type_support";
-
 export * from "./utils";
 
 export {
@@ -84,3 +79,17 @@ export {
     registerPlugin,
     PluginRegistration,
 } from "./plugin_support";
+
+export {
+    Logger,
+    Message,
+    MessageLogger,
+} from "@usys/utils";
+
+import {
+    Constructor,
+} from "@usys/utils";
+
+export {
+    Constructor,
+};

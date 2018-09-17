@@ -5,9 +5,9 @@ function create() {
     return new EchoPlugin();
 }
 
-// Registers with different name and different create. Not an error.
+// Registers with same name and different create. Error.
 registerPlugin({
-    name: "second",
+    name: "echo",
     module,
     create,
 });
