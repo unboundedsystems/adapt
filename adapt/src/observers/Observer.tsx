@@ -6,14 +6,9 @@ import { ObserverManagerDeployment } from "./obs_manager_deployment";
 
 type QueryResult<R = any> = ExecutionResult<R>;
 
-export interface ObserverEnvironment {
-    observerManager?: ObserverManagerDeployment;
-}
-
 export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
 
 export interface ObserverProps<QueryData extends object> {
-    environment?: ObserverEnvironment;
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
@@ -34,13 +29,8 @@ export class Observer<QueryData extends object = any>
 
     constructor(props: ObserverProps<QueryData>) {
         super(props);
-        const env = this.props.environment;
-        if (env && env.observerManager) {
-            this.mgr = env.observerManager;
-        } else {
-            const ccd = getComponentConstructorData();
-            this.mgr = ccd.observerManager;
-        }
+        const ccd = getComponentConstructorData();
+        this.mgr = ccd.observerManager;
     }
 
     initialState() { return { result: {} }; }

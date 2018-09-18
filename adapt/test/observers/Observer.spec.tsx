@@ -16,16 +16,13 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer<{ fooById: { id: number } }>
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id }}`}
                 build={(_err, props) => {
                     if (!props) return <Empty key="dummy" id={0} />;
                     return <Empty key="dummy" id={Number(props.fooById.id)} />;
                 }} />;
 
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));
@@ -41,9 +38,6 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id } }`}
                 build={(err, props) => {
                     if (err) {
@@ -57,7 +51,7 @@ describe("Observer Component Tests", () => {
                     }
                 }} />;
 
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="props" id={2} />));
@@ -73,16 +67,13 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id }}`}
                 build={(error, props) => {
                     return <Empty key="dummy" id={1} />;
                 }} />;
 
         //This should not infinite loop
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));
@@ -99,9 +90,6 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer<{ fooById: { id: string, payload: string[] } }>
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id, payload }}`}
                 isEqual={(x, y) => {
                     compareCount++;
@@ -119,7 +107,7 @@ describe("Observer Component Tests", () => {
                 }} />;
 
         //This should not infinite loop
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));
