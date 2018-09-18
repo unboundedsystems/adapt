@@ -27,7 +27,7 @@ export interface BuildOptions {
     logger: MessageLogger;
     stackName: string;
 
-    observations?: Observations;
+    observationsJson?: string;
     prevStateJson?: string;
     projectRoot?: string;
 }
@@ -41,7 +41,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         options.prevStateJson ||
         (prev ? prev.stateJson : "");
     const observations: Observations = (() => {
-        if (options.observations) return options.observations;
+        if (options.observationsJson) return parseObservationsJson(options.observationsJson);
         if (prev && prev.observationsJson) return parseObservationsJson(prev.observationsJson);
         return {};
     })();

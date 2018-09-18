@@ -1,4 +1,3 @@
-import { Observations } from "../observers";
 import { adaptServer, AdaptServer } from "../server";
 import {
     createDeployment as createDeploymentObj,
@@ -17,13 +16,13 @@ export interface CreateOptions extends DeployCommonOptions {
 
     initLocalServer?: boolean;
     initialStateJson?: string;
-    initialObservations?: Observations;
+    initialObservationsJson?: string;
 }
 
 const defaultOptions = {
     initLocalServer: false,
     initialStateJson: "{}",
-    initialObservations: {}
+    initialObservationsJson: "{}"
 };
 
 export async function createDeployment(options: CreateOptions): Promise<DeployState> {
@@ -33,7 +32,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         ...options
     };
     const {
-        adaptUrl, initLocalServer, initialStateJson, initialObservations, projectName, ...buildOpts
+        adaptUrl, initLocalServer, initialStateJson, initialObservationsJson, projectName, ...buildOpts
     } = finalOptions;
 
     let ds: DeployState;
@@ -48,7 +47,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         ds = await buildAndDeploy({
             deployment,
             prevStateJson: initialStateJson,
-            observations: initialObservations,
+            observationsJson: initialObservationsJson,
             ...buildOpts
         });
 
