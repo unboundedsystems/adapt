@@ -11,7 +11,7 @@ export function makeObserverManagerDeployment(observations: Observations): Obser
     for (const name in observers) {
         if (!Object.hasOwnProperty.apply(observers, name)) continue;
         const o = observers[name];
-        const obs = observations[name];
+        const obs = observations[name].observations;
         mgr.registerSchema(name, o.schema, obs ? obs : {});
     }
     return mgr;

@@ -8,7 +8,8 @@ import {
     ProjectBuildError,
     serializeDom,
 } from "..";
-import { makeObserverManagerDeployment, Observations, parseObservationsJson } from "../observers";
+import { makeObserverManagerDeployment, Observations } from "../observers";
+import { reconstituteAllObservations } from "../observers/serialize";
 import { createPluginManager } from "../plugin_support";
 import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
@@ -32,6 +33,12 @@ export interface BuildOptions {
     projectRoot?: string;
 }
 
+function parseFullObservationsJson(json: string) {
+    //FIXME(manishv) Add storage for action observations here
+    const candidate = JSON.parse(json);
+    return reconstituteAllObservations(candidate);
+}
+
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
     const { deployment, logger, stackName } = options;
 
@@ -41,8 +48,8 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         options.prevStateJson ||
         (prev ? prev.stateJson : "");
     const observations: Observations = (() => {
-        if (options.observationsJson) return parseObservationsJson(options.observationsJson);
-        if (prev && prev.observationsJson) return parseObservationsJson(prev.observationsJson);
+        if (options.observationsJson) return parseFullObservationsJson(options.observationsJson);
+        if (prev && prev.observationsJson) return parseFullObservationsJson(prev.observationsJson);
         return {};
     })();
 

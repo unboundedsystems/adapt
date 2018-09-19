@@ -6,7 +6,10 @@ import gqlTag from "graphql-tag";
 import { ExecutedQuery } from "./obs_manager_deployment";
 
 export interface Observations {
-    [observerName: string]: ObserverResponse;
+    [observerName: string]: {
+        observations: ObserverResponse;
+        queries: ExecutedQuery[];
+    };
 }
 
 export interface ObserverResponse<D = object, C = any> {
@@ -26,8 +29,7 @@ export const gql: (literals: TemplateStringsArray, ...placeholders: any[]) => Gr
 export {
     createObserverManagerDeployment,
     ObserverManagerDeployment,
-    ExecutedQuery,
-    parseObservationsJson
+    ExecutedQuery
 } from "./obs_manager_deployment";
 
 export {
