@@ -14,7 +14,7 @@ import { compact } from "lodash";
 import * as randomstring from "randomstring";
 import * as should from "should";
 
-import { createMockLogger, MockLogger } from "@usys/testutils";
+import { createMockLogger, describeLong, MockLogger } from "@usys/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,
@@ -306,7 +306,7 @@ describe("AWS plugin basic tests", () => {
 
 // NOTE(mark): These tests purposely build on one another to reduce total
 // runtime, since the real AWS API is pretty slow.
-describe("AWS plugin live tests", function () {
+describeLong("AWS plugin live tests", function () {
     const stateStore = createStateStore();
     let domConfig: SimpleDomConfig;
     let creds: AwsCredentialsProps;
