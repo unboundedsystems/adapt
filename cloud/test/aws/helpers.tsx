@@ -1,8 +1,6 @@
 import { Action, AdaptElement, build, buildPrinter, StateStore } from "@usys/adapt";
 import { sleep } from "@usys/utils";
-import * as fs from "fs-extra";
 import { xor } from "lodash";
-import * as path from "path";
 import * as should from "should";
 import * as util from "util";
 
@@ -54,22 +52,6 @@ export async function act(actions: Action[]) {
             throw new Error(`${action.description}: ${util.inspect(e)}`);
         }
     }
-}
-
-export function checkProp(obj: any, prop: string) {
-    if (typeof obj[prop] !== "string") {
-        throw new Error(`.adaptAwsCreds invalid: ${prop} missing or invalid`);
-    }
-}
-
-export async function loadCreds(): Promise<AwsCredentialsProps> {
-    const home = process.env.HOME;
-    if (home == null) throw new Error(`HOME environment variable is not set`);
-    const creds = await fs.readJson(path.join(home, ".adaptAwsCreds"));
-    checkProp(creds, "awsAccessKeyId");
-    checkProp(creds, "awsSecretAccessKey");
-    checkProp(creds, "awsRegion");
-    return creds;
 }
 
 export async function fakeCreds(): Promise<AwsCredentialsProps> {

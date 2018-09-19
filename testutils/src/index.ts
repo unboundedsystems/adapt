@@ -1,3 +1,4 @@
+export * from "./creds";
 export * from "./long_tests";
 export * from "./mocklogger";
 

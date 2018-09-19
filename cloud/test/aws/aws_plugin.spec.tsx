@@ -14,7 +14,7 @@ import { compact } from "lodash";
 import * as randomstring from "randomstring";
 import * as should from "should";
 
-import { createMockLogger, describeLong, MockLogger } from "@usys/testutils";
+import { createMockLogger, describeLong, loadAwsCreds, MockLogger } from "@usys/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,
@@ -37,7 +37,6 @@ import {
     fakeCreds,
     getStackNames,
     isProbablyDeleted,
-    loadCreds,
     sshKeyName,
     ubuntuAmi,
     waitForStacks,
@@ -325,7 +324,7 @@ describeLong("AWS plugin live tests", function () {
     this.timeout(5 * 60 * 1000);
 
     before(async () => {
-        creds = await loadCreds();
+        creds = await loadAwsCreds();
         domConfig = { creds };
         client = getClient(creds);
         await deleteAllStacks(client, deployID, 10 * 1000, false);
