@@ -18,6 +18,7 @@ const {
 const creds: aws.AwsCredentialsProps = {
     awsAccessKeyId: "access key",
     awsSecretAccessKey: "secret key",
+    awsRegion: "us-west-2",
 };
 
 export const awsStyle =
@@ -28,7 +29,8 @@ export const awsStyle =
                     imageId="someimage"
                     instanceType="t2.micro"
                     name="docker-host"
-                    regionName="us-west-2"
+                    sshKeyName="mysshkey"
+                    securityGroups={["asecuritygroup"]}
                     {...props}
                 />
             </awsDefaultCredentialsContext.Provider>

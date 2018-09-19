@@ -9,6 +9,7 @@ export {
     AdaptElement,
     AdaptMountedElement,
     AdaptElementOrNull,
+    AdaptPrimitiveElement,
     AnyProps,
     AnyState,
     BuiltinProps,
@@ -81,15 +82,15 @@ export {
 } from "./plugin_support";
 
 export {
+    WidgetPlugin,
+    QueryDomain,
+    WidgetPair,
+    UpdateType,
+} from "./widget_plugin";
+
+export {
+    Constructor,
     Logger,
     Message,
     MessageLogger,
 } from "@usys/utils";
-
-import {
-    Constructor,
-} from "@usys/utils";
-
-export {
-    Constructor,
-};

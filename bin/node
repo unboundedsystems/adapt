@@ -6,6 +6,7 @@ CTR_ADD_PATH="/src/node_modules/.bin"
 
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
+DOCKER_ARGS+=" -v${HOME}/.adaptAwsCreds:/root/.adaptAwsCreds"
 
 if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
     PROJECT="${BASH_REMATCH[1]}"
