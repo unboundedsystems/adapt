@@ -21,7 +21,7 @@ export function reconstituteObservations(observerName: string, candidate: unknow
     return candidate as ObserverResponse;
 }
 
-function hasExecutedQueryShape(candidate: unknown): candidate is { query: string, variables?: object[] } {
+export function hasExecutedQueryShape(candidate: unknown): candidate is { query: string, variables?: object[] } {
     if (!isObject(candidate)) return false;
 
     if (!("query" in candidate)) return false;

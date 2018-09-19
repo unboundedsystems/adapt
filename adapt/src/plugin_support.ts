@@ -25,6 +25,10 @@ export interface PluginOptions {
     log: Logger;
 }
 
+export interface PluginObservations {
+    [pluginKey: string]: object;
+}
+
 export interface Plugin<Observations extends object = object> {
     start(options: PluginOptions): Promise<void>;
     observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
@@ -44,8 +48,8 @@ export interface ActionResult {
 
 export interface PluginManager {
     start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-          options: PluginManagerStartOptions): Promise<void>;
-    observe(): Promise<void>;
+        options: PluginManagerStartOptions): Promise<void>;
+    observe(): Promise<PluginObservations>;
     analyze(): Action[];
     act(dryRun: boolean): Promise<ActionResult[]>;
     finish(): Promise<void>;
@@ -137,7 +141,7 @@ class PluginManagerImpl implements PluginManager {
     }
 
     async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-                options: PluginManagerStartOptions) {
+        options: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.prevDom = prevDom;
@@ -162,13 +166,16 @@ class PluginManagerImpl implements PluginManager {
         }
         const observationsP = mapMap(
             this.plugins,
-            async (name, plugin) => ({ name, obs: await plugin.observe(prevDom, dom) }));
+            async (key, plugin) => ({ pluginKey: key, obs: await plugin.observe(prevDom, dom) }));
         const observations = await Promise.all(observationsP);
-        for (const { name, obs } of observations) {
-            this.observations[name] = JSON.stringify(obs);
+        const ret: PluginObservations = {};
+        for (const { pluginKey: key, obs } of observations) {
+            this.observations[key] = JSON.stringify(obs);
+            ret[key] = obs;
         }
 
         this.transitionTo(PluginManagerState.PreAnalyze);
+        return ret;
     }
 
     analyze() {
@@ -278,7 +285,7 @@ export function createPluginConfig(): PluginConfig {
     const modules = getPluginModules();
     if (modules == null) throw new Error(`No plugins registered`);
 
-    for (const [ key, mod ] of modules) {
+    for (const [key, mod] of modules) {
         plugins.set(key, mod.create());
     }
     return { plugins };

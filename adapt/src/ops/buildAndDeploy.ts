@@ -8,8 +8,7 @@ import {
     ProjectBuildError,
     serializeDom,
 } from "..";
-import { makeObserverManagerDeployment, Observations } from "../observers";
-import { reconstituteAllObservations } from "../observers/serialize";
+import { makeObserverManagerDeployment } from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
@@ -20,6 +19,7 @@ import {
     MemFileHost,
 } from "../ts";
 import { DeployState } from "./common";
+import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 export interface BuildOptions {
     deployment: Deployment;
@@ -33,12 +33,6 @@ export interface BuildOptions {
     projectRoot?: string;
 }
 
-function parseFullObservationsJson(json: string) {
-    //FIXME(manishv) Add storage for action observations here
-    const candidate = JSON.parse(json);
-    return reconstituteAllObservations(candidate);
-}
-
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
     const { deployment, logger, stackName } = options;
 
@@ -47,12 +41,13 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const prevStateJson =
         options.prevStateJson ||
         (prev ? prev.stateJson : "");
-    const observations: Observations = (() => {
+    const observations = (() => {
         if (options.observationsJson) return parseFullObservationsJson(options.observationsJson);
         if (prev && prev.observationsJson) return parseFullObservationsJson(prev.observationsJson);
         return {};
     })();
 
+    const observerObservations = observations.observer ? observations.observer : {};
     const history = await deployment.historyWriter();
 
     const fileName = path.resolve(options.fileName);
@@ -86,7 +81,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         throw new Error(msg);
     }
 
-    const observerManager = makeObserverManagerDeployment(observations);
+    const observerManager = makeObserverManagerDeployment(observerObservations);
 
     let newDom: AdaptElementOrNull = null;
     let buildMessages: Message[] = [];
@@ -110,14 +105,17 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         deployID: deployment.deployID,
         logger,
     });
-    await mgr.observe();
+    const newPluginObs = await mgr.observe();
     mgr.analyze();
 
     /*
      * NOTE: There should be no deployment side effects prior to here, but
      * once act is called, that is no longer true.
      */
-    const observationsJson = JSON.stringify(observations);
+    const observationsJson = stringifyFullObservations({
+        plugin: newPluginObs,
+        observer: observerObservations
+    });
 
     await history.appendEntry({
         domXml,
