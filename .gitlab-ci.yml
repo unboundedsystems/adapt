@@ -1,0 +1,18 @@
+image: docker
+
+variables:
+  DOCKER_DRIVER: overlay2
+  GIT_SUBMODULE_STRATEGY: recursive
+
+services:
+  - name: docker:stable-dind
+    command: [ "dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2" ]
+
+before_script:
+  - apk update && apk add bash
+
+test:
+  stage: test
+  script:
+    - ./bin/make prepush
+
