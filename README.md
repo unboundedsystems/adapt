@@ -3,6 +3,7 @@ This is the repo for the Unbounded Systems Adapt infrastructure description
 system.
 
 # Building and Testing
+[![pipeline status](https://gitlab.com/unboundedsystems/adapt/badges/master/pipeline.svg)](https://gitlab.com/unboundedsystems/adapt/commits/master)
 ## Quick Start
 Simply running `make` from the project root directory will build all sub-projects
 and run the majority of the tests.
