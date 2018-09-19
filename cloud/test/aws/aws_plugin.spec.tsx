@@ -34,6 +34,7 @@ import {
     defaultSecurityGroup,
     deleteAllStacks,
     doBuild,
+    fakeCreds,
     getStackNames,
     isProbablyDeleted,
     loadCreds,
@@ -246,7 +247,7 @@ describe("AWS plugin basic tests", () => {
 
     before(async () => {
         awsMock.setSDKInstance(AWS);
-        creds = await loadCreds();
+        creds = await fakeCreds();
     });
     beforeEach(() => {
         plugin  = createAwsPlugin();
@@ -339,7 +340,7 @@ describeLong("AWS plugin live tests", function () {
     });
     after(async function () {
         this.timeout(65 * 1000);
-        await deleteAllStacks(client, deployID, 60 * 1000, false);
+        if (client) await deleteAllStacks(client, deployID, 60 * 1000, false);
     });
 
     it("Should create stacks [step 1]", async () => {

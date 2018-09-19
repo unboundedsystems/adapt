@@ -72,6 +72,14 @@ export async function loadCreds(): Promise<AwsCredentialsProps> {
     return creds;
 }
 
+export async function fakeCreds(): Promise<AwsCredentialsProps> {
+    return {
+        awsAccessKeyId: "fakeKeyID",
+        awsSecretAccessKey: "fakeSecret",
+        awsRegion: "us-west-2",
+    };
+}
+
 export function isFailure(stackStatus: AWS.CloudFormation.StackStatus) {
     return /FAILED/.test(stackStatus);
 }

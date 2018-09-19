@@ -4,7 +4,7 @@ import * as should from "should";
 import { createMockLogger, MockLogger } from "@usys/testutils";
 import { AwsCredentialsProps, awsDefaultCredentialsContext, CFStack, EC2Instance } from "../../src/aws";
 import { AwsPluginImpl, createAwsPlugin } from "../../src/aws/aws_plugin";
-import { doBuild, loadCreds } from "./helpers";
+import { doBuild, fakeCreds } from "./helpers";
 
 describe("AWS EC2Instance component tests", () => {
     it("Should instantiate EC2Instance", async () => {
@@ -88,7 +88,7 @@ describe("AWS EC2Instance to real API tests", () => {
     let logger: MockLogger;
 
     before(async () => {
-        creds = await loadCreds();
+        creds = await fakeCreds();
     });
     beforeEach(() => {
         plugin  = createAwsPlugin();
