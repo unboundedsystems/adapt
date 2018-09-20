@@ -15,4 +15,4 @@ before_script:
 test:
   stage: test
   script:
-    - ./bin/make prepush
+    - ./bin/make build lint coverage

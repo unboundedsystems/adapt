@@ -27,6 +27,7 @@
     "mocked-env": "^1.2.1",
     "nyc": "^12.0.2",
     "should": "^13.2.1",
+    "source-map-support": "^0.5.6",
     "stream-buffers": "^3.0.2",
     "typescript": "^3.0.3",
     "verdaccio": "^3.2.0"
@@ -45,9 +46,10 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
+    "coverage": "nyc mocha --opts mocha.opts",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "pretest": "make build",
-    "test": "nyc mocha --opts mocha.opts"
+    "test": "mocha --opts mocha.opts"
   }
 }
