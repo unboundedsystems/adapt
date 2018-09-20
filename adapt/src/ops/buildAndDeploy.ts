@@ -8,7 +8,7 @@ import {
     ProjectBuildError,
     serializeDom,
 } from "..";
-import { makeObserverManagerDeployment } from "../observers";
+import { makeObserverManagerDeployment, observe, patchInNewQueries } from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
@@ -47,7 +47,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         return {};
     })();
 
-    const observerObservations = observations.observer ? observations.observer : {};
+    let observerObservations = observations.observer ? observations.observer : {};
     const history = await deployment.historyWriter();
 
     const fileName = path.resolve(options.fileName);
@@ -81,16 +81,27 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         throw new Error(msg);
     }
 
-    const observerManager = makeObserverManagerDeployment(observerObservations);
-
     let newDom: AdaptElementOrNull = null;
     let buildMessages: Message[] = [];
 
     if (stack.root != null) {
-        const output = await build(stack.root, stack.style, { stateStore, observerManager });
-        newDom = output.contents;
-        buildMessages = output.messages;
+        const preObserverManager = makeObserverManagerDeployment(observerObservations);
+
+        const preObserve = await build(stack.root, stack.style, { stateStore, observerManager: preObserverManager });
+        if (preObserve.messages.length !== 0) {
+            logger.append(preObserve.messages);
+            throw new ProjectBuildError(serializeDom(preObserve.contents));
+        }
+
+        observerObservations = await observe(preObserverManager.executedQueries(), logger);
+
+        const postObserverManager = makeObserverManagerDeployment(observerObservations);
+        const postObserve = await build(stack.root, stack.style, { stateStore, observerManager: postObserverManager });
+        newDom = postObserve.contents;
+        buildMessages = postObserve.messages;
+        patchInNewQueries(observerObservations, postObserverManager.executedQueries());
     }
+
     const domXml = serializeDom(newDom, true);
 
     if (buildMessages.length !== 0) {

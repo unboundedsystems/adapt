@@ -34,5 +34,13 @@ export {
 
 export {
     registerObserver,
+    observe,
     makeObserverManagerDeployment,
 } from "./registry";
+
+export function patchInNewQueries(observations: Observations, queries: { [name: string]: ExecutedQuery[] }): void {
+    for (const name in observations) {
+        if (!Object.hasOwnProperty.call(observations, name)) continue;
+        observations[name].queries = queries[name];
+    }
+}
