@@ -8,7 +8,7 @@ cd cloud
 
 docker network create test_minikube
 
-docker run --privileged -d --name test_minikube --network test_minikube --network-alias kubernetes quay.io/aspenmesh/minikube-dind
+docker run --privileged -d --name test_minikube --network test_minikube --network-alias kubernetes unboundedsystems/minikube-dind
 ```
 
 Then run the tests (from the cloud directory):

@@ -34,7 +34,8 @@ describe("Nodecellar system tests", function () {
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
     before(async function () {
-        this.timeout(20 * 1000);
+        // Ensure there's enough time for docker pull of minikube
+        this.timeout(4 * 60 * 1000);
 
         minikubeInfo = await startTestMinikube();
         kubeconfig = minikubeInfo.kubeconfig;
