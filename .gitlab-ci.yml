@@ -3,7 +3,7 @@ image: docker
 variables:
   DOCKER_DRIVER: overlay2
   GIT_SUBMODULE_STRATEGY: recursive
-  DOCKER_ARGS: -eADAPT_RUN_LONG_TESTS=1
+  ADAPT_RUN_LONG_TESTS: 1
 
 services:
   - name: docker:stable-dind
@@ -16,4 +16,3 @@ test:
   stage: test
   script:
     - ./bin/make prepush
-
