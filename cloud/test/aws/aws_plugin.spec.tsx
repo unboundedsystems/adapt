@@ -14,7 +14,7 @@ import { compact } from "lodash";
 import * as randomstring from "randomstring";
 import * as should from "should";
 
-import { createMockLogger, describeLong, MockLogger } from "@usys/testutils";
+import { createMockLogger, describeLong, loadAwsCreds, MockLogger } from "@usys/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,
@@ -37,7 +37,6 @@ import {
     fakeCreds,
     getStackNames,
     isProbablyDeleted,
-    loadCreds,
     sshKeyName,
     ubuntuAmi,
     waitForStacks,
@@ -173,7 +172,7 @@ function simpleDom(config: SimpleDomConfig) {
         <Creds.Provider value={creds}>
             <Group>
                 <CFStack
-                    StackName="testStack1"
+                    StackName="ci-testStack1"
                     OnFailure="DO_NOTHING"
                     Tags={tags}
                 >
@@ -202,7 +201,7 @@ function simpleDom(config: SimpleDomConfig) {
 
                 { secondStack ?
                     <CFStack
-                        StackName="testStack2"
+                        StackName="ci-testStack2"
                         OnFailure="DO_NOTHING"
                         Tags={tags}
                     >
@@ -325,7 +324,7 @@ describeLong("AWS plugin live tests", function () {
     this.timeout(5 * 60 * 1000);
 
     before(async () => {
-        creds = await loadCreds();
+        creds = await loadAwsCreds();
         domConfig = { creds };
         client = getClient(creds);
         await deleteAllStacks(client, deployID, 10 * 1000, false);
@@ -349,8 +348,8 @@ describeLong("AWS plugin live tests", function () {
         stackNames = getStackNames(dom);
 
         should(stackNames).have.length(2);
-        should(stackNames[0]).match(/^testStack1[a-z]{8}$/);
-        should(stackNames[1]).match(/^testStack2[a-z]{8}$/);
+        should(stackNames[0]).match(/^ci-testStack1[a-z]{8}$/);
+        should(stackNames[1]).match(/^ci-testStack2[a-z]{8}$/);
 
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, dom);

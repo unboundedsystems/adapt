@@ -10,7 +10,8 @@ export const mkInstance: MinikubeInstance = {};
 let minikubeInfo: minikube.MinikubeInfo;
 
 before(async function () {
-    this.timeout(60 * 1000);
+    // Ensure there's enough time for an image pull
+    this.timeout(4 * 60 * 1000);
     minikubeInfo = await startTestMinikube();
     mkInstance.kubeconfig = minikubeInfo.kubeconfig;
     const clientConfig = getK8sConfig(mkInstance.kubeconfig);

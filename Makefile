@@ -26,7 +26,7 @@ include build_support/submake.mk
 # the targets created below are:
 #   adapt-build, adapt-test, cli-build, cli-test, etc.
 #
-SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush
+SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush coverage
 
 $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 
@@ -47,7 +47,13 @@ pack: build $(pack_submakes)
 
 lint: setup $(lint_submakes)
 
-prepush: test lint $(prepush_submakes)
+prepush: build lint test $(prepush_submakes)
+
+# This top-level target is purposefully different. It's NOT just making the
+# target in the submakes.
+coverage: build
+	nyc make test
+
 
 #
 # Build dependencies between directories

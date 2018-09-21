@@ -6,7 +6,15 @@ CTR_ADD_PATH="/src/node_modules/.bin"
 
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
-DOCKER_ARGS+=" -v${HOME}/.adaptAwsCreds:/root/.adaptAwsCreds"
+
+CRED_FILE="${HOME}/.adaptAwsCreds"
+if [ -f "${CRED_FILE}" ]; then
+    DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"
+fi
+
+# Propagate these from current environment into the docker container env
+DOCKER_ARGS+=" -eADAPT_TEST_MINIKUBE -eADAPT_RUN_LONG_TESTS"
+DOCKER_ARGS+=" -eAWS_ACCESS_KEY_ID -eAWS_SECRET_ACCESS_KEY -eAWS_DEFAULT_REGION"
 
 if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
     PROJECT="${BASH_REMATCH[1]}"

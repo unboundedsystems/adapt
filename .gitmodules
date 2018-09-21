@@ -1,3 +1,3 @@
 [submodule "containit"]
 	path = containit
-	url = git@github.com:unboundedsystems/containit.git
+	url = https://github.com/unboundedsystems/containit.git

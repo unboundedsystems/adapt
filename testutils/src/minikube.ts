@@ -48,6 +48,58 @@ async function dockerExec(container: Docker.Container, command: string[]): Promi
     });
 }
 
+async function dockerPull(docker: Docker, imageName: string, indent = ""): Promise<void> {
+    // tslint:disable:no-console
+    function printStatus(data: unknown) {
+        if (!(data instanceof Buffer)) throw new Error(`Unknown status: ${data}`);
+        const msg = JSON.parse(data.toString());
+        let s = msg.status;
+        if (!s) {
+            console.log(`${indent}Docker pull status:`, msg);
+            return;
+        }
+        if (msg.id) s += ` id=${msg.id}`;
+        console.log(`${indent}  ${s}`);
+    }
+
+    // tslint:disable-next-line:no-console
+    console.log(`${indent}Pulling docker image ${imageName}`);
+
+    return new Promise<void>((res, rej) => {
+
+        function mkErr(e: any) {
+            const msg = `Error pulling image: ${e}`;
+            console.log(`${indent}${msg}`);
+            rej(new Error(msg));
+        }
+
+        // NOTE(mark): tslint incorrectly complains about an unhandled
+        // promise from docker.pull on the line below, but the callback
+        // version of pull does not return a promise.
+        // tslint:disable-next-line:no-floating-promises
+        docker.pull(imageName, (err: any, stream: any) => {
+            if (err) return mkErr(err);
+            stream.on("error", (e: any) => {
+                return mkErr(e);
+            });
+
+            stream.on("data", (data: any) => {
+                try {
+                    printStatus(data);
+                } catch (e) {
+                    return mkErr(e);
+                }
+            });
+            stream.on("end", () => {
+                console.log(`${indent}Pull complete`);
+                res();
+            });
+        });
+    });
+
+    // tslint:enable:no-console
+}
+
 async function getKubeconfig(_docker: Docker, container: Docker.Container): Promise<object> {
     const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
@@ -80,6 +132,10 @@ async function runMinikubeContainer(
     containerName: string,
     networkName: string) {
 
+    const imageName = "unboundedsystems/minikube-dind";
+    const imageSha = "sha256:2a6df8d2d749f23c8eac611633b8d7e523e1caa89d99a03f8fb53da3b01cecf1";
+    const image = `${imageName}@${imageSha}`;
+
     const opts: Docker.ContainerCreateOptions = {
         name: containerName,
         AttachStdin: false,
@@ -101,10 +157,11 @@ async function runMinikubeContainer(
             }
         },
         Env: [],
-        Image: "quay.io/aspenmesh/minikube-dind",
+        Image: image,
         Volumes: {},
     };
 
+    await dockerPull(docker, image, "      ");
     const container = await docker.createContainer(opts);
     return container.start();
 }

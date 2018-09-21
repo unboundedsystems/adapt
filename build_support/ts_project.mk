@@ -45,11 +45,20 @@ dist/.test_success: $(JS_FILES)
 	npm run test
 	touch $@
 
+coverage: build dist/.coverage_success
+.PHONY: coverage
+
+dist/.coverage_success: $(JS_FILES)
+	npm run coverage
+	touch $@
+	touch dist/.test_success
+
 lint: $(NODE_INSTALL_DONE) dist/.lint_success
 .PHONY: lint
 
 dist/.lint_success: $(TS_FILES) tslint.json $(REPO_ROOT)/tslint.json
 	npm run lint
+	mkdir -p dist
 	touch $@
 
 # No additional requirements for prepush besides test and lint (which are
