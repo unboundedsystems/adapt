@@ -48,11 +48,18 @@ export class Observer<QueryData extends object = any>
         }
 
         let err: Error | null = null;
+        let needsData = false;
         if (this.state.result.errors) {
-            const msgs = this.state.result.errors.map((e) => printError(e)).join("\n");
-            err = new Error(msgs);
+            const badErrors =
+                this.state.result.errors.filter((e) => !e.message.startsWith("Adapt Observer Needs Data:"));
+            if (badErrors.length !== 0) {
+                const msgs = badErrors.map((e) => printError(e)).join("\n");
+                err = new Error(msgs);
+            } else {
+                needsData = true;
+            }
         }
 
-        return this.props.build(err, this.state.result.data);
+        return this.props.build(err, needsData ? undefined : this.state.result.data);
     }
 }
