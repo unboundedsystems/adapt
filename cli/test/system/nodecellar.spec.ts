@@ -1,4 +1,4 @@
-import { k8sutils, minikube } from "@usys/testutils";
+import { k8sutils, minikubeMocha } from "@usys/testutils";
 import { filePathToUrl, mochaTmpdir, sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -6,8 +6,7 @@ import { clitest, expect } from "../common/fancy";
 import { pkgRootDir } from "../common/paths";
 import { cliLocalRegistry } from "../common/start-local-registry";
 
-const { deleteAll, getK8sConfig, getAll, getClient } = k8sutils;
-const { startTestMinikube, stopTestMinikube } = minikube;
+const { deleteAll, getAll } = k8sutils;
 
 const ncTestChain =
     clitest
@@ -24,30 +23,18 @@ const ncTestChain =
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 describe("Nodecellar system tests", function () {
-    this.timeout(2 * 60 * 1000);
-    let kubeconfig: k8sutils.KubeConfig;
     let client: k8sutils.KubeClient;
-    let minikubeInfo: minikube.MinikubeInfo;
+
+    this.timeout(2 * 60 * 1000);
+
+    const minikube = minikubeMocha.all();
 
     const copyDir = path.join(projectsRoot, "nodecellar");
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
-    before(async function () {
-        // Ensure there's enough time for docker pull of minikube
-        this.timeout(4 * 60 * 1000);
-
-        minikubeInfo = await startTestMinikube();
-        kubeconfig = minikubeInfo.kubeconfig;
-        const k8sConfig = getK8sConfig(kubeconfig);
-        client = await getClient(k8sConfig);
-
-        await fs.outputJson("kubeconfig.json", kubeconfig);
-    });
-
-    after(async () => {
-        if (minikubeInfo != null) {
-            await stopTestMinikube(minikubeInfo);
-        }
+    before(async () => {
+        client = await minikube.client;
+        await fs.outputJson("kubeconfig.json", minikube.kubeconfig);
     });
 
     afterEach(async function () {
