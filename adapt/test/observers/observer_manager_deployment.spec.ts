@@ -31,7 +31,7 @@ describe("Deployment Observer Manager Tests", () => {
         const obs: Observer = new TestObserver();
         const schema = obs.schema;
 
-        const observations = await obs.observe(schema, [{ query }]);
+        const observations = await obs.observe([{ query }]);
         if (data !== undefined) {
             observations.data = data;
         }

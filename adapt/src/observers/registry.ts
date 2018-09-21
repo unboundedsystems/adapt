@@ -48,7 +48,7 @@ export async function observe(
         const queries = executedQueries[name] ? executedQueries[name] : [];
         const waitP = (async () => {
             try {
-                const observations = await obs.observe(obs.schema, queries);
+                const observations = await obs.observe(queries);
                 ret[name] = {
                     observations,
                     queries

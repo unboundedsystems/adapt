@@ -3,6 +3,7 @@ import {
     GraphQLSchema
 } from "graphql";
 import gqlTag from "graphql-tag";
+import { CustomError } from "ts-custom-error";
 import { ExecutedQuery } from "./obs_manager_deployment";
 
 export interface Observations {
@@ -19,12 +20,16 @@ export interface ObserverResponse<D = object, C = any> {
 
 export interface Observer<D = object, C = any> {
     readonly schema: GraphQLSchema;
-    observe(
-        schema: GraphQLSchema,
-        possibleQueries: ExecutedQuery[]): Promise<ObserverResponse<D, C>>;
+    observe(possibleQueries: ExecutedQuery[]): Promise<ObserverResponse<D, C>>;
 }
 
 export const gql: (literals: TemplateStringsArray, ...placeholders: any[]) => GraphQLDocument = gqlTag;
+
+export class ObserverNeedsData extends CustomError {
+    public constructor(message?: string) {
+        super("Adapt Observer Needs Data: " + (message ? message : "<no message>"));
+    }
+}
 
 export {
     createObserverManagerDeployment,
