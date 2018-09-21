@@ -65,12 +65,15 @@ export abstract class WidgetPlugin<
 
     findElems: (dom: AdaptElementOrNull) => AdaptElement<Props>[];
     getElemQueryDomain: (el: AdaptElement<Props>) => QueryDomain<QDId, QDSecret>;
-    getObservations: (domain: QueryDomain<QDId, QDSecret>, deployID: string) => Promise<Obs[]>;
     getWidgetTypeFromElem: (el: AdaptElement<Props>) => string;
     getWidgetTypeFromObs: (obs: Obs) => string;
     getWidgetIdFromElem: (el: AdaptElement<Props>) => string;
     getWidgetIdFromObs: (obs: Obs) => string;
     needsUpdate: (el: AdaptElement<Props>, obs: Obs) => UpdateType;
+    getObservations: (
+        domain: QueryDomain<QDId, QDSecret>,
+        deployID: string,
+        elemsInQDomain: AdaptElement<Props>[]) => Promise<Obs[]>;
 
     createWidget: (
         domain: QueryDomain<QDId, QDSecret>, deployID: string,
@@ -97,14 +100,26 @@ export abstract class WidgetPlugin<
         let elems = this.findElems(dom);
         elems = elems.concat(this.findElems(oldDom));
 
-        const obs: Observed<Obs> = {};
+        const elemsInQDomain: Expected<AdaptElement<Props>> = {};
         for (const el of elems) {
             const domain = this.getElemQueryDomain(el);
             const key = makeQueryDomainKey(domain);
-            // Only query each domain once
-            if (obs[key] !== undefined) continue;
-            this.queryDomains.set(key, domain);
-            obs[key] = await this.getObservations(domain, this.deployID);
+            let list = elemsInQDomain[key];
+            if (list == null) {
+                list = [];
+                elemsInQDomain[key] = list;
+            }
+            list.push(el);
+
+            if (this.queryDomains.get(key) == null) {
+                this.queryDomains.set(key, domain);
+            }
+        }
+
+        const obs: Observed<Obs> = {};
+        for (const [ key, domain ] of this.queryDomains.entries()) {
+            obs[key] = await this.getObservations(domain, this.deployID,
+                                                  elemsInQDomain[key]);
         }
         return obs;
     }
