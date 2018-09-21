@@ -161,7 +161,7 @@ describe("k8s Service Operation Tests", function () {
         const mockObservation = {
             kind: Kind.service,
             metadata: {
-                name: resourceElementToName(dom),
+                name: resourceElementToName(dom, options.deployID),
                 namespace: "default",
             },
             spec: {
@@ -198,7 +198,8 @@ describe("k8s Service Operation Tests", function () {
 
         const svcs = await getAll("services", { client });
         should(svcs).length(1);
-        should(svcs[0].metadata.name).equal(resourceElementToName(dom));
+        should(svcs[0].metadata.name)
+            .equal(resourceElementToName(dom, options.deployID));
 
         await plugin.finish();
         return dom;
@@ -229,7 +230,8 @@ describe("k8s Service Operation Tests", function () {
 
         const svcs = await getAll("services", { client });
         should(svcs).length(1);
-        should(svcs[0].metadata.name).equal(resourceElementToName(dom));
+        should(svcs[0].metadata.name)
+            .equal(resourceElementToName(dom, options.deployID));
         should(svcs[0].spec.ports[0].targetPort).equal(9002);
 
         await plugin.finish();
@@ -253,7 +255,7 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
-        should(actions[0].description).match(/Destroying\s.+fixme-manishv-[0-9A-Fa-f]+/);
+        should(actions[0].description).match(/Destroying\s.+adapt-resource-[0-9A-Fa-f]+/);
 
         await act(actions);
 

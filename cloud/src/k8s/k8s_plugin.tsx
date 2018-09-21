@@ -1,18 +1,21 @@
 import Adapt, {
-    Action,
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
     findElementsInDom,
     isMountedElement,
+    QueryDomain,
     registerPlugin,
-    Style
+    Style,
+    UpdateType,
+    WidgetPair,
+    WidgetPlugin
 } from "@usys/adapt";
+import { sha256hex } from "@usys/utils";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 
-import { createHash } from "crypto";
-import { isResourceElement, Kind, Metadata, Resource, ResourceProps, Spec } from ".";
+import { isResourceElement, Kind, Metadata, Resource, ResourceBase, ResourceProps, Spec } from ".";
 
 import { podResourceInfo } from "./Pod";
 import { serviceResourceInfo } from "./Service";
@@ -26,6 +29,8 @@ registerPlugin({
     create: createK8sPlugin,
     module
 });
+
+type KubeconfigJson = string;
 
 interface MetadataInResourceObject extends Metadata {
     name: string;
@@ -74,7 +79,7 @@ function getResourceInfo(kind: keyof typeof resourceInfo): ResourceInfo {
 }
 
 async function getClientForConfigJSON(
-    kubeconfigJSON: string,
+    kubeconfigJSON: KubeconfigJson,
     options: { connCache: Connections }): Promise<Client> {
 
     const kubeconfig = JSON.parse(kubeconfigJSON);
@@ -90,7 +95,12 @@ async function getClientForConfigJSON(
     return client;
 }
 
-async function getResourcesByKind(client: Client, namespaces: string[], kind: Kind): Promise<ResourceObject[]> {
+async function getResourcesByKind(
+    client: Client,
+    namespaces: string[],
+    kind: Kind,
+    deployID: string
+): Promise<ResourceObject[]> {
     if (client.api == null) throw new Error("Must initialize client before calling api");
     const ret: ResourceObject[] = [];
     const info = getResourceInfo(kind);
@@ -101,7 +111,8 @@ async function getResourcesByKind(client: Client, namespaces: string[], kind: Ki
             const adaptResources = ld.filter<ResourceObject>(resources.body.items.map((resObj: ResourceObject) => {
                 resObj.kind = kind;
                 if ((resObj.metadata.annotations === undefined) ||
-                    (resObj.metadata.annotations.adaptName === undefined)) {
+                    (resObj.metadata.annotations.adaptName === undefined) ||
+                    (resObj.metadata.annotations.adaptDeployID !== deployID)) {
                     return undefined;
                 }
                 return resObj;
@@ -116,56 +127,19 @@ async function getResourcesByKind(client: Client, namespaces: string[], kind: Ki
     return ret;
 }
 
-async function getResources(client: Client, namespaces?: string[]): Promise<ResourceObject[]> {
+async function getResources(client: Client, namespaces: string[], deployID: string): Promise<ResourceObject[]> {
     const ret = [];
     namespaces = ld.uniq(namespaces);
-    if (namespaces === undefined || namespaces.length === 0) namespaces = ["default"];
+    if (namespaces.length === 0) namespaces = ["default"];
 
     for (const kind in Kind) {
         if (!Kind.hasOwnProperty(kind)) continue;
-        ret.push(...await getResourcesByKind(client, namespaces, Kind[kind] as Kind)); //why is the "as Kind" needed?
+        const rs = await getResourcesByKind(client, namespaces,
+                                            //why is the "as Kind" needed?
+                                            Kind[kind] as Kind, deployID);
+        ret.push(...rs);
     }
     return ret;
-}
-
-function findResObjsInObs(
-    elem: AdaptElement<ResourceProps>,
-    observations: Observations): ResourceObject | undefined {
-
-    const configJSON = canonicalConfigJSON(elem.props.config);
-
-    const obs = observations[configJSON];
-    if (obs === undefined) return undefined;
-
-    if (!isMountedElement(elem)) throw new Error("Can only compute name for mounted elements!");
-    return obs.find((res) =>
-        resourceElementToName(elem) === res.metadata.name &&
-        elem.props.kind === res.kind);
-}
-
-function observedResources(observations: Observations): { configJSON: string, reply: ResourceObject }[] {
-    const ret: { configJSON: string, reply: ResourceObject }[] = [];
-
-    for (const configJSON in observations) {
-        if (!observations.hasOwnProperty(configJSON)) continue;
-        for (const item of observations[configJSON]) {
-            ret.push({ configJSON, reply: item });
-        }
-    }
-
-    return ret;
-}
-
-function resourceShouldExist(
-    runningState: { configJSON: string, reply: ResourceObject },
-    resElems: AdaptElement<ResourceProps>[]): boolean {
-
-    return resElems.find((elem) => {
-        if (!isMountedElement(elem)) throw new Error("Can only compare mounted Resource elements to running state");
-        const canonicalJSON = canonicalConfigJSON(elem.props.config);
-        if (runningState.configJSON !== canonicalJSON) return false;
-        return resourceElementToName(elem) === runningState.reply.metadata.name;
-    }) !== undefined;
 }
 
 const rules = <Style>{Resource} {Adapt.rule()}</Style>;
@@ -182,19 +156,16 @@ interface Manifest {
     spec: Spec;
 }
 
-function sha256(data: Buffer) {
-    const sha = createHash("sha256");
-    sha.update(data);
-    return sha.digest("hex");
-}
-
-export function resourceElementToName(elem: Adapt.AdaptElement<AnyProps>): string {
+export function resourceElementToName(
+    elem: Adapt.AdaptElement<AnyProps>,
+    deployID: string
+): string {
     if (!isResourceElement(elem)) throw new Error("Can only compute name of Resource elements");
     if (!isMountedElement(elem)) throw new Error("Can only compute name of mounted elements");
-    return "fixme-manishv-" + sha256(Buffer.from(elem.id)).slice(0, 32);
+    return "adapt-resource-" + sha256hex(elem.id + deployID).slice(0, 32);
 }
 
-function makeManifest(elem: AdaptElement<ResourceProps>): Manifest {
+function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {
     if (!isMountedElement(elem)) throw new Error("Can only create manifest for mounted elements!");
 
     const ret: Manifest = {
@@ -202,13 +173,14 @@ function makeManifest(elem: AdaptElement<ResourceProps>): Manifest {
         kind: elem.props.kind,
         metadata: {
             ...elem.props.metadata,
-            name: resourceElementToName(elem)
+            name: resourceElementToName(elem, deployID)
         },
         spec: elem.props.spec
     };
 
     if (ret.metadata.annotations === undefined) ret.metadata.annotations = {};
     ret.metadata.annotations.adaptName = elem.id;
+    ret.metadata.annotations.adaptDeployID = deployID;
 
     return ret;
 }
@@ -245,132 +217,138 @@ export function canonicalConfigJSON(config: any) {
     return jsonStableStringify(config); //FIXME(manishv) Make this truly canonicalize based on data.
 }
 
-enum K8sAction {
-    none = "None",
-    creating = "Creating",
-    replacing = "Replacing",
-    updating = "Updating",
-    destroying = "Destroying"
-}
-
 function getResourceElementNamespace(elem: AdaptElement<ResourceProps>) {
     const ns = elem.props.metadata && elem.props.metadata.namespace;
     if (ns === undefined) return "default";
     return ns;
 }
 
-function computeActionExceptDelete(
+function compareResource(
+    el: AdaptElement<ResourceProps>,
+    actual: ResourceObject,
+    deployID: string
+): UpdateType {
+    const info = getResourceInfo(el.props.kind);
+    if (info == null) {
+        throw new Error(`Cannot create action for unknown kind ${el.props.kind}`);
+    }
+
+    const expected = makeManifest(el, deployID);
+    if (info.specsEqual(actual.spec, expected.spec)) return UpdateType.none;
+
+    return UpdateType.replace;
+}
+
+async function createResource(
+    client: Client,
     res: AdaptElement<ResourceProps>,
-    obs: Observations,
-    connCache: Connections): Action | undefined {
+    deployID: string
+): Promise<void> {
 
     const info = getResourceInfo(res.props.kind);
     if (info == null) {
         throw new Error(`Cannot create action for unknown kind ${res.props.kind}`);
     }
-    const resObj = findResObjsInObs(res, obs);
-    const configJSON = canonicalConfigJSON(res.props.config);
-    const manifest = makeManifest(res);
+    const manifest = makeManifest(res, deployID);
     const apiName = info.apiName;
     const ns = getResourceElementNamespace(res);
 
-    if (resObj === undefined) {
-        return {
-            description: `${K8sAction.creating} ${res.props.kind} ${res.props.key}`,
-            act: async () => {
-                const client = await getClientForConfigJSON(configJSON, { connCache });
-                if (client.api === undefined) throw new Error("Internal Error");
-                await client.api.v1.namespaces(ns)[apiName].post({ body: manifest });
-            }
-        };
-    }
+    if (client.api === undefined) throw new Error("Internal Error");
+    await client.api.v1.namespaces(ns)[apiName].post({ body: manifest });
+}
 
-    if (info.specsEqual(resObj.spec, manifest.spec)) return;
+async function deleteResource(
+    client: Client,
+    res: ResourceObject
+): Promise<void> {
+    const info = getResourceInfo(res.kind);
+    const apiName = info.apiName;
 
-    return {
-        description: `${K8sAction.replacing} ${res.props.kind} ${res.props.key}`,
-        act: async () => {
-            const client = await getClientForConfigJSON(configJSON, { connCache });
-            if (client.api === undefined) throw new Error("Internal Error");
-
-            await client.api.v1.namespaces(ns)[apiName](resourceElementToName(res)).delete();
-            await client.api.v1.namespaces(ns)[apiName].post({ body: manifest });
-        }
-    };
+    if (client.api == null) throw new Error("Action uses uninitialized client");
+    await client.api.v1.namespaces(res.metadata.namespace)[apiName](res.metadata.name).delete();
 }
 
 function notUndef(x: string | undefined): x is string {
     return x !== undefined;
 }
 
-class K8sPluginImpl implements K8sPlugin {
-    logger?: ((...args: any[]) => void);
+// NOTE(mark): Where is auth information stored for k8s? In kubeconfig?
+type K8sQueryDomain = QueryDomain<ResourceBase["config"], null>;
+type ResourceElement = AdaptElement<ResourceProps>;
+type K8sPair = WidgetPair<AdaptElement<ResourceProps>, ResourceObject>;
+
+class K8sPluginImpl
+    extends WidgetPlugin<ResourceElement, ResourceObject, K8sQueryDomain> {
+
     connCache: Connections = new Connections();
 
-    async start(options: Adapt.PluginOptions) {
-        this.logger = options.log;
+    findElems = (dom: AdaptElementOrNull) => {
+        return findResourceElems(dom);
+    }
+    getElemQueryDomain = (el: ResourceElement) => {
+        return { id: el.props.config, secret: null };
+    }
+    getWidgetTypeFromObs = (obs: ResourceObject): string => {
+        return obs.kind;
+    }
+    getWidgetIdFromObs = (obs: ResourceObject): string => {
+        return obs.metadata.name;
+    }
+    getWidgetTypeFromElem = (el: ResourceElement): string => {
+        return el.props.kind;
+    }
+    getWidgetIdFromElem = (el: ResourceElement): string => {
+        return resourceElementToName(el, this.deployID);
     }
 
-    async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations> {
-        const newElems = findResourceElems(dom);
-        const oldElems = findResourceElems(oldDom);
-        const allElems = newElems.concat(oldElems);
-
-        const configs = ld.uniq(allElems.map((elem) => canonicalConfigJSON(elem.props.config)));
-        const clients = await Promise.all(configs.map(async (config) => ({
-            config,
-            client: await getClientForConfigJSON(config, { connCache: this.connCache })
-        })));
-
-        const namespaces =
-            ld.filter(
-                allElems.map((e) => e.props.metadata && e.props.metadata.namespace),
-                notUndef);
-
-        const existingResourcesP =
-            clients.map(async (c) => ({
-                config: c.config,
-                resources: await getResources(c.client, namespaces)
-            }));
-        const existingResources = await Promise.all(existingResourcesP);
-        const ret: Observations = {};
-        for (const { config, resources } of existingResources) {
-            ret[config] = resources;
-        }
-        return ret;
+    needsUpdate = (el: ResourceElement, obs: ResourceObject): UpdateType => {
+        return compareResource(el, obs, this.deployID);
     }
 
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Adapt.Action[] {
-        const newElems = findResourceElems(dom);
+    getObservations = async (
+        domain: K8sQueryDomain,
+        deployID: string,
+        clusterElems: ResourceElement[]
+    ): Promise<ResourceObject[]> => {
 
-        const ret: Adapt.Action[] = [];
-        for (const elem of newElems) {
-            const action = computeActionExceptDelete(elem, obs, this.connCache);
-            if (action !== undefined) {
-                ret.push(action);
-            }
-        }
-
-        for (const { configJSON, reply } of observedResources(obs)) {
-            if (resourceShouldExist({ configJSON, reply }, newElems)) continue;
-            const info = getResourceInfo(reply.kind);
-            const apiName = info.apiName;
-
-            ret.push({
-                description: `Destroying ${reply.kind} ${reply.metadata.name}`,
-                act: async () => {
-                    const client = await getClientForConfigJSON(configJSON, { connCache: this.connCache });
-                    if (client.api == null) throw new Error("Action uses uninitialized client");
-                    await client.api.v1.namespaces(reply.metadata.namespace)[apiName](reply.metadata.name).delete();
-                }
-            });
-        }
-
-        return ret;
+        const client = await this.getClient(domain);
+        const namespaces = ld.filter(
+            clusterElems.map((e) => e.props.metadata && e.props.metadata.namespace),
+            notUndef);
+        return getResources(client, namespaces, deployID);
     }
 
-    async finish() {
-        this.logger = undefined;
+    createWidget = async (
+        domain: K8sQueryDomain,
+        deployID: string,
+        resource: K8sPair): Promise<void> => {
+
+        const el = resource.element;
+        if (!el) throw new Error(`resource element null`);
+        const client = await this.getClient(domain);
+        await createResource(client, el, deployID);
     }
 
+    destroyWidget = async (
+        domain: K8sQueryDomain,
+        _deployID: string,
+        resource: K8sPair): Promise<void> => {
+
+        const actual = resource.observed;
+        if (!actual) throw new Error(`resource observed null`);
+        const client = await this.getClient(domain);
+        await deleteResource(client, actual);
+    }
+
+    modifyWidget = async (
+        _domain: K8sQueryDomain,
+        _deployID: string,
+        _resource: K8sPair): Promise<void> => {
+        throw new Error(`Internal error: modify operation not supported`);
+    }
+
+    async getClient(domain: K8sQueryDomain) {
+        return getClientForConfigJSON(
+            canonicalConfigJSON(domain.id), { connCache: this.connCache });
+    }
 }

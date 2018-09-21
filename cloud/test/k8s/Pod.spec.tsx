@@ -209,7 +209,7 @@ describe("k8s Pod Operation Tests", function () {
         const mockObservation = {
             kind: Kind.pod,
             metadata: {
-                name: resourceElementToName(dom),
+                name: resourceElementToName(dom, options.deployID),
                 namespace: "default",
                 labels: {},
                 annotations: {}
@@ -250,7 +250,8 @@ describe("k8s Pod Operation Tests", function () {
 
         const pods = await getAll("pods", { client });
         should(pods).length(1);
-        should(pods[0].metadata.name).equal(resourceElementToName(dom));
+        should(pods[0].metadata.name)
+            .equal(resourceElementToName(dom, options.deployID));
 
         await plugin.finish();
         return dom;
@@ -282,7 +283,8 @@ describe("k8s Pod Operation Tests", function () {
 
         const pods = await getAll("pods", { client });
         should(pods).length(1);
-        should(pods[0].metadata.name).equal(resourceElementToName(dom));
+        should(pods[0].metadata.name)
+            .equal(resourceElementToName(dom, options.deployID));
         should(pods[0].spec.containers).length(1);
         should(pods[0].spec.containers[0].command).eql(command);
 
@@ -316,7 +318,7 @@ describe("k8s Pod Operation Tests", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
-        should(actions[0].description).match(/Destroying\s.+fixme-manishv-[0-9A-Fa-f]+/);
+        should(actions[0].description).match(/Destroying\s.+adapt-resource-[0-9A-Fa-f]+/);
 
         await act(actions);
 
