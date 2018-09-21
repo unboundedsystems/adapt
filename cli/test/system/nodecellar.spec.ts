@@ -25,7 +25,7 @@ const ncTestChain =
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 describe("Nodecellar system tests", function () {
-    this.timeout(60 * 1000);
+    this.timeout(2 * 60 * 1000);
     let kubeconfig: k8sutils.KubeConfig;
     let client: k8sutils.KubeClient;
     let minikubeInfo: minikube.MinikubeInfo;
