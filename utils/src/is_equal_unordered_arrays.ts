@@ -5,10 +5,10 @@ const sorted = Symbol();
 
 // LoDash isEqualWith says that a true comparison means equal, false means unequal, and undefined means
 // I don't know, do the normal isEqual thing at this level.
-function compareArrays(x: any, y: any): boolean | undefined {
-    if (x[sorted] && y[sorted]) return;
+function compareArrays(x: unknown, y: unknown): boolean | undefined {
     if (!ld.isArray(x)) return;
     if (!ld.isArray(y)) return;
+    if ((x as any)[sorted] && (y as any)[sorted]) return;
     if (x.length !== y.length) return false;
     const xClone = ld.cloneDeep(x);
     const yClone = ld.cloneDeep(y);
@@ -25,6 +25,6 @@ function compareArrays(x: any, y: any): boolean | undefined {
  * @param obj first object to be compared
  * @param other object to comapre to.
  */
-export function isEqualUnorderedArrays(obj: any, other: any): boolean {
+export function isEqualUnorderedArrays(obj: unknown, other: unknown): boolean {
     return ld.isEqualWith(obj, other, compareArrays);
 }

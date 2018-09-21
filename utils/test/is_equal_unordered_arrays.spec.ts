@@ -42,4 +42,8 @@ describe("isEqualUnorderedArray Tests", () => {
         should(isEqualUnorderedArrays(o4, o5)).True();
         should(isEqualUnorderedArrays(o4, o6)).False();
     });
+
+    it("Should handle null", () => {
+        should(isEqualUnorderedArrays(null, null)).True();
+    });
 });
