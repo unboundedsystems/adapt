@@ -13,6 +13,7 @@ if [ -f "${CRED_FILE}" ]; then
 fi
 
 # Propagate these from current environment into the docker container env
+DOCKER_ARGS+=" -eADAPT_PARALLEL_MAKE"
 DOCKER_ARGS+=" -eADAPT_TEST_MINIKUBE -eADAPT_RUN_LONG_TESTS"
 DOCKER_ARGS+=" -eAWS_ACCESS_KEY_ID -eAWS_SECRET_ACCESS_KEY -eAWS_DEFAULT_REGION"
 

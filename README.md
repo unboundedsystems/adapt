@@ -13,9 +13,23 @@ make
 
 ## Complete Testing
 Setting the environment variable `ADAPT_RUN_LONG_TESTS=1` will allow the complete
-set of tests to run. This is the set of tests that run in CI.
+set of tests to run. This is the set of tests that run in CI. Some tests do
+require additional information, such as cloud credentials to be set.
 ```
 ADAPT_RUN_LONG_TESTS=1 make
+```
+
+## Parallel make
+The environment variable `ADAPT_PARALLEL_MAKE` controls the running of
+parallel jobs in the build & test process. By default, the number of parallel
+jobs is set to the detected number of processor cores on the system. To set
+it to only use 2 parallel jobs:
+```
+ADAPT_PARALLEL_MAKE="-j 2" make
+```
+Or to turn off parallel jobs:
+```
+ADAPT_PARALLEL_MAKE= make
 ```
 
 # Setting up CI for your fork

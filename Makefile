@@ -18,7 +18,11 @@ SETUP_TARGETS :=
 
 include build_support/git.mk
 include build_support/submake.mk
+include build_support/node_modules.mk
 
+# Turn on parallelism by default
+ADAPT_PARALLEL_MAKE ?= -j $(shell nproc)
+MAKEFLAGS += $(ADAPT_PARALLEL_MAKE)
 
 #
 # Submake targets
@@ -34,20 +38,25 @@ $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 #
 # User-friendly targets: build, test, clean, etc.
 #
-build: setup $(build_submakes)
+build: $(build_submakes)
+$(build_submakes): setup $(NODE_INSTALL_DONE)
 
-test: build $(test_submakes)
+test: $(test_submakes)
+$(test_submakes): build
 
 clean: $(clean_submakes)
 
 cleaner: $(cleaner_submakes)
 	rm -rf node_modules
 
-pack: build $(pack_submakes)
+pack: $(pack_submakes)
+$(pack_submakes): build
 
-lint: setup $(lint_submakes)
+lint: $(lint_submakes)
+$(lint_submakes): build
 
-prepush: build lint test $(prepush_submakes)
+prepush: $(prepush_submakes)
+$(prepush_submakes): lint test
 
 # This top-level target is purposefully different. It's NOT just making the
 # target in the submakes.
@@ -68,6 +77,7 @@ testutils-build: utils-build
 # Initial setup, mostly stuff for a newly cloned repo
 #
 setup: $(SETUP_TARGETS)
+.PHONY: setup
 
 
 endif # IN_DOCKER
