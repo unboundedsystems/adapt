@@ -22,8 +22,11 @@ const ncTestChain =
 
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
+const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
+
 describe("Nodecellar system tests", function () {
     let client: k8sutils.KubeClient;
+    let deployID: string | undefined;
 
     this.timeout(2 * 60 * 1000);
 
@@ -39,8 +42,11 @@ describe("Nodecellar system tests", function () {
 
     afterEach(async function () {
         this.timeout(2 * 1000);
-        await deleteAll("pods", { client });
-        await deleteAll("services", { client });
+        if (deployID) {
+            await deleteAll("pods", { client, deployID });
+            await deleteAll("services", { client, deployID });
+            deployID = undefined;
+        }
     });
 
     ncTestChain
@@ -51,9 +57,14 @@ describe("Nodecellar system tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
+        const matches = ctx.stdout.match(newDeployRegex);
+        expect(matches).to.be.an("array").with.length(2);
+        if (matches && matches[1]) deployID = matches[1];
+        expect(deployID).to.be.a("string").with.length.greaterThan(0);
+
         let pods: any;
         for (let i = 0; i < 120; i++) {
-            pods = await getAll("pods", { client });
+            pods = await getAll("pods", { client, deployID });
             expect(pods).to.have.length(1);
             expect(pods[0] && pods[0].status).to.be.an("object").and.not.null;
 
