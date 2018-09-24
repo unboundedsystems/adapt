@@ -7,6 +7,11 @@ import * as npm from "./npm";
 export const localRegistryPort = 4873;
 export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;
 
+export interface NpmProxyOpts {
+    registry?: string;
+    userconfig?: string;
+}
+
 export const npmLocalProxyOpts = {
     registry: localRegistryUrl,
     userconfig: path.join(repoDirs.verdaccio, "npmrc_test"),
@@ -19,11 +24,12 @@ export const defaultPublishList = [
     repoDirs.utils,
 ];
 
-export async function setupLocalRegistry(publishList: string[]): Promise<void> {
+export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOpts = {}): Promise<void> {
+    opts = { ...npmLocalProxyOpts, ...opts };
     let output = "";
     try {
         for (const modDir of publishList) {
-            const out = await npm.publish(modDir, npmLocalProxyOpts);
+            const out = await npm.publish(modDir, opts);
             output += out.stderr + out.stdout;
         }
     } catch (err) {
@@ -32,7 +38,7 @@ export async function setupLocalRegistry(publishList: string[]): Promise<void> {
         if (err.stdout) output += err.stdout;
         // tslint:disable-next-line:no-console
         console.error(output);
-        throw new Error(`Local registry setup failed`);
+        throw new Error(output);
     }
     // tslint:disable-next-line:no-console
     console.log(`${output}\n>> Local NPM registry started [loaded ${publishList.length} modules]\n`);
@@ -53,7 +59,15 @@ export const config: Config = {
     },
     uplinks: {
         npmjs: {
-            url: "https://registry.npmjs.org/"
+            url: "https://registry.npmjs.org/",
+            // After 20 errors from the upstream, report an error and
+            // mark the upstream as DOWN.
+            max_fails: 20,
+            // Timeout on each individual request to the upstream
+            timeout: "5s",
+            // Once the upstream is marked DOWN, it will stay that way
+            // for this long before we try to use it again.
+            fail_timeout: "1s",
         }
     },
     packages: {

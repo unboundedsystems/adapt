@@ -146,9 +146,10 @@ describe("createDeployment Tests", async function () {
     }
 
     this.timeout(30000);
-    mochaLocalRegistry.all(localRegistryDefaults.config,
-                           localRegistryDefaults.configPath);
     tmpdir.all("adapt-createDeployment");
+    const localRegistry = mochaLocalRegistry.all({
+        publishList: localRegistryDefaults.defaultPublishList
+    });
 
     before(() => {
         origServerTypes = mockServerTypes_();
@@ -218,7 +219,7 @@ describe("createDeployment Tests", async function () {
         await fs.outputFile(path.join("simple_plugin", "index.ts"), simplePluginTs);
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
-        await npm.install(localRegistryDefaults.npmLocalProxyOpts);
+        await npm.install(localRegistry.npmProxyOpts);
         projectInit = true;
 
         const ds = await createSuccess("default");

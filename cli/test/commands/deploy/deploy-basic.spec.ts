@@ -1,10 +1,10 @@
-import { filePathToUrl, localRegistryDefaults, mochaTmpdir } from "@usys/utils";
+import { filePathToUrl, mochaTmpdir } from "@usys/utils";
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";
 import { clitest, expect } from "../../common/fancy";
+import { cliLocalRegistry } from "../../common/start-local-registry";
 
-const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
 const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
 const stateFilename = "adapt_state.json";
@@ -105,7 +105,7 @@ const testCommon =
     testCommonNoEnv
     .delayedenv(() => {
         return {
-            ADAPT_NPM_REGISTRY: localRegistryUrl,
+            ADAPT_NPM_REGISTRY: cliLocalRegistry.npmProxyOpts.registry,
             ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
         };
     });

@@ -1,11 +1,10 @@
 import { k8sutils, minikube } from "@usys/testutils";
-import { filePathToUrl, localRegistryDefaults, mochaTmpdir, sleep } from "@usys/utils";
+import { filePathToUrl, mochaTmpdir, sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { clitest, expect } from "../common/fancy";
 import { pkgRootDir } from "../common/paths";
-
-const localRegistryUrl = localRegistryDefaults.localRegistryUrl;
+import { cliLocalRegistry } from "../common/start-local-registry";
 
 const { deleteAll, getK8sConfig, getAll, getClient } = k8sutils;
 const { startTestMinikube, stopTestMinikube } = minikube;
@@ -17,7 +16,7 @@ const ncTestChain =
     .stderr()
     .delayedenv(() => {
         return {
-            ADAPT_NPM_REGISTRY: localRegistryUrl,
+            ADAPT_NPM_REGISTRY: cliLocalRegistry.npmProxyOpts.registry,
             ADAPT_SERVER_URL: filePathToUrl("local_server"),
         };
     });

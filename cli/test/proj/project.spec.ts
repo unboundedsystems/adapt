@@ -1,8 +1,9 @@
-import { localRegistryDefaults, mochaTmpdir } from "@usys/utils";
+import { mochaTmpdir } from "@usys/utils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { sourceDir } from "../common/paths";
+import { cliLocalRegistry } from "../common/start-local-registry";
 
 import * as proj from "../../src/proj/project";
 
@@ -112,7 +113,7 @@ describe("Project basic tests", function () {
     });
 
     it("Should load from alternate registry", async () => {
-        const opts = { ...localRegistryDefaults.npmLocalProxyOpts, ...projOpts };
+        const opts = { ...cliLocalRegistry.npmProxyOpts, ...projOpts };
         // FIXME(mark): Once we actually publish @usys/cloud publicly, this
         // test is no longer a great test. Change the package to something
         // that we know is definitely only present in the local registry.

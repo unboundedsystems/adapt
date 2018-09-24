@@ -8,6 +8,7 @@ include $(dir $(lastword $(MAKEFILE_LIST)))/common.mk
 include $(BUILD_SUPPORT)/dockerize.mk
 ifeq ($(IN_DOCKER),true)
 
+.NOTPARALLEL:
 
 all: test
 .PHONY: all

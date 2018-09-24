@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+: "${IMAGE:=andyshinn/dnsmasq:2.76}"
+: "${NAME:=dnsmasq}"
+
+# If the container already exists, we're done
+docker inspect --type container "${NAME}" >& /dev/null && exit 0
+
+docker run --rm -d --cap-add=NET_ADMIN --name "${NAME}" --net=host -v/etc/resolv.conf:/etc/resolv.conf "${IMAGE}" --interface docker0 --bind-interfaces --log-facility=- > /dev/null

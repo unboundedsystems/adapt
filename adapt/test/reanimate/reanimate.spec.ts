@@ -1,6 +1,5 @@
 import {
     Constructor,
-    localRegistryDefaults,
     mochaLocalRegistry,
     mochaTmpdir,
     npm,
@@ -469,21 +468,6 @@ async function createProject() {
     await writePackage("register-in-func", registerInFuncPackage);
 }
 
-function setupRegistry() {
-    return localRegistryDefaults.setupLocalRegistry([
-        repoDirs.utils,
-        "reanimate",
-        "oldlib",
-        "victim1",
-        "victim2",
-        "register-in-func",
-    ].map((d) => path.resolve(d)));
-}
-const registryConfig = {
-    ...localRegistryDefaults.config,
-    onStart: setupRegistry,
-};
-
 async function showMummy(which: string): Promise<MummyJson> {
     // Get the mummy representation
     const res = await execa("node", ["index.js", "show" + which]);
@@ -508,12 +492,26 @@ describe("Reanimate in package tests", function () {
     let mummy1: string;
     let mummy2: string;
 
-    this.timeout(40000);
+    this.timeout(10 * 1000);
 
     mochaTmpdir.all("adapt-reanimate-test");
-    before(() => createProject());
-    mochaLocalRegistry.all(registryConfig, localRegistryDefaults.configPath);
-    before(() => npm.install(localRegistryDefaults.npmLocalProxyOpts));
+    before(createProject);
+
+    const localRegistry = mochaLocalRegistry.all({
+        publishList: [
+            repoDirs.utils,
+            "reanimate",
+            "oldlib",
+            "victim1",
+            "victim2",
+            "register-in-func",
+        ]
+    });
+
+    before(async function () {
+        this.timeout(20 * 1000);
+        await npm.install(localRegistry.npmProxyOpts);
+    });
 
     it("Should reanimate top level dependency from mummy", async () => {
         const mummyJson = await showMummy("2");
@@ -562,7 +560,7 @@ describe("Reanimate in package tests", function () {
         try {
             process.chdir(newTmp);
             await createProject();
-            await npm.install(localRegistryDefaults.npmLocalProxyOpts);
+            await npm.install(localRegistry.npmProxyOpts);
 
             let res = await execa("node", ["index.js", mummy1]);
             should(res.stdout).match(/SUCCESS/);
