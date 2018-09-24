@@ -1,7 +1,11 @@
 import { isEqualUnorderedArrays } from "@usys/utils";
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
-import { AdaptElement, AdaptElementOrNull, Component } from "..";
-import { getComponentConstructorData } from "../jsx";
+import {
+    AdaptElement,
+    AdaptElementOrNull,
+    Component,
+    getComponentConstructorData
+} from "../jsx";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
 
 type QueryResult<R = any> = ExecutionResult<R>;
@@ -16,12 +20,8 @@ export interface ObserverProps<QueryData extends object> {
     isEqual: ResultsEqualType<QueryData>;
 }
 
-interface ObserverState {
-    result: QueryResult;
-}
-
 export class Observer<QueryData extends object = any>
-    extends Component<ObserverProps<QueryData>, ObserverState> {
+    extends Component<ObserverProps<QueryData>, {}> {
 
     static defaultProps = { isEqual: isEqualUnorderedArrays };
 
@@ -43,23 +43,20 @@ export class Observer<QueryData extends object = any>
             return this.props.build(err, undefined);
         }
 
-        if (!this.props.isEqual(this.state.result, result)) {
-            this.setState({ result });
-        }
-
         let err: Error | null = null;
         let needsData = false;
-        if (this.state.result.errors) {
+        if (result.errors) {
             const badErrors =
-                this.state.result.errors.filter((e) => !e.message.startsWith("Adapt Observer Needs Data:"));
+                result.errors.filter((e) => !e.message.startsWith("Adapt Observer Needs Data:"));
             if (badErrors.length !== 0) {
-                const msgs = badErrors.map((e) => printError(e)).join("\n");
+                const msgs = badErrors.map((e) => e.originalError ? e.stack : printError(e)).join("\n");
                 err = new Error(msgs);
+                (err as any).originalErrors = badErrors;
             } else {
                 needsData = true;
             }
         }
 
-        return this.props.build(err, needsData ? undefined : this.state.result.data);
+        return this.props.build(err, needsData ? undefined : result.data);
     }
 }

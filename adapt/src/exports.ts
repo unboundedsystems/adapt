@@ -74,7 +74,12 @@ export {
 export * from "./ops";
 
 export {
-    registerObserver
+    registerObserver,
+    gql,
+    Observer,
+    ObserverPlugin,
+    ObserverResponse,
+    ObserverNeedsData
 } from "./observers";
 
 export {

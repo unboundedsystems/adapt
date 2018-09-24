@@ -1,3 +1,4 @@
+import { ProjectRunError } from "../error";
 import { adaptServer, AdaptServer } from "../server";
 import {
     createDeployment as createDeploymentObj,
@@ -43,7 +44,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             init: finalOptions.initLocalServer,
         });
         deployment = await createDeploymentObj(server, projectName,
-                                               finalOptions.stackName);
+            finalOptions.stackName);
         ds = await buildAndDeploy({
             deployment,
             prevStateJson: initialStateJson,
@@ -52,7 +53,8 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         });
 
     } catch (err) {
-        finalOptions.logger.error(`Error creating deployment: ${err}`);
+        const backtrace = err instanceof ProjectRunError ? err.projectStack : err.stack;
+        finalOptions.logger.error(`Error creating deployment: ${err}:\n`, backtrace);
         ds = {
             type: "error",
             messages: finalOptions.logger.messages,

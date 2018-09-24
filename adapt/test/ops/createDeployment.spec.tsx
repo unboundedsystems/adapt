@@ -1,5 +1,6 @@
 import {
     localRegistryDefaults,
+    messagesToString,
     mochaLocalRegistry,
     mochaTmpdir as tmpdir,
     npm
@@ -7,6 +8,7 @@ import {
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
+import { stdout } from "stdout-stderr";
 
 import { createMockLogger, MockLogger } from "@usys/testutils";
 
@@ -27,7 +29,8 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import Adapt, { Component, PrimitiveComponent } from "@usys/adapt";
+import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt";
+import { MockObserver } from "@usys/adapt/dist/src/observers/mock_observer";
 import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {}
@@ -38,15 +41,28 @@ class BuildNull extends Component<{}> {
     build() { return null; }
 }
 
+class ObserverToSimple extends Component<{}> {
+    build() {
+        return <Observer
+            observerName="mock"
+            query={ gql\`query { mockById(id: "1") { idSquared } }\` }
+            build={ (err, props)=>{
+                        console.log("Props:", props, err);
+                        return <Simple key="Simple" />;
+            } } />;
+    }
+}
+
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
 Adapt.stack("null", null);
 Adapt.stack("BuildNull", <BuildNull />);
+Adapt.stack("ObserverToSimple", <ObserverToSimple />);
 `;
 
 const defaultDomXmlOutput =
-`<Adapt>
+    `<Adapt>
   <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
 </Adapt>
 `;
@@ -140,12 +156,13 @@ describe("createDeployment Tests", async function () {
 
     async function server(): Promise<AdaptServer> {
         if (!server_) {
-            server_ = await adaptServer(adaptUrl, {init: true});
+            server_ = await adaptServer(adaptUrl, { init: true });
         }
         return server_;
     }
 
     this.timeout(30000);
+
     tmpdir.all("adapt-createDeployment");
     const localRegistry = mochaLocalRegistry.all({
         publishList: localRegistryDefaults.defaultPublishList
@@ -186,7 +203,7 @@ describe("createDeployment Tests", async function () {
     }
 
     async function createError(stackName: string,
-                               expectedErrs: RegExp[]): Promise<DeployError> {
+        expectedErrs: RegExp[]): Promise<DeployError> {
         const ds = await doCreate(stackName);
         if (isDeploySuccess(ds)) {
             should(isDeploySuccess(ds)).be.False();
@@ -202,8 +219,8 @@ describe("createDeployment Tests", async function () {
     async function createSuccess(stackName: string): Promise<DeploySuccess> {
         const ds = await doCreate(stackName);
         if (!isDeploySuccess(ds)) {
-            should(isDeploySuccess(ds)).be.True();
-            throw new Error();
+            // tslint:disable-next-line:no-console
+            throw new Error(messagesToString(ds.messages));
         }
 
         const list = await listDeployments(await server());
@@ -215,7 +232,7 @@ describe("createDeployment Tests", async function () {
     it("Should build a single file", async () => {
         await fs.writeFile("index.tsx", simpleIndexTsx);
         await fs.writeFile("package.json",
-                           JSON.stringify(simplePackageJson, null, 2));
+            JSON.stringify(simplePackageJson, null, 2));
         await fs.outputFile(path.join("simple_plugin", "index.ts"), simplePluginTs);
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
@@ -228,13 +245,13 @@ describe("createDeployment Tests", async function () {
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::default");
 
-        const stdout = logger.stdout;
-        should(stdout).match(/EchoPlugin: start/);
-        should(stdout).match(/EchoPlugin: observe/);
-        should(stdout).match(/EchoPlugin: analyze/);
-        should(stdout).match(/action1/);
-        should(stdout).match(/action2/);
-        should(stdout).match(/EchoPlugin: finish/);
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
 
     });
 
@@ -264,13 +281,13 @@ describe("createDeployment Tests", async function () {
 
         should(ds1.stateJson).equal("{}");
 
-        const stdout = logger.stdout;
-        should(stdout).match(/EchoPlugin: start/);
-        should(stdout).match(/EchoPlugin: observe/);
-        should(stdout).match(/EchoPlugin: analyze/);
-        should(stdout).match(/action1/);
-        should(stdout).match(/action2/);
-        should(stdout).match(/EchoPlugin: finish/);
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
 
         // Now update the deployment
         const ds2 = await updateDeployment({
@@ -301,13 +318,58 @@ describe("createDeployment Tests", async function () {
 
         should(ds1.stateJson).equal("{}");
 
-        const stdout = logger.stdout;
-        should(stdout).match(/EchoPlugin: start/);
-        should(stdout).match(/EchoPlugin: observe/);
-        should(stdout).match(/EchoPlugin: analyze/);
-        should(stdout).match(/action1/);
-        should(stdout).match(/action2/);
-        should(stdout).match(/EchoPlugin: finish/);
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
 
+    });
+
+    it("Should deploy and update a stack with observer", async () => {
+        should(projectInit).equal(true, "Previous test did not complete");
+
+        stdout.print = false;
+        stdout.start();
+        const ds1 = await createSuccess("ObserverToSimple");
+        stdout.stop();
+
+        should(ds1.summary.error).equal(0);
+        should(ds1.domXml).equal(defaultDomXmlOutput);
+
+        should(stdout.output).match(/Props: undefined null/);
+        should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
+
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
+
+        // Now update the deployment
+        stdout.start();
+        const ds2 = await updateDeployment({
+            adaptUrl,
+            deployID: ds1.deployID,
+            fileName: "index.tsx",
+            logger,
+            prevStateJson: "{}",
+            stackName: "ObserverToSimple",
+        });
+        stdout.stop();
+        if (!isDeploySuccess(ds2)) {
+            should(isDeploySuccess(ds2)).be.True();
+            return;
+        }
+
+        should(ds2.summary.error).equal(0);
+        should(ds2.domXml).equal(defaultDomXmlOutput);
+
+        should(stdout.output).not.match(/Props: undefined null/);
+        should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
     });
 });

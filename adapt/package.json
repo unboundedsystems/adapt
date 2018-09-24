@@ -55,6 +55,7 @@
     "should": "^13.2.1",
     "sinon": "^6.0.0",
     "source-map-support": "^0.5.5",
+    "stdout-stderr": "^0.1.9",
     "tslint": "^5.10.0",
     "type-ops": "^3.0.1",
     "typescript": "^3.0.3"
