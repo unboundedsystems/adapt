@@ -1,18 +1,14 @@
 import { isEqualUnorderedArrays } from "@usys/utils";
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
 import { AdaptElement, AdaptElementOrNull, Component } from "..";
+import { getComponentConstructorData } from "../jsx";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
 
 type QueryResult<R = any> = ExecutionResult<R>;
 
-export interface ObserverEnvironment {
-    observerManager: ObserverManagerDeployment;
-}
-
 export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
 
 export interface ObserverProps<QueryData extends object> {
-    environment: ObserverEnvironment;
     observerName: string;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
@@ -29,14 +25,20 @@ export class Observer<QueryData extends object = any>
 
     static defaultProps = { isEqual: isEqualUnorderedArrays };
 
+    private readonly mgr: ObserverManagerDeployment;
+
+    constructor(props: ObserverProps<QueryData>) {
+        super(props);
+        const ccd = getComponentConstructorData();
+        this.mgr = ccd.observerManager;
+    }
+
     initialState() { return { result: {} }; }
 
     async build(): Promise<AdaptElement | null> {
-        const env = this.props.environment;
-        const mgr = env.observerManager;
         let result: QueryResult;
         try {
-            result = await mgr.executeQuery(this.props.observerName, this.props.query, this.props.variables);
+            result = await this.mgr.executeQuery(this.props.observerName, this.props.query, this.props.variables);
         } catch (err) {
             return this.props.build(err, undefined);
         }
@@ -46,11 +48,18 @@ export class Observer<QueryData extends object = any>
         }
 
         let err: Error | null = null;
+        let needsData = false;
         if (this.state.result.errors) {
-            const msgs = this.state.result.errors.map((e) => printError(e)).join("\n");
-            err = new Error(msgs);
+            const badErrors =
+                this.state.result.errors.filter((e) => !e.message.startsWith("Adapt Observer Needs Data:"));
+            if (badErrors.length !== 0) {
+                const msgs = badErrors.map((e) => printError(e)).join("\n");
+                err = new Error(msgs);
+            } else {
+                needsData = true;
+            }
         }
 
-        return this.props.build(err, this.state.result.data);
+        return this.props.build(err, needsData ? undefined : this.state.result.data);
     }
 }

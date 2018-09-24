@@ -3,6 +3,7 @@ export type HistoryName = string;
 export interface HistoryEntry {
     domXml: string;
     stateJson: string;
+    observationsJson: string;
 
     fileName: string;
     projectRoot: string;

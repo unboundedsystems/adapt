@@ -16,11 +16,13 @@ export interface CreateOptions extends DeployCommonOptions {
 
     initLocalServer?: boolean;
     initialStateJson?: string;
+    initialObservationsJson?: string;
 }
 
 const defaultOptions = {
     initLocalServer: false,
     initialStateJson: "{}",
+    initialObservationsJson: "{}"
 };
 
 export async function createDeployment(options: CreateOptions): Promise<DeployState> {
@@ -30,7 +32,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         ...options
     };
     const {
-        adaptUrl, initLocalServer, initialStateJson, projectName, ...buildOpts
+        adaptUrl, initLocalServer, initialStateJson, initialObservationsJson, projectName, ...buildOpts
     } = finalOptions;
 
     let ds: DeployState;
@@ -45,6 +47,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         ds = await buildAndDeploy({
             deployment,
             prevStateJson: initialStateJson,
+            observationsJson: initialObservationsJson,
             ...buildOpts
         });
 

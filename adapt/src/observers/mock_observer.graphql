@@ -1,0 +1,13 @@
+type MockObject {
+    id: ID!
+    idSquared: Int
+    idPlusOne: Int
+}
+
+type Query {
+    mockById(id: ID!): MockObject
+}
+
+schema {
+    query: Query
+}

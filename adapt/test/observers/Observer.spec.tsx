@@ -2,33 +2,32 @@ import * as ld from "lodash";
 import * as should from "should";
 import Adapt from "../../src";
 import { createObserverManagerDeployment, gql } from "../../src/observers";
+import { MockObserver } from "../../src/observers/mock_observer";
 import { Observer } from "../../src/observers/Observer";
 import { deepFilterElemsToPublic, Empty } from "../testlib";
 import { RotatingPayloadTestObserver, TestObserver } from "./test_observer";
 
 describe("Observer Component Tests", () => {
     it("Should build with no observations", async () => {
-        const observerPlugin = new TestObserver();
+        const observerPlugin = new MockObserver();
         const mgr = createObserverManagerDeployment();
-        const observations = await observerPlugin.observe();
-        mgr.registerSchema("test", observerPlugin.schema, observations);
+        const observations = await observerPlugin.observe([]);
+        mgr.registerSchema("mock", observerPlugin.schema, observations);
 
         const root =
-            <Observer<{ fooById: { id: number } }>
-                observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
-                query={gql`query Test { fooById(id: "1") { id }}`}
-                build={(_err, props) => {
-                    if (!props) return <Empty key="dummy" id={0} />;
-                    return <Empty key="dummy" id={Number(props.fooById.id)} />;
+            <Observer<{ mockById: { id: string } }>
+                observerName="mock"
+                query={gql`query Test { mockById(id: "1") { id }}`}
+                build={(err, props) => {
+                    if (err) return <Empty key="error" id={200} />;
+                    if (props === undefined) return <Empty key="dummy" id={100} />;
+                    return <Empty key="dummy" id={Number(props.mockById.id)} />;
                 }} />;
 
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
-        should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));
+        should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={100} />));
     });
 
     it("Should build with observations", async () => {
@@ -41,9 +40,6 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id } }`}
                 build={(err, props) => {
                     if (err) {
@@ -57,7 +53,7 @@ describe("Observer Component Tests", () => {
                     }
                 }} />;
 
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="props" id={2} />));
@@ -73,16 +69,13 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id }}`}
                 build={(error, props) => {
                     return <Empty key="dummy" id={1} />;
                 }} />;
 
         //This should not infinite loop
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));
@@ -99,9 +92,6 @@ describe("Observer Component Tests", () => {
         const root =
             <Observer<{ fooById: { id: string, payload: string[] } }>
                 observerName="test"
-                environment={{
-                    observerManager: mgr
-                }}
                 query={gql`query Test { fooById(id: "1") { id, payload }}`}
                 isEqual={(x, y) => {
                     compareCount++;
@@ -119,7 +109,7 @@ describe("Observer Component Tests", () => {
                 }} />;
 
         //This should not infinite loop
-        const { contents: dom, messages } = await Adapt.build(root, null);
+        const { contents: dom, messages } = await Adapt.build(root, null, { observerManager: mgr });
         should(messages).empty();
         should(dom).not.Null();
         should(deepFilterElemsToPublic(dom)).eql(deepFilterElemsToPublic(<Empty key="dummy" id={1} />));

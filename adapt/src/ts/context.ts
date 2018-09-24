@@ -3,6 +3,9 @@ import * as path from "path";
 import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
+import { ObserverManagerDeployment } from "../observers";
+import { PluginModule } from "../plugin_support";
+import { Stacks } from "../stack";
 
 import {
     isError,
@@ -55,8 +58,8 @@ export class VmModule {
     private hostModCache: any;
 
     constructor(public id: string, private vmContext: vm.Context | undefined,
-                public host: ChainableHost,
-                public parent?: VmModule) {
+        public host: ChainableHost,
+        public parent?: VmModule) {
         if (parent) {
             this.extensions = parent.extensions;
             this.cache = parent.cache;
@@ -96,7 +99,7 @@ export class VmModule {
             if (cached) return cached.ctxModule.exports;
 
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
-                                        this);
+                this);
 
             this.cache[resolvedPath] = newMod;
             require.cache[resolvedPath] = newMod.ctxModule;
@@ -118,7 +121,7 @@ export class VmModule {
         }
 
         throw new Error(`Unable to find module ${modName} ` +
-                        `imported from ${this.id}`);
+            `imported from ${this.id}`);
     }
 
     @tracef(debugVm)
@@ -188,7 +191,7 @@ export class VmModule {
         const dirname = path.dirname(filename);
         try {
             return compiled.call(this.ctxModule.exports, this.ctxModule.exports,
-                                 require, this.ctxModule, filename, dirname);
+                require, this.ctxModule, filename, dirname);
         } catch (err) {
             if ((err instanceof ProjectRunError) ||
                 (err instanceof CompileError)) {
@@ -234,14 +237,20 @@ const hostGlobals = {
     Promise,
 };
 
-let adaptContext: any = Object.create(null);
+let adaptContext: AdaptContext = Object.create(null);
 
-export function getAdaptContext() {
+export interface AdaptContext {
+    pluginModules: Map<string, PluginModule>;
+    adaptStacks: Stacks;
+    observers: Map<string, ObserverManagerDeployment>;
+}
+
+export function getAdaptContext(): AdaptContext {
     return adaptContext;
 }
 
 // exported for test only
-export function setAdaptContext(ctx: any) {
+export function setAdaptContext(ctx: AdaptContext) {
     adaptContext = ctx;
 }
 
@@ -253,7 +262,7 @@ export class VmContext {
     mainModule: VmModule;
 
     constructor(public vmGlobal: any, dirname: string, public filename: string,
-                public host: ChainableHost) {
+        public host: ChainableHost) {
 
         vmGlobal.__filename = filename;
         vmGlobal.__dirname = dirname;

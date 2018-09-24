@@ -9,6 +9,7 @@ import { HistoryEntry, HistoryName, HistoryStore, HistoryWriter } from "./histor
 // These are exported only for testing
 export const domFilename = "adapt_dom.xml";
 export const stateFilename = "adapt_state.json";
+export const observationsFilename = "adapt_observations.json";
 export const infoFilename = "adapt_deploy.json";
 
 interface DirInfo {
@@ -52,7 +53,7 @@ class LocalHistoryStore implements HistoryStore {
     }
 
     async appendState(toStore: HistoryEntry): Promise<AsyncAction[]> {
-        const { domXml, stateJson, ...info } = toStore;
+        const { domXml, stateJson, observationsJson, ...info } = toStore;
         const revertActions: AsyncAction[] = [];
 
         const dirName = await this.nextDirName();
@@ -60,6 +61,7 @@ class LocalHistoryStore implements HistoryStore {
 
         await fs.outputFile(path.join(dirPath, domFilename), domXml);
         await fs.outputFile(path.join(dirPath, stateFilename), stateJson);
+        await fs.outputFile(path.join(dirPath, observationsFilename), observationsJson);
         await fs.outputJson(path.join(dirPath, infoFilename), info);
 
         this.db.push(this.dbPath + "/stateDirs[]", dirName);
@@ -86,11 +88,13 @@ class LocalHistoryStore implements HistoryStore {
 
         const domXml = await fs.readFile(path.join(dirName, domFilename));
         const stateJson = await fs.readFile(path.join(dirName, stateFilename));
+        const observationsJson = await fs.readFile(path.join(dirName, observationsFilename));
         const info = await fs.readJson(path.join(dirName, infoFilename));
 
         return {
             domXml: domXml.toString(),
             stateJson: stateJson.toString(),
+            observationsJson: observationsJson.toString(),
             fileName: info.fileName,
             projectRoot: info.projectRoot,
             stackName: info.stackName,
