@@ -17,7 +17,6 @@ export interface ObserverProps<QueryData extends object> {
     query: GraphQLDocument;
     variables?: { [name: string]: any };
     build: (error: Error | null, props: QueryData | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull>;
-    isEqual: ResultsEqualType<QueryData>;
 }
 
 export class Observer<QueryData extends object = any>
