@@ -18,6 +18,9 @@ try {
 
 export interface Registry {
     url: string;
+    max_fails?: number;
+    timeout?: string;
+    fail_timeout?: string;
 }
 
 export interface Package {

@@ -11,12 +11,14 @@ export interface MochaLocalRegOptions {
     port?: number | "auto";
     publishList?: string[];
     storageDir?: "createTemp" | string;
+    logLevel?: "fatal" | "error" | "warn" | "http" | "info" | "debug" | "trace";
 }
 
 const defaultOpts: Required<MochaLocalRegOptions> = {
     port: "auto",
     publishList: [],
     storageDir: "createTemp",
+    logLevel: "error",
 };
 
 export interface RegistryFixture {
@@ -77,6 +79,9 @@ ${svr}:always-auth=false
             storage: this.storage,
             listen: `0.0.0.0:${this.port}`,
             clearStorage: false,
+            logs: [
+                { type: "stdout", format: "pretty", level: this.opts.logLevel }
+            ]
         };
     }
 

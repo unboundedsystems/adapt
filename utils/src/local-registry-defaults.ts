@@ -59,7 +59,15 @@ export const config: Config = {
     },
     uplinks: {
         npmjs: {
-            url: "https://registry.npmjs.org/"
+            url: "https://registry.npmjs.org/",
+            // After 20 errors from the upstream, report an error and
+            // mark the upstream as DOWN.
+            max_fails: 20,
+            // Timeout on each individual request to the upstream
+            timeout: "5s",
+            // Once the upstream is marked DOWN, it will stay that way
+            // for this long before we try to use it again.
+            fail_timeout: "1s",
         }
     },
     packages: {
