@@ -80,7 +80,8 @@ export async function start(config: Config, configPath: string): Promise<Server>
         }
         try {
             startVerdaccio(config, config.listen, configPath, "1.0.0", "verdaccio",
-                (webServer: any, addr: any, _pkgName: any, _pkgVersion: any) => {
+                (webServer: http.Server, addr: any, _pkgName: any, _pkgVersion: any) => {
+                    webServer.on("error", reject);
                     webServer.listen(addr.port || addr.path, addr.host, () => {
                         resolve(webServer);
                     });
