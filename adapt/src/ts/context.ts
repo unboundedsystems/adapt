@@ -7,6 +7,7 @@ import { ObserverManagerDeployment } from "../observers";
 import { PluginModule } from "../plugin_support";
 import { Stacks } from "../stack";
 
+import * as ld from "lodash";
 import {
     isError,
     ProjectCompileError,
@@ -16,6 +17,8 @@ import {
 import { trace, tracef } from "../utils";
 import { CompileError } from "./compile";
 import { ChainableHost } from "./hosts";
+
+const builtInModules = new Set<string>(Module.builtinModules);
 
 const debugVm = false;
 
@@ -47,6 +50,10 @@ export interface Extensions {
 
 export interface ModuleCache {
     [abspath: string]: VmModule;
+}
+
+function isRelative(loc: string) {
+    return loc.startsWith("./") || loc.startsWith("../");
 }
 
 export class VmModule {
@@ -87,13 +94,40 @@ export class VmModule {
     }
 
     @tracef(debugVm)
+    requireResolve(request: string, options?: RequireResolve) {
+        if (options) {
+            throw new Error("require.resolve options not supported yet.");
+        }
+        const resolved = this.host.resolveModuleName(request, this.id, true);
+        if (!resolved) {
+            if (isRelative(request)) request = path.join(path.dirname(this.id), request);
+            if (!path.isAbsolute(request)) throw new Error("Internal Error: path is not absolute: " + path);
+            return require.resolve(request, options);
+        }
+        return resolved.resolvedFileName;
+    }
+
+    @tracef(debugVm)
     require(modName: string) {
         let hostMod = this.requireHostMod(modName);
         if (hostMod !== undefined) return hostMod;
 
-        const resolved = this.host.resolveModuleName(modName, this.id, true);
+        if (builtInModules.has(modName)) {
+            hostMod = this.requireBuiltin(modName);
+            if (hostMod === undefined) throw new Error(`Internal Error: Cannot find module '${modName}'`);
+            return hostMod;
+        }
+
+        let resolved: string | undefined;
+        try {
+            resolved = this.requireResolve(modName);
+        } catch (e) {
+            if (!ld.isError(e)) throw e;
+            if (!e.message.startsWith("Cannot find")) throw e;
+        }
+
         if (resolved) {
-            const resolvedPath = resolved.resolvedFileName;
+            const resolvedPath = resolved;
 
             const cached = this.cache[resolvedPath];
             if (cached) return cached.ctxModule.exports;
@@ -111,13 +145,6 @@ export class VmModule {
 
             newMod.ctxModule.loaded = true;
             return newMod.ctxModule.exports;
-        }
-
-        // Any relative or absolute path should have been resolved already
-        // and should not be resolved by the host system's require.
-        if ((modName.charAt(0) !== ".") && !path.isAbsolute(modName)) {
-            hostMod = this.requireBuiltin(modName);
-            if (hostMod !== undefined) return hostMod;
         }
 
         throw new Error(`Unable to find module ${modName} ` +
@@ -187,7 +214,11 @@ export class VmModule {
         const wrapper = Module.wrap(content);
         const script = new vm.Script(wrapper, { filename });
         const compiled = script.runInContext(this.vmContext);
-        const require = this.require.bind(this);
+        const require = (() => {
+            const ret: NodeRequire = this.require.bind(this) as NodeRequire;
+            ret.resolve = this.requireResolve.bind(this);
+            return ret;
+        })();
         const dirname = path.dirname(filename);
         try {
             return compiled.call(this.ctxModule.exports, this.ctxModule.exports,

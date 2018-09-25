@@ -10,9 +10,10 @@ import {
     GraphQLSchema
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import { ExecutedQuery, Observer, ObserverNeedsData, ObserverResponse } from ".";
+import { ExecutedQuery, ObserverNeedsData, ObserverPlugin, ObserverResponse } from ".";
 
 import { MockObject, QueryResolvers } from "../../generated/observers/mock_observer_schema_types";
+import { registerObserver } from "./registry";
 
 const schemaStr = fs.readFileSync(require.resolve("./mock_observer.graphql")).toString();
 
@@ -25,19 +26,22 @@ interface CachedData {
 //Resolve data from previously fetched results.
 const queryCacheResolvers = {
     Query: {
-        mockById: forceType<QueryResolvers.MockByIdResolver<MockObject | null | undefined, null, CachedData>>(
-            async (_obj, args, cache, _info) => {
-                await uutil.sleep(0);
-                const ret = cache.mockObjects.find((o) => o.id === args.id);
-                if (ret !== undefined) return ret;
+        mockById: forceType<
+            QueryResolvers.MockByIdResolver<MockObject | null | undefined,
+            null,
+            CachedData | undefined>>(
+                async (_obj, args, cache, _info) => {
+                    await uutil.sleep(0);
+                    const ret = cache ? cache.mockObjects.find((o) => o.id === args.id) : undefined;
+                    if (ret !== undefined) return ret;
 
-                //Can there be such an object?
-                const id = Number(args.id);
-                if (Number.isNaN(id)) return null; //No such object
-                if (Math.floor(id) !== id) return null;
+                    //Can there be such an object?
+                    const id = Number(args.id);
+                    if (Number.isNaN(id)) return null; //No such object
+                    if (Math.floor(id) !== id) return null;
 
-                throw new ObserverNeedsData();
-            }),
+                    throw new ObserverNeedsData();
+                }),
     }
 };
 
@@ -82,7 +86,7 @@ const observeResolvers = {
     }
 };
 
-export class MockObserver implements Observer {
+export class MockObserver implements ObserverPlugin {
     static schema_ = makeExecutableSchema({
         typeDefs: schemaStr,
         resolvers: queryCacheResolvers
@@ -105,3 +109,5 @@ export class MockObserver implements Observer {
         return { context: cache };
     }
 }
+
+registerObserver("mock", new MockObserver());

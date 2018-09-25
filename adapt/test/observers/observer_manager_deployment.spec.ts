@@ -1,7 +1,7 @@
 import * as uutils from "@usys/utils";
 import * as ld from "lodash";
 import * as should from "should";
-import { createObserverManagerDeployment, gql, Observer, ObserverManagerDeployment } from "../../src/observers";
+import { createObserverManagerDeployment, gql, ObserverManagerDeployment, ObserverPlugin } from "../../src/observers";
 import { modelData, TestObserver } from "./test_observer";
 
 describe("Deployment Observer Manager Tests", () => {
@@ -28,7 +28,7 @@ describe("Deployment Observer Manager Tests", () => {
         data?: typeof modelData,
         context = data) {
 
-        const obs: Observer = new TestObserver();
+        const obs: ObserverPlugin = new TestObserver();
         const schema = obs.schema;
 
         const observations = await obs.observe([{ query }]);

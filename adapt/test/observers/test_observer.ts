@@ -6,7 +6,7 @@ import {
 import { makeExecutableSchema } from "graphql-tools";
 import * as ld from "lodash";
 import { Foo, QueryResolvers } from "../../generated/observers/test_observer_schema_types";
-import { Observer } from "../../src/observers";
+import { ObserverPlugin } from "../../src/observers";
 
 export const modelData = {
     foos: (Array(10).fill(undefined).map((_, i) => ({
@@ -53,7 +53,7 @@ const rotatingPayloadResolvers = {
     }
 };
 
-abstract class BaseTestObserver implements Observer<typeof modelData, typeof modelData> {
+abstract class BaseTestObserver implements ObserverPlugin<typeof modelData, typeof modelData> {
     abstract get schema(): GraphQLSchema;
 
     async observe() {

@@ -18,7 +18,7 @@ export interface ObserverResponse<D = object, C = any> {
     context?: C;
 }
 
-export interface Observer<D = object, C = any> {
+export interface ObserverPlugin<D = object, C = any> {
     readonly schema: GraphQLSchema;
     observe(possibleQueries: ExecutedQuery[]): Promise<ObserverResponse<D, C>>;
 }
@@ -42,6 +42,10 @@ export {
     observe,
     makeObserverManagerDeployment,
 } from "./registry";
+
+export {
+    Observer
+} from "./Observer";
 
 export function patchInNewQueries(observations: Observations, queries: { [name: string]: ExecutedQuery[] }): void {
     for (const name in observations) {
