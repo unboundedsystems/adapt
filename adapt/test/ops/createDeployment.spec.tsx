@@ -30,7 +30,7 @@ const simplePackageJson = {
 
 const simpleIndexTsx = `
 import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt";
-import { MockObserver } from "@usys/adapt/dist/src/observers/mock_observer";
+import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {}
@@ -44,7 +44,7 @@ class BuildNull extends Component<{}> {
 class ObserverToSimple extends Component<{}> {
     build() {
         return <Observer
-            observerName="mock"
+            observer={MockObserver}
             query={ gql\`query { mockById(id: "1") { idSquared } }\` }
             build={ (err, props)=>{
                         console.log("Props:", props, err);

@@ -13,6 +13,7 @@ import {
 } from "graphql";
 import * as ld from "lodash";
 import { ObserverResponse } from ".";
+import { ObserverNameHolder } from "./registry";
 
 interface Variables {
     [n: string]: any;
@@ -24,9 +25,9 @@ export interface ExecutedQuery {
 }
 
 export interface ObserverManagerDeployment {
-    registerSchema(name: string, schema: GraphQLSchema, observations: ObserverResponse): void;
+    registerSchema(name: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void;
     executedQueries(): { [name: string]: ExecutedQuery[] };
-    executeQuery<R = any>(observer: string, q: Query, vars?: Variables): Promise<ExecutionResult<R>>;
+    executeQuery<R = any>(observer: ObserverNameHolder, q: Query, vars?: Variables): Promise<ExecutionResult<R>>;
 }
 
 export function createObserverManagerDeployment() {
@@ -62,7 +63,8 @@ function addExecutedQuery(o: ExecutedQueryStorage, query: ExecutedQuery) {
 class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
     observable: { [name: string]: Observable } = {};
 
-    registerSchema = (name: string, schema: GraphQLSchema, observations: ObserverResponse): void => {
+    registerSchema = (observer: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void => {
+        const name = observer.observerName;
         if (name in this.observable) throw new Error("Cannot register schema with name: " + name);
         this.observable[name] = {
             schema,
@@ -86,8 +88,9 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         return ret;
     }
 
-    executeQuery = async <R = any>(schemaName: string, q: Query, vars?: Variables):
+    executeQuery = async <R = any>(observer: ObserverNameHolder, q: Query, vars?: Variables):
         Promise<ExecutionResult<R>> => {
+        const schemaName = observer.observerName;
         if (!(schemaName in this.observable)) throw new Error("Unknown observation schema queried: " + schemaName);
         const { schema, observations, executedQueries } = this.observable[schemaName];
         addExecutedQuery(executedQueries, { query: q, variables: vars });

@@ -2,7 +2,7 @@ import { execute as gqlExecute, ExecutionResult, GraphQLSchema } from "graphql";
 import * as ld from "lodash";
 import * as should from "should";
 import { ExecutedQuery, gql, ObserverResponse } from "../../src/observers";
-import { MockObserver } from "../../src/observers/mock_observer";
+import MockObserver from "../../src/observers/MockObserver";
 
 async function exec<T>(
     schema: GraphQLSchema,

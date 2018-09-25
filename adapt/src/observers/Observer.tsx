@@ -7,13 +7,14 @@ import {
     getComponentConstructorData
 } from "../jsx";
 import { ObserverManagerDeployment } from "./obs_manager_deployment";
+import { ObserverNameHolder } from "./registry";
 
 type QueryResult<R = any> = ExecutionResult<R>;
 
 export type ResultsEqualType<R = any> = (old: QueryResult<R>, newRes: QueryResult<R>) => boolean;
 
 export interface ObserverProps<QueryData extends object> {
-    observerName: string;
+    observer: ObserverNameHolder;
     query: GraphQLDocument;
     variables?: { [name: string]: any };
     build: (error: Error | null, props: QueryData | undefined) => AdaptElementOrNull | Promise<AdaptElementOrNull>;
@@ -37,7 +38,7 @@ export class Observer<QueryData extends object = any>
     async build(): Promise<AdaptElement | null> {
         let result: QueryResult;
         try {
-            result = await this.mgr.executeQuery(this.props.observerName, this.props.query, this.props.variables);
+            result = await this.mgr.executeQuery(this.props.observer, this.props.query, this.props.variables);
         } catch (err) {
             return this.props.build(err, undefined);
         }

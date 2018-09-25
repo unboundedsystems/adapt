@@ -1,7 +1,7 @@
 import * as should from "should";
 import Adapt from "../../src";
 import { createObserverManagerDeployment, gql } from "../../src/observers";
-import { MockObserver } from "../../src/observers/mock_observer";
+import MockObserver from "../../src/observers/MockObserver";
 import { Observer } from "../../src/observers/Observer";
 import { deepFilterElemsToPublic, Empty } from "../testlib";
 import { RotatingPayloadTestObserver, TestObserver } from "./test_observer";
@@ -11,11 +11,11 @@ describe("Observer Component Tests", () => {
         const observerPlugin = new MockObserver();
         const mgr = createObserverManagerDeployment();
         const observations = await observerPlugin.observe([]);
-        mgr.registerSchema("mock", observerPlugin.schema, observations);
+        mgr.registerSchema(MockObserver, observerPlugin.schema, observations);
 
         const root =
             <Observer<{ mockById: { id: string } }>
-                observerName="mock"
+                observer={MockObserver}
                 query={gql`query Test { mockById(id: "1") { id }}`}
                 build={(err, props) => {
                     if (err) return <Empty key="error" id={200} />;
@@ -33,12 +33,12 @@ describe("Observer Component Tests", () => {
         const observerPlugin = new TestObserver();
         const mgr = createObserverManagerDeployment();
         const observations = await observerPlugin.observe();
-        mgr.registerSchema("test", observerPlugin.schema, observations);
+        mgr.registerSchema({ observerName: "test" }, observerPlugin.schema, observations);
         let sawUndefinedProps = false;
 
         const root =
             <Observer
-                observerName="test"
+                observer={{ observerName: "test" }}
                 query={gql`query Test { fooById(id: "1") { id } }`}
                 build={(err, props) => {
                     if (err) {
@@ -63,11 +63,11 @@ describe("Observer Component Tests", () => {
         const observerPlugin = new RotatingPayloadTestObserver();
         const mgr = createObserverManagerDeployment();
         const observations = await observerPlugin.observe();
-        mgr.registerSchema("test", observerPlugin.schema, observations);
+        mgr.registerSchema({ observerName: "test" }, observerPlugin.schema, observations);
 
         const root =
             <Observer
-                observerName="test"
+                observer={{ observerName: "test" }}
                 query={gql`query Test { fooById(id: "1") { id }}`}
                 build={(error, props) => {
                     return <Empty key="dummy" id={1} />;
