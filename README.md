@@ -34,42 +34,63 @@ ADAPT_PARALLEL_MAKE= make
 
 # Setting up CI for your fork
 
-1. Supply deployment keys to CI/CD
-
-    Go to `Settings > CI/CD > Variables`. Add `AWS_ACCESS_KEY_ID`,
-    `AWS_DEFAULT_REGION`, and `AWS_SECRET_ACCESS_KEY`.
-
-1. Turn off shared runners
-
-    In the web UI for your fork, go to `Settings > CI/CD > Runners`. On the right side,
-    click the button to disable shared runners, if they're not already disabled.
-
-1. Locate the registration token
-
-    While you're on the `Runners` settings, find the `Setup a specific runner
-    manually` section and note the registration token. You'll need that
-    in the registration step in a moment.
-
-1. Create a runner
+1. Create a GitLab CI runner
 
     To add a new runner on your workspace system (or any Linux system):
 
         docker run -d --name gitlab-runner --restart always -v /srv/gitlab-runner/config:/etc/gitlab-runner -v /var/run/docker.sock:/var/run/docker.sock gitlab/gitlab-runner:alpine
 
+1. Turn off shared CI/CD runners (if enabled)
+
+    In the GitLab web UI for your fork, go to `Settings > CI/CD > Runners`.
+    On the right side, check to see if the shared runners are enabled. If
+    they are enabled, click the button to disable them.
+
+1. Supply deployment keys to CI/CD
+
+    **You'll need to have AWS credentials handy for this step.**
+    For Unbounded employees, get the shared CI AWS credentials from Mark.
+
+    Once you have AWS credentials, go to your fork's web UI:
+    `Settings > CI/CD > Variables`.
+    You'll need to add the following three variables on this screen:
+    * `AWS_ACCESS_KEY_ID`
+    * `AWS_SECRET_ACCESS_KEY`
+    * `AWS_DEFAULT_REGION`
+    
+    **NOTE:**
+    If you're using the shared Unbounded CI credentials, `AWS_DEFAULT_REGION`
+    **must** be set to `us-west-2` because the credentials only have
+    permissions for that region.
+
 1. Register the runner to your fork
 
-    Run the command line below, substituting the registration token you
-    located earlier. This registers the runner to take jobs from only
-    your fork of the repo.
-    
-        docker run --rm -it -v /srv/gitlab-runner/config:/etc/gitlab-runner gitlab/gitlab-runner:alpine register --non-interactive --url "https://gitlab.com/" --executor docker --docker-image alpine --description "runner-${USER}" --run-untagged --locked=false --docker-privileged --registration-token="TOKEN-FROM-YOUR-FORK-CI-SETTINGS"
+    Go back to your fork's web UI and find your CI registration token.
+    You can find it on the `Settings > CI/CD > Runners` page. On the
+    left side, there's a section called `Setup a specific runner manually`
+    and the registration token should be there. Copy it and use it in
+    this command:
 
-    You may need to refresh the `Settings > CI/CD > Runners` page to verify
-    that your new runner has status green.
+       CI_REGTOKEN=pastetokenhere
 
-    A single runner can run CI for multiple repos.
-    If you want this runner to run CI for other repos, repeat this step 
-    with the registration token for each repo.
+    Now run the registration command. This simply modifies the configuration
+    file for the runner you already created in step 1. This command will only
+    enable your runner to run jobs from your fork.
 
-1. Push to a branch on your fork and you should see the pipeline start
+        docker run --rm -it -v /srv/gitlab-runner/config:/etc/gitlab-runner gitlab/gitlab-runner:alpine register --registration-token="${CI_REGTOKEN}" --non-interactive --url "https://gitlab.com/" --executor docker --docker-image alpine --description "runner-${USER}" --run-untagged --locked=false --docker-privileged
+
+    After you run the registration command, you should be able to see your
+    runner listed on the `Settings > CI/CD > Runners` page. Wait for your
+    runner's status to turn green. This may take a few minutes and you may
+    need to refresh the web page to see the current status.
+
+1. Test it out
+
+    Push to a branch on your fork and you should see the pipeline start
     shortly after.
+
+1. Use the same runner for more repos/forks
+
+    A single runner can run CI for multiple repos and/or multiple forks.
+    If you want this runner to run CI for other repos, repeat step 4 using
+    the unique registration token for each repo.
