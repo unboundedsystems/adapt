@@ -19,11 +19,18 @@ import AdaptDontUse, {
     MessageLogger,
     ProjectBuildError,
 } from "..";
+
 // @ts-ignore
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { makeObserverManagerDeployment, observe, patchInNewQueries } from "../observers";
+import {
+    ExecutedQuery,
+    makeObserverManagerDeployment,
+    observe,
+    patchInNewQueries,
+    simplifyNeedsData
+} from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
 import { createStateStore, StateStore } from "../state";
@@ -85,6 +92,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     let newDom: AdaptElementOrNull = null;
     let buildMessages: Message[] = [];
 
+    let needsData: { [name: string]: ExecutedQuery[] } = {};
     if (stack.root != null) {
         const preObserverManager = makeObserverManagerDeployment(observerObservations);
 
@@ -102,6 +110,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             stack.root, stack.style, { stateStore, observerManager: postObserverManager });
         newDom = postObserve.contents;
         buildMessages = postObserve.messages;
+        needsData = postObserverManager.executedQueriesThatNeededData();
         patchInNewQueries(observerObservations, postObserverManager.executedQueries());
     }
 
@@ -150,6 +159,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         deployID: deployment.deployID,
         domXml,
         stateJson,
+        needsData: simplifyNeedsData(needsData),
         messages: logger.messages,
         summary: logger.summary,
     };

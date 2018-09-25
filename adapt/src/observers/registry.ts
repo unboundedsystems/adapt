@@ -36,7 +36,7 @@ export function registerObserver(obs: ObserverPlugin, nameIn?: string): string {
     const name = nameIn ? nameIn : constructor.name;
 
     //FIXME(manishv) Use reanimate library to get unique names and avoid conflicts
-    if (name in observers) throw new Error("Attempt to register observer with duplicate name");
+    if (name in observers) throw new Error(`Attempt to register observer with duplicate name '${name}'`);
     observers[name] = obs;
 
     if (constructor.observerName === undefined) constructor.observerName = name;

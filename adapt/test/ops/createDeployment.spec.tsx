@@ -30,7 +30,7 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt";
+import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt/dist/src/index";
 import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
@@ -42,10 +42,12 @@ class BuildNull extends Component<{}> {
     build() { return null; }
 }
 
-class ObserverToSimple extends Component<{}> {
+class ObserverToSimple extends Component<{ observer: { observerName: string } }> {
+    static defaultProps = { observer: MockObserver };
+
     build() {
         return <Observer
-            observer={MockObserver}
+            observer={this.props.observer}
             query={ gql\`query { mockById(id: "1") { idSquared } }\` }
             build={ (err, props)=>{
                         console.log("Props:", props, err);
@@ -54,12 +56,20 @@ class ObserverToSimple extends Component<{}> {
     }
 }
 
+//try {
+    registerObserver(new MockObserver(true), "neverObserve");
+//} catch(e) {
+//   if(!(e.message
+//        && e.message === "Attempt to register observer with duplicate name 'neverObserve'")) throw e;
+//}
+
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
 Adapt.stack("null", null);
 Adapt.stack("BuildNull", <BuildNull />);
 Adapt.stack("ObserverToSimple", <ObserverToSimple />);
+Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName: "neverObserve" }}/>);
 `;
 
 const defaultDomXmlOutput =
@@ -182,6 +192,7 @@ describe("createDeployment Tests", async function () {
         logger = createMockLogger();
     });
     afterEach(async () => {
+        stdout.stop();
         const s = await server();
         let list = await listDeployments(s);
         for (const id of list) {
@@ -221,8 +232,7 @@ describe("createDeployment Tests", async function () {
     async function createSuccess(stackName: string): Promise<DeploySuccess> {
         const ds = await doCreate(stackName);
         if (!isDeploySuccess(ds)) {
-            // tslint:disable-next-line:no-console
-            throw new Error(messagesToString(ds.messages));
+            throw new Error("Failure: " + messagesToString(ds.messages));
         }
 
         const list = await listDeployments(await server());
@@ -376,5 +386,29 @@ describe("createDeployment Tests", async function () {
 
         should(stdout.output).not.match(/Props: undefined null/);
         should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
+
+    }));
+
+    it("Should report queries that need data after observation pass", restore(async () => {
+        stdout.print = false;
+        stdout.start();
+        const ds1 = await createSuccess("NeverObserverToSimple");
+        stdout.stop();
+
+        should(ds1.summary.error).equal(0);
+        should(ds1.domXml).equal(defaultDomXmlOutput);
+
+        should(stdout.output).match(/Props: undefined null/);
+        should(stdout.output).match(/Props: undefined null/);
+
+        should(ds1.needsData).eql({ neverMock: [{ query: "foo", variables: undefined }] });
+
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
     }));
 });

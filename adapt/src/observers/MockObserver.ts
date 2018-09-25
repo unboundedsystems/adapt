@@ -101,15 +101,19 @@ export class MockObserver implements ObserverPlugin {
         resolvers: observeResolvers
     });
 
+    constructor(public neverObserve: boolean = false) { }
+
     get schema(): GraphQLSchema {
         return MockObserver.schema_;
     }
 
     observe = async (possibleQueries: ExecutedQuery[]): Promise<ObserverResponse<undefined, CachedData>> => {
         const cache: CachedData = { mockObjects: [] };
-        const waitFor = possibleQueries.map((q) =>
-            Promise.resolve(gqlExecute(MockObserver.fetchSchema_, q.query, null, cache, q.variables)));
-        await Promise.all(waitFor);
+        if (!this.neverObserve) {
+            const waitFor = possibleQueries.map((q) =>
+                Promise.resolve(gqlExecute(MockObserver.fetchSchema_, q.query, null, cache, q.variables)));
+            await Promise.all(waitFor);
+        }
         return { context: cache };
     }
 }

@@ -4,6 +4,7 @@
 // The ObserverDataManager (not written yet) manages fetching of observed
 // data via poll or watch.
 
+import { removeUndef } from "@usys/utils";
 import {
     DocumentNode as Query,
     execute as gqlExecute,
@@ -122,4 +123,20 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         }
         return ret;
     }
+}
+
+type SimplifyReturns = ReturnType<typeof simplifyNeedsData>;
+export function simplifyNeedsData(
+    nd: { [name: string]: ExecutedQuery[] }): { [name: string]: { query: string, variables?: Variables }[] } {
+
+    const ret: SimplifyReturns = {};
+
+    for (const obsName in nd) {
+        if (!Object.hasOwnProperty.call(nd, obsName)) continue;
+        ret[obsName] = nd[obsName].map((q) => removeUndef(
+            ({ query: gqlPrint(q.query), variables: JSON.parse(JSON.stringify(q.variables)) }))
+        ) as { query: string, variables?: Variables }[];
+    }
+
+    return ret;
 }

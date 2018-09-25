@@ -34,7 +34,8 @@ export class ObserverNeedsData extends CustomError {
 export {
     createObserverManagerDeployment,
     ObserverManagerDeployment,
-    ExecutedQuery
+    ExecutedQuery,
+    simplifyNeedsData
 } from "./obs_manager_deployment";
 
 export {

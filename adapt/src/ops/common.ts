@@ -9,6 +9,7 @@ export interface DeploySuccess {
 
     domXml: string;
     stateJson: string;
+    needsData: { [name: string]: { query: string, variables?: { [name: string]: any } }[] };
     deployID: string;
 }
 
