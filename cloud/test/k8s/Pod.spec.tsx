@@ -15,7 +15,6 @@ import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
-import * as util from "util";
 import * as abs from "../../src";
 import {
     createK8sPlugin,
@@ -27,9 +26,10 @@ import {
     resourceElementToName
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { act, doBuild, randomName } from "../testlib";
 import { mkInstance } from "./run_minikube";
 
-const { getAll } = k8sutils;
+const { deleteAll, getAll } = k8sutils;
 
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
@@ -132,51 +132,37 @@ describe("k8s Pod Component Tests", () => {
 
 });
 
-async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = await Adapt.build(elem, null);
-    if (dom == null) {
-        should(dom).not.Null();
-        should(dom).not.Undefined();
-        throw new Error("Unreachable");
-    }
-
-    should(messages.length).equal(0);
-    return dom;
-}
-
-async function act(actions: Adapt.Action[]) {
-    for (const action of actions) {
-        try {
-            await action.act();
-        } catch (e) {
-            throw new Error(`${action.description}: ${util.inspect(e)}`);
-        }
-    }
-}
-
 describe("k8s Pod Operation Tests", function () {
-    this.timeout(4 * 60 * 1000);
+    this.timeout(10 * 1000);
 
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
     let kubeconfig: k8sutils.KubeConfig;
     let client: k8sutils.KubeClient;
+    let deployID: string | undefined;
 
-    before(() => {
-        if (mkInstance.kubeconfig == null ||
-            mkInstance.client == null) throw new Error(`Minikube not running?`);
+    before(async () => {
         kubeconfig = mkInstance.kubeconfig;
-        client = mkInstance.client;
+        client = await mkInstance.client;
     });
 
     beforeEach(async () => {
         plugin = createK8sPlugin();
         logs = new WritableStreamBuffer();
+        deployID = randomName("cloud-pod-op");
         options = {
-            deployID: "abc123",
+            deployID,
             log: new Console(logs, logs).log
         };
+    });
+
+    afterEach(async function () {
+        this.timeout(20 * 1000);
+        if (client) {
+            await deleteAll("pods", { client, deployID });
+            await deleteAll("services", { client, deployID });
+        }
     });
 
     it("Should compute actions with no pods from k8s", async () => {
@@ -201,6 +187,7 @@ describe("k8s Pod Operation Tests", function () {
             <Pod key="test" config={kubeconfig}>
                 <K8sContainer name="container" image="node:latest" />
             </Pod>;
+        if (!deployID) throw new Error(`Missing deployID?`);
 
         const dom = await doBuild(pod);
 
@@ -209,7 +196,7 @@ describe("k8s Pod Operation Tests", function () {
         const mockObservation = {
             kind: Kind.pod,
             metadata: {
-                name: resourceElementToName(dom, options.deployID),
+                name: resourceElementToName(dom, deployID),
                 namespace: "default",
                 labels: {},
                 annotations: {}
@@ -245,13 +232,14 @@ describe("k8s Pod Operation Tests", function () {
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Creating\s.+test/);
+        if (!deployID) throw new Error(`Missing deployID?`);
 
         await act(actions);
 
-        const pods = await getAll("pods", { client });
+        const pods = await getAll("pods", { client, deployID });
         should(pods).length(1);
         should(pods[0].metadata.name)
-            .equal(resourceElementToName(dom, options.deployID));
+            .equal(resourceElementToName(dom, deployID));
 
         await plugin.finish();
         return dom;
@@ -278,13 +266,14 @@ describe("k8s Pod Operation Tests", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
         should(actions[0].description).match(/Replacing\s.+test/);
+        if (!deployID) throw new Error(`Missing deployID?`);
 
         await act(actions);
 
-        const pods = await getAll("pods", { client });
+        const pods = await getAll("pods", { client, deployID });
         should(pods).length(1);
         should(pods[0].metadata.name)
-            .equal(resourceElementToName(dom, options.deployID));
+            .equal(resourceElementToName(dom, deployID));
         should(pods[0].spec.containers).length(1);
         should(pods[0].spec.containers[0].command).eql(command);
 
@@ -319,11 +308,12 @@ describe("k8s Pod Operation Tests", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].description).match(/Destroying\s.+adapt-resource-[0-9A-Fa-f]+/);
+        if (!deployID) throw new Error(`Missing deployID?`);
 
         await act(actions);
 
         await sleep(6); // Sleep longer than termination grace period
-        const pods = await getAll("pods", { client });
+        const pods = await getAll("pods", { client, deployID });
         if (pods.length !== 0) {
             should(pods.length).equal(1);
             should(pods[0].metadata.deletionGracePeriod).not.Undefined();

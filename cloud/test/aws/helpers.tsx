@@ -1,8 +1,7 @@
-import { Action, AdaptElement, build, buildPrinter, StateStore } from "@usys/adapt";
+import { AdaptElement } from "@usys/adapt";
 import { sleep } from "@usys/utils";
 import { xor } from "lodash";
 import * as should from "should";
-import * as util from "util";
 
 import { AwsCredentialsProps } from "../../src/aws";
 import {
@@ -24,34 +23,8 @@ export const sshKeyName = "DefaultKeyPair";
 // FIXME(mark): The security group can be created as part of each stack.
 export const defaultSecurityGroup = "http-https-ssh";
 
-const debugBuild = false;
-const buildOpts = debugBuild ? { recorder: buildPrinter() } : undefined;
-
-export async function doBuild(elem: AdaptElement, stateStore?: StateStore) {
-    const { contents: dom, messages } = await build(elem, null,
-        { ...buildOpts, stateStore });
-    if (dom == null) {
-        should(dom).not.Null();
-        should(dom).not.Undefined();
-        throw new Error("Unreachable");
-    }
-
-    should(messages).have.length(0);
-    return dom;
-}
-
 export function getStackNames(dom: AdaptElement): string[] {
     return findStackElems(dom).map((s) => s.props.StackName).sort();
-}
-
-export async function act(actions: Action[]) {
-    for (const action of actions) {
-        try {
-            await action.act();
-        } catch (e) {
-            throw new Error(`${action.description}: ${util.inspect(e)}`);
-        }
-    }
 }
 
 export async function fakeCreds(): Promise<AwsCredentialsProps> {

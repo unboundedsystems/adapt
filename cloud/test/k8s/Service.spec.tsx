@@ -11,7 +11,6 @@ import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
-import * as util from "util";
 import * as abs from "../../src";
 import {
     createK8sPlugin,
@@ -23,9 +22,10 @@ import {
     ServicePort,
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { act, doBuild, randomName } from "../testlib";
 import { mkInstance } from "./run_minikube";
 
-const { getAll } = k8sutils;
+const { deleteAll, getAll } = k8sutils;
 
 describe("k8s Service Component Tests", () => {
     it("Should Instantiate Service", () => {
@@ -81,50 +81,37 @@ describe("k8s Service Component Tests", () => {
 
 });
 
-async function doBuild(elem: Adapt.AdaptElement) {
-    const { messages, contents: dom } = await Adapt.build(elem, null);
-    if (dom == null) {
-        should(dom).not.Null();
-        throw should(dom).not.Undefined();
-    }
-
-    should(messages.length).equal(0);
-    return dom;
-}
-
-async function act(actions: Adapt.Action[]) {
-    for (const action of actions) {
-        try {
-            await action.act();
-        } catch (e) {
-            throw new Error(`${action.description}: ${util.inspect(e)}`);
-        }
-    }
-}
-
 describe("k8s Service Operation Tests", function () {
-    this.timeout(4 * 60 * 1000);
+    this.timeout(10 * 1000);
 
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
     let kubeconfig: k8sutils.KubeConfig;
     let client: k8sutils.KubeClient;
+    let deployID: string | undefined;
 
-    before(() => {
-        if (mkInstance.kubeconfig == null ||
-            mkInstance.client == null) throw new Error(`Minikube not running?`);
+    before(async () => {
         kubeconfig = mkInstance.kubeconfig;
-        client = mkInstance.client;
+        client = await mkInstance.client;
     });
 
     beforeEach(async () => {
         plugin = createK8sPlugin();
         logs = new WritableStreamBuffer();
+        deployID = randomName("cloud-service-op");
         options = {
-            deployID: "abc123",
+            deployID,
             log: new Console(logs, logs).log
         };
+    });
+
+    afterEach(async function () {
+        this.timeout(20 * 1000);
+        if (client) {
+            await deleteAll("pods", { client, deployID });
+            await deleteAll("services", { client, deployID });
+        }
     });
 
     it("Should compute actions with no services from k8s", async () => {
@@ -180,6 +167,7 @@ describe("k8s Service Operation Tests", function () {
     });
 
     async function createService(name: string): Promise<AdaptElementOrNull> {
+        if (!deployID) throw new Error(`Missing deployID?`);
         const ports: ServicePort[] = [
             { port: 9001, targetPort: 9001 },
         ];
@@ -196,7 +184,7 @@ describe("k8s Service Operation Tests", function () {
 
         await act(actions);
 
-        const svcs = await getAll("services", { client });
+        const svcs = await getAll("services", { client, deployID });
         should(svcs).length(1);
         should(svcs[0].metadata.name)
             .equal(resourceElementToName(dom, options.deployID));
@@ -210,6 +198,7 @@ describe("k8s Service Operation Tests", function () {
     });
 
     it("Should replace service", async () => {
+        if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
         // Change one of the port numbers
@@ -228,7 +217,7 @@ describe("k8s Service Operation Tests", function () {
 
         await act(actions);
 
-        const svcs = await getAll("services", { client });
+        const svcs = await getAll("services", { client, deployID });
         should(svcs).length(1);
         should(svcs[0].metadata.name)
             .equal(resourceElementToName(dom, options.deployID));
@@ -248,6 +237,7 @@ describe("k8s Service Operation Tests", function () {
     });
 
     it("Should delete service", async () => {
+        if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
         const dom = await doBuild(<Group />);
@@ -260,7 +250,7 @@ describe("k8s Service Operation Tests", function () {
         await act(actions);
 
         await sleep(10);
-        const svcs = await getAll("services", { client });
+        const svcs = await getAll("services", { client, deployID });
         should(svcs).have.length(0);
 
         await plugin.finish();

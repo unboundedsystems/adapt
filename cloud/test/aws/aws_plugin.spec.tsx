@@ -28,12 +28,11 @@ import {
     findStackElems,
     getTag,
 } from "../../src/aws/aws_plugin";
+import { act, doBuild } from "../testlib";
 import {
-    act,
     checkStackStatus,
     defaultSecurityGroup,
     deleteAllStacks,
-    doBuild,
     fakeCreds,
     getStackNames,
     isProbablyDeleted,
