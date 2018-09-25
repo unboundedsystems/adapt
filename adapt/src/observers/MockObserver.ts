@@ -112,4 +112,6 @@ export class MockObserver implements ObserverPlugin {
     }
 }
 
+export default MockObserver;
+
 registerObserver(new MockObserver());

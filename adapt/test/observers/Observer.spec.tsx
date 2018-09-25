@@ -1,7 +1,7 @@
 import * as should from "should";
 import Adapt from "../../src";
 import { createObserverManagerDeployment, gql } from "../../src/observers";
-import { MockObserver } from "../../src/observers/mock_observer";
+import MockObserver from "../../src/observers/MockObserver";
 import { Observer } from "../../src/observers/Observer";
 import { deepFilterElemsToPublic, Empty } from "../testlib";
 import { RotatingPayloadTestObserver, TestObserver } from "./test_observer";
