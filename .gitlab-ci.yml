@@ -11,6 +11,7 @@ services:
 
 before_script:
   - apk update && apk add bash
+  - ./bin/dnsmasq
 
 test:
   stage: test
