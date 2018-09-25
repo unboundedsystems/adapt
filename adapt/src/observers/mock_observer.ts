@@ -87,6 +87,8 @@ const observeResolvers = {
 };
 
 export class MockObserver implements ObserverPlugin {
+    static observerName: string;
+
     static schema_ = makeExecutableSchema({
         typeDefs: schemaStr,
         resolvers: queryCacheResolvers
@@ -110,4 +112,4 @@ export class MockObserver implements ObserverPlugin {
     }
 }
 
-registerObserver("mock", new MockObserver());
+registerObserver(new MockObserver());

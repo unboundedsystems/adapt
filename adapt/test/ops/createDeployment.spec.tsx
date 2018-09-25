@@ -44,7 +44,7 @@ class BuildNull extends Component<{}> {
 class ObserverToSimple extends Component<{}> {
     build() {
         return <Observer
-            observerName="mock"
+            observer={MockObserver}
             query={ gql\`query { mockById(id: "1") { idSquared } }\` }
             build={ (err, props)=>{
                         console.log("Props:", props, err);

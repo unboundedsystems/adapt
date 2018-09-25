@@ -14,6 +14,10 @@ interface ObserverRecord {
     [name: string]: ObserverPlugin;
 }
 
+export interface ObserverNameHolder {
+    observerName: string;
+}
+
 const observers: ObserverRecord = {};
 
 export function makeObserverManagerDeployment(observations: Observations): ObserverManagerDeployment {
@@ -22,15 +26,20 @@ export function makeObserverManagerDeployment(observations: Observations): Obser
         if (!Object.hasOwnProperty.call(observers, name)) continue;
         const o = observers[name];
         const obs = observations[name];
-        mgr.registerSchema(name, o.schema, obs ? obs.observations : {});
+        mgr.registerSchema({ observerName: name }, o.schema, obs ? obs.observations : {});
     }
     return mgr;
 }
 
-export function registerObserver(name: string, obs: ObserverPlugin): string {
+export function registerObserver(obs: ObserverPlugin, nameIn?: string): string {
+    const constructor: { name: string, observerName?: string } = obs.constructor;
+    const name = nameIn ? nameIn : constructor.name;
+
     //FIXME(manishv) Use reanimate library to get unique names and avoid conflicts
     if (name in observers) throw new Error("Attempt to register observer with duplicate name");
     observers[name] = obs;
+
+    if (constructor.observerName === undefined) constructor.observerName = name;
     return name;
 }
 
