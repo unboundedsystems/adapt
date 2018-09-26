@@ -4,7 +4,8 @@ import * as should from "should";
 import { createMockLogger, MockLogger } from "@usys/testutils";
 import { AwsCredentialsProps, awsDefaultCredentialsContext, CFStack, EC2Instance } from "../../src/aws";
 import { AwsPluginImpl, createAwsPlugin } from "../../src/aws/aws_plugin";
-import { doBuild, fakeCreds } from "./helpers";
+import { doBuild } from "../testlib";
+import { fakeCreds } from "./helpers";
 
 describe("AWS EC2Instance component tests", () => {
     it("Should instantiate EC2Instance", async () => {

@@ -26,6 +26,7 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
+    readonly props: P & Required<BuiltinProps>;
     readonly id: string;
     readonly path: string;
 }

@@ -2,8 +2,52 @@
 
 : "${IMAGE:=andyshinn/dnsmasq:2.76}"
 : "${NAME:=dnsmasq}"
+: "${ADAPT_DNS_IP_FILE:=/tmp/adapt_dns_ip}"
 
-# If the container already exists, we're done
-docker inspect --type container "${NAME}" >& /dev/null && exit 0
+interfaceIP() {
+    # We need the ifconfig that will be visible from inside the dnsmaq
+    # container
+    docker run --rm --net=host busybox ifconfig "$1" 2>/dev/null | \
+        awk '/inet /{print(gensub(/^.*inet (addr:)?([0-9.]+)\s.*$/, "\\2", 1))}'
+}
 
-docker run --rm -d --cap-add=NET_ADMIN --name "${NAME}" --net=host -v/etc/resolv.conf:/etc/resolv.conf "${IMAGE}" --interface docker0 --bind-interfaces --log-facility=- > /dev/null
+if docker inspect --type container "${NAME}" >& /dev/null ; then
+    if [ -f "${ADAPT_DNS_IP_FILE}" ]; then
+        # dnsmasq is already started
+        cat "${ADAPT_DNS_IP_FILE}"
+        exit 0
+    else
+        echo DNS cache container running but file ${ADAPT_DNS_IP_FILE} does not exist. >&2
+        exit 1
+    fi
+fi
+
+# We only support attaching to the default (host) bridge named "bridge"
+DOCKER_HOST_NETWORK=bridge
+
+IS_DEFAULT=$(docker network inspect "${DOCKER_HOST_NETWORK}" --format '{{(index .Options "com.docker.network.bridge.default_bridge")}}')
+if [ "${IS_DEFAULT}" != "true" ]; then
+    echo Cannot start DNS cache. The Docker network named \"${DOCKER_HOST_NETWORK}\" does not exist or is not the default bridge. >&2
+    exit 1
+fi
+
+INTF_NAME=$(docker network inspect "${DOCKER_HOST_NETWORK}" --format '{{(index .Options "com.docker.network.bridge.name")}}')
+if [ -z "${INTF_NAME}" ]; then
+    echo Cannot start DNS cache. Unable to determine default bridge interface name. >&2
+    exit 1
+fi
+
+IP_ADDR=$(interfaceIP "${INTF_NAME}")
+if [ -z "${IP_ADDR}" ]; then
+    echo Cannot start DNS cache. Docker bridge interface ${INTF_NAME} does not exist. >&2
+    exit 1
+fi
+
+docker run --rm -d --cap-add=NET_ADMIN --name "${NAME}" --net=host -v/etc/resolv.conf:/etc/resolv.conf "${IMAGE}" --listen-address="${IP_ADDR}" --log-facility=- > /dev/null
+if [ $? -ne 0 ]; then
+    echo Cannot start DNS cache. Docker run failed.
+    exit 1
+fi
+echo ${IP_ADDR} > "${ADAPT_DNS_IP_FILE}"
+
+echo ${IP_ADDR}

@@ -1,5 +1,6 @@
 import { sleep } from "@usys/utils";
 import { filter } from "lodash";
+import * as util from "util";
 
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
@@ -49,34 +50,64 @@ export interface ClientOptions {
 }
 
 export interface GetOptions extends ClientOptions {
+    deployID?: string;
+    namespaces?: string[];
     onlyAdapt?: boolean;
 }
 const getDefaults = {
+    deployID: undefined,
+    namespaces: ["default"],
     onlyAdapt: true,
 };
 
 export interface DeleteOptions extends ClientOptions {
+    deployID?: string;
+    namespaces?: string[];
     onlyAdapt?: boolean;
     waitTimeMs?: number;
 }
 const deleteDefaults = {
+    deployID: undefined,
+    namespaces: ["default"],
     onlyAdapt: true,
     waitTimeMs: 15 * 1000,
 };
 
 export async function getAll(apiName: string, options: GetOptions) {
     const opts = { ...getDefaults, ...options };
+    let resources: any[] = [];
     const client = await clientFromOptions(opts);
 
-    const response = await client.api.v1.namespaces("default")[apiName].get();
-    if (response.statusCode !== 200) {
-        throw new Error(`k8s client returned status ${response.statusCode}`);
+    for (const ns of opts.namespaces) {
+        const response = await client.api.v1.namespaces(ns)[apiName].get();
+        if (response.statusCode !== 200) {
+            throw new Error(`k8s client returned status ${response.statusCode}`);
+        }
+        resources = resources.concat(response.body.items);
     }
-    const resources: any[] = response.body.items;
-    if (!opts.onlyAdapt) return resources;
 
-    return filter(resources,
-                  (r) => r.metadata.annotations && r.metadata.annotations.adaptName);
+    if (opts.deployID !== undefined) {
+        return filter(resources, (r) =>
+            r.metadata.annotations &&
+            (r.metadata.annotations.adaptDeployID === opts.deployID)
+        );
+    }
+    if (opts.onlyAdapt) {
+        return filter(resources, (r) =>
+            r.metadata.annotations &&
+            (r.metadata.annotations.adaptName !== undefined)
+        );
+    }
+
+    return resources;
+}
+
+export function getNS(resource: any): string {
+    const ns = resource && resource.metadata && resource.metadata.namespace;
+    if (typeof ns !== "string") {
+        throw new Error(`Resource object has no namespace: ${util.inspect(resource)}`);
+    }
+    return ns;
 }
 
 export async function deleteAll(apiName: string, options: DeleteOptions) {
@@ -89,7 +120,7 @@ export async function deleteAll(apiName: string, options: DeleteOptions) {
     if (resources.length === 0) return;
 
     for (const r of resources) {
-        await client.api.v1.namespaces("default")[apiName](r.metadata.name).delete();
+        await client.api.v1.namespaces(getNS(r))[apiName](r.metadata.name).delete();
     }
 
     do {

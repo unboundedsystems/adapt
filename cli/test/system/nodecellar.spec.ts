@@ -1,4 +1,4 @@
-import { k8sutils, minikube } from "@usys/testutils";
+import { k8sutils, minikubeMocha } from "@usys/testutils";
 import { filePathToUrl, mochaTmpdir, sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -6,8 +6,7 @@ import { clitest, expect } from "../common/fancy";
 import { pkgRootDir } from "../common/paths";
 import { cliLocalRegistry } from "../common/start-local-registry";
 
-const { deleteAll, getK8sConfig, getAll, getClient } = k8sutils;
-const { startTestMinikube, stopTestMinikube } = minikube;
+const { deleteAll, getAll } = k8sutils;
 
 const ncTestChain =
     clitest
@@ -23,37 +22,31 @@ const ncTestChain =
 
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
+const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
+
 describe("Nodecellar system tests", function () {
-    this.timeout(2 * 60 * 1000);
-    let kubeconfig: k8sutils.KubeConfig;
     let client: k8sutils.KubeClient;
-    let minikubeInfo: minikube.MinikubeInfo;
+    let deployID: string | undefined;
+
+    this.timeout(2 * 60 * 1000);
+
+    const minikube = minikubeMocha.all();
 
     const copyDir = path.join(projectsRoot, "nodecellar");
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
-    before(async function () {
-        // Ensure there's enough time for docker pull of minikube
-        this.timeout(4 * 60 * 1000);
-
-        minikubeInfo = await startTestMinikube();
-        kubeconfig = minikubeInfo.kubeconfig;
-        const k8sConfig = getK8sConfig(kubeconfig);
-        client = await getClient(k8sConfig);
-
-        await fs.outputJson("kubeconfig.json", kubeconfig);
-    });
-
-    after(async () => {
-        if (minikubeInfo != null) {
-            await stopTestMinikube(minikubeInfo);
-        }
+    before(async () => {
+        client = await minikube.client;
+        await fs.outputJson("kubeconfig.json", minikube.kubeconfig);
     });
 
     afterEach(async function () {
         this.timeout(2 * 1000);
-        await deleteAll("pods", { client });
-        await deleteAll("services", { client });
+        if (deployID) {
+            await deleteAll("pods", { client, deployID });
+            await deleteAll("services", { client, deployID });
+            deployID = undefined;
+        }
     });
 
     ncTestChain
@@ -64,9 +57,14 @@ describe("Nodecellar system tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
+        const matches = ctx.stdout.match(newDeployRegex);
+        expect(matches).to.be.an("array").with.length(2);
+        if (matches && matches[1]) deployID = matches[1];
+        expect(deployID).to.be.a("string").with.length.greaterThan(0);
+
         let pods: any;
         for (let i = 0; i < 120; i++) {
-            pods = await getAll("pods", { client });
+            pods = await getAll("pods", { client, deployID });
             expect(pods).to.have.length(1);
             expect(pods[0] && pods[0].status).to.be.an("object").and.not.null;
 

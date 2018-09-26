@@ -3,7 +3,7 @@ import * as should from "should";
 
 import { CFStack } from "../../src/aws";
 import { ResourceIdPolicy } from "../../src/resource_id";
-import { doBuild } from "./helpers";
+import { doBuild } from "../testlib";
 
 describe("AWS CFStack component tests", () => {
     it("Should instantiate CFStack with local name", async () => {

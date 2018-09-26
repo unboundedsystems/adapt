@@ -5,8 +5,12 @@ TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 CTR_ADD_PATH="/src/node_modules/.bin"
 
 # Ensure the DNS cache is running and use that as the DNS server
-"${TOP_DIR}/bin/dnsmasq" || (echo "Error starting DNS cache" && exit 1)
-DOCKER_ARGS+=" --dns 172.17.0.1"
+DNS_IP=$("${TOP_DIR}/bin/dnsmasq")
+if [ $? -ne 0 ]; then
+    echo "Error starting DNS cache"
+    exit 1
+fi
+DOCKER_ARGS+=" --dns ${DNS_IP}"
 
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"

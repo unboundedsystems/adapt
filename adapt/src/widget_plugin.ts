@@ -3,6 +3,8 @@ import {
     Action,
     AdaptElement,
     AdaptElementOrNull,
+    AnyProps,
+    isMountedElement,
     Logger,
     Plugin,
     PluginOptions,
@@ -49,80 +51,90 @@ type TranslateAction<
     > = (d: QD, p: WidgetPair<E, O>) => void | Promise<void>;
 
 export abstract class WidgetPlugin<
-    Props extends object,
-    Obs extends object,
-    QDId,
-    QDSecret,
-> implements Plugin {
+    WidgetElem extends AdaptElement,
+    WidgetObs extends object,
+    QDomain extends QueryDomain<any, any>,
+> implements Plugin<Observed<WidgetObs>> {
 
-    deployID?: string;
+    deployID_?: string;
     log_?: Logger;
-    queryDomains = new Map<QueryDomainKey, QueryDomain<QDId, QDSecret>>();
+    queryDomains = new Map<QueryDomainKey, QDomain>();
 
     /*
      * Methods that each subclass is required to implement
      */
 
-    findElems: (dom: AdaptElementOrNull) => AdaptElement<Props>[];
-    getElemQueryDomain: (el: AdaptElement<Props>) => QueryDomain<QDId, QDSecret>;
-    getObservations: (domain: QueryDomain<QDId, QDSecret>, deployID: string) => Promise<Obs[]>;
-    getWidgetTypeFromElem: (el: AdaptElement<Props>) => string;
-    getWidgetTypeFromObs: (obs: Obs) => string;
-    getWidgetIdFromElem: (el: AdaptElement<Props>) => string;
-    getWidgetIdFromObs: (obs: Obs) => string;
-    needsUpdate: (el: AdaptElement<Props>, obs: Obs) => UpdateType;
+    findElems: (dom: AdaptElementOrNull) => WidgetElem[];
+    getElemQueryDomain: (el: WidgetElem) => QDomain;
+    getWidgetTypeFromElem: (el: WidgetElem) => string;
+    getWidgetTypeFromObs: (obs: WidgetObs) => string;
+    getWidgetIdFromElem: (el: WidgetElem) => string;
+    getWidgetIdFromObs: (obs: WidgetObs) => string;
+    needsUpdate: (el: WidgetElem, obs: WidgetObs) => UpdateType;
+    getObservations: (
+        domain: QDomain,
+        deployID: string,
+        elemsInQDomain: WidgetElem[]) => Promise<WidgetObs[]>;
 
     createWidget: (
-        domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+        domain: QDomain, deployID: string,
+        resource: WidgetPair<WidgetElem, WidgetObs>) => Promise<void>;
     destroyWidget: (
-        domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+        domain: QDomain, deployID: string,
+        resource: WidgetPair<WidgetElem, WidgetObs>) => Promise<void>;
     modifyWidget: (
-        domain: QueryDomain<QDId, QDSecret>, deployID: string,
-        resource: WidgetPair<AdaptElement<Props>, Obs>) => Promise<void>;
+        domain: QDomain, deployID: string,
+        resource: WidgetPair<WidgetElem, WidgetObs>) => Promise<void>;
 
     /*
      * Methods that implement the Plugin interface
      */
 
     async start(options: PluginOptions) {
-        this.deployID = options.deployID;
+        this.deployID_ = options.deployID;
         this.log_ = options.log;
     }
 
-    async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observed<Obs>> {
-        if (!this.deployID) throw new Error(`Cannot call observe before start`);
-
+    async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observed<WidgetObs>> {
         let elems = this.findElems(dom);
         elems = elems.concat(this.findElems(oldDom));
 
-        const obs: Observed<Obs> = {};
+        const elemsInQDomain: Expected<WidgetElem> = {};
         for (const el of elems) {
             const domain = this.getElemQueryDomain(el);
             const key = makeQueryDomainKey(domain);
-            // Only query each domain once
-            if (obs[key] !== undefined) continue;
-            this.queryDomains.set(key, domain);
-            obs[key] = await this.getObservations(domain, this.deployID);
+            let list = elemsInQDomain[key];
+            if (list == null) {
+                list = [];
+                elemsInQDomain[key] = list;
+            }
+            list.push(el);
+
+            if (this.queryDomains.get(key) == null) {
+                this.queryDomains.set(key, domain);
+            }
+        }
+
+        const obs: Observed<WidgetObs> = {};
+        for (const [ key, domain ] of this.queryDomains.entries()) {
+            obs[key] = await this.getObservations(domain, this.deployID,
+                                                  elemsInQDomain[key]);
         }
         return obs;
     }
 
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observed<Obs>): Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observed<WidgetObs>): Action[] {
         const deployID = this.deployID;
-        if (!deployID) throw new Error(`Cannot call observe before start`);
-
         const elems = this.findElems(dom);
 
-        const expected: Expected<AdaptElement<Props>> = {};
+        const expected: Expected<WidgetElem> = {};
         for (const e of elems) {
             const key = makeQueryDomainKey(this.getElemQueryDomain(e));
             if (expected[key] == null) expected[key] = [];
             expected[key].push(e);
         }
 
-        const actions = diffObservations<AdaptElement<Props>, Obs>(
+        const actions = diffObservations<WidgetElem, WidgetObs>(
             expected,
             obs,
             (el) => this.getWidgetIdFromElem(el),
@@ -153,6 +165,13 @@ export abstract class WidgetPlugin<
      * Additional class methods
      */
 
+    get deployID(): string {
+        if (this.deployID_ == null) {
+            throw new Error(`Internal error: deployID not initialized yet`);
+        }
+        return this.deployID_;
+    }
+
     log(arg: any, ...args: any[]): void {
         if (this.log_) this.log_(arg, ...args);
     }
@@ -161,19 +180,23 @@ export abstract class WidgetPlugin<
         return this.queryDomains.get(key);
     }
 
-    getTypeAndId(pair: WidgetPair<AdaptElement<Props>, Obs>) {
+    widgetInfo(pair: WidgetPair<WidgetElem, WidgetObs>) {
         let type: string;
         let id: string;
-        if (pair.element !== undefined) {
-            type = this.getWidgetTypeFromElem(pair.element);
-            id = this.getWidgetIdFromElem(pair.element);
+        let key: string | undefined;
+        const el = pair.element;
+        if (el != null) {
+            if (!isMountedElement(el)) throw new Error(`Internal error`);
+            type = this.getWidgetTypeFromElem(el);
+            id = this.getWidgetIdFromElem(el);
+            key = el.props.key;
         } else if (pair.observed !== undefined) {
             type = this.getWidgetTypeFromObs(pair.observed);
             id = this.getWidgetIdFromObs(pair.observed);
         } else {
             throw new Error(`Internal error: WidgetPair with no content`);
         }
-        return { type, id };
+        return { type, id, key };
     }
 
     /**
@@ -181,21 +204,39 @@ export abstract class WidgetPlugin<
      */
     translatePairs(
         actions: Action[],
-        pairs: WidgetPair<AdaptElement<Props>, Obs>[],
+        pairs: WidgetPair<WidgetElem, WidgetObs>[],
         actionType: string,
-        action: TranslateAction<QueryDomain<QDId, QDSecret>, AdaptElement<Props>, Obs>
+        action: TranslateAction<QDomain, WidgetElem, WidgetObs>
     ) {
         for (const p of pairs) {
-            const { type, id } = this.getTypeAndId(p);
+            const { type, id, key } = this.widgetInfo(p);
+            const k = key ? `' ${key}'` : "";
+            const description = `${actionType} ${type}${k} (id=${id})`;
+
             const domain = this.queryDomain(p.queryDomainKey);
             if (domain == null) throw new Error(`Internal error: domain null`);
             actions.push({
-                description: `${actionType} ${type} ${id}`,
-                act: async () => action(domain, p),
+                description,
+                act: async () => {
+                    try {
+                        await action(domain, p);
+                    } catch (err) {
+                        const path = p.element ? getPath(p.element) : "";
+                        throw new Error(
+                            `An error occurred while ${description}` +
+                            `${path}: ${err.message || err}`);
+
+                    }
+                }
             });
         }
     }
 
+}
+
+function getPath(el: AdaptElement<AnyProps>): string {
+    if (isMountedElement(el)) return ` [${el.path}]`;
+    return "";
 }
 
 function makeQueryDomainKey(queryDomain: QueryDomain<any, any>): QueryDomainKey {
