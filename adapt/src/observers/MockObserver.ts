@@ -10,12 +10,14 @@ import {
     GraphQLSchema
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
+import * as path from "path";
 import { ExecutedQuery, ObserverNeedsData, ObserverPlugin, ObserverResponse } from ".";
 
-import { MockObject, QueryResolvers } from "../../generated/observers/mock_observer_schema_types";
+import { MockObject, QueryResolvers } from "../../generated/src/observers/mock_observer_schema_types";
 import { registerObserver } from "./registry";
 
-const schemaStr = fs.readFileSync(require.resolve("./mock_observer.graphql")).toString();
+const schemaFile = path.join(__dirname, "mock_observer.graphql");
+const schemaStr = fs.readFileSync(schemaFile).toString();
 
 function forceType<T>(x: T): T { return x; }
 

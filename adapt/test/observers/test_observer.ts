@@ -5,7 +5,8 @@ import {
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import * as ld from "lodash";
-import { Foo, QueryResolvers } from "../../generated/observers/test_observer_schema_types";
+import * as path from "path";
+import { Foo, QueryResolvers } from "../../generated/test/observers/test_observer_schema_types";
 import { ObserverPlugin } from "../../src/observers";
 
 export const modelData = {
@@ -15,7 +16,8 @@ export const modelData = {
     }))),
 };
 
-const schemaStr = fs.readFileSync(require.resolve("./test_observer.graphql")).toString();
+const graphqlFilename = path.join(__dirname, "test_observer.graphql");
+const schemaStr = fs.readFileSync(graphqlFilename).toString();
 function id<T>(x: T): T { return x; }
 
 const resolvers = {

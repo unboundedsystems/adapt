@@ -5,14 +5,15 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
-    "dist/src"
+    "dist/src",
+    "dist/generated/src"
   ],
   "scripts": {
     "clean": "rm -rf dist generated",
     "coverage": "nyc mocha --opts mocha.opts",
     "pretest": "make build",
-    "gql-gen:test_observer": "gql-gen --out generated/observers/test_observer_schema_types.ts --schema ./test/observers/test_observer.graphql --template graphql-codegen-typescript-template -c",
-    "gql-gen:mock_observer": "gql-gen --out generated/observers/mock_observer_schema_types.ts --schema ./src/observers/mock_observer.graphql --template graphql-codegen-typescript-template -c",
+    "gql-gen:test_observer": "gql-gen --out generated/test/observers/test_observer_schema_types.ts --schema ./test/observers/test_observer.graphql --template graphql-codegen-typescript-template -c",
+    "gql-gen:mock_observer": "gql-gen --out generated/src/observers/mock_observer_schema_types.ts --schema ./src/observers/mock_observer.graphql --template graphql-codegen-typescript-template -c",
     "gql-gen": "npm run gql-gen:test_observer && npm run gql-gen:mock_observer",
     "tsc": "tsc -p tsconfig.json",
     "build": "npm run gql-gen && npm run tsc",
