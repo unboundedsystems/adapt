@@ -27,10 +27,15 @@ const debugPackageRegistry = false;
 export type MummyJson = string;
 export type MummyUrn = string;
 
+type PackageId = string;
+type PackagePath = string;
+type PackageRegistry = Map<PackageId, PackagePath>;
+
 // Exported for testing only
 export class MummyRegistry {
     jsonToObj = new Map<MummyJson, any>();
     objToJson = new Map<any, MummyJson>();
+    packageRegistry_: PackageRegistry | null = null;
 
     async awaken(mummyJson: MummyJson): Promise<any> {
         let obj = this.jsonToObj.get(mummyJson);
@@ -39,7 +44,7 @@ export class MummyRegistry {
         const mummy = JSON.parse(mummyJson);
         if (!isMummy(mummy)) throw new Error(`Invalid mummy JSON`);
 
-        let pkgPath = await packagePath(mummy);
+        let pkgPath = packagePath(await this.packageRegistry(), mummy);
         if (pkgPath == null) {
             // We can't find an EXACT match for the package ID from mummy
             // (package name and exact version). This typically happens for
@@ -122,9 +127,31 @@ export class MummyRegistry {
             trace(debugReanimate, `  ${key} -> ${val}`);
         });
     }
+
+    async packageRegistry(): Promise<PackageRegistry> {
+        if (this.packageRegistry_ == null) {
+            const moduleTree = await npm.lsParsed({ long: true });
+            const newReg = new Map<PackageId, PackagePath>();
+            if (moduleTree.path == null) {
+                throw new Error(`Cannot create package registry: root path is null`);
+            }
+            findPaths(newReg, moduleTree.path, moduleTree.name || "unknown", moduleTree);
+            if (debugPackageRegistry) {
+                newReg.forEach((modPath, id) => {
+                    trace(debugPackageRegistry, `${id} -> ${modPath}`);
+                });
+            }
+            this.packageRegistry_ = newReg;
+        }
+        return this.packageRegistry_;
+    }
 }
 
 let registry = new MummyRegistry();
+
+function resetRegistry() {
+    registry = new MummyRegistry();
+}
 
 interface Mummy {
     name: string;
@@ -307,9 +334,12 @@ export function findMummy(obj: any): MummyJson {
 }
 
 // Exported for testing
-export function mockRegistry_(newRegistry?: MummyRegistry): MummyRegistry {
+export function mockRegistry_(newRegistry?: MummyRegistry | null): MummyRegistry {
     const oldRegistry = registry;
-    if (newRegistry != null) registry = newRegistry;
+
+    if (newRegistry === null) resetRegistry();
+    else if (newRegistry !== undefined) registry = newRegistry;
+
     return oldRegistry;
 }
 
@@ -350,33 +380,6 @@ export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
     return registry.awaken(stringify(mummy));
 }
 
-/*
- * Package registry
- */
-
-type PackageId = string;
-type PackagePath = string;
-type PackageRegistry = Map<PackageId, PackagePath>;
-let packageRegistry_: PackageRegistry | null = null;
-
-async function packageRegistry(): Promise<PackageRegistry> {
-    if (packageRegistry_ == null) {
-        const moduleTree = await npm.lsParsed({ long: true });
-        const newReg = new Map<PackageId, PackagePath>();
-        if (moduleTree.path == null) {
-            throw new Error(`Cannot create package registry: root path is null`);
-        }
-        findPaths(newReg, moduleTree.path, moduleTree.name || "unknown", moduleTree);
-        if (debugPackageRegistry) {
-            newReg.forEach((modPath, id) => {
-                trace(debugPackageRegistry, `${id} -> ${modPath}`);
-            });
-        }
-        packageRegistry_ = newReg;
-    }
-    return packageRegistry_;
-}
-
 /**
  * Walk the output of npm ls --json and for each package, extract it's _id
  * and package root directory, then store in the PackageRegistry.
@@ -411,9 +414,8 @@ function findPaths(reg: PackageRegistry, root: string, name: string, tree: npm.L
     }
 }
 
-async function packagePath(pkg: Mummy): Promise<PackagePath | undefined> {
-    const reg = await packageRegistry();
-    return reg.get(packageId(pkg));
+function packagePath(pkgReg: PackageRegistry, pkg: Mummy): PackagePath | undefined {
+    return pkgReg.get(packageId(pkg));
 }
 
 function packageId(pkg: Mummy): PackageId {
