@@ -103,3 +103,8 @@ export {
     Message,
     MessageLogger,
 } from "@usys/utils";
+
+import * as internal from "./internal";
+export {
+    internal,
+};
