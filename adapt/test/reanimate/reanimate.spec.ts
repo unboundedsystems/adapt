@@ -93,7 +93,7 @@ describe("Reanimate basic tests", () => {
     });
 
     it("Should store and reanimate with new module and registry", async () => {
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
 
         // Pre-flight sanity check. Victim derives from Living
         let v = new curMod.victim.Victim();
@@ -114,7 +114,7 @@ describe("Reanimate basic tests", () => {
         });
 
         // Clear out the registry and victim module
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
         deleteModule("victim");
 
         const obj = await reanimate(mummified);
@@ -139,7 +139,7 @@ describe("Reanimate basic tests", () => {
 
         // Clear everything
         deleteModule("lateExport");
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
 
         requireModule("lateExport");
 
@@ -174,7 +174,7 @@ describe("Reanimate basic tests", () => {
 
         // Clear once more
         deleteModule("lateExport");
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
 
         const obj = await reanimate(firstMummyLate);
         // This LateExport will be a different object from the original
@@ -207,7 +207,7 @@ describe("Reanimate basic tests", () => {
     });
 
     it("Should store and reanimate with module default", async () => {
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
 
         // modOrCallerNum is default paremeter
         curMod.inFunc.doRegister();
@@ -225,7 +225,7 @@ describe("Reanimate basic tests", () => {
         });
 
         // Clear out the registry and module
-        mockRegistry_(new MummyRegistry());
+        mockRegistry_(null);
         deleteModule("inFunc");
 
         const obj = await reanimate(mummy);
@@ -274,7 +274,7 @@ async function basicTestConstructor<M extends ModName, R extends ModCtorNames<M>
     should(live).equal(regCtor);
 
     // Clear out the registry and module
-    mockRegistry_(new MummyRegistry());
+    mockRegistry_(null);
     deleteModule(modName);
 
     live = await reanimate(mummyJson);

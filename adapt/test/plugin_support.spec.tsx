@@ -7,7 +7,7 @@ import * as sinon from "sinon";
 import { createMockLogger, MockLogger } from "@usys/testutils";
 import Adapt, { AdaptElementOrNull, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
-import { setAdaptContext } from "../src/ts/context";
+import { MockAdaptContext, mockAdaptContext } from "../src/ts";
 import { packageDirs } from "./testlib";
 
 function nextTick(): Promise<void> {
@@ -53,12 +53,16 @@ describe("Plugin Support Basic Tests", () => {
     beforeEach(() => {
         spy = sinon.spy();
         logger = createMockLogger();
-        const registered = new Map<string, pluginSupport.Plugin>();
-        registered.set("TestPlugin", new TestPlugin(spy));
-
-        mgr = pluginSupport.createPluginManager({
-            plugins: registered
+        const registered = new Map<string, pluginSupport.PluginModule>();
+        registered.set("TestPlugin", {
+            name: "TestPlugin",
+            module,
+            create: () => new TestPlugin(spy),
+            packageName: "test_plugin",
+            version: "1.0.0",
         });
+
+        mgr = pluginSupport.createPluginManager(registered);
         options = {
             logger,
             deployID: "deploy123",
@@ -194,30 +198,32 @@ function outputLines(logger: MockLogger): string[] {
 
 describe("Plugin register and deploy", () => {
     let logger: MockLogger;
+    let mockContext: MockAdaptContext;
     let options: pluginSupport.PluginManagerStartOptions;
     const dom = <Group />;
 
     beforeEach(() => {
         cleanupTestPlugins();
-        setAdaptContext(Object.create(null));
+        mockContext = mockAdaptContext();
         logger = createMockLogger();
         options = {
             logger,
             deployID: "deploy123",
         };
     });
+    afterEach(() => {
+        mockContext.stop();
+    });
 
     after(() => {
         cleanupTestPlugins();
-        setAdaptContext(Object.create(null));
     });
 
     it("Should register plugin", async () => {
         await requireTestPlugin("echo_plugin");
-        const config = pluginSupport.createPluginConfig();
-        should(config.plugins).size(1);
+        should(mockContext.pluginModules).size(1);
 
-        const mgr = pluginSupport.createPluginManager(config);
+        const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
         await mgr.start(null, dom, options);
         const lines = outputLines(logger);
         should(lines).have.length(1);
@@ -225,7 +231,8 @@ describe("Plugin register and deploy", () => {
     });
 
     it("Should error if no plugins registered", () => {
-        should(() => pluginSupport.createPluginConfig()).throw(/No plugins registered/);
+        should(() => pluginSupport.createPluginConfig(mockContext.pluginModules))
+            .throw(/No plugins registered/);
     });
 
     it("Should throw on registering same name, different create", async () => {
@@ -238,10 +245,9 @@ describe("Plugin register and deploy", () => {
     it("Should register two plugins from same package", async () => {
         await requireTestPlugin("echo_plugin");
         await requireTestPlugin("echo_plugin", "second.js");
-        const config = pluginSupport.createPluginConfig();
-        should(config.plugins).size(2);
+        should(mockContext.pluginModules).size(2);
 
-        const mgr = pluginSupport.createPluginManager(config);
+        const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
         await mgr.start(null, dom, options);
 
         const lines = outputLines(logger);
@@ -253,10 +259,9 @@ describe("Plugin register and deploy", () => {
     it("Should ignore second registration with same info", async () => {
         await requireTestPlugin("echo_plugin");
         await requireTestPlugin("echo_plugin", "duplicate.js");
-        const config = pluginSupport.createPluginConfig();
-        should(config.plugins).size(1);
+        should(mockContext.pluginModules).size(1);
 
-        const mgr = pluginSupport.createPluginManager(config);
+        const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
         await mgr.start(null, dom, options);
 
         const lines = outputLines(logger);

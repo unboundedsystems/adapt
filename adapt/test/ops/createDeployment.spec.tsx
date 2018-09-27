@@ -23,8 +23,9 @@ const simplePackageJson = {
     version: "1.0.0",
     dependencies: {
         "source-map-support": "^0.5.5",
-        "@types/node": "^8.10.14",
+        "@types/node": "^8.10.20",
         "@usys/adapt": "0.0.1",
+        "typescript": "^2.9.2",
     }
 };
 
@@ -150,7 +151,6 @@ function checkErrors(ds: DeployState, expected: RegExp[]) {
 describe("createDeployment Tests", async function () {
     let origServerTypes: AdaptServerType[];
     let logger: MockLogger;
-    let projectInit = false; // first test initialized project dir
     let adaptUrl: string;
     let server_: AdaptServer;
 
@@ -161,17 +161,19 @@ describe("createDeployment Tests", async function () {
         return server_;
     }
 
-    this.timeout(30000);
+    this.timeout(20 * 1000);
 
     tmpdir.all("adapt-createDeployment");
     const localRegistry = mochaLocalRegistry.all({
         publishList: localRegistryDefaults.defaultPublishList
     });
 
-    before(() => {
+    before(async () => {
+        this.timeout(20 * 1000);
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
         adaptUrl = `file://${process.cwd()}/`;
+        await createProject();
     });
     after(() => {
         mockServerTypes_(origServerTypes);
@@ -229,7 +231,17 @@ describe("createDeployment Tests", async function () {
         return ds;
     }
 
-    it("Should build a single file", async () => {
+    function restore(func: () => any) {
+        return async () => {
+            try {
+                return await func();
+            } finally {
+                stdout.stop();
+            }
+        };
+    }
+
+    async function createProject() {
         await fs.writeFile("index.tsx", simpleIndexTsx);
         await fs.writeFile("package.json",
             JSON.stringify(simplePackageJson, null, 2));
@@ -237,8 +249,9 @@ describe("createDeployment Tests", async function () {
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
         await npm.install(localRegistry.npmProxyOpts);
-        projectInit = true;
+    }
 
+    it("Should build a single file", async () => {
         const ds = await createSuccess("default");
 
         should(ds.domXml).equal(defaultDomXmlOutput);
@@ -256,14 +269,12 @@ describe("createDeployment Tests", async function () {
     });
 
     it("Should log error on analyze", async () => {
-        should(projectInit).equal(true, "Previous test did not complete");
         await createError("AnalyzeError", [
             /Error creating deployment: Error: AnalyzeError/
         ]);
     });
 
     it("Should log error on action", async () => {
-        should(projectInit).equal(true, "Previous test did not complete");
         await createError("ActError", [
             /Error: ActError1/,
             /Error: ActError2/,
@@ -272,8 +283,6 @@ describe("createDeployment Tests", async function () {
     });
 
     it("Should deploy and update a stack with null root", async () => {
-        should(projectInit).equal(true, "Previous test did not complete");
-
         const ds1 = await createSuccess("null");
 
         should(ds1.summary.error).equal(0);
@@ -309,8 +318,6 @@ describe("createDeployment Tests", async function () {
     });
 
     it("Should deploy a stack that builds to null", async () => {
-        should(projectInit).equal(true, "Previous test did not complete");
-
         const ds1 = await createSuccess("BuildNull");
 
         should(ds1.summary.error).equal(0);
@@ -328,9 +335,7 @@ describe("createDeployment Tests", async function () {
 
     });
 
-    it("Should deploy and update a stack with observer", async () => {
-        should(projectInit).equal(true, "Previous test did not complete");
-
+    it("Should deploy and update a stack with observer", restore(async () => {
         stdout.print = false;
         stdout.start();
         const ds1 = await createSuccess("ObserverToSimple");
@@ -371,5 +376,5 @@ describe("createDeployment Tests", async function () {
 
         should(stdout.output).not.match(/Props: undefined null/);
         should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
-    });
+    }));
 });

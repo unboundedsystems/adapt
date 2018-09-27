@@ -16,4 +16,5 @@ before_script:
 test:
   stage: test
   script:
+    - ./bin/make clean
     - ./bin/make build lint coverage

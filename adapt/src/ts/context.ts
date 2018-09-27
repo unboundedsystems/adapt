@@ -3,9 +3,6 @@ import * as path from "path";
 import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires
 const Module = require("module");
-import { ObserverManagerDeployment } from "../observers";
-import { PluginModule } from "../plugin_support";
-import { Stacks } from "../stack";
 
 import * as ld from "lodash";
 import {
@@ -48,8 +45,8 @@ export interface Extensions {
     [ext: string]: any;
 }
 
-export interface ModuleCache {
-    [abspath: string]: VmModule;
+export interface RequireCache {
+    [abspath: string]: NodeModule;
 }
 
 function isRelative(loc: string) {
@@ -58,7 +55,7 @@ function isRelative(loc: string) {
 
 export class VmModule {
     extensions: Extensions;
-    cache: ModuleCache;
+    requireCache: RequireCache;
     _compile = this.runJs;
     ctxModule: NodeModule;
 
@@ -69,11 +66,11 @@ export class VmModule {
         public parent?: VmModule) {
         if (parent) {
             this.extensions = parent.extensions;
-            this.cache = parent.cache;
+            this.requireCache = parent.requireCache;
             this.hostModCache = parent.hostModCache;
         } else {
             this.extensions = Object.create(null);
-            this.cache = Object.create(null);
+            this.requireCache = Object.create(null);
             this.hostModCache = Object.create(null);
             this.extensions[".js"] = this.runJsModule.bind(this);
             this.extensions[".json"] = this.runJsonModule.bind(this);
@@ -90,7 +87,12 @@ export class VmModule {
      */
     initMain(ctx: vm.Context) {
         this.vmContext = ctx;
-        this.loadSelfMod();
+        // NOTE(mark): There's some strange behavior with allowing this
+        // module to be re-loaded in the context when used alongside
+        // source-map-support in unit tests. Even though callsites overrides
+        // Error.prepareStackTrace with its own function, that function
+        // never gets called. If you figure out why, remove this.
+        this.loadHostMod("callsites");
     }
 
     @tracef(debugVm)
@@ -99,12 +101,16 @@ export class VmModule {
             throw new Error("require.resolve options not supported yet.");
         }
         const resolved = this.host.resolveModuleName(request, this.id, true);
-        if (!resolved) {
-            if (isRelative(request)) request = path.join(path.dirname(this.id), request);
-            if (!path.isAbsolute(request)) throw new Error("Internal Error: path is not absolute: " + path);
-            return require.resolve(request, options);
+        if (resolved) return resolved.resolvedFileName;
+
+        if (isRelative(request)) request = path.join(path.dirname(this.id), request);
+        if (!path.isAbsolute(request)) {
+            // mimic Node's error for this case.
+            const err = new Error(`Cannot find module '${request}'`);
+            (err as any).code = "MODULE_NOT_FOUND";
+            throw err;
         }
-        return resolved.resolvedFileName;
+        return require.resolve(request, options);
     }
 
     @tracef(debugVm)
@@ -129,14 +135,13 @@ export class VmModule {
         if (resolved) {
             const resolvedPath = resolved;
 
-            const cached = this.cache[resolvedPath];
-            if (cached) return cached.ctxModule.exports;
+            const cached = this.requireCache[resolvedPath];
+            if (cached) return cached.exports;
 
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
                 this);
 
-            this.cache[resolvedPath] = newMod;
-            require.cache[resolvedPath] = newMod.ctxModule;
+            this.requireCache[resolvedPath] = newMod.ctxModule;
 
             const ext = path.extname(resolvedPath) || ".js";
 
@@ -164,10 +169,6 @@ export class VmModule {
         this.hostModCache[modName] = mod;
 
         return mod;
-    }
-
-    private loadSelfMod() {
-        this.hostModCache["@usys/adapt"] = require("..");
     }
 
     @tracef(debugVm)
@@ -212,11 +213,11 @@ export class VmModule {
     private runJs(content: string, filename: string) {
         if (!this.vmContext) throw new Error(`vmContext is not set`);
         const wrapper = Module.wrap(content);
-        const script = new vm.Script(wrapper, { filename });
-        const compiled = script.runInContext(this.vmContext);
+        const compiled = vm.runInContext(wrapper, this.vmContext, { filename });
         const require = (() => {
             const ret: NodeRequire = this.require.bind(this) as NodeRequire;
             ret.resolve = this.requireResolve.bind(this);
+            ret.cache = this.requireCache;
             return ret;
         })();
         const dirname = path.dirname(filename);
@@ -235,6 +236,8 @@ export class VmModule {
 
 }
 
+// Javascript defines a set of properties that should be available on the
+// global object. V8 takes care of those. Only add the ones that Node defines.
 const hostGlobals = {
     version: parseInt(process.versions.node.split(".")[0], 10),
     process,
@@ -245,45 +248,8 @@ const hostGlobals = {
     clearTimeout,
     clearInterval,
     clearImmediate,
-    String,
-    Number,
     Buffer,
-    Boolean,
-    Array,
-    Date,
-    Error,
-    RangeError,
-    ReferenceError,
-    SyntaxError,
-    TypeError,
-    RegExp,
-    Function,
-    Object,
-    Proxy,
-    Reflect,
-    Map,
-    WeakMap,
-    Set,
-    WeakSet,
-    Promise,
 };
-
-let adaptContext: AdaptContext = Object.create(null);
-
-export interface AdaptContext {
-    pluginModules: Map<string, PluginModule>;
-    adaptStacks: Stacks;
-    observers: Map<string, ObserverManagerDeployment>;
-}
-
-export function getAdaptContext(): AdaptContext {
-    return adaptContext;
-}
-
-// exported for test only
-export function setAdaptContext(ctx: AdaptContext) {
-    adaptContext = ctx;
-}
 
 /*
  * Prepares a context object to be the global object within a new
@@ -305,7 +271,6 @@ export class VmContext {
         vmGlobal.module = module.ctxModule;
         vmGlobal.require = module.require.bind(module);
         vmGlobal.global = vmGlobal;
-        setAdaptContext(Object.create(null));
 
         for (const prop of Object.keys(hostGlobals)) {
             vmGlobal[prop] = (hostGlobals as any)[prop];
@@ -315,14 +280,12 @@ export class VmContext {
 
         module.initMain(vmGlobal);
     }
-
     @tracef(debugVm)
     run(jsText: string): any {
         let val;
         try {
-            const script = new vm.Script(jsText, { filename: this.filename });
             // Execute the program
-            val = script.runInContext(this.vmGlobal);
+            val = vm.runInContext(jsText, this.vmGlobal, { filename: this.filename });
         } catch (err) {
             // Translate internal error that has all the diags in it
             // to an external API text-only version.

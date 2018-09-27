@@ -1,11 +1,9 @@
 import * as randomstring from "randomstring";
-import { createPluginConfig, PluginConfig } from "../plugin_support";
 import { HistoryEntry, HistoryName, HistoryStore, HistoryWriter } from "./history";
 import { AdaptServer } from "./server";
 
 export interface Deployment {
     readonly deployID: string;
-    readonly pluginConfig: PluginConfig;
     historyWriter(): Promise<HistoryWriter>;
     historyEntry(historyName: HistoryName): Promise<HistoryEntry>;
     lastEntry(): Promise<HistoryEntry | undefined>;
@@ -105,18 +103,12 @@ export async function listDeployments(server: AdaptServer): Promise<string[]> {
 }
 
 class DeploymentImpl implements Deployment {
-    private pluginConfig_?: PluginConfig;
     private historyStore?: HistoryStore;
 
     constructor(public deployID: string, private server: AdaptServer) {}
 
     async init() {
         this.historyStore = await this.server.historyStore(dpath(this.deployID), true);
-    }
-
-    get pluginConfig(): PluginConfig {
-        if (!this.pluginConfig_) this.pluginConfig_ = createPluginConfig();
-        return this.pluginConfig_;
     }
 
     async historyWriter(): Promise<HistoryWriter> {

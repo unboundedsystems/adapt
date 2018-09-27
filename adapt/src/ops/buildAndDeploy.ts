@@ -1,23 +1,33 @@
 import * as path from "path";
 
-import {
+/*
+ * IMPORTANT NOTE
+ * This file primarily operates on the results from the user's program,
+ * which runs in its own V8 context. Don't use our (outer) Adapt or other
+ * things imported here to operate on those results.
+ * It is safe to use types from the outer context, but be VERY careful that
+ * you know what you're doing if you import and use objects or functions
+ * in this file.
+ *
+ * In order to make it more obvious which types/objects we're importing,
+ * NEVER "import * from " in this file.
+ */
+// @ts-ignore
+import AdaptDontUse, {
     AdaptElementOrNull,
-    build,
     Message,
     MessageLogger,
     ProjectBuildError,
-    serializeDom,
 } from "..";
+// @ts-ignore
+// tslint:disable-next-line:variable-name prefer-const
+let Adapt: never;
+
 import { makeObserverManagerDeployment, observe, patchInNewQueries } from "../observers";
 import { createPluginManager } from "../plugin_support";
-import { reanimateDom } from "../reanimate";
 import { Deployment } from "../server/deployment";
-import { getStacks, } from "../stack";
 import { createStateStore, StateStore } from "../state";
-import {
-    exec,
-    MemFileHost,
-} from "../ts";
+import { projectExec } from "../ts";
 import { DeployState } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
@@ -37,7 +47,6 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const { deployment, logger, stackName } = options;
 
     const prev = await deployment.lastEntry();
-    const prevDom = prev ? await reanimateDom(prev.domXml) : null;
     const prevStateJson =
         options.prevStateJson ||
         (prev ? prev.stateJson : "");
@@ -53,24 +62,16 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
 
-    const fileExt = path.extname(fileName);
-    const importName = path.basename(fileName, fileExt);
+    // Compile and run the project
+    const ctx = projectExec(projectRoot, fileName);
 
-    const host = MemFileHost("/", projectRoot);
-    const context = Object.create(null);
+    // This is the inner context's copy of Adapt
+    const inAdapt = ctx.Adapt;
 
-    const wrapper = `
-        require("source-map-support").install();
-        require("./${importName}");
-        `;
-    const wrapperFileName = path.join(projectRoot, "[wrapper].ts");
-    host.writeFile(wrapperFileName, wrapper, false);
-    exec([wrapperFileName, fileName], { context, host });
-
-    const stacks = getStacks();
-    if (!stacks) throw new Error(`No stacks found`);
-    const stack = stacks[stackName];
-    if (!stack) throw new Error(`Stack '${stackName}' not found`);
+    const stacks = ctx.adaptStacks;
+    if (!stacks) throw new Error(`Internal Error: No stacks found`);
+    const stack = stacks.get(stackName);
+    if (!stack) throw new Error(`Adapt stack '${stackName}' not found`);
 
     let stateStore: StateStore;
     try {
@@ -87,22 +88,24 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     if (stack.root != null) {
         const preObserverManager = makeObserverManagerDeployment(observerObservations);
 
-        const preObserve = await build(stack.root, stack.style, { stateStore, observerManager: preObserverManager });
+        const preObserve = await inAdapt.build(
+            stack.root, stack.style, { stateStore, observerManager: preObserverManager });
         if (preObserve.messages.length !== 0) {
             logger.append(preObserve.messages);
-            throw new ProjectBuildError(serializeDom(preObserve.contents));
+            throw new ProjectBuildError(inAdapt.serializeDom(preObserve.contents));
         }
 
         observerObservations = await observe(preObserverManager.executedQueries(), logger);
 
         const postObserverManager = makeObserverManagerDeployment(observerObservations);
-        const postObserve = await build(stack.root, stack.style, { stateStore, observerManager: postObserverManager });
+        const postObserve = await inAdapt.build(
+            stack.root, stack.style, { stateStore, observerManager: postObserverManager });
         newDom = postObserve.contents;
         buildMessages = postObserve.messages;
         patchInNewQueries(observerObservations, postObserverManager.executedQueries());
     }
 
-    const domXml = serializeDom(newDom, true);
+    const domXml = inAdapt.serializeDom(newDom, true);
 
     if (buildMessages.length !== 0) {
         logger.append(buildMessages);
@@ -111,7 +114,9 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
 
     const stateJson = stateStore.serialize();
 
-    const mgr = createPluginManager(deployment.pluginConfig);
+    const mgr = createPluginManager(ctx.pluginModules);
+    const prevDom = prev ? await inAdapt.internal.reanimateDom(prev.domXml) : null;
+
     await mgr.start(prevDom, newDom, {
         deployID: deployment.deployID,
         logger,

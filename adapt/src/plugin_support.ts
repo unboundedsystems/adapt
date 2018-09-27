@@ -55,7 +55,8 @@ export interface PluginManager {
     finish(): Promise<void>;
 }
 
-export function createPluginManager(config: PluginConfig): PluginManager {
+export function createPluginManager(modules: PluginModules): PluginManager {
+    const config = createPluginConfig(modules);
     return new PluginManagerImpl(config);
 }
 
@@ -248,7 +249,6 @@ export interface PluginRegistration {
 }
 
 export interface PluginModule extends PluginRegistration {
-    name: string;
     packageName: string;
     version: string;
 }
@@ -260,7 +260,7 @@ function pluginKey(pMod: PluginModule): PluginKey {
 type PluginModules = Map<PluginKey, PluginModule>;
 
 export function registerPlugin(plugin: PluginRegistration) {
-    const modules = getPluginModules(true);
+    const modules = getAdaptContext().pluginModules;
     const pInfo = findPackageInfo(path.dirname(plugin.module.filename));
     const mod = {
         ...plugin,
@@ -280,21 +280,12 @@ export function registerPlugin(plugin: PluginRegistration) {
     modules.set(key, mod);
 }
 
-export function createPluginConfig(): PluginConfig {
+export function createPluginConfig(modules: PluginModules): PluginConfig {
+    if (modules.size === 0) throw new Error(`No plugins registered`);
     const plugins: RegisteredPlugins = new Map<PluginKey, Plugin>();
-    const modules = getPluginModules();
-    if (modules == null) throw new Error(`No plugins registered`);
 
     for (const [key, mod] of modules) {
         plugins.set(key, mod.create());
     }
     return { plugins };
-}
-
-function getPluginModules(create = false): PluginModules {
-    const aContext = getAdaptContext();
-    if (!aContext.pluginModules && create === true) {
-        aContext.pluginModules = new Map<PluginKey, PluginModule>();
-    }
-    return aContext.pluginModules;
 }
