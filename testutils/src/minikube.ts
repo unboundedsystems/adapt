@@ -3,6 +3,7 @@ import Docker = require("dockerode");
 import * as fs from "fs";
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
+import * as moment from "moment";
 import * as sb from "stream-buffers";
 import * as util from "util";
 
@@ -263,7 +264,8 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         } else {
             // tslint:disable-next-line:no-console
             console.log(`    Starting Minikube`);
-            const newContainerName = `test_minikube_${self.id}_${process.pid}`;
+            const tstamp = moment().format("MMDD-HHmm-ss-SSSSSS");
+            const newContainerName = `test_minikube_${process.pid}_${tstamp}`;
             network = await createNetwork(docker, newContainerName);
             stops.unshift(async () => network.remove());
             if (network.id === undefined) throw new Error("Network id was undefined!");
