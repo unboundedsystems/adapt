@@ -26,10 +26,6 @@ let Adapt: never;
 
 import {
     ExecutedQuery,
-    makeObserverManagerDeployment,
-    observe,
-    patchInNewQueries,
-    simplifyNeedsData
 } from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
@@ -94,7 +90,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
 
     let needsData: { [name: string]: ExecutedQuery[] } = {};
     if (stack.root != null) {
-        const preObserverManager = makeObserverManagerDeployment(observerObservations);
+        const preObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
         const preObserve = await inAdapt.build(
             stack.root, stack.style, { stateStore, observerManager: preObserverManager });
@@ -103,15 +99,15 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             throw new ProjectBuildError(inAdapt.serializeDom(preObserve.contents));
         }
 
-        observerObservations = await observe(preObserverManager.executedQueries(), logger);
+        observerObservations = await inAdapt.internal.observe(preObserverManager.executedQueries(), logger);
 
-        const postObserverManager = makeObserverManagerDeployment(observerObservations);
+        const postObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
         const postObserve = await inAdapt.build(
             stack.root, stack.style, { stateStore, observerManager: postObserverManager });
         newDom = postObserve.contents;
         buildMessages = postObserve.messages;
         needsData = postObserverManager.executedQueriesThatNeededData();
-        patchInNewQueries(observerObservations, postObserverManager.executedQueries());
+        inAdapt.internal.patchInNewQueries(observerObservations, postObserverManager.executedQueries());
     }
 
     const domXml = inAdapt.serializeDom(newDom, true);
@@ -159,7 +155,8 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         deployID: deployment.deployID,
         domXml,
         stateJson,
-        needsData: simplifyNeedsData(needsData),
+        //Move data from inner adapt to outer adapt via JSON
+        needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(needsData)))),
         messages: logger.messages,
         summary: logger.summary,
     };

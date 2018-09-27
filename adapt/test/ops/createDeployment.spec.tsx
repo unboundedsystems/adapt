@@ -56,12 +56,8 @@ class ObserverToSimple extends Component<{ observer: { observerName: string } }>
     }
 }
 
-//try {
-    registerObserver(new MockObserver(true), "neverObserve");
-//} catch(e) {
-//   if(!(e.message
-//        && e.message === "Attempt to register observer with duplicate name 'neverObserve'")) throw e;
-//}
+
+registerObserver(new MockObserver(true), "neverObserve");
 
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
@@ -401,7 +397,7 @@ describe("createDeployment Tests", async function () {
         should(stdout.output).match(/Props: undefined null/);
         should(stdout.output).match(/Props: undefined null/);
 
-        should(ds1.needsData).eql({ neverMock: [{ query: "foo", variables: undefined }] });
+        should(ds1.needsData).eql({ neverObserve: [{ query: "{\n  mockById(id: \"1\") {\n    idSquared\n  }\n}\n" }] });
 
         const lstdout = logger.stdout;
         should(lstdout).match(/EchoPlugin: start/);

@@ -133,9 +133,10 @@ export function simplifyNeedsData(
 
     for (const obsName in nd) {
         if (!Object.hasOwnProperty.call(nd, obsName)) continue;
-        ret[obsName] = nd[obsName].map((q) => removeUndef(
-            ({ query: gqlPrint(q.query), variables: JSON.parse(JSON.stringify(q.variables)) }))
-        ) as { query: string, variables?: Variables }[];
+        ret[obsName] = nd[obsName].map((q) => {
+            const vars = q.variables ? JSON.parse(JSON.stringify(q.variables)) : undefined;
+            return removeUndef(({ query: gqlPrint(q.query), variables: vars }));
+        }) as { query: string, variables?: Variables }[];
     }
 
     return ret;
