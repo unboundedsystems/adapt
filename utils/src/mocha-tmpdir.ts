@@ -5,7 +5,13 @@ import * as path from "path";
 
 export interface Options {
     copy?: string;
+    chmod?: number;
 }
+
+const defaultOptions = {
+    copy: undefined,
+    chmod: 0x755,
+};
 
 interface HasTmpdir {
     origdir: string;
@@ -15,7 +21,9 @@ interface HasTmpdir {
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
 function tmpDirFixture(beforeFn: FixtureFunc, afterFn: FixtureFunc,
-                       basename: string, opts?: Options) {
+                       basename: string, options: Options = {}) {
+    const opts = { ...defaultOptions, ...options };
+
     beforeFn(function createTmpDir(this: any, done: (err?: Error) => void) {
         // tslint:disable-next-line:no-this-assignment
         const ctx: HasTmpdir = this;
@@ -23,6 +31,7 @@ function tmpDirFixture(beforeFn: FixtureFunc, afterFn: FixtureFunc,
         ctx.origdir = process.cwd();
         const base = path.join(os.tmpdir(), basename);
         ctx.tmpdir = fs.mkdtempSync(base + "-");
+        fs.chmodSync(ctx.tmpdir, opts.chmod);
         process.chdir(ctx.tmpdir);
         if (opts && opts.copy) {
             fse.copy(opts.copy, ctx.tmpdir, done);
