@@ -1,3 +1,4 @@
 --require source-map-support/register
+--require @usys/adapt/mock_adapt_context
 --recursive
 dist/test

@@ -6,7 +6,8 @@
   "typings": "dist/src/index.d.ts",
   "files": [
     "dist/src",
-    "dist/generated/src"
+    "dist/generated/src",
+    "mock_adapt_context.js"
   ],
   "scripts": {
     "clean": "rm -rf dist generated",
