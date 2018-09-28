@@ -133,8 +133,8 @@ async function runMinikubeContainer(
     networkName: string) {
 
     const imageName = "unboundedsystems/minikube-dind";
-    const imageSha = "sha256:2a6df8d2d749f23c8eac611633b8d7e523e1caa89d99a03f8fb53da3b01cecf1";
-    const image = `${imageName}@${imageSha}`;
+    const imageTag = "v0.24.1-2";
+    const image = `${imageName}:${imageTag}`;
 
     const opts: Docker.ContainerCreateOptions = {
         name: containerName,
@@ -201,6 +201,9 @@ async function waitForKubeConfig(docker: Docker, container: Docker.Container): P
     let config: object | undefined;
     await waitFor(100, 1, "Timed out waiting for kubeconfig", async () => {
         try {
+            // When this command stops returning an error, /kubeconfig is
+            // fully written.
+            await dockerExec(container, ["cat", "/minikube_startup_complete"]);
             config = await getKubeconfig(docker, container);
             return true;
         } catch (err) {
