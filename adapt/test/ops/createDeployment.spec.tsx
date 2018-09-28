@@ -30,7 +30,7 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt/dist/src/index";
+import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt";
 import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
