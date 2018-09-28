@@ -9,8 +9,10 @@ import {
     NetworkServiceProps,
 } from "@usys/cloud";
 
-// tslint:disable-next-line:no-var-requires
-const kubeconfig = require("./kubeconfig.json");
+function kubeconfig() {
+    // tslint:disable-next-line:no-var-requires
+    return require("./kubeconfig.json");
+}
 
 export const k8sStyle =
     <Style>
@@ -19,13 +21,13 @@ export const k8sStyle =
         ))}
 
         {Compute} {rule<ComputeProps>((props) => (
-            <k8s.Pod config={kubeconfig} terminationGracePeriodSeconds={0}>
+            <k8s.Pod config={kubeconfig()} terminationGracePeriodSeconds={0}>
                 {props.children}
             </k8s.Pod>
         ))}
 
         {NetworkService} {rule<NetworkServiceProps>((props) => (
-            <k8s.Service config={kubeconfig} {...k8s.k8sServiceProps(props)} />
+            <k8s.Service config={kubeconfig()} {...k8s.k8sServiceProps(props)} />
         ))}
 
     </Style>;

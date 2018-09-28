@@ -3,7 +3,7 @@ import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
-import { DeployError } from "../types/adapt_shared";
+import { DeployError, DeploySuccess } from "../types/adapt_shared";
 import { getErrors, getWarnings } from "../utils";
 
 import {
@@ -139,5 +139,21 @@ export abstract class DeployBase extends Command {
             cantDeploy +
             `${nerr} ${errors} encountered during deploy:\n` +
             getErrors(deployErr.messages));
+    }
+
+    deployInformation(deployStatus: DeploySuccess) {
+        const needsData: string[] = [];
+        for (const observerName in deployStatus.needsData) {
+            if (!Object.hasOwnProperty.call(deployStatus.needsData, observerName)) continue;
+            const queries = deployStatus.needsData[observerName];
+            const queryMsgs = queries.map((q) =>
+                `    ${q.query} ${q.variables ? "//" + JSON.stringify(q.variables) : ""}`).join("\n");
+            needsData.push(
+                `Observer '${observerName}' still needs data for these queries:\n${queryMsgs}`);
+        }
+
+        if (needsData.length > 0) {
+            this.log(needsData.join("\n\n"));
+        }
     }
 }

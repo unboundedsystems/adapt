@@ -61,6 +61,7 @@ export interface DeploySuccess {
 
     domXml: string;
     stateJson: string;
+    needsData: ObserversThatNeedData;
     deployID: string;
 }
 
@@ -106,6 +107,19 @@ export interface DeployCommonOptions {
     dryRun?: boolean;
     logger?: MessageLogger;
     projectRoot?: string;
+}
+
+interface Variables {
+    [n: string]: any;
+}
+
+interface PodExecutedQuery {
+    query: string;
+    variables?: Variables;
+}
+
+export interface ObserversThatNeedData {
+    [name: string]: PodExecutedQuery[];
 }
 
 /*
