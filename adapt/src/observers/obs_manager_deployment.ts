@@ -20,6 +20,15 @@ interface Variables {
     [n: string]: any;
 }
 
+interface PodExecutedQuery {
+    query: string;
+    variables?: Variables;
+}
+
+export interface ObserversThatNeedData {
+    [name: string]: PodExecutedQuery[];
+}
+
 export interface ExecutedQuery {
     query: Query;
     variables?: Variables;
@@ -127,7 +136,7 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
 
 type SimplifyReturns = ReturnType<typeof simplifyNeedsData>;
 export function simplifyNeedsData(
-    nd: { [name: string]: ExecutedQuery[] }): { [name: string]: { query: string, variables?: Variables }[] } {
+    nd: { [name: string]: ExecutedQuery[] }): ObserversThatNeedData {
 
     const ret: SimplifyReturns = {};
 

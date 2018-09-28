@@ -35,7 +35,8 @@ export {
     createObserverManagerDeployment,
     ObserverManagerDeployment,
     ExecutedQuery,
-    simplifyNeedsData
+    simplifyNeedsData,
+    ObserversThatNeedData
 } from "./obs_manager_deployment";
 
 export {

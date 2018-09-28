@@ -1,4 +1,5 @@
 import { Message, MessageLogger, MessageStreamer, MessageSummary } from "@usys/utils";
+import { ObserversThatNeedData } from "../observers";
 
 export type DeployState = DeploySuccess | DeployError;
 
@@ -9,7 +10,7 @@ export interface DeploySuccess {
 
     domXml: string;
     stateJson: string;
-    needsData: { [name: string]: { query: string, variables?: { [name: string]: any } }[] };
+    needsData: ObserversThatNeedData;
     deployID: string;
 }
 
