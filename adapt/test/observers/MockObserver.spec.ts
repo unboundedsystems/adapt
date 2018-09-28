@@ -40,6 +40,18 @@ describe("Mock Observer Observations Tests", () => {
         should(mock3).eql({ id: "3", numericId: 3, idPlusOne: 4 });
         should(mock4).eql({ id: "4", numericId: 4, idSquared: 16 });
     });
+
+    it("Should never observe", async () => {
+        const neverMock = new MockObserver(true);
+        const obs = await neverMock.observe([query3PlusOne, query4Squared]);
+        if (obs.context === undefined) throw should(obs.context).not.Undefined();
+        if (obs.context.mockObjects === undefined) throw should(obs.context.mockObjects).not.Undefined();
+
+        const mock3 = obs.context.mockObjects.find((o) => o.id === "3");
+        const mock4 = obs.context.mockObjects.find((o) => o.id === "4");
+        if (mock3 !== undefined) throw should(mock3).Undefined();
+        if (mock4 !== undefined) throw should(mock4).Undefined();
+    });
 });
 
 describe("Mock Observer Query Tests", () => {

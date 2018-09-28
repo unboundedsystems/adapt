@@ -4,6 +4,7 @@
 // The ObserverDataManager (not written yet) manages fetching of observed
 // data via poll or watch.
 
+import { removeUndef } from "@usys/utils";
 import {
     DocumentNode as Query,
     execute as gqlExecute,
@@ -19,6 +20,15 @@ interface Variables {
     [n: string]: any;
 }
 
+interface PodExecutedQuery {
+    query: string;
+    variables?: Variables;
+}
+
+export interface ObserversThatNeedData {
+    [name: string]: PodExecutedQuery[];
+}
+
 export interface ExecutedQuery {
     query: Query;
     variables?: Variables;
@@ -27,6 +37,7 @@ export interface ExecutedQuery {
 export interface ObserverManagerDeployment {
     registerSchema(name: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void;
     executedQueries(): { [name: string]: ExecutedQuery[] };
+    executedQueriesThatNeededData(): { [name: string]: ExecutedQuery[] };
     executeQuery<R = any>(observer: ObserverNameHolder, q: Query, vars?: Variables): Promise<ExecutionResult<R>>;
 }
 
@@ -60,8 +71,19 @@ function addExecutedQuery(o: ExecutedQueryStorage, query: ExecutedQuery) {
     entry.vars.add(query.variables);
 }
 
+function flattenExecutedQueryStorage(queries: ExecutedQueryStorage) {
+    const ret = [];
+    for (const val of queries.values()) {
+        for (const vars of val.vars.values()) {
+            ret.push({ query: val.doc, variables: vars });
+        }
+    }
+    return ret;
+}
+
 class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
     observable: { [name: string]: Observable } = {};
+    needsData: { [name: string]: ExecutedQueryStorage } = {};
 
     registerSchema = (observer: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void => {
         const name = observer.observerName;
@@ -76,14 +98,17 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
     executedQueries = () => {
         const ret: { [name: string]: ExecutedQuery[] } = {};
         for (const schemaName in this.observable) {
-            if (Object.hasOwnProperty.call(this.observable, schemaName)) {
-                ret[schemaName] = [];
-                for (const val of this.observable[schemaName].executedQueries.values()) {
-                    for (const vars of val.vars.values()) {
-                        ret[schemaName].push({ query: val.doc, variables: vars });
-                    }
-                }
-            }
+            if (!Object.hasOwnProperty.call(this.observable, schemaName)) continue;
+            ret[schemaName] = flattenExecutedQueryStorage(this.observable[schemaName].executedQueries);
+        }
+        return ret;
+    }
+
+    executedQueriesThatNeededData = () => {
+        const ret: { [name: string]: ExecutedQuery[] } = {};
+        for (const schemaName in this.needsData) {
+            if (!Object.hasOwnProperty.call(this.needsData, schemaName)) continue;
+            ret[schemaName] = flattenExecutedQueryStorage(this.needsData[schemaName]);
         }
         return ret;
     }
@@ -93,7 +118,35 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         const schemaName = observer.observerName;
         if (!(schemaName in this.observable)) throw new Error("Unknown observation schema queried: " + schemaName);
         const { schema, observations, executedQueries } = this.observable[schemaName];
-        addExecutedQuery(executedQueries, { query: q, variables: vars });
-        return Promise.resolve(gqlExecute<R>(schema, q, observations.data, observations.context, vars));
+        const query = { query: q, variables: vars };
+        addExecutedQuery(executedQueries, query);
+        const ret = await Promise.resolve(gqlExecute<R>(schema, q, observations.data, observations.context, vars));
+        if (ret.errors) {
+            const needDataErr = ret.errors.find((e) => e.message.startsWith("Adapt Observer Needs Data:"));
+            if (needDataErr !== undefined) {
+                if (this.needsData[schemaName] === undefined) {
+                    this.needsData[schemaName] = new Map<string, { doc: Query, vars: Set<Variables | undefined> }>();
+                }
+                addExecutedQuery(this.needsData[schemaName], query);
+            }
+        }
+        return ret;
     }
+}
+
+type SimplifyReturns = ReturnType<typeof simplifyNeedsData>;
+export function simplifyNeedsData(
+    nd: { [name: string]: ExecutedQuery[] }): ObserversThatNeedData {
+
+    const ret: SimplifyReturns = {};
+
+    for (const obsName in nd) {
+        if (!Object.hasOwnProperty.call(nd, obsName)) continue;
+        ret[obsName] = nd[obsName].map((q) => {
+            const vars = q.variables ? JSON.parse(JSON.stringify(q.variables)) : undefined;
+            return removeUndef(({ query: gqlPrint(q.query), variables: vars }));
+        }) as { query: string, variables?: Variables }[];
+    }
+
+    return ret;
 }

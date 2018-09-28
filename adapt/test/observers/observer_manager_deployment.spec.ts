@@ -2,6 +2,7 @@ import * as uutils from "@usys/utils";
 import * as ld from "lodash";
 import * as should from "should";
 import { createObserverManagerDeployment, gql, ObserverManagerDeployment, ObserverPlugin } from "../../src/observers";
+import MockObserver from "../../src/observers/MockObserver";
 import { modelData, TestObserver } from "./test_observer";
 
 describe("Deployment Observer Manager Tests", () => {
@@ -98,5 +99,29 @@ describe("Deployment Observer Manager Tests", () => {
             { query: query2, variables: { id: 3 } },
             { query, variables: undefined },
         ]);
+    });
+
+    it("Should record queries that need data", async () => {
+        await registerTestSchema();
+        const lquery1 = gql`query { mockById(id: "1") { idSquared } }`;
+        const lquery2 = gql`query { mockById(id: "1") { idPlusOne } }`;
+        const observer = new MockObserver();
+        mgr.registerSchema(MockObserver, observer.schema, {});
+
+        await mgr.executeQuery(MockObserver, lquery1); // Needs data
+        await mgr.executeQuery(MockObserver, lquery1); //query again to ensure that each query is recorded only once
+        await mgr.executeQuery(MockObserver, lquery2); // Needs data
+        await mgr.executeQuery({ observerName: "test1" }, query); //Does not need data
+
+        const needsData = mgr.executedQueriesThatNeededData();
+        const ref = {
+            [MockObserver.observerName]: [
+                { query: lquery1, variables: undefined },
+                { query: lquery2, variables: undefined }
+            ]
+        };
+        if (!uutils.isEqualUnorderedArrays(needsData, ref)) {
+            should(needsData).eql(ref);
+        }
     });
 });

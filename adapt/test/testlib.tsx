@@ -94,11 +94,13 @@ export function deepFilterElemsToPublic(o: any): any {
 // Constructor data that doesn't actually keep track of state
 const noStoreConstructorData: jsx.ComponentConstructorData = {
     getState: () => ({}),
-    setInitialState: () => {/**/},
-    observerManager: makeObserverManagerDeployment({})
+    setInitialState: () => {/**/ },
+    observerManager: makeObserverManagerDeployment({}) //Just a placeholder value, observers may not yet be registered
 };
 
 export function componentConstructorDataFixture(ccData = noStoreConstructorData) {
+    ccData.observerManager =
+        makeObserverManagerDeployment({}); //Make sure we call after registerObserver from modules are done
     before(() => jsx.pushComponentConstructorData(ccData));
     after(() => jsx.popComponentConstructorData());
 }
