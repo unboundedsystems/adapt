@@ -67,6 +67,8 @@ export default class CreateCommand extends DeployBase {
 
                     if (!isDeploySuccess(deployState)) {
                         return this.deployFailure(deployState);
+                    } else {
+                        this.deployInformation(deployState);
                     }
 
                     const id = deployState.deployID;

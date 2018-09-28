@@ -133,6 +133,35 @@ const basicIndexTsx = `
     Adapt.stack("dev", app);
 `;
 
+function observerIndexTsx(id1: number, id2: number) {
+    return `
+        import Adapt, { gql, Observer, PrimitiveComponent } from "@usys/adapt";
+        import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
+        import "./simple_plugin";
+
+        class Root extends PrimitiveComponent<{}> { }
+
+        const app = <Observer
+            observer={MockObserver}
+            query={gql\`query { mockById(id: "${id1}") { idSquared } }\`}
+            build={(err, props) => {
+                console.log("+++", err, props, "+++");
+                return <Root key="Root" />;
+            }}/>;
+
+        const app2 = <Observer
+            observer={MockObserver}
+            query={gql\`query { mockById(id: "${id2}") { idSquared } }\`}
+            build={(err, props) => {
+                console.log("***", err, props, "***");
+                return props ? app : <Root key="Root" />;
+            }}/>;
+
+        Adapt.stack("dev", app);
+        Adapt.stack("devNeedsData", app2);
+    `;
+}
+
 // Expects only 1 active deployment
 async function findDeploymentDir(): Promise<string> {
     const deploymentList = await fs.readdir("deployments");
@@ -256,6 +285,96 @@ describe("Deploy create basic tests", function () {
         const deploymentList = await fs.readdir("deployments");
         expect(deploymentList).length(0);
     });
+});
+
+const observerTest = testBase
+    .do(async () => {
+        await createProject(basicPackageJson, observerIndexTsx(5, 6), "index.tsx");
+    });
+
+describe("Observer Needs Data Reporting", function () {
+    this.timeout(30000);
+    mochaTmpdir.each("adapt-cli-test-deploy");
+
+    observerTest
+    .command(["deploy:create", "--init", "dev"])
+    .it("Should deploy and not have any observers that need data", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).not.contains("still needs data");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev"
+        );
+    });
+
+    observerTest
+    .command(["deploy:create", "--init", "devNeedsData"])
+    .it("Should deploy and report that observers need data", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).contains("Observer 'MockObserver' still needs data");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "devNeedsData"
+        );
+    });
+
+    function observerUpdateTest(shouldNeed: boolean) {
+        let deployID = "NOTFOUND";
+        const newStack = shouldNeed ? "devNeedsData" : "dev";
+        return observerTest
+        .command(["deploy:create", "--init", "dev"])
+        .do(async (ctx) => {
+            expect(ctx.stderr).equals("");
+            expect(ctx.stdout).contains("Validating project [completed]");
+            expect(ctx.stdout).contains("Creating new project deployment [completed]");
+            expect(ctx.stdout).not.contains("still needs data");
+
+            checkPluginStdout(ctx.stdout);
+
+            await checkBasicIndexTsxState(
+                path.join(process.cwd(), "index.tsx"),
+                process.cwd(),
+                "dev"
+            );
+
+            const matches = ctx.stdout.match(newDeployRegex);
+            expect(matches).to.be.an("array").with.length(2);
+            if (matches && matches[1]) deployID = matches[1];
+        })
+        .do(async () => {
+            await fs.outputFile("index.tsx", observerIndexTsx(7, 8));
+        })
+        .delayedcommand(() => ["deploy:update", deployID, newStack])
+        .it(`Should update and report that observers ${shouldNeed ? "need" : "do not need"} data`, async (ctx) => {
+            expect(ctx.stderr).equals("");
+            expect(ctx.stdout).contains("Validating project [completed]");
+            expect(ctx.stdout).contains("Creating new project deployment [completed]");
+            if (shouldNeed) expect(ctx.stdout).contains("Observer 'MockObserver' still needs data");
+
+            checkPluginStdout(ctx.stdout);
+
+            await checkBasicIndexTsxState(
+                path.join(process.cwd(), "index.tsx"),
+                process.cwd(),
+                newStack
+            );
+        });
+    }
+
+    observerUpdateTest(true);
+    observerUpdateTest(false);
 });
 
 /*

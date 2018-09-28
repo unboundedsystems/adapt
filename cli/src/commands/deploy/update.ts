@@ -71,6 +71,8 @@ an alternate description file, "somefile.tsx":
 
                     if (!isDeploySuccess(deployState)) {
                         return this.deployFailure(deployState);
+                    } else {
+                        this.deployInformation(deployState);
                     }
 
                     const id = deployState.deployID;
