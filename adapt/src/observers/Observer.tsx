@@ -33,8 +33,6 @@ export class Observer<QueryData extends object = any>
         this.mgr = ccd.observerManager;
     }
 
-    initialState() { return { result: {} }; }
-
     async build(): Promise<AdaptElement | null> {
         let result: QueryResult;
         try {
