@@ -72,6 +72,9 @@ cli-build: adapt-build cloud-build utils-build testutils-build
 cloud-build: adapt-build utils-build testutils-build
 testutils-build: utils-build
 
+# FIXME(mark): This is a workaround for issue #19. When multiple minikube
+# instances can run in parallel, this dependency can be removed.
+cli-test: cloud-test
 
 #
 # Initial setup, mostly stuff for a newly cloned repo
