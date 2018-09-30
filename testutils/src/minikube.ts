@@ -101,7 +101,8 @@ async function dockerPull(docker: Docker, imageName: string, indent = ""): Promi
     // tslint:enable:no-console
 }
 
-async function getKubeconfig(_docker: Docker, container: Docker.Container): Promise<object> {
+async function getKubeconfig(_docker: Docker, container: Docker.Container,
+    containerAlias: string): Promise<object> {
     const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
@@ -110,8 +111,13 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container): Prom
     }
     for (const cluster of kubeconfig.clusters) {
         const server = (cluster.cluster.server as string);
-        cluster.cluster.server = server.replace("localhost", "kubernetes");
-        cluster.cluster.server = server.replace("127.0.0.1", "kubernetes");
+        // If minikube decides to listen on localhost, translate that to
+        // the DNS name/alias that the container is known as. This no longer
+        // tends to happen in our own tests after upgrading to minikube
+        // 0.25.0 (mk listens on a docker-created IP instead), but this
+        // catches the case if/when it does.
+        cluster.cluster.server = server.replace("localhost", containerAlias);
+        cluster.cluster.server = server.replace("127.0.0.1", containerAlias);
     }
 
     return kubeconfig;
@@ -134,11 +140,13 @@ async function runMinikubeContainer(
     networkName: string) {
 
     const imageName = "unboundedsystems/minikube-dind";
-    const imageTag = "v0.24.1-2";
+    const imageTag = "v0.25.0-1";
     const image = `${imageName}:${imageTag}`;
 
     const opts: Docker.ContainerCreateOptions = {
         name: containerName,
+        // --apiserver-names supported in minikube > v0.25.0
+        Cmd: [ `--apiserver-names=${containerName}` ],
         AttachStdin: false,
         AttachStdout: false,
         AttachStderr: false,
@@ -153,7 +161,7 @@ async function runMinikubeContainer(
         NetworkingConfig: {
             EndpointsConfig: {
                 [networkName]: {
-                    Aliases: ["kubernetes"]
+                    Aliases: [containerName]
                 }
             }
         },
@@ -164,6 +172,15 @@ async function runMinikubeContainer(
 
     await dockerPull(docker, image, "      ");
     const container = await docker.createContainer(opts);
+
+    // Attach to the outside world so minikube can check for image updates.
+    // minikube 0.25.0 fails to start if it can't check.
+    // NOTE(mark): Should be able to attach to bridge in the create opts
+    // above, I think, but I get errors when I do it that way. Someone
+    // just needs to find the right incantation...
+    const bridge = docker.getNetwork("bridge");
+    await addToNetwork(container, bridge);
+
     return container.start();
 }
 
@@ -198,14 +215,15 @@ async function waitFor(
     throw new Error(timeoutMsg);
 }
 
-async function waitForKubeConfig(docker: Docker, container: Docker.Container): Promise<object | undefined> {
+async function waitForKubeConfig(docker: Docker, container: Docker.Container,
+    containerAlias: string): Promise<object | undefined> {
     let config: object | undefined;
     await waitFor(100, 1, "Timed out waiting for kubeconfig", async () => {
         try {
             // When this command stops returning an error, /kubeconfig is
             // fully written.
             await dockerExec(container, ["cat", "/minikube_startup_complete"]);
-            config = await getKubeconfig(docker, container);
+            config = await getKubeconfig(docker, container, containerAlias);
             return true;
         } catch (err) {
             if (/exited with error/.test(err.message) ||
@@ -260,7 +278,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         if (process.env.ADAPT_TEST_MINIKUBE) {
             container = docker.getContainer(process.env.ADAPT_TEST_MINIKUBE);
             network = await getNetwork(docker, container);
-            kubeconfig = await getKubeconfig(docker, container);
+            kubeconfig = await getKubeconfig(docker, container, "kubernetes");
         } else {
             // tslint:disable-next-line:no-console
             console.log(`    Starting Minikube`);
@@ -272,7 +290,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
             container = await runMinikubeContainer(docker, newContainerName, network.id);
             stops.unshift(async () => container.stop());
 
-            kubeconfig = await waitForKubeConfig(docker, container);
+            kubeconfig = await waitForKubeConfig(docker, container, newContainerName);
             const configTime = secondsSince(startTime);
             // tslint:disable-next-line:no-console
             console.log(`    Got kubeconfig (${configTime} seconds)`);
