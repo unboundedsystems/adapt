@@ -85,6 +85,35 @@ describe("DOM CSS Build Tests", () => {
             f.secondCall.args[0].id.should.equal(2, msg);
         });
     });
+
+    it("Should stop matching rule if ruleNoRematch is used", async () => {
+        let count = 1;
+        const orig =
+            <Adapt.Group>
+                <Empty id={count} />
+            </Adapt.Group>;
+        const action = (props: Adapt.AnyProps, info: Adapt.StyleBuildInfo) => {
+            should(props.children.props.id).equal(count);
+            return Adapt.ruleNoRematch(info,
+                <Adapt.Group>
+                    <Empty id={++count} />
+                </Adapt.Group>
+            );
+        };
+        const fakes = [fake(action), fake(action), fake(action)];
+        const styles =
+            <Adapt.Style>
+                {Adapt.Group} {Adapt.rule(fakes[0])}
+                {Adapt.Group} {Adapt.rule(fakes[1])}
+                {Adapt.Group} {Adapt.rule(fakes[2])}
+            </Adapt.Style>;
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
+        if (dom == null) throw should(dom).not.Null();
+        fakes.forEach((f, i) => {
+            const msg = `Failed for fake[${i}]`;
+            f.callCount.should.equal(1, msg);
+        });
+    });
 });
 
 describe("DOM CSS find tests", () => {

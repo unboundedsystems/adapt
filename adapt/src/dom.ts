@@ -247,7 +247,6 @@ async function computeContentsFromElement<P extends object>(
 
 function findOverride(styles: css.StyleList, path: DomPath) {
     const element = path[path.length - 1];
-    if (css.ruleIsFinal(element.props)) return null;
 
     for (const style of styles.reverse()) {
         if (!css.ruleHasMatched(element.props, style) && style.match(path)) {
