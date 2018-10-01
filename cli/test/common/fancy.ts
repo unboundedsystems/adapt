@@ -36,10 +36,20 @@ function delayedcommand(getCmd?: DelayedCmdFunc, opts: loadConfig.Options = {}) 
     };
 }
 
+function onerror(fn?: (ctx: any) => void) {
+    if (fn == null) throw new Error(`onerror requires one argument`);
+    return {
+        finally(ctx: { error: object }) {
+            if (ctx.error != null) fn(ctx);
+        }
+    };
+}
+
 export const clitest =
     oclifTest
     .register("delayedenv", delayedenv)
-    .register("delayedcommand", delayedcommand);
+    .register("delayedcommand", delayedcommand)
+    .register("onerror", onerror);
 
 export {
     EnvOptions,
