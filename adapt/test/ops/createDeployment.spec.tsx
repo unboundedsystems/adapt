@@ -59,6 +59,13 @@ class ObserverToSimple extends Component<{ observer: { observerName: string } }>
 
 registerObserver(new MockObserver(true), "neverObserve");
 
+async function makeSimple() {
+    return <Simple />;
+}
+async function makeNull() {
+    return null;
+}
+
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -66,6 +73,7 @@ Adapt.stack("null", null);
 Adapt.stack("BuildNull", <BuildNull />);
 Adapt.stack("ObserverToSimple", <ObserverToSimple />);
 Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName: "neverObserve" }}/>);
+Adapt.stack("promises", makeSimple(), makeNull());
 `;
 
 const defaultDomXmlOutput =
@@ -271,7 +279,22 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/action1/);
         should(lstdout).match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
+    });
 
+    it("Should build stack that is a promise", async () => {
+        const ds = await createSuccess("promises");
+
+        should(ds.domXml).equal(defaultDomXmlOutput);
+        should(ds.stateJson).equal("{}");
+        should(ds.deployID).equal("myproject::promises");
+
+        const lstdout = logger.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
     });
 
     it("Should log error on analyze", async () => {

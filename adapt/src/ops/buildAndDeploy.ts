@@ -89,11 +89,13 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     let buildMessages: Message[] = [];
 
     let needsData: { [name: string]: ExecutedQuery[] } = {};
-    if (stack.root != null) {
+    const root = await stack.root;
+    const style = await stack.style;
+    if (root != null) {
         const preObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
         const preObserve = await inAdapt.build(
-            stack.root, stack.style, { stateStore, observerManager: preObserverManager });
+            root, style, { stateStore, observerManager: preObserverManager });
         if (preObserve.messages.length !== 0) {
             logger.append(preObserve.messages);
             throw new ProjectBuildError(inAdapt.serializeDom(preObserve.contents));
@@ -103,7 +105,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
 
         const postObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
         const postObserve = await inAdapt.build(
-            stack.root, stack.style, { stateStore, observerManager: postObserverManager });
+            root, style, { stateStore, observerManager: postObserverManager });
         newDom = postObserve.contents;
         buildMessages = postObserve.messages;
         needsData = postObserverManager.executedQueriesThatNeededData();
