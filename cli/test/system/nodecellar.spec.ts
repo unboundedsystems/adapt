@@ -10,6 +10,12 @@ const { deleteAll, getAll } = k8sutils;
 
 const ncTestChain =
     clitest
+    .onerror((ctx) => {
+        // tslint:disable-next-line:no-console
+        console.log(`Error encountered. Dumping stdout.`);
+        // tslint:disable-next-line:no-console
+        console.log(ctx.stdout);
+    })
     .stub(process.stdout, "isTTY", false) // Turn off progress, etc
     .stdout()
     .stderr()

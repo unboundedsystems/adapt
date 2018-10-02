@@ -39,6 +39,7 @@ export {
     Style,
     StyleBuildInfo,
     rule,
+    ruleNoRematch,
     findElementsInDom,
     findPathsInDom
 } from "./css";

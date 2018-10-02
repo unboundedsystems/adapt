@@ -210,22 +210,38 @@ export function ruleMatches(props: jsx.WithMatchProps, r: StyleRule) {
     m.matched.add(r);
 }
 
-/**
- * User API function that can be used in a style rule build function
- * to mark the props such that NO additional style rule matches will
- * take place for this set of props.
- *
- * @export
- * @param {jsx.WithMatchProps} props
- */
-export function ruleFinalMatch(props: jsx.WithMatchProps) {
-    const m = getCssMatched(props);
-    m.stop = true;
+function copyRuleMatches(fromProps: jsx.WithMatchProps,
+    toProps: jsx.WithMatchProps) {
+    const from = getCssMatched(fromProps);
+    if (!from.matched) return; // No matches to copy
+
+    const to = getCssMatched(toProps);
+    if (!to.matched) to.matched = new Set<StyleRule>();
+    for (const r of from.matched) {
+        to.matched.add(r);
+    }
 }
 
-export function ruleIsFinal(props: jsx.WithMatchProps) {
-    const m = props[jsx.$cssMatch];
-    return (m && m.stop) === true;
+/**
+ * User API function that can be used in a style rule build function to
+ * mark the props of the passed in element such that the rule associated
+ * with the info parameter will not match against the specified element.
+ *
+ * This works by copying the set of all rules that have already matched
+ * successfully against the original element (origElement) specified in the
+ * info parameter onto the passed in elem.
+ * Returns the passed in elem as a convenience. Does not create a new element.
+ * @param info {StyleBuildInfo} The second argument to a rule callback
+ *     function. This indicates which rule to ignore matches of.
+ * @param elem {AdaptElement} The element that should not match the
+ *     specified rule.
+ */
+export function ruleNoRematch(info: StyleBuildInfo, elem: jsx.AdaptElement) {
+    if (jsx.isMountedElement(elem)) {
+        throw new Error(`elem has already been mounted. elem must be a newly created element`);
+    }
+    copyRuleMatches(info.origElement.props, elem.props);
+    return elem;
 }
 
 function isStylesComponent(componentType: any):

@@ -209,7 +209,6 @@ export type GenericComponent = Component<AnyProps, AnyState>;
  */
 export interface MatchProps {
     matched?: Set<StyleRule>;
-    stop?: boolean;
 }
 export const $cssMatch = Symbol.for("$cssMatch");
 export interface WithMatchProps {
