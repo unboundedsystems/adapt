@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import * as should from "should";
-import { loadAwsCreds } from "../../src";
+import { loadAwsCreds } from "../../src/aws";
 // tslint:disable-next-line:no-var-requires
 const mockedEnv = require("mocked-env");
 

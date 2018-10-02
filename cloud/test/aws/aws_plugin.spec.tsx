@@ -18,14 +18,14 @@ import {
     awsutils,
     createMockLogger,
     describeLong,
-    loadAwsCreds,
     MockLogger,
 } from "@usys/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,
     CFStack,
-    EC2Instance
+    EC2Instance,
+    loadAwsCreds,
 } from "../../src/aws";
 import {
     AwsPluginImpl,
