@@ -11,14 +11,7 @@
 IMAGE="node:8"
 
 TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-CTR_ADD_PATH="/src/node_modules/.bin"
-
-if [[ $(pwd) =~ ${TOP_DIR}/([^/]+) ]]; then
-    PROJECT="${BASH_REMATCH[1]}"
-    if [ -n "${PROJECT}" ]; then
-        CTR_ADD_PATH="/src/${PROJECT}/node_modules/.bin:${CTR_ADD_PATH}"
-    fi
-fi
+. "${TOP_DIR}/bin/common_containit_setup.sh"
 
 # Returns the absolute path to a file, without any sym links.
 # OSX and some other *nix platforms do not have realpath by default
@@ -134,4 +127,4 @@ INNER_DOCKER_ARGS+=(-e NPM_CONFIG_LOGLEVEL)
 # Tell adapt CLI to use the local registry
 INNER_DOCKER_ARGS+=(-e ADAPT_NPM_REGISTRY=http://127.0.0.1:4873)
 
-exec docker run "${INNER_DOCKER_ARGS[@]}" "${IMAGE}" sh -c "${WRAPPER}"
+exec docker run "${INNER_DOCKER_ARGS[@]}" ${DOCKER_ARGS:-} "${IMAGE}" sh -c "${WRAPPER}"
