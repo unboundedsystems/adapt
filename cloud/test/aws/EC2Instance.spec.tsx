@@ -1,11 +1,12 @@
 import Adapt, { PluginOptions, serializeDom } from "@usys/adapt";
 import * as should from "should";
 
-import { createMockLogger, MockLogger } from "@usys/testutils";
+import { awsutils, createMockLogger, MockLogger } from "@usys/testutils";
 import { AwsCredentialsProps, awsDefaultCredentialsContext, CFStack, EC2Instance } from "../../src/aws";
 import { AwsPluginImpl, createAwsPlugin } from "../../src/aws/aws_plugin";
 import { doBuild } from "../testlib";
-import { fakeCreds } from "./helpers";
+
+const { fakeCreds } = awsutils;
 
 describe("AWS EC2Instance component tests", () => {
     it("Should instantiate EC2Instance", async () => {

@@ -14,7 +14,13 @@ import { compact } from "lodash";
 import * as randomstring from "randomstring";
 import * as should from "should";
 
-import { createMockLogger, describeLong, loadAwsCreds, MockLogger } from "@usys/testutils";
+import {
+    awsutils,
+    createMockLogger,
+    describeLong,
+    loadAwsCreds,
+    MockLogger,
+} from "@usys/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,
@@ -29,21 +35,25 @@ import {
     getTag,
 } from "../../src/aws/aws_plugin";
 import { act, doBuild } from "../testlib";
-import {
+const {
     checkStackStatus,
     defaultSecurityGroup,
     deleteAllStacks,
     fakeCreds,
-    getStackNames,
+    getAwsClient,
     isProbablyDeleted,
     sshKeyName,
     ubuntuAmi,
     waitForStacks,
-} from "./helpers";
+} = awsutils;
 
 // tslint:disable-next-line:no-var-requires
 const awsMock = require("aws-sdk-mock");
 import * as AWS from "aws-sdk";
+
+function getStackNames(dom: AdaptElement): string[] {
+    return findStackElems(dom).map((s) => s.props.StackName).sort();
+}
 
 class Extra extends PrimitiveComponent {
 }
@@ -54,14 +64,6 @@ function findExtras(dom: AdaptElementOrNull): AdaptElement[] {
     const rules = <Style>{Extra} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
     return compact(candidateElems.map((e) => isExtraElement(e) ? e : null));
-}
-
-function getClient(creds: AwsCredentialsProps) {
-    return new AWS.CloudFormation({
-        region: creds.awsRegion,
-        accessKeyId: creds.awsAccessKeyId,
-        secretAccessKey: creds.awsSecretAccessKey,
-    });
 }
 
 function makeDeployId(prefix: string) {
@@ -325,7 +327,7 @@ describeLong("AWS plugin live tests", function () {
     before(async () => {
         creds = await loadAwsCreds();
         domConfig = { creds };
-        client = getClient(creds);
+        client = getAwsClient(creds);
         await deleteAllStacks(client, deployID, 10 * 1000, false);
     });
     beforeEach(() => {
