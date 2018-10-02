@@ -1,5 +1,4 @@
-import * as fs from "fs";
-import * as fse from "fs-extra";
+import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 
@@ -13,47 +12,35 @@ const defaultOptions = {
     chmod: 0x755,
 };
 
-interface HasTmpdir {
-    origdir: string;
-    tmpdir: string;
-}
-
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
 function tmpDirFixture(beforeFn: FixtureFunc, afterFn: FixtureFunc,
                        basename: string, options: Options = {}) {
     const opts = { ...defaultOptions, ...options };
+    let origdir: string | undefined;
+    let tmpdir: string | undefined;
 
-    beforeFn(function createTmpDir(this: any, done: (err?: Error) => void) {
-        // tslint:disable-next-line:no-this-assignment
-        const ctx: HasTmpdir = this;
-
-        ctx.origdir = process.cwd();
+    beforeFn(async function createTmpDir() {
+        if (origdir || tmpdir) throw new Error(`'before' called twice without calling 'after'`);
+        origdir = process.cwd();
         const base = path.join(os.tmpdir(), basename);
-        ctx.tmpdir = fs.mkdtempSync(base + "-");
-        fs.chmodSync(ctx.tmpdir, opts.chmod);
-        process.chdir(ctx.tmpdir);
-        if (opts && opts.copy) {
-            fse.copy(opts.copy, ctx.tmpdir, done);
-        } else {
-            done();
-        }
+        tmpdir = await fs.mkdtemp(base + "-");
+        await fs.chmod(tmpdir, opts.chmod);
+        process.chdir(tmpdir);
+        if (opts.copy) await fs.copy(opts.copy, tmpdir);
     });
 
-    afterFn(function cleanupTmpDir(this: any, done: (err?: Error) => void) {
-        // tslint:disable-next-line:no-this-assignment
-        const ctx: HasTmpdir = this;
-
-        process.chdir(ctx.origdir);
-        if (!ctx.tmpdir) {
-            done(new Error("mocha-tmpdir: can't find tmpdir to clean up"));
-        } else if (process.env.KEEP_TMPDIR) {
+    afterFn(async function cleanupTmpDir() {
+        if (!origdir || !tmpdir) return;
+        process.chdir(origdir);
+        if (process.env.KEEP_TMPDIR) {
             // tslint:disable-next-line:no-console
-            console.log(`KEEP_TMPDIR: Not deleting tmpdir ${ctx.tmpdir}`);
-            done();
+            console.log(`KEEP_TMPDIR: Not deleting tmpdir ${tmpdir}`);
         } else {
-            fse.remove(ctx.tmpdir, done);
+            await fs.remove(tmpdir);
         }
+        origdir = undefined;
+        tmpdir = undefined;
     });
 }
 
@@ -62,12 +49,4 @@ export function all(basename: string, opts?: Options) {
 }
 export function each(basename: string, opts?: Options) {
     tmpDirFixture(beforeEach, afterEach, basename, opts);
-}
-
-export function getTmpdir(context: Mocha.ISuiteCallbackContext): string {
-    return (context as any as HasTmpdir).tmpdir;
-}
-
-export function getOrigdir(context: Mocha.ISuiteCallbackContext): string {
-    return (context as any as HasTmpdir).origdir;
 }
