@@ -1,13 +1,9 @@
-import { AdaptElement } from "@usys/adapt";
 import { sleep } from "@usys/utils";
+import * as AWS from "aws-sdk";
 import { xor } from "lodash";
 import * as should from "should";
 
-import { AwsCredentialsProps } from "../../src/aws";
-import {
-    findStackElems,
-    stacksWithDeployID,
-} from "../../src/aws/aws_plugin";
+import { AwsCredentials } from "./creds";
 
 /*
  * Real resources in AWS
@@ -23,16 +19,20 @@ export const sshKeyName = "DefaultKeyPair";
 // FIXME(mark): The security group can be created as part of each stack.
 export const defaultSecurityGroup = "http-https-ssh";
 
-export function getStackNames(dom: AdaptElement): string[] {
-    return findStackElems(dom).map((s) => s.props.StackName).sort();
-}
-
-export async function fakeCreds(): Promise<AwsCredentialsProps> {
+export async function fakeCreds(): Promise<AwsCredentials> {
     return {
         awsAccessKeyId: "fakeKeyID",
         awsSecretAccessKey: "fakeSecret",
         awsRegion: "us-west-2",
     };
+}
+
+export function getAwsClient(creds: AwsCredentials) {
+    return new AWS.CloudFormation({
+        region: creds.awsRegion,
+        accessKeyId: creds.awsAccessKeyId,
+        secretAccessKey: creds.awsSecretAccessKey,
+    });
 }
 
 export function isFailure(stackStatus: AWS.CloudFormation.StackStatus) {
@@ -46,6 +46,30 @@ export function isTerminal(stackStatus: AWS.CloudFormation.StackStatus) {
 }
 export function isProbablyDeleted(stackStatus: AWS.CloudFormation.StackStatus) {
     return stackStatus === "DELETE_IN_PROGRESS" || stackStatus === "DELETE_COMPLETE";
+}
+
+interface Tagged {
+    Tags?: AWS.CloudFormation.Tag[];
+}
+
+function getTag(obj: Tagged, tag: string) {
+    if (obj.Tags) {
+        for (const t of obj.Tags) {
+            if (t.Key === tag) return t.Value;
+        }
+    }
+    return undefined;
+}
+
+function getAdaptDeployId(stack: AWS.CloudFormation.Stack) {
+    return getTag(stack, "adapt:deployID");
+}
+
+function stacksWithDeployID(
+    stacks: AWS.CloudFormation.Stack[] | undefined,
+    deployID: string): AWS.CloudFormation.Stack[] {
+    if (stacks == null) return [];
+    return stacks.filter((s) => (getAdaptDeployId(s) === deployID));
 }
 
 export async function getStacks(client: AWS.CloudFormation, deployID?: string,

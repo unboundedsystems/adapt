@@ -31,8 +31,8 @@ describe("Project basic tests", function () {
     this.timeout(20000);
     mochaTmpdir.each("adapt-cli-test-proj");
 
-    it("Should open a local directory", async function () {
-        const projDir = mochaTmpdir.getTmpdir(this);
+    it("Should open a local directory", async () => {
+        const projDir = process.cwd();
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
 
@@ -44,8 +44,8 @@ describe("Project basic tests", function () {
         expect(p.manifest.dependencies.typescript).equal("^2.9.2");
     });
 
-    it("Should open a local relative directory", async function () {
-        const projDir = mochaTmpdir.getTmpdir(this);
+    it("Should open a local relative directory", async () => {
+        const projDir = process.cwd();
         await fs.writeJson(path.join(projDir, "package.json"), basicPackageJson,
                            {spaces: 2});
 

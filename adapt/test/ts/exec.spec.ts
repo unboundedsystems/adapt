@@ -89,8 +89,8 @@ describe("Exec module tests", function () {
     const copyDir = path.resolve(projectsRoot, "import_module");
     tmpdir.each("adapt-exec", {copy: copyDir});
 
-    it("Should require relative json file", function () {
-        const projDir = tmpdir.getTmpdir(this);
+    it("Should require relative json file", () => {
+        const projDir = process.cwd();
         const orig = {
             avalue: 1,
             another: "foo"
@@ -110,8 +110,8 @@ describe("Exec module tests", function () {
         should(retObj).eql(orig);
     });
 
-    it("Should require absolute json file", function () {
-        const projDir = tmpdir.getTmpdir(this);
+    it("Should require absolute json file", () => {
+        const projDir = process.cwd();
         const orig = {
             avalue: 1,
             another: "foo"
@@ -131,8 +131,8 @@ describe("Exec module tests", function () {
         should(retObj).eql(orig);
     });
 
-    it("Should import a node module", async function () {
-        const projDir = tmpdir.getTmpdir(this);
+    it("Should import a node module", async () => {
+        const projDir = process.cwd();
         await npm.install();
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@usys/utils": "0.0.1",
+    "aws-sdk": "^2.302.0",
     "dockerode": "^2.5.5",
     "fs-extra": "^6.0.1",
     "js-yaml": "^3.12.0",
