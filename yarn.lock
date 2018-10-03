@@ -269,6 +269,16 @@
   dependencies:
     "@types/node" "*"
 
+"@types/graphql-type-json@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@types/graphql-type-json/-/graphql-type-json-0.1.2.tgz#c2821b203019c42a7f6f1377afc8b1976c5fd541"
+  dependencies:
+    "@types/graphql" "*"
+
+"@types/graphql@*":
+  version "14.0.1"
+  resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-14.0.1.tgz#ff44c20fefdf0cf8c390f64b0dfbbc3c10dbaa87"
+
 "@types/graphql@0.12.6":
   version "0.12.6"
   resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-0.12.6.tgz#3d619198585fcabe5f4e1adfb5cf5f3388c66c13"
@@ -2094,6 +2104,10 @@ graphql-tools@3.1.1, graphql-tools@^3.1.1:
     deprecated-decorator "^0.1.6"
     iterall "^1.1.3"
     uuid "^3.1.0"
+
+graphql-type-json@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/graphql-type-json/-/graphql-type-json-0.2.1.tgz#d2c177e2f1b17d87f81072cd05311c0754baa420"
 
 graphql@^0.13.2:
   version "0.13.2"
