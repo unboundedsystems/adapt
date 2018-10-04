@@ -3,4 +3,5 @@
 --recursive
 --reporter spec
 --timeout 30000
+--expose-gc
 dist/test
