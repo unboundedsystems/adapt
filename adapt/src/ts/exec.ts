@@ -19,7 +19,12 @@ export interface ExecOptions {
     projectRoot?: string;
 }
 
-export function exec(rootFiles: string | string[], options: ExecOptions) {
+export interface ExecResult {
+    value: any;
+    destroy: () => void;
+}
+
+export function exec(rootFiles: string | string[], options: ExecOptions): ExecResult {
     if (typeof rootFiles === "string") rootFiles = [rootFiles];
     if (rootFiles.length === 0) throw new Error(`No root files to exec`);
 
@@ -54,10 +59,13 @@ export function exec(rootFiles: string | string[], options: ExecOptions) {
         compiler.dir();
     }
 
-    if (jsText == null) return null;
+    if (jsText == null) return { value: null, destroy: () => {/**/} };
 
     // And run the transpiled JS in the context vm
-    return ccontext.run(jsText);
+    return {
+        value: ccontext.run(jsText),
+        destroy: () => ccontext.destroy(),
+    };
 }
 
 export function execString(code: string, context: any = {},
