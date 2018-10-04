@@ -63,6 +63,7 @@ export class VmModule {
     _compile = this.runJs;
     ctxModule: NodeModule;
     vmModules: Modules;
+    innerObject?: ObjectConstructor;
 
     private hostModCache: any;
 
@@ -74,6 +75,7 @@ export class VmModule {
             this.requireCache = parent.requireCache;
             this.hostModCache = parent.hostModCache;
             this.vmModules = parent.vmModules;
+            this.innerObject = parent.innerObject;
         } else {
             this.extensions = Object.create(null);
             this.requireCache = Object.create(null);
@@ -84,6 +86,7 @@ export class VmModule {
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
+        this.setExportsProto();
     }
 
     destroy() {
@@ -93,9 +96,9 @@ export class VmModule {
         }
 
         // Now destroy the shared stuff
-        this.deleteProps(this.extensions);
-        this.deleteProps(this.requireCache);
-        this.deleteProps(this.hostModCache);
+        this.deleteProps(this.extensions, false);
+        this.deleteProps(this.requireCache, false);
+        this.deleteProps(this.hostModCache, false);
         this.destroySelf();
     }
 
@@ -111,6 +114,15 @@ export class VmModule {
                 `on top-level VmModule`);
         }
         this.vmContext = ctx;
+        const innerObj = vm.runInContext("Object", this.vmContext);
+        if (!innerObj || innerObj.name !== "Object") {
+            throw new Error(`Internal error: Unable to get inner Object constructor`);
+        }
+        this.innerObject = innerObj;
+
+        // Update the top level module now that we have innerObject
+        this.setExportsProto();
+
         // NOTE(mark): There's some strange behavior with allowing this
         // module to be re-loaded in the context when used alongside
         // source-map-support in unit tests. Even though callsites overrides
@@ -259,8 +271,13 @@ export class VmModule {
         }
     }
 
-    private deleteProps(obj: any) {
+    private deleteProps(obj: any, checkProto = true) {
         if (obj == null || typeof obj !== "object") return;
+
+        if (checkProto &&
+            !(this.innerObject && obj instanceof this.innerObject)) {
+            return;
+        }
 
         for (const k of Object.keys(obj)) {
             try {
@@ -269,8 +286,16 @@ export class VmModule {
         }
     }
 
+    private setExportsProto() {
+        if (this.innerObject) {
+            Object.setPrototypeOf(this.ctxModule.exports, this.innerObject);
+        }
+    }
+
     private destroySelf() {
         if (this.ctxModule) {
+            this.deleteProps(this.ctxModule.exports);
+            this.ctxModule.exports = undefined;
             this.ctxModule.children = [];
             this.ctxModule.parent = null;
         }
