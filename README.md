@@ -32,6 +32,19 @@ Or to turn off parallel jobs:
 ADAPT_PARALLEL_MAKE= make
 ```
 
+## Memory usage debugging
+Some of the projects in the repo use heapdump-mocha (currently adapt and cli
+enable it). For those projects, setting the environment variable
+`ADAPT_TEST_HEAPDUMP=1` enables heap usage warning messages after each mocha
+test if that test leaks more than a certain threshold of memory. It also enables
+a message at the end of all tests that shows the total amount of memory used
+for the entire test run.
+
+The heapdump-mocha module also has the ability to write heap snapshots to
+enable troubleshooting of memory leaks by changing the options passed into
+the heapdump-mocha `use()` function. Modify start-heapdump.ts in each
+project to enable heap snapshotting.
+
 # Setting up CI for your fork
 
 1. Create a GitLab CI runner
