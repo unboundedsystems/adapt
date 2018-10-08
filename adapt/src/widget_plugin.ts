@@ -172,7 +172,7 @@ export abstract class WidgetPlugin<
         return this.deployID_;
     }
 
-    log(arg: any, ...args: any[]): void {
+    log = (arg: any, ...args: any[]): void => {
         if (this.log_) this.log_(arg, ...args);
     }
 
