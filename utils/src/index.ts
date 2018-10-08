@@ -2,6 +2,7 @@ export * from "./common_types";
 export * from "./crypto";
 export * from "./env";
 export * from "./message";
+export * from "./mkdtmp";
 export * from "./paths";
 
 import * as localRegistry from "./local-registry";
