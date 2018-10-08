@@ -210,7 +210,7 @@ export abstract class WidgetPlugin<
     ) {
         for (const p of pairs) {
             const { type, id, key } = this.widgetInfo(p);
-            const k = key ? `' ${key}'` : "";
+            const k = key ? ` '${key}'` : "";
             const description = `${actionType} ${type}${k} (id=${id})`;
 
             const domain = this.queryDomain(p.queryDomainKey);
