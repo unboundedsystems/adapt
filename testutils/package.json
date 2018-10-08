@@ -32,7 +32,6 @@
     "@types/node": "^8.10.20",
     "@types/numeral": "^0.0.25",
     "mocha": "^5.2.0",
-    "mocked-env": "^1.2.1",
     "nyc": "^12.0.2",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",

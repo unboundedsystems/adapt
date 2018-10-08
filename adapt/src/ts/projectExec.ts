@@ -14,6 +14,7 @@ export interface AdaptContext {
     adaptStacks: Stacks;
     observers: Map<string, ObserverManagerDeployment>;
     Adapt: typeof Adapt;
+    destroy: () => void;
 }
 
 function createAdaptContext(): AdaptContext {
@@ -21,6 +22,7 @@ function createAdaptContext(): AdaptContext {
         pluginModules: new Map<string, PluginModule>(),
         adaptStacks: new Map<string, Stack>(),
         observers: new Map<string, ObserverManagerDeployment>(),
+        destroy: () => {/**/},
     });
 }
 
@@ -58,8 +60,9 @@ export function projectExec(projectRoot: string, rootFileName: string) {
 
     host.writeFile(wrapperFileName, wrapper, false);
 
-    exec([wrapperFileName, rootFileName], { context, host });
+    const ret = exec([wrapperFileName, rootFileName], { context, host });
 
+    adaptContext.destroy = ret.destroy;
     return adaptContext;
 }
 

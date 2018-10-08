@@ -28,9 +28,8 @@ describe("Exec basic tests", () => {
             const mytest = new Test(5);
             mytest.y(); // final value returns to caller
         `;
-        const ret = execString(source);
-        should(ret).be.type("string");
-        should(ret).equal("5");
+        const { value } = execString(source);
+        should(value).equal("5");
     });
 
     it("Should import a builtin module", function () {
@@ -40,8 +39,8 @@ describe("Exec basic tests", () => {
             import * as util from "util";
             util.inspect({test: 5});
         `;
-        const ret = execString(source);
-        should(ret).equal("{ test: 5 }");
+        const { value } = execString(source);
+        should(value).equal("{ test: 5 }");
     });
 
     it("Should modify context state", function () {
@@ -106,8 +105,8 @@ describe("Exec module tests", function () {
         host.writeFile("stuff.json", JSON.stringify(orig), false);
         host.writeFile("index.ts", source, false);
 
-        const retObj = exec(path.join(projDir, "index.ts"), {host});
-        should(retObj).eql(orig);
+        const { value } = exec(path.join(projDir, "index.ts"), {host});
+        should(value).eql(orig);
     });
 
     it("Should require absolute json file", () => {
@@ -127,8 +126,8 @@ describe("Exec module tests", function () {
         host.writeFile("stuff.json", JSON.stringify(orig), false);
         host.writeFile("index.ts", source, false);
 
-        const retObj = exec(path.join(projDir, "index.ts"), {host});
-        should(retObj).eql(orig);
+        const { value } = exec(path.join(projDir, "index.ts"), {host});
+        should(value).eql(orig);
     });
 
     it("Should import a node module", async () => {
@@ -136,7 +135,7 @@ describe("Exec module tests", function () {
         await npm.install();
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);
-        const ret = exec(index, {host});
-        should(ret).equal("test_camel");
+        const { value } = exec(index, {host});
+        should(value).equal("test_camel");
     });
 });

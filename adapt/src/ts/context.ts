@@ -49,6 +49,10 @@ export interface RequireCache {
     [abspath: string]: NodeModule;
 }
 
+interface Modules {
+    [abspath: string]: VmModule;
+}
+
 function isRelative(loc: string) {
     return loc.startsWith("./") || loc.startsWith("../");
 }
@@ -58,6 +62,8 @@ export class VmModule {
     requireCache: RequireCache;
     _compile = this.runJs;
     ctxModule: NodeModule;
+    vmModules: Modules;
+    innerObject?: ObjectConstructor;
 
     private hostModCache: any;
 
@@ -68,15 +74,32 @@ export class VmModule {
             this.extensions = parent.extensions;
             this.requireCache = parent.requireCache;
             this.hostModCache = parent.hostModCache;
+            this.vmModules = parent.vmModules;
+            this.innerObject = parent.innerObject;
         } else {
             this.extensions = Object.create(null);
             this.requireCache = Object.create(null);
             this.hostModCache = Object.create(null);
+            this.vmModules = Object.create(null);
             this.extensions[".js"] = this.runJsModule.bind(this);
             this.extensions[".json"] = this.runJsonModule.bind(this);
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
+        this.setExportsProto();
+    }
+
+    destroy() {
+        // Have each VmModule destroy its own stuff
+        for (const k of Object.keys(this.vmModules)) {
+            this.vmModules[k].destroySelf();
+        }
+
+        // Now destroy the shared stuff
+        this.deleteProps(this.extensions, false);
+        this.deleteProps(this.requireCache, false);
+        this.deleteProps(this.hostModCache, false);
+        this.destroySelf();
     }
 
     /**
@@ -86,7 +109,20 @@ export class VmModule {
      * @param ctx The vm context where the DOM code will run.
      */
     initMain(ctx: vm.Context) {
+        if (this.parent) {
+            throw new Error(`Internal error: initMain should only be called ` +
+                `on top-level VmModule`);
+        }
         this.vmContext = ctx;
+        const innerObj = vm.runInContext("Object", this.vmContext);
+        if (!innerObj || innerObj.name !== "Object") {
+            throw new Error(`Internal error: Unable to get inner Object constructor`);
+        }
+        this.innerObject = innerObj;
+
+        // Update the top level module now that we have innerObject
+        this.setExportsProto();
+
         // NOTE(mark): There's some strange behavior with allowing this
         // module to be re-loaded in the context when used alongside
         // source-map-support in unit tests. Even though callsites overrides
@@ -141,6 +177,7 @@ export class VmModule {
             const newMod = new VmModule(resolvedPath, this.vmContext, this.host,
                 this);
 
+            this.vmModules[resolvedPath] = newMod;
             this.requireCache[resolvedPath] = newMod.ctxModule;
 
             const ext = path.extname(resolvedPath) || ".js";
@@ -234,6 +271,39 @@ export class VmModule {
         }
     }
 
+    private deleteProps(obj: any, checkProto = true) {
+        if (obj == null || typeof obj !== "object") return;
+
+        if (checkProto &&
+            !(this.innerObject && obj instanceof this.innerObject)) {
+            return;
+        }
+
+        for (const k of Object.keys(obj)) {
+            try {
+                delete obj[k];
+            } catch (e) {/**/}
+        }
+    }
+
+    private setExportsProto() {
+        if (this.innerObject) {
+            Object.setPrototypeOf(this.ctxModule.exports, this.innerObject);
+        }
+    }
+
+    private destroySelf() {
+        if (this.ctxModule) {
+            this.deleteProps(this.ctxModule.exports);
+            this.ctxModule.exports = undefined;
+            this.ctxModule.children = [];
+            this.ctxModule.parent = null;
+        }
+        // @ts-ignore
+        this.host = undefined;
+        this.vmModules = {};
+    }
+
 }
 
 // Javascript defines a set of properties that should be available on the
@@ -280,6 +350,16 @@ export class VmContext {
 
         module.initMain(vmGlobal);
     }
+
+    destroy() {
+        this.mainModule.destroy();
+        this.vmGlobal.exports = undefined;
+        this.vmGlobal.module = undefined;
+        this.vmGlobal.require = undefined;
+        // @ts-ignore
+        this.host = undefined;
+    }
+
     @tracef(debugVm)
     run(jsText: string): any {
         let val;

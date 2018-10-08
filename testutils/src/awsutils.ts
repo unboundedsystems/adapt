@@ -3,7 +3,11 @@ import * as AWS from "aws-sdk";
 import { xor } from "lodash";
 import * as should from "should";
 
-import { AwsCredentials } from "./creds";
+interface AwsCredentials {
+    awsAccessKeyId: string;
+    awsSecretAccessKey: string;
+    awsRegion: string;
+}
 
 /*
  * Real resources in AWS
