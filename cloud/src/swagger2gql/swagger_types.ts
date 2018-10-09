@@ -33,8 +33,8 @@ export interface Swagger2Schema extends Swagger2JSONValueRanges {
 
     items?: Swagger2Items | Swagger2Ref;
     allOf?: unknown;
-    properties?: { [name: string]: Swagger2Schema };
-    additionalProperties?: { [name: string]: Swagger2Schema };
+    properties?: { [name: string]: Swagger2Schema | Swagger2Ref };
+    additionalProperties?: false | Swagger2Schema | Swagger2Ref;
 
     discriminator?: string;
     readOnly?: boolean;

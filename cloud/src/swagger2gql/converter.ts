@@ -60,22 +60,39 @@ function buildFieldsFromSchema(
 function buildFieldsFromSchema(
     baseName: string,
     schema: Swagger2Schema,
-    tyResolver: LTypeResolver,
+    tyResolverIn: LTypeResolver,
     inputType: boolean): () => Fields<GraphQLInputType | GraphQLOutputType> {
 
-    if (schema.additionalProperties) throw new Error("additionalProperties not yet supported");
     const properties = schema.properties;
     if (properties === undefined) return () => ({});
 
-    const ret: Fields<GraphQLInputType | GraphQLOutputType> = {};
-    for (const propName in properties) {
-        if (!Object.hasOwnProperty.call(properties, propName)) continue;
-        ret[propName] = {
-            description: schema.description,
-            type: jsonSchema2GraphQLType(baseName + "_" + propName, schema, tyResolver, inputType)
-        };
-    }
-    return () => ret;
+    return () => {
+        const tyResolver = inputType ? tyResolverIn.input : tyResolverIn.output;
+        const ret: Fields<GraphQLInputType | GraphQLOutputType> = {};
+        const required = schema.required ? schema.required : [];
+        for (const propName in properties) {
+            if (!Object.hasOwnProperty.call(properties, propName)) continue;
+            const prop = properties[propName];
+            const nonNull = required.find((val) => val === propName) !== undefined;
+            const baseType = isRef(prop) ?
+                tyResolver.getType(prop.$ref)
+                : jsonSchema2GraphQLType(baseName + "_" + propName, prop, tyResolverIn, inputType);
+            const type = nonNull ? new GraphQLNonNull(baseType) : baseType;
+            ret[propName] = {
+                description: schema.description,
+                type
+            };
+        }
+        return ret;
+    };
+}
+
+function makeGQLName(swaggerName: string) {
+    //FIXME(manishv) make robust removing all legal swagger characters that are illegal in graphql
+    let gqlName = swaggerName.replace("#/definitions/", "");
+    gqlName = gqlName.replace(/\//g, "_");
+    gqlName = gqlName.replace(/\./g, "_");
+    return gqlName;
 }
 
 function jsonSchema2GraphQLType(
@@ -98,7 +115,6 @@ function jsonSchema2GraphQLType(
     schema: Swagger2Schema,
     tyResolverIn: LTypeResolver,
     inputType: boolean): GraphQLInputType | GraphQLOutputType {
-
     const tyResolver = inputType ? tyResolverIn.input : tyResolverIn.output;
 
     if (schema.type === "array") {
@@ -113,10 +129,15 @@ function jsonSchema2GraphQLType(
         return new GraphQLList(tyResolver.getType(items.type));
     }
 
+    const primitive = isPrimitive(schema.type) ? tyResolver.getType(schema.type) : undefined;
+    if (primitive) return primitive;
+
+    const gqlName = makeGQLName(name);
     const consArgs = {
-        name,
+        name: gqlName,
         description: schema.description,
     };
+
     if (inputType) {
         const fields = buildFieldsFromSchema(name, schema, tyResolverIn, true);
         return new GraphQLInputObjectType({ ...consArgs, fields });
@@ -156,15 +177,31 @@ function resolveType(swagger: Swagger2, tyName: string, tyResolver: LTypeResolve
     return jsonSchema2GraphQLType(tyName, schema, tyResolver, input);
 }
 
+const primitiveTypes = {
+    integer: GraphQLInt,
+    number: GraphQLFloat,
+    string: GraphQLString,
+    boolean: GraphQLBoolean,
+    _Empty: {
+        input: new GraphQLInputObjectType({ name: "_Empty", fields: {} }),
+        output: new GraphQLObjectType({ name: "_Empty", fields: {} })
+    }
+};
+
+function isPrimitive(tyName: string) {
+    return Object.hasOwnProperty.call(primitiveTypes, tyName);
+}
+
 function populateBasicSwaggerTypes(tyResolver: LTypeResolver) {
-    tyResolver.input.addType("integer", GraphQLInt);
-    tyResolver.input.addType("number", GraphQLFloat);
-    tyResolver.input.addType("string", GraphQLString);
-    tyResolver.input.addType("boolean", GraphQLBoolean);
-    tyResolver.output.addType("integer", GraphQLInt);
-    tyResolver.output.addType("number", GraphQLFloat);
-    tyResolver.output.addType("string", GraphQLString);
-    tyResolver.output.addType("boolean", GraphQLBoolean);
+    for (const nameI in primitiveTypes) {
+        if (!Object.hasOwnProperty.call(primitiveTypes, nameI)) continue;
+        const name = nameI as keyof (typeof primitiveTypes);
+        const typ = primitiveTypes[name];
+        const inTyp = "input" in typ ? typ.input : typ;
+        const outTyp = "output" in typ ? typ.output : typ;
+        tyResolver.input.addType(name, inTyp);
+        tyResolver.output.addType(name, outTyp);
+    }
 }
 
 function getParameterInfo(
@@ -190,10 +227,10 @@ function buildArgsForOperation(
 
     const ret: GraphQLFieldConfigArgumentMap = {};
     for (const param of parameters) {
-        if (isRef(param)) continue; //FIXME need to deal with reference parameters
+        if (isRef(param)) throw new Error("Refs in parameters not yet supported");
         const info = getParameterInfo(param, tyResolver);
         ret[param.name] = {
-            type: (info.required ? new GraphQLNonNull(info.type) : info.type) as GraphQLInputType
+            type: (info.required ? new GraphQLNonNull(info.type) : info.type)
         };
     }
     return ret;
@@ -204,13 +241,13 @@ function responseTypeForOperation(
     tyResolver: LTypeResolver): GraphQLOutputType {
 
     const okResponse = op.responses["200"]; //FIXME(manishv) deal with other non-error responses here
-    if (okResponse === undefined) throw new Error(`Operation ${op.operationId} does not have 200 response`);
+    if (okResponse === undefined) return tyResolver.output.getType("_Empty");
     const schema = okResponse.schema;
     if (schema === undefined) return GraphQLString; //FIXME(manishv) This should be the JSON scalar type, not a string
     if (isRef(schema)) {
         return tyResolver.output.getType(schema.$ref);
     } else {
-        throw new Error("Non-reference types for responses not yet supported");
+        return jsonSchema2GraphQLType(op.operationId + "_Response", schema, tyResolver, false);
     }
 }
 
