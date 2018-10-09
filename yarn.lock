@@ -3600,6 +3600,10 @@ node-forge@^0.7.1:
   version "0.7.5"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.5.tgz#6c152c345ce11c52f465c2abd957e8639cd674df"
 
+node-graceful@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/node-graceful/-/node-graceful-0.3.1.tgz#0c8c5038e379b3afef6528340408542a5ce53a3e"
+
 node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"

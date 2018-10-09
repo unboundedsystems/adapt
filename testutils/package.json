@@ -18,6 +18,7 @@
     "kubernetes-client": "^5.3.1",
     "lodash": "^4.17.10",
     "moment": "^2.22.2",
+    "node-graceful": "^0.3.1",
     "numeral": "^2.0.6",
     "stream-buffers": "^3.0.2",
     "strip-ansi": "^4.0.0"
