@@ -40,6 +40,7 @@
     "lodash": "^4.17.10",
     "postinstall-build": "^5.0.1",
     "randomstring": "^1.1.5",
+    "swagger-client": "^3.8.21",
     "type-ops": "^3.0.1"
   },
   "devDependencies": {

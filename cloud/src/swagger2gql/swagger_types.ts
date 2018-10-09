@@ -22,6 +22,34 @@ export interface Swagger2Info {
 
 export type Swagger2Schemes = "http" | "https" | "ws" | "wss";
 
+export interface Swagger2Schema extends Swagger2JSONValueRanges {
+    format?: string;
+    title?: string;
+    description?: string;
+    default?: string | number | boolean | unknown[];
+    pattern?: string;
+    required?: string[];
+    type: string;
+
+    items?: Swagger2Items | Swagger2Ref;
+    allOf?: unknown;
+    properties?: { [name: string]: Swagger2Schema };
+    additionalProperties?: { [name: string]: Swagger2Schema };
+
+    discriminator?: string;
+    readOnly?: boolean;
+    xml?: unknown;
+    externalDocs?: Swagger2ExternalDocumentation;
+    example?: unknown;
+}
+
+export interface Swagger2Response {
+    description: string;
+    schema?: Swagger2Schema | Swagger2Ref;
+    headers?: unknown;
+    examples?: unknown;
+}
+
 export interface Swagger2Operation {
     tags?: string[];
     summary?: string;
@@ -31,7 +59,7 @@ export interface Swagger2Operation {
     consumes?: string[]; //Must be value in Mime Types, expand strings here
     produces?: string[]; //See MimeTypes comment above
     parameters?: (Swagger2Parameter | Swagger2Ref)[];
-    responses: unknown;
+    responses: { [name: string]: Swagger2Response };
     schemes?: Swagger2Schemes;
     deprecated?: boolean;
     security?: unknown;
@@ -53,7 +81,7 @@ export interface Swagger2ParameterCommon {
 
 export interface Swagger2ParameterBody extends Swagger2ParameterCommon {
     in: "body";
-    schema: unknown;
+    schema: Swagger2Schema | Swagger2Ref;
 }
 
 export type Swagger2Items = Swagger2ItemsOther | Swagger2ItemsArray;
@@ -65,7 +93,7 @@ export interface Swagger2ItemsCommon extends Swagger2JSONValueRanges {
 export type Swagger2ItemsOther = Swagger2ItemsString | Swagger2ItemsNumberOrInteger | Swagger2ItemsBoolean;
 
 export interface Swagger2ItemsNonArrayCommon extends Swagger2ItemsCommon {
-    items?: Swagger2Items;
+    items?: Swagger2Items | Swagger2Ref;
 }
 
 export interface Swagger2ItemsString extends Swagger2ItemsNonArrayCommon {
@@ -85,7 +113,7 @@ export interface Swagger2ItemsBoolean {
 
 export interface Swagger2ItemsArray extends Swagger2ItemsCommon {
     type: "array";
-    items: Swagger2Items;
+    items: Swagger2Items | Swagger2Ref;
 }
 
 export interface Swagger2JSONValueRanges {
@@ -116,7 +144,7 @@ export type Swagger2ParameterOther =
 
 export interface Swagger2ParameterNonArray extends Swagger2ParameterOtherCommon {
     in: "query" | "header" | "path" | "formData";
-    items?: Swagger2Items;
+    items?: Swagger2Items | Swagger2Ref;
 }
 
 export interface Swagger2ParameterStringOrFile extends Swagger2ParameterNonArray {
@@ -141,7 +169,7 @@ export type Swagger2ParameterArray = Swagger2ParameterArrayOther | Swagger2Param
 
 export interface Swagger2ParameterArrayCommon extends Swagger2ParameterOtherCommon {
     type: "array";
-    items: Swagger2Items;
+    items: Swagger2Items | Swagger2Ref;
     default?: unknown[];
 }
 
@@ -177,6 +205,7 @@ export interface Swagger2 {
     basePath?: string;
     paths: { [path: string]: Swagger2PathItem; };
     schemes?: Swagger2Schemes;
+    definitions?: { [name: string]: Swagger2Schema; };
 }
 
 export const swagger2Operations = tuple(

@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import { printSchema } from "graphql";
 import * as path from "path";
 import * as should from "should";
 import swagger2gql from "../../src/swagger2gql";
@@ -9,6 +10,6 @@ describe("Swagger to GraphQL Tests", () => {
         const schema = await swagger2gql(swaggerJSON);
         should(schema).not.Undefined();
         should(schema).not.Null();
-        //console.log(gqlPrintSchema(schema));
+        console.log(printSchema(schema));
     });
 });
