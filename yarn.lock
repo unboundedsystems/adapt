@@ -317,6 +317,12 @@
   version "1.0.32"
   resolved "https://registry.yarnpkg.com/@types/json-stable-stringify/-/json-stable-stringify-1.0.32.tgz#121f6917c4389db3923640b2e68de5fa64dda88e"
 
+"@types/jsonschema@^1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@types/jsonschema/-/jsonschema-1.1.1.tgz#08703dfe074010e8e829123111594af731f57b1a"
+  dependencies:
+    jsonschema "*"
+
 "@types/listr@^0.13.0":
   version "0.13.0"
   resolved "https://registry.yarnpkg.com/@types/listr/-/listr-0.13.0.tgz#6250bc4a04123cafa24fc73d1b880653a6ae6721"
@@ -2816,6 +2822,10 @@ jsonify@~0.0.0:
 jsonparse@^1.2.0:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/jsonparse/-/jsonparse-1.3.1.tgz#3f4dae4a91fac315f71062f8521cc239f1366280"
+
+jsonschema@*, jsonschema@^1.2.4:
+  version "1.2.4"
+  resolved "https://registry.yarnpkg.com/jsonschema/-/jsonschema-1.2.4.tgz#a46bac5d3506a254465bc548876e267c6d0d6464"
 
 jsonwebtoken@8.2.1:
   version "8.2.1"
