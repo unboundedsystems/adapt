@@ -154,12 +154,12 @@ export interface Swagger2ParameterStringOrFile extends Swagger2ParameterNonArray
 
 export interface Swagger2ParameterNumberOrInteger extends Swagger2ParameterNonArray {
     type: "number" | "integer";
-    default: number;
+    default?: number;
 }
 
 export interface Swagger2ParameterBoolean extends Swagger2ParameterNonArray {
     type: "boolean";
-    default: boolean;
+    default?: boolean;
 }
 
 export type Swagger2ParameterCollectionFormatsNoMulti = "csv" | "ssv" | "tsv" | "pipes";
@@ -188,7 +188,7 @@ export interface Swagger2Ref {
 }
 
 export interface Swagger2PathItem {
-    ["$ref"]: string;
+    "$ref"?: string;
     get?: Swagger2Operation;
     put?: Swagger2Operation;
     post?: Swagger2Operation;
