@@ -238,8 +238,10 @@ function buildArgsForOperation(
     for (const param of parameters) {
         if (isRef(param)) throw new Error("Refs in parameters not yet supported");
         const info = getParameterInfo(param, tyResolver);
+        const defaultValue = param.in === "body" ? undefined : param.default;
         ret[param.name] = {
-            type: (info.required ? new GraphQLNonNull(info.type) : info.type)
+            type: (info.required ? new GraphQLNonNull(info.type) : info.type),
+            defaultValue
         };
     }
     return ret;
@@ -252,7 +254,7 @@ function responseTypeForOperation(
     const okResponse = op.responses["200"]; //FIXME(manishv) deal with other non-error responses here
     if (okResponse === undefined) return tyResolver.output.getType("_Empty");
     const schema = okResponse.schema;
-    if (schema === undefined) return GraphQLString; //FIXME(manishv) This should be the JSON scalar type, not a string
+    if (schema === undefined) return GraphQLString; //FIXME(manishv) What is the correct type here?
     if (isRef(schema)) {
         return tyResolver.output.getType(schema.$ref);
     } else {
