@@ -39,7 +39,7 @@ export function withCredentials<
     return (props: PropsType<W> & WithChildren) => {
         const { children, handle, ...rest } = props as any;
         return (
-            <Ctx.Consumer>
+            <Ctx.Consumer key={props.key}>
                 { (awsCredentials) => (
                     <Wrapped awsCredentials={awsCredentials} {...rest} >
                         {children}
