@@ -64,7 +64,7 @@ function buildFieldsFromSchema(
     inputType: boolean): () => Fields<GraphQLInputType | GraphQLOutputType> {
 
     const properties = schema.properties;
-    if (properties === undefined) return () => ({});
+    if (properties === undefined) return () => ({ dummyField: { type: GraphQLInt } });
 
     return () => {
         const tyResolver = inputType ? tyResolverIn.input : tyResolverIn.output;
@@ -78,20 +78,29 @@ function buildFieldsFromSchema(
                 tyResolver.getType(prop.$ref)
                 : jsonSchema2GraphQLType(baseName + "_" + propName, prop, tyResolverIn, inputType);
             const type = nonNull ? new GraphQLNonNull(baseType) : baseType;
-            ret[propName] = {
+            ret[makeGQLFieldName(propName)] = {
                 description: schema.description,
                 type
             };
+        }
+        if (Object.keys(ret).length === 0) {
+            return { dummyField: { type: GraphQLInt } };
         }
         return ret;
     };
 }
 
-function makeGQLName(swaggerName: string) {
+function makeGQLTypeName(swaggerName: string) {
     //FIXME(manishv) make robust removing all legal swagger characters that are illegal in graphql
     let gqlName = swaggerName.replace("#/definitions/", "");
-    gqlName = gqlName.replace(/\//g, "_");
-    gqlName = gqlName.replace(/\./g, "_");
+    gqlName = gqlName.replace(/[\/\.-]/g, "_");
+
+    return gqlName;
+}
+
+function makeGQLFieldName(swaggerName: string) {
+    //FIXME(manishv) make robust removing all legal swagger characters that are illegal in graphql
+    const gqlName = swaggerName.replace(/\$/, "dollar_");
     return gqlName;
 }
 
@@ -132,7 +141,7 @@ function jsonSchema2GraphQLType(
     const primitive = isPrimitive(schema.type) ? tyResolver.getType(schema.type) : undefined;
     if (primitive) return primitive;
 
-    const gqlName = makeGQLName(name);
+    const gqlName = makeGQLTypeName(name);
     const consArgs = {
         name: gqlName,
         description: schema.description,
@@ -183,8 +192,8 @@ const primitiveTypes = {
     string: GraphQLString,
     boolean: GraphQLBoolean,
     _Empty: {
-        input: new GraphQLInputObjectType({ name: "_Empty", fields: {} }),
-        output: new GraphQLObjectType({ name: "_Empty", fields: {} })
+        input: new GraphQLInputObjectType({ name: "_Empty", fields: () => ({ dummyField: { type: GraphQLInt } }) }),
+        output: new GraphQLObjectType({ name: "_Empty", fields: () => ({ dummyField: { type: GraphQLInt } }) })
     }
 };
 
@@ -274,7 +283,7 @@ function buildQueryFields(
         const op = pathItem.get;
         if (op === undefined) continue;
         if (op.operationId === undefined) continue; //FIXME(manishv) should we compute a name here?
-        ret[op.operationId] = buildQueryField(op, pathItem.parameters, tyResolver);
+        ret[makeGQLFieldName(op.operationId)] = buildQueryField(op, pathItem.parameters, tyResolver);
     }
     return ret;
 }
