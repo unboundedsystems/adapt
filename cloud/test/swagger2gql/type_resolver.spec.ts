@@ -27,9 +27,9 @@ describe("TypeResolver Tests", () => {
         res.addType("integer", GraphQLInt);
         res.addType("number", GraphQLFloat);
 
-        should(await res.getType("string")).eql(GraphQLString);
-        should(await res.getType("integer")).eql(GraphQLInt);
-        should(await res.getType("number")).eql(GraphQLFloat);
+        should(res.getType("string")).eql(GraphQLString);
+        should(res.getType("integer")).eql(GraphQLInt);
+        should(res.getType("number")).eql(GraphQLFloat);
     });
 
     it("Should resolve types on get", async () => {
