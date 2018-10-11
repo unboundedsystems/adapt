@@ -1,5 +1,3 @@
-import { isError } from "lodash";
-
 export class TypeResolver<Type> {
     resolvedTypes = new Map<string, Type>();
 
@@ -12,10 +10,7 @@ export class TypeResolver<Type> {
 
     getType = (tyName: string): Type => {
         const ty = this.resolvedTypes.get(tyName);
-        if (ty !== undefined) {
-            if (isError(ty)) throw ty;
-            return ty;
-        }
+        if (ty !== undefined) return ty;
 
         const newTy = this.resolveType(tyName);
         this.addType(tyName, newTy);
