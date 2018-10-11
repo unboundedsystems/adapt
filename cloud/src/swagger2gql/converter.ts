@@ -269,7 +269,7 @@ function buildQueryField(
     const iparams = itemParams ? itemParams : [];
     const oparams = op.parameters ? op.parameters : [];
     return {
-        type: responseTypeForOperation(op, tyResolver), //FIXME(manishv) put actual result type here
+        type: responseTypeForOperation(op, tyResolver),
         args: buildArgsForOperation(op.operationId, [...iparams, ...oparams], tyResolver)
     };
 }
