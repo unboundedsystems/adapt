@@ -15,6 +15,7 @@ import {
     GraphQLString
 } from "graphql";
 
+import GraphQLJSON = require("graphql-type-json");
 import * as util from "util";
 import {
     isRef,
@@ -254,7 +255,7 @@ function responseTypeForOperation(
     const okResponse = op.responses["200"]; //FIXME(manishv) deal with other non-error responses here
     if (okResponse === undefined) return tyResolver.output.getType("_Empty");
     const schema = okResponse.schema;
-    if (schema === undefined) return GraphQLString; //FIXME(manishv) What is the correct type here?
+    if (schema === undefined) return GraphQLJSON;
     if (isRef(schema)) {
         return tyResolver.output.getType(schema.$ref);
     } else {
