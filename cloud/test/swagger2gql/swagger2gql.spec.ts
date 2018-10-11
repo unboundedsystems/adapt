@@ -1,7 +1,7 @@
-import * as fs from "fs-extra";
+//import * as fs from "fs-extra";
 import { GraphQLError, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import * as path from "path";
+//import * as path from "path";
 import * as should from "should";
 import swagger2gql from "../../src/swagger2gql";
 import {
@@ -9,6 +9,7 @@ import {
     Swagger2PathItem,
     Swagger2Schema
 } from "../../src/swagger2gql/swagger_types";
+import k8sSwagger = require("./kubernetes-1.8-swagger.json");
 
 function lineWithContext(txt: string, lineNo: number): string {
     const contextAmt = 10;
@@ -118,8 +119,7 @@ describe("Swagger to GraphQL Tests (simple)", () => {
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", function () {
     this.timeout(30000);
     it("Should convert kubernetes 1.8 swagger specification and reparse schema", async () => {
-        const swaggerJSON = await fs.readFile(path.join("/src/cloud/test/swagger2gql/kubernetes-1.8-swagger.json"));
-        const schema = swagger2gql(swaggerJSON.toString());
+        const schema = swagger2gql(k8sSwagger);
         should(schema).not.Undefined();
         should(schema).not.Null();
         const schemaTxt = printSchema(schema);
