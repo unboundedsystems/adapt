@@ -20,7 +20,7 @@ export interface Swagger2Info {
     version: string;
 }
 
-type Swagger2Schemes = "http" | "https" | "ws" | "wss";
+export type Swagger2Schemes = "http" | "https" | "ws" | "wss";
 
 export interface Swagger2Operation {
     tags?: string[];
@@ -34,7 +34,7 @@ export interface Swagger2Operation {
     responses: unknown;
     schemes?: Swagger2Schemes;
     deprecated?: boolean;
-    security: unknown;
+    security?: unknown;
 }
 
 export interface Swagger2ExternalDocumentation {
@@ -42,7 +42,7 @@ export interface Swagger2ExternalDocumentation {
     url: string;
 }
 
-type Swagger2Parameter = Swagger2ParameterOther | Swagger2ParameterBody;
+export type Swagger2Parameter = Swagger2ParameterOther | Swagger2ParameterBody;
 
 export interface Swagger2ParameterCommon {
     name: string;
@@ -56,13 +56,13 @@ export interface Swagger2ParameterBody extends Swagger2ParameterCommon {
     schema: unknown;
 }
 
-type Swagger2Items = Swagger2ItemsOther | Swagger2ItemsArray;
+export type Swagger2Items = Swagger2ItemsOther | Swagger2ItemsArray;
 
 export interface Swagger2ItemsCommon extends Swagger2JSONValueRanges {
     collectionFormat?: "csv" | "ssv" | "tsv" | "pipes";
 }
 
-type Swagger2ItemsOther = Swagger2ItemsString | Swagger2ItemsNumberOrInteger | Swagger2ItemsBoolean;
+export type Swagger2ItemsOther = Swagger2ItemsString | Swagger2ItemsNumberOrInteger | Swagger2ItemsBoolean;
 
 export interface Swagger2ItemsNonArrayCommon extends Swagger2ItemsCommon {
     items?: Swagger2Items;
@@ -103,12 +103,12 @@ export interface Swagger2JSONValueRanges {
     multipleOf?: number;
 }
 
-export interface Swagger2ParameterOtherCommon extends Swagger2JSONValueRanges {
+export interface Swagger2ParameterOtherCommon extends Swagger2ParameterCommon, Swagger2JSONValueRanges {
     format?: string;
     allowEmptyValue?: boolean;
 }
 
-type Swagger2ParameterOther =
+export type Swagger2ParameterOther =
     Swagger2ParameterStringOrFile
     | Swagger2ParameterNumberOrInteger
     | Swagger2ParameterBoolean
@@ -134,10 +134,10 @@ export interface Swagger2ParameterBoolean extends Swagger2ParameterNonArray {
     default: boolean;
 }
 
-type Swagger2ParameterCollectionFormatsNoMulti = "csv" | "ssv" | "tsv" | "pipes";
-type Swagger2ParameterCollectionFormats = Swagger2ParameterCollectionFormatsNoMulti | "multi";
+export type Swagger2ParameterCollectionFormatsNoMulti = "csv" | "ssv" | "tsv" | "pipes";
+export type Swagger2ParameterCollectionFormats = Swagger2ParameterCollectionFormatsNoMulti | "multi";
 
-type Swagger2ParameterArray = Swagger2ParameterArrayOther | Swagger2ParameterArrayMulti;
+export type Swagger2ParameterArray = Swagger2ParameterArrayOther | Swagger2ParameterArrayMulti;
 
 export interface Swagger2ParameterArrayCommon extends Swagger2ParameterOtherCommon {
     type: "array";
@@ -156,19 +156,19 @@ export interface Swagger2ParameterArrayMulti extends Swagger2ParameterArrayCommo
 }
 
 export interface Swagger2Ref {
-
+    "$ref": string;
 }
 
 export interface Swagger2PathItem {
     ["$ref"]: string;
-    get: Swagger2Operation;
-    put: Swagger2Operation;
-    post: Swagger2Operation;
-    delete: Swagger2Operation;
-    options: Swagger2Operation;
-    head: Swagger2Operation;
-    patch: Swagger2Operation;
-    parameters: Swagger2Parameter | Swagger2Ref;
+    get?: Swagger2Operation;
+    put?: Swagger2Operation;
+    post?: Swagger2Operation;
+    delete?: Swagger2Operation;
+    options?: Swagger2Operation;
+    head?: Swagger2Operation;
+    patch?: Swagger2Operation;
+    parameters?: (Swagger2Parameter | Swagger2Ref)[];
 }
 
 export interface Swagger2 {
@@ -188,3 +188,7 @@ export const swagger2Operations = tuple(
     "head",
     "patch"
 );
+
+export function isRef(x: unknown): x is Swagger2Ref {
+    return Object.hasOwnProperty.call(x, "$ref");
+}
