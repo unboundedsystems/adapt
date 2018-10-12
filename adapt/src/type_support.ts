@@ -1,5 +1,3 @@
-import { ExtractType } from "@usys/utils";
-
 export function isClassWithoutNewError(e: Error, name = "\S+"): e is TypeError {
     const noInvokeExp = new RegExp(
         `^Class constructor ${name} cannot be invoked without 'new'`);
@@ -11,4 +9,5 @@ export interface Children<C> {
 }
 
 export type ChildType<T> =
-    T extends Children<any> ? ExtractType<T, keyof Children<any>> : null;
+    T extends { [Name in keyof Children<any>]: infer Ret } ? Ret :
+    T extends { [Name in keyof Children<any>]?: infer Ret } ? Ret : null;

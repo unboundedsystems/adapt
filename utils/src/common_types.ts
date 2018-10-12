@@ -72,7 +72,8 @@ export type ClassType<Args, Ret> = new (...args: Args[]) => Ret;
  * Returns the type of the property Key from object type T
  */
 export type ExtractType<T, Key extends keyof T> =
-    T extends { [Name in Key]: infer Ret } ? Ret : never;
+    T extends { [Name in Key]: infer Ret } ? Ret :
+    T extends { [Name in Key]?: infer Ret } ? Ret : never;
 
 /**
  * A constructor function that takes any arguments and returns the
