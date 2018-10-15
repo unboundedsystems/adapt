@@ -1,4 +1,4 @@
-import Adapt, { Group, rule, ruleNoRematch, Style } from "@usys/adapt";
+import Adapt, { Group, rule, ruleNoRematch, Style, handle } from "@usys/adapt";
 import {
     aws,
     Compute,
@@ -45,7 +45,7 @@ export const awsStyle = loadAwsCreds().then((creds) => (
             </Group>
         ))}
 
-        {Compute} {rule<ComputeProps>((props) => (
+        {Compute} {rule<ComputeProps>(({handle, ...props}) => (
             <EC2Instance
                 imageId={ubuntuAmi}
                 instanceType="t2.micro"

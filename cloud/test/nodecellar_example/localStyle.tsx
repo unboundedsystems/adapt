@@ -9,16 +9,16 @@ import {
 
 const localStyle =
     <Style>
-        {Compute} {Adapt.rule<ComputeProps>((props) => {
+        {Compute} {Adapt.rule<ComputeProps>(({handle, ...props}) => {
             return <LocalCompute {...props}/>;
         })}
 
         {DockerHost} {Adapt.rule<DockerHostProps>((props, info) => {
             if (props.dockerHost) return info.origBuild(props);
-            return <LocalDockerHost />;
+            return <LocalDockerHost key={props.key}/>;
         })}
 
-        {Container} {Adapt.rule<ContainerProps>((props) => {
+        {Container} {Adapt.rule<ContainerProps>(({handle, ...props}) => {
             return <LocalContainer {...props} />;
         })}
     </Style>;

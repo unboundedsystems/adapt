@@ -43,6 +43,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, isError, ThrewNonError } from "./error";
+import { getInternalHandle } from "./handle";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
 
 export type DomPath = AdaptElement[];
@@ -267,7 +268,13 @@ async function computeContents(
         return ret;
     }
 
+    const hand = getInternalHandle(element);
+
     const out = await computeContentsFromElement(element, options);
+
+    // Default behavior if the component doesn't explicitly call
+    // handle.replace is to do the replace for them.
+    if (!hand.replaced) hand.replace(out.contents);
 
     options.recorder({
         type: "step",
@@ -339,9 +346,19 @@ function mountElement(
         throw new Error("Attempt to remount element: " + util.inspect(elem));
     }
 
+    let hand = getInternalHandle(elem);
+
     const newKey = computeMountKey(elem, parentStateNamespace);
     elem = doOverride(path, newKey, styles, options);
+
+    // Default behavior if they don't explicitly call
+    // handle.replace is to do the replace for them.
+    if (!hand.replaced) hand.replace(elem);
+
+    hand = getInternalHandle(elem);
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
+    if (!hand.replaced) hand.replace(elem);
+
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }

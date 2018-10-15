@@ -9,7 +9,7 @@ type Defaultize<Props, Defaults> =
 export namespace JSX {
     export interface IntrinsicElements { }
 
-    export type IntrinsicAttributes = BuiltinProps;
+    export type IntrinsicAttributes = Partial<BuiltinProps>;
 
     export interface ElementAttributesProperty {
         props: never;

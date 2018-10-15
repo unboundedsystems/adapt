@@ -42,7 +42,7 @@ function collectProps(elem: AdaptElement) {
     const shortProps: PreparedProps = {};
     let longProps: PreparedProps | null = null;
     for (const propName of Object.keys(props).sort()) {
-        if (propName === "children") continue;
+        if (propName === "children" || propName === "handle") continue;
 
         const prop = props[propName];
         if (prop === undefined) continue;

@@ -1,4 +1,4 @@
-import Adapt, { Component } from "@usys/adapt";
+import Adapt, { BuiltinProps, Component } from "@usys/adapt";
 import * as stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
@@ -231,8 +231,8 @@ function serviceSpecsEqual(spec1: ServiceSpec, spec2: ServiceSpec) {
     return isEqual(spec1, spec2);
 }
 
-function makeSvcManifest(props: ServiceProps): ResourceService {
-    const { config, ...spec } = props;
+function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>): ResourceService {
+    const { config, key, handle, ...spec } = props;
 
     // Explicit default for ports.protocol
     if (spec.ports) {

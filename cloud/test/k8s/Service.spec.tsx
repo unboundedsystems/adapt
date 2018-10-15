@@ -69,8 +69,7 @@ describe("k8s Service Component Tests", () => {
       "targetPort": 8080,
       "protocol": "TCP"
     }
-  ],
-  "key": "NetworkService-Service"
+  ]
 }</prop>
     </__props__>
   </Resource>

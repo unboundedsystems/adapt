@@ -37,7 +37,7 @@ export function withCredentials<
     Wrapped: W, Ctx: AwsCredentialsContext = awsDefaultCredentialsContext
 ) {
     return (props: PropsType<W> & WithChildren) => {
-        const { children, ...rest } = props as any;
+        const { children, handle, ...rest } = props as any;
         return (
             <Ctx.Consumer>
                 { (awsCredentials) => (

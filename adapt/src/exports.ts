@@ -55,6 +55,7 @@ export {
     ProjectCompileError,
     ProjectRunError,
 } from "./error";
+export { handle, Handle, isHandle } from "./handle";
 
 export {
     Context,

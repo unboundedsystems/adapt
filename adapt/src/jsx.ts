@@ -5,6 +5,7 @@ import * as ld from "lodash";
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { StyleRule } from "./css";
 import { BuildNotImplemented } from "./error";
+import { Handle, handle, isHandleInternal } from "./handle";
 import { ObserverManagerDeployment } from "./observers";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
@@ -94,7 +95,14 @@ export abstract class Component<Props extends object = {}, State extends object 
         throw new Error(`State for a component can only be changed by calling this.setState`);
     }
 
-    constructor(readonly props: Props & BuiltinProps) {
+    // NOTE(mark): This really should be just BuiltinProps with both key
+    // and handle required, but there's some strange interaction between
+    // ElementClass and LibraryManagedAttributes in the JSX namespace that
+    // I don't understand at the moment where I can't seem to make the
+    // Component constructor require it without also making key and handle
+    // unintentionally required in all JSX expressions.
+
+    constructor(readonly props: Props & Partial<BuiltinProps>) {
         registerConstructor(this.constructor);
 
         const cData = getComponentConstructorData();
@@ -164,16 +172,16 @@ export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
-    (props: P & BuiltinProps): AdaptElementOrNull;
+    (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
-    new(props: P & BuiltinProps): Component<P, S>;
+    new(props: P & Partial<BuiltinProps>): Component<P, S>;
 }
 export interface DeferredClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
-    new(props: P & BuiltinProps): DeferredComponent<P, S>;
+    new(props: P & Partial<BuiltinProps>): DeferredComponent<P, S>;
 }
 export interface PrimitiveClassComponentTyp<P extends object> extends ComponentStatic<P> {
-    new(props: P & BuiltinProps): PrimitiveComponent<P>;
+    new(props: P & Partial<BuiltinProps>): PrimitiveComponent<P>;
 }
 
 export type ComponentType<P extends object> =
@@ -187,6 +195,7 @@ export interface AnyProps {
 }
 
 export interface BuiltinProps {
+    handle: Handle;
     key?: string;
 }
 
@@ -225,13 +234,18 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 
     constructor(
         readonly componentType: ComponentType<Props>,
-        props: Props & BuiltinProps,
+        props: Props & Partial<BuiltinProps>,
         children: any[]) {
+
+        const hand = props.handle || handle();
+        if (!isHandleInternal(hand)) throw new Error(`Internal Error: handle is not a HandleImpl`);
+        hand.associate(this);
 
         this.props = {
             [$cssMatch]: {},
             // https://github.com/Microsoft/TypeScript/pull/13288
-            ...props as any
+            ...props as any,
+            handle: hand,
         };
         // Children passed as explicit parameter replace any on props
         if (children.length > 0) this.props.children = children;
@@ -297,7 +311,7 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferr
     component: PrimitiveComponent<Props> | null;
     constructor(
         readonly componentType: PrimitiveClassComponentTyp<Props>,
-        props: Props & BuiltinProps,
+        props: Props & Partial<BuiltinProps>,
         children: any[]
     ) {
         super(componentType, props, children);
@@ -343,7 +357,7 @@ export function createElement<Props extends object>(
         ClassComponentTyp<Props, AnyState>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
-    props: ExcludeInterface<Props, tySup.Children<any>> & BuiltinProps,
+    props: ExcludeInterface<Props, tySup.Children<any>> & Partial<BuiltinProps>,
     ...children: tySup.ChildType<Props>[]): AdaptElement {
 
     if (typeof ctor === "string") {
@@ -354,7 +368,7 @@ export function createElement<Props extends object>(
         ExcludeInterface<Props, tySup.Children<any>>;
 
     //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren & BuiltinProps;
+    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren & Partial<BuiltinProps>;
     if (ctor.defaultProps) {
         // The 'as any' below is due to open TS bugs/PR:
         // https://github.com/Microsoft/TypeScript/pull/13288
@@ -384,8 +398,13 @@ export function cloneElement(
     props: AnyProps,
     ...children: any[]): AdaptElement {
 
+    const elProps = { ...element.props };
+
+    // handle cannot be cloned
+    delete elProps.handle;
+
     const newProps = {
-        ...element.props,
+        ...elProps,
         ...props
     };
 
