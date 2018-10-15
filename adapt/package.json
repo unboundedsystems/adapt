@@ -18,7 +18,7 @@
     "gql-gen": "npm run gql-gen:test_observer && npm run gql-gen:mock_observer",
     "tsc": "tsc -p tsconfig.json",
     "build": "npm run gql-gen && npm run tsc",
-    "build:watch": "npm run clean; npm run gql-gen && tsc -w -p tsconfig.json",
+    "build:watch": "make build && tsc -w -p tsconfig.json",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "test": "mocha --opts mocha.opts"
