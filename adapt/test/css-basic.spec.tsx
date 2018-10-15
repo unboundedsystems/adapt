@@ -15,7 +15,7 @@ describe("Selector Parsing", () => {
             origBuild: () => null,
             origElement: null,
         };
-        should(styles[0].sfc({}, info)).eql(<Dummy />);
+        should(styles[0].sfc({handle: Adapt.handle()}, info)).eql(<Dummy />);
     });
 });
 

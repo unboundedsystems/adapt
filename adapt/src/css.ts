@@ -13,7 +13,7 @@ export interface StyleBuildInfo {
     origElement: any;
 }
 export type BuildOverride<P = jsx.AnyProps> =
-    (props: P, info: StyleBuildInfo) => jsx.AdaptElementOrNull;
+    (props: P & jsx.BuiltinProps, info: StyleBuildInfo) => jsx.AdaptElementOrNull;
 
 export interface StyleRule {
     selector: string;
