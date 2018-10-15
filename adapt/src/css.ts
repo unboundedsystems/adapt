@@ -283,10 +283,9 @@ export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
         throw new Error("Invalid Styles element: " + util.inspect(styleElem));
     }
 
-    const props = styleElem.props as StyleProps;
     let curSelector = "";
     const rawStyles: RawStyle[] = [];
-    for (const child of props.children) {
+    for (const child of jsx.childrenToArray(styleElem.props.children)) {
         if (typeof child === "function") {
             curSelector = curSelector + uniqueName(child);
         } else if (typeof child === "string") {
