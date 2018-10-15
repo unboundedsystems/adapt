@@ -279,7 +279,7 @@ function buildQueryFields(
     swagger: Swagger2,
     tyResolver: LTypeResolver): GraphQLFieldConfigMap<unknown, unknown> {
 
-    const ret: GraphQLFieldConfigMap<unknown, unknown> = {}; //FIXME(manishv)  What is the type of a field?
+    const ret: GraphQLFieldConfigMap<unknown, unknown> = {};
     for (const swagPath in swagger.paths) {
         if (!Object.hasOwnProperty.call(swagger.paths, swagPath)) continue;
         const pathItem = swagger.paths[swagPath];
