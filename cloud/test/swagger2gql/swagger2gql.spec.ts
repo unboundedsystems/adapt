@@ -1,7 +1,7 @@
-//import * as fs from "fs-extra";
-import { GraphQLError, printSchema } from "graphql";
+import { gql } from "@usys/adapt";
+import { execute, GraphQLError, GraphQLResolveInfo, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-//import * as path from "path";
+import * as ld from "lodash";
 import * as should from "should";
 import swagger2gql from "../../src/swagger2gql";
 import {
@@ -48,11 +48,11 @@ function makeSwagger(
     };
 }
 
-function makeSimpleGetSwagger(responseSchema: Swagger2Schema) {
+function makeSimpleGetSwagger(responseSchema: Swagger2Schema, apiPath: string = "/api", apiOp: string = "getApi") {
     return makeSwagger({
-        "/api": {
+        [apiPath]: {
             get: {
-                operationId: "getApi",
+                operationId: apiOp,
                 responses: {
                     ["200"]: {
                         description: "API response",
@@ -62,6 +62,22 @@ function makeSimpleGetSwagger(responseSchema: Swagger2Schema) {
             }
         }
     });
+}
+
+function makeMultiGetSwagger(paths: { path: string, op: string, responseSchema: Swagger2Schema }[]): Swagger2 {
+    const ret: Swagger2 = {
+        swagger: "2.0",
+        info: {
+            title: "Test spec",
+            version: "1.0"
+        },
+        paths: {}
+    };
+    for (const p of paths) {
+        const s = makeSimpleGetSwagger(p.responseSchema, p.path, p.op);
+        ld.merge(ret, s);
+    }
+    return ret;
 }
 
 describe("Swagger to GraphQL Tests (simple)", () => {
@@ -114,6 +130,66 @@ describe("Swagger to GraphQL Tests (simple)", () => {
     it("Should convert with $ref parameter spec"); //Not supported yet
 
     it("Should convert with $ref response spec"); //Tested by k8s test cases below, add smaller tests in future here
+});
+
+describe("Swagger to GraphQL Tests (with resolvers)", () => {
+    it("Should resolve single field", async () => {
+        const swagger = makeSimpleGetSwagger({ type: "integer" });
+        swagger.paths["/api"].get!.parameters = [
+            { name: "foo", in: "query", type: "integer", default: 3 }
+        ];
+
+        const schema = swagger2gql(swagger, {
+            fieldResolvers: (_type, fieldName) => {
+                if (fieldName !== "getApi") throw new Error("fieldResolvers called for extraneous field");
+                return (_obj: unknown, args: { foo: number }, _context: unknown, _info: GraphQLResolveInfo) => {
+                    return args.foo + 1;
+                };
+            }
+        });
+
+        const result17 = execute(schema, gql`query { getApi(foo: 17) }`);
+        should(ld.cloneDeep(result17)).eql({ data: { getApi: 18 } });
+
+        const resultDefault = execute(schema, gql`query { getApi }`);
+        should(ld.cloneDeep(resultDefault)).eql({ data: { getApi: 4 } });
+    });
+
+    it("Should resolve multiple fields", async () => {
+        const swagger = makeMultiGetSwagger([
+            { path: "/api/plus1", op: "plus1", responseSchema: { type: "integer" } },
+            { path: "/api/square", op: "square", responseSchema: { type: "integer" } }
+        ]);
+        swagger.paths["/api/plus1"].get!.parameters = [
+            { name: "addend", in: "query", type: "integer", default: 7 }
+        ];
+        swagger.paths["/api/square"].get!.parameters = [
+            { name: "base", in: "query", type: "integer", default: 3 }
+        ];
+
+        const schema = swagger2gql(swagger, {
+            fieldResolvers: (_type, fieldName) => {
+                switch (fieldName) {
+                    case "plus1":
+                        return (_obj, args: { addend: number }, _context, _info) => {
+                            return args.addend + 1;
+                        };
+                    case "square":
+                        return (_obj, args: { base: number }, _context, _info) => {
+                            return args.base * args.base;
+                        };
+                    default:
+                        throw new Error("fieldResolvers called for extraneous field: " + fieldName);
+                }
+            }
+        });
+
+        const resultPlus1 = execute(schema, gql`query { plus1(addend: 17) }`);
+        should(ld.cloneDeep(resultPlus1)).eql({ data: { plus1: 18 } });
+
+        const resultSquareDefault = execute(schema, gql`query { square }`);
+        should(ld.cloneDeep(resultSquareDefault)).eql({ data: { square: 9 } });
+    });
 });
 
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", function () {

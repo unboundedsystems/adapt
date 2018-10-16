@@ -3,6 +3,7 @@ import {
     GraphQLFieldConfig,
     GraphQLFieldConfigArgumentMap,
     GraphQLFieldConfigMap,
+    GraphQLFieldResolver,
     GraphQLFloat,
     GraphQLInputObjectType,
     GraphQLInputType,
@@ -11,8 +12,11 @@ import {
     GraphQLNonNull,
     GraphQLObjectType,
     GraphQLOutputType,
+    GraphQLScalarType,
     GraphQLSchema,
-    GraphQLString
+    GraphQLString,
+    GraphQLTypeResolver,
+    isObjectType
 } from "graphql";
 
 import GraphQLJSON = require("graphql-type-json");
@@ -279,7 +283,7 @@ function buildQueryFields(
     swagger: Swagger2,
     tyResolver: LTypeResolver): GraphQLFieldConfigMap<unknown, unknown> {
 
-    const ret: GraphQLFieldConfigMap<unknown, unknown> = {}; //FIXME(manishv)  What is the type of a field?
+    const ret: GraphQLFieldConfigMap<unknown, unknown> = {};
     for (const swagPath in swagger.paths) {
         if (!Object.hasOwnProperty.call(swagger.paths, swagPath)) continue;
         const pathItem = swagger.paths[swagPath];
@@ -306,8 +310,54 @@ function buildQueryObject(swagger: Swagger2): GraphQLObjectType {
     });
 }
 
-export function buildGraphQLSchema(swagger: Swagger2): GraphQLSchema {
+type GQLFieldResolver<ObjectT = unknown, Context = unknown, Args = { [name: string]: unknown }> =
+    GraphQLFieldResolver<ObjectT, Context, Args>;
+type GQLTypeResolver<ObjectT = unknown, Context = unknown> = GraphQLTypeResolver<ObjectT, Context>;
+type FieldResolverFactory = (ty: GraphQLObjectType, field: string, isQueryType: boolean)
+    => GQLFieldResolver | undefined;
+type TypeResolverFactory = (ty: GraphQLScalarType, field: undefined, isQueryType: boolean)
+    => GQLTypeResolver | undefined;
+export interface ResolverFactory {
+    fieldResolvers?: FieldResolverFactory;
+    typeResolvers?: TypeResolverFactory;
+}
+
+function addResolversToFields(
+    seen: Set<GraphQLObjectType>,
+    obj: GraphQLObjectType,
+    getResolver: ResolverFactory,
+    isQuery: boolean = false): void {
+
+    if (seen.has(obj)) return;
+    seen.add(obj);
+
+    const fields = obj.getFields();
+    for (const fieldName in fields) {
+        if (!Object.hasOwnProperty.call(fields, fieldName)) continue;
+        const field = fields[fieldName];
+        const fieldResolvers = getResolver.fieldResolvers;
+        const resolver = fieldResolvers ? fieldResolvers(obj, fieldName, isQuery) : undefined;
+        field.resolve = resolver;
+        const fieldType = field.type;
+        if (isObjectType(fieldType)) {
+            addResolversToFields(seen, fieldType, getResolver, false);
+        }
+        //FIXME(manishv) How to deal with custom scalar types?
+    }
+}
+
+function addResolversToSchema(schema: GraphQLSchema, getResolver: ResolverFactory): void {
+    const queryType = schema.getQueryType();
+    if (!queryType) return;
+    addResolversToFields(new Set<GraphQLObjectType>(), queryType, getResolver, true);
+    return;
+}
+
+export function buildGraphQLSchema(
+    swagger: Swagger2,
+    getResolver?: ResolverFactory): GraphQLSchema {
     const qobj = buildQueryObject(swagger);
     const schema = new GraphQLSchema({ query: qobj });
+    if (getResolver) addResolversToSchema(schema, getResolver);
     return schema;
 }
