@@ -1,7 +1,7 @@
-//import * as fs from "fs-extra";
-import { GraphQLError, printSchema } from "graphql";
+import { gql } from "@usys/adapt";
+import { execute, GraphQLError, GraphQLResolveInfo, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-//import * as path from "path";
+import * as ld from "lodash";
 import * as should from "should";
 import swagger2gql from "../../src/swagger2gql";
 import {
@@ -114,6 +114,30 @@ describe("Swagger to GraphQL Tests (simple)", () => {
     it("Should convert with $ref parameter spec"); //Not supported yet
 
     it("Should convert with $ref response spec"); //Tested by k8s test cases below, add smaller tests in future here
+});
+
+describe("Swagger to GraphQL Tests (with resolvers)", () => {
+    it("Should resolve single field", async () => {
+        const swagger = makeSimpleGetSwagger({ type: "integer" });
+        swagger.paths["/api"].get!.parameters = [
+            { name: "foo", in: "query", type: "integer", default: 3 }
+        ];
+
+        const schema = swagger2gql(swagger, {
+            fieldResolvers: (_type, fieldName) => {
+                if (fieldName !== "getApi") throw new Error("fieldResolvers called for extraneous field");
+                return (_obj: unknown, args: { foo: number }, _context: unknown, _info: GraphQLResolveInfo) => {
+                    return args.foo + 1;
+                };
+            }
+        });
+
+        const result17 = execute(schema, gql`query { getApi(foo: 17) }`);
+        should(ld.cloneDeep(result17)).eql({ data: { getApi: 18 } });
+
+        const resultDefault = execute(schema, gql`query { getApi }`);
+        should(ld.cloneDeep(resultDefault)).eql({ data: { getApi: 4 } });
+    });
 });
 
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", function () {

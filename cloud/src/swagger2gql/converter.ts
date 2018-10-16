@@ -317,7 +317,10 @@ type FieldResolverFactory = (ty: GraphQLObjectType, field: string, isQueryType: 
     => GQLFieldResolver | undefined;
 type TypeResolverFactory = (ty: GraphQLScalarType, field: undefined, isQueryType: boolean)
     => GQLTypeResolver | undefined;
-type ResolverFactory = FieldResolverFactory & TypeResolverFactory;
+export interface ResolverFactory {
+    fieldResolvers?: FieldResolverFactory;
+    typeResolvers?: TypeResolverFactory;
+}
 
 function addResolversToFields(
     seen: Set<GraphQLObjectType>,
@@ -332,7 +335,8 @@ function addResolversToFields(
     for (const fieldName in fields) {
         if (!Object.hasOwnProperty.call(fields, fieldName)) continue;
         const field = fields[fieldName];
-        const resolver = getResolver(obj, fieldName, isQuery);
+        const fieldResolvers = getResolver.fieldResolvers;
+        const resolver = fieldResolvers ? fieldResolvers(obj, fieldName, isQuery) : undefined;
         field.resolve = resolver;
         const fieldType = field.type;
         if (isObjectType(fieldType)) {
