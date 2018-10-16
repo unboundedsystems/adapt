@@ -48,11 +48,11 @@ function makeSwagger(
     };
 }
 
-function makeSimpleGetSwagger(responseSchema: Swagger2Schema) {
+function makeSimpleGetSwagger(responseSchema: Swagger2Schema, apiPath: string = "/api", apiOp: string = "getApi") {
     return makeSwagger({
-        "/api": {
+        [apiPath]: {
             get: {
-                operationId: "getApi",
+                operationId: apiOp,
                 responses: {
                     ["200"]: {
                         description: "API response",
@@ -62,6 +62,22 @@ function makeSimpleGetSwagger(responseSchema: Swagger2Schema) {
             }
         }
     });
+}
+
+function makeMultiGetSwagger(paths: { path: string, op: string, responseSchema: Swagger2Schema }[]): Swagger2 {
+    const ret: Swagger2 = {
+        swagger: "2.0",
+        info: {
+            title: "Test spec",
+            version: "1.0"
+        },
+        paths: {}
+    };
+    for (const p of paths) {
+        const s = makeSimpleGetSwagger(p.responseSchema, p.path, p.op);
+        ld.merge(ret, s);
+    }
+    return ret;
 }
 
 describe("Swagger to GraphQL Tests (simple)", () => {
@@ -137,6 +153,42 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
 
         const resultDefault = execute(schema, gql`query { getApi }`);
         should(ld.cloneDeep(resultDefault)).eql({ data: { getApi: 4 } });
+    });
+
+    it("Should resolve multiple fields", async () => {
+        const swagger = makeMultiGetSwagger([
+            { path: "/api/plus1", op: "plus1", responseSchema: { type: "integer" } },
+            { path: "/api/square", op: "square", responseSchema: { type: "integer" } }
+        ]);
+        swagger.paths["/api/plus1"].get!.parameters = [
+            { name: "addend", in: "query", type: "integer", default: 7 }
+        ];
+        swagger.paths["/api/square"].get!.parameters = [
+            { name: "base", in: "query", type: "integer", default: 3 }
+        ];
+
+        const schema = swagger2gql(swagger, {
+            fieldResolvers: (_type, fieldName) => {
+                switch (fieldName) {
+                    case "plus1":
+                        return (_obj, args: { addend: number }, _context, _info) => {
+                            return args.addend + 1;
+                        };
+                    case "square":
+                        return (_obj, args: { base: number }, _context, _info) => {
+                            return args.base * args.base;
+                        };
+                    default:
+                        throw new Error("fieldResolvers called for extraneous field: " + fieldName);
+                }
+            }
+        });
+
+        const resultPlus1 = execute(schema, gql`query { plus1(addend: 17) }`);
+        should(ld.cloneDeep(resultPlus1)).eql({ data: { plus1: 18 } });
+
+        const resultSquareDefault = execute(schema, gql`query { square }`);
+        should(ld.cloneDeep(resultSquareDefault)).eql({ data: { square: 9 } });
     });
 });
 
