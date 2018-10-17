@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-IMAGE="node:8"
+IMAGE="node:10.11"
 
 TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 . "${TOP_DIR}/bin/common_containit_setup.sh"

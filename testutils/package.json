@@ -29,7 +29,7 @@
     "@types/js-yaml": "^3.11.2",
     "@types/lodash": "^4.14.110",
     "@types/moment": "^2.13.0",
-    "@types/node": "^8.10.20",
+    "@types/node": "^10.11.7",
     "@types/numeral": "^0.0.25",
     "mocha": "^5.2.0",
     "nyc": "^12.0.2",
