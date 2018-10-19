@@ -7,8 +7,8 @@ import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
 import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
+import { mkInstance } from "../run_minikube";
 import { act, doBuild, randomName } from "../testlib";
-import { mkInstance } from "./run_minikube";
 
 const { deleteAll, getAll } = k8sutils;
 
