@@ -7,7 +7,8 @@ import * as xml2js from "xml2js";
 
 import {
     AnyProps,
-    DOMNode
+    DOMNode,
+    DOMObject,
 } from "./dom";
 
 const rootName = "Adapt";
@@ -95,7 +96,7 @@ function isTextNode(xmlNode: XMLNode): xmlNode is XMLTextNode {
 
 function extractSoleText(xmlNode: XMLNode) {
     if (xmlNode.$$ == null) {
-        new Error("body missing");
+        throw new Error("body missing");
     }
 
     if (!ld.isArray(xmlNode.$$)) {
@@ -116,6 +117,19 @@ function extractSoleText(xmlNode: XMLNode) {
     } else {
         throw new Error("no text node found");
     }
+}
+
+function extractDOMObject(xmlNode: XMLNode): DOMObject {
+    if (xmlNode.$$ == null)  new Error("body missing");
+    if (!ld.isArray(xmlNode.$$)) throw new Error("Internal Error");
+    if (xmlNode.$$.length > 1) throw new Error("too many children");
+    if (xmlNode.$$.length === 0) throw new Error("node has no body");
+
+    const child = xmlNode.$$[0];
+    const uri = uriOf(child);
+    if (!uri.startsWith("urn:")) throw new Error("child has bad xmlns");
+    const json = extractSoleText(child);
+    return new DOMObject(uri, JSON.parse(json));
 }
 
 function handleJSON(xmlNode: XMLNode): object {
@@ -139,6 +153,14 @@ function getPropsNode(xmlNode: XMLNode): XMLPropsNode[] {
         return anode.__props__;
     }
     return [];
+}
+
+function extractProp(prop: XMLPropNode): any {
+    try {
+        return JSON.parse(extractSoleText(prop));
+    } catch (err) { /* */ }
+
+    return extractDOMObject(prop);
 }
 
 function computeProps(xmlNodeIn: XMLNode): AnyProps {
@@ -168,8 +190,7 @@ function computeProps(xmlNodeIn: XMLNode): AnyProps {
                 const name = prop.$.name.value;
                 if (ret[name] != null) throw new Error("duplicate prop: " + name);
                 try {
-                    const text = extractSoleText(prop);
-                    ret[name] = JSON.parse(text);
+                    ret[name] = extractProp(prop);
                 } catch (e) {
                     throw new Error("malformed prop node for " + name + ": " + e.message);
                 }

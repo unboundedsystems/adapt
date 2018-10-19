@@ -38,3 +38,11 @@ export class DOMNode {
         }
     }
 }
+
+export class DOMObject {
+    constructor(readonly uri: string, readonly data: any) {}
+}
+
+export function isDOMObject(n: unknown): n is DOMObject {
+    return n instanceof DOMObject;
+}
