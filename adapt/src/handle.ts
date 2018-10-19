@@ -1,8 +1,10 @@
-import { AdaptElement, isMountedElement } from "./jsx";
+import { AdaptElement, isMountedElement, KeyPath } from "./jsx";
+import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
     readonly target: AdaptElement | null;
     readonly name?: string;
+    replace(child: AdaptElement | null): void;
 }
 
 export function isHandle(val: unknown): val is Handle {
@@ -11,9 +13,9 @@ export function isHandle(val: unknown): val is Handle {
 
 export interface HandleInternal extends Handle {
     replaced: boolean;
+    unresolvedTarget?: KeyPath | null;
 
     associate(el: AdaptElement): void;
-    replace(child: AdaptElement | null): void;
 }
 
 export function isHandleInternal(val: unknown): val is HandleInternal {
@@ -31,32 +33,45 @@ let nextId = 0;
 const id = Symbol.for("AdaptHandleId");
 const origElement = Symbol.for("AdaptHandleOrigElement");
 
+interface HandleOptions {
+    name?: string;
+    target?: KeyPath;
+}
+
 class HandleImpl implements HandleInternal {
     readonly name?: string;
-    [origElement]?: AdaptElement;
+    unresolvedTarget?: KeyPath | null;
+    [origElement]?: AdaptElement | null;
     [id]: number; // For debugging
 
     // childElement is:
     //   a) undefined before origElement is associated & built
-    //   b) an Element if origElement's build replaced with another Element
-    //   c) null if there's no longer an Element in the final DOM that
+    //   b) undefined if handle was reanimated
+    //   c) an Element if origElement's build replaced with another Element
+    //   d) null if there's no longer an Element in the final DOM that
     //      corresponds to this handle.
     childElement?: AdaptElement | null;
 
-    constructor(name?: string) {
-        if (name) this.name = name;
+    constructor(opts: HandleOptions) {
         this[id] = nextId++;
+
+        if (opts.name) this.name = opts.name;
+
+        if (opts.target !== undefined) {
+            this.unresolvedTarget = opts.target;
+            if (opts.target === null) this.associate(null);
+        }
     }
 
-    associate = (el: AdaptElement) => {
+    associate = (el: AdaptElement | null) => {
         const orig = this[origElement];
-        if (orig != null) {
+        if (orig !== undefined) {
             const path = isMountedElement(orig) ? orig.path : "<not mounted>";
             throw new Error(
                 `Cannot associate a Handle with more than one AdaptElement. ` +
-                `Original element type ${orig.componentType.name}, ` +
+                `Original element type ${orig && orig.componentType.name}, ` +
                 `path: ${path}, ` +
-                `second association element type ${el.componentType.name}`);
+                `second association element type ${el && el.componentType.name}`);
         }
         this[origElement] = el;
     }
@@ -85,7 +100,7 @@ class HandleImpl implements HandleInternal {
         let hand: HandleImpl = this;
         while (true) {
             const orig = hand[origElement];
-            if (orig == null) {
+            if (orig === undefined) {
                 throw new Error(`This handle was never associated with an AdaptElement`);
             }
             if (hand.childElement === undefined) return orig;
@@ -112,7 +127,7 @@ class HandleImpl implements HandleInternal {
 
     toJSON() {
         const el = this.target;
-        const target = isMountedElement(el) ? el.path : null;
+        const target = isMountedElement(el) ? el.keyPath : null;
 
         return {
             name: this.name,
@@ -126,5 +141,9 @@ class HandleImpl implements HandleInternal {
  * @param name Name to associate with the handle for debugging/display purposes
  */
 export function handle(name?: string): Handle {
-    return new HandleImpl(name);
+    return new HandleImpl({name});
 }
+
+registerObject(HandleImpl, "HandleImpl", module);
+
+export const handleUrn = findMummyUrn(HandleImpl);

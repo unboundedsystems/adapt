@@ -2,11 +2,12 @@ import * as ld from "lodash";
 import * as xmlbuilder from "xmlbuilder";
 
 import { AdaptElement, AdaptElementOrNull, isElement } from ".";
+import { Handle, handleUrn, isHandle } from "./handle";
 import { childrenToArray, isComponentElement } from "./jsx";
 import { findMummyUrn } from "./reanimate";
 
 interface PreparedProps {
-    [key: string]: string;
+    [key: string]: string | Handle;
 }
 
 function serializedShortPropIsString(propVal: string): boolean {
@@ -24,14 +25,15 @@ function canBeShort(propName: string, propVal: any): boolean {
 }
 
 function serializeShortPropVal(propVal: any) {
-    const json = serializeLongPropVal(propVal, false);
-    if (ld.isString(propVal)) {
-        return json.slice(1, -1);
+    const long = serializeLongPropVal(propVal, false);
+    if (ld.isString(long) && ld.isString(propVal)) {
+        return long.slice(1, -1);
     }
-    return json;
+    return long;
 }
 
-function serializeLongPropVal(propVal: any, pretty = true) {
+function serializeLongPropVal(propVal: any, pretty = true): string | Handle {
+    if (isHandle(propVal)) return propVal;
     const json = JSON.stringify(propVal, null, pretty ? 2 : undefined);
     if (json != null) return json;
     return propVal.toString();
@@ -60,12 +62,21 @@ function collectProps(elem: AdaptElement) {
     return { shortProps, longProps };
 }
 
-function addPropsNode(node: xmlbuilder.XMLElementOrXMLNode, props: PreparedProps): void {
+function addPropsNode(
+    node: xmlbuilder.XMLElementOrXMLNode,
+    props: PreparedProps,
+    reanimateable: boolean
+): void {
     const propsNode = node.ele("__props__", {});
     for (const propName in props) {
         if (!props.hasOwnProperty(propName)) continue;
         const prop = props[propName];
-        propsNode.ele("prop", { name: propName }, prop);
+        if (isHandle(prop)) {
+            const n = propsNode.ele("prop", { name: propName });
+            serializeHandle(n, prop, reanimateable);
+        } else {
+            propsNode.ele("prop", { name: propName }, prop);
+        }
     }
 }
 
@@ -78,15 +89,22 @@ function serializeChildren(
     const children: any[] = childrenToArray(elem.props.children);
 
     for (const child of children) {
-        if (isElement(child)) {
-            serializeElement(node, child, reanimateable);
-        } else {
-            const serChild = JSON.stringify(child, null, 2);
-            if (serChild == null) {
-                node.ele("typescript", {}).cdata(child.toString());
-            } else {
-                node.ele("json", {}, serChild);
-            }
+        switch (true) {
+            case isElement(child):
+                serializeElement(node, child, reanimateable);
+                break;
+
+            case isHandle(child):
+                serializeHandle(node, child, reanimateable);
+                break;
+
+            default:
+                const serChild = JSON.stringify(child, null, 2);
+                if (serChild == null) {
+                    node.ele("typescript", {}).cdata(child.toString());
+                } else {
+                    node.ele("json", {}, serChild);
+                }
         }
     }
 }
@@ -124,9 +142,18 @@ function serializeElement(
         node = parent.ele(elem.componentType.name, shortProps);
     }
     if (longProps != null) {
-        addPropsNode(node, longProps);
+        addPropsNode(node, longProps, reanimateable);
     }
     serializeChildren(node, elem, reanimateable);
+}
+
+function serializeHandle(
+    parent: xmlbuilder.XMLElementOrXMLNode,
+    hand: Handle,
+    reanimateable: boolean,
+): void {
+    const attrs = reanimateable ? { xmlns: handleUrn } : {};
+    parent.ele("Handle", attrs, JSON.stringify(hand, null, 2));
 }
 
 export function serializeDom(root: AdaptElementOrNull, reanimateable = false): string {

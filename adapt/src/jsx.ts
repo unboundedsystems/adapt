@@ -30,6 +30,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly props: P & Required<BuiltinProps>;
     readonly id: string;
     readonly path: string;
+    readonly keyPath: KeyPath;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -58,6 +59,7 @@ export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
     extends AdaptPrimitiveElement<P> {
     readonly id: string;
     readonly path: string;
+    readonly keyPath: KeyPath;
     validate(): Message[];
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
@@ -224,6 +226,8 @@ export interface WithMatchProps {
     [$cssMatch]?: MatchProps;
 }
 
+export type KeyPath = string[];
+
 export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
     readonly props: Props & BuiltinProps & WithChildren & Required<WithMatchProps>;
 
@@ -231,6 +235,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     mounted = false;
     component: GenericComponent | null;
     path?: string;
+    keyPath?: KeyPath;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -259,7 +264,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace, path: string) {
+    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath) {
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -270,6 +275,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
         }
         this.path = path;
+        this.keyPath = keyPath;
         this.mounted = true;
     }
 

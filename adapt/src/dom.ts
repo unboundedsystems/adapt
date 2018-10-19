@@ -21,6 +21,7 @@ import {
     isMountedElement,
     isMountedPrimitiveElement,
     isPrimitiveElement,
+    KeyPath,
     popComponentConstructorData,
     pushComponentConstructorData,
     simplifyChildren,
@@ -295,10 +296,17 @@ function ApplyStyle(
         return props.element;
     };
 
-    return props.override(props.element.props, {
+    const hand = getInternalHandle(props.element);
+    const ret = props.override(props.element.props, {
         origBuild,
         origElement: props.element
     });
+
+    // Default behavior if they don't explicitly call
+    // handle.replace is to do the replace for them.
+    if (!hand.replaced) hand.replace(ret);
+
+    return ret;
 }
 
 function doOverride(
@@ -351,18 +359,25 @@ function mountElement(
     const newKey = computeMountKey(elem, parentStateNamespace);
     elem = doOverride(path, newKey, styles, options);
 
+    // In the case that there is an override, ApplyStyle takes care of
+    // doing the handle replace, so don't do it here.
+    const foundOverride = elem !== ld.last(path);
+
     // Default behavior if they don't explicitly call
     // handle.replace is to do the replace for them.
-    if (!hand.replaced) hand.replace(elem);
+    if (!foundOverride && !hand.replaced) hand.replace(elem);
 
     hand = getInternalHandle(elem);
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
-    if (!hand.replaced) hand.replace(elem);
+    if (!foundOverride && !hand.replaced) hand.replace(elem);
 
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-    elem.mount(parentStateNamespace, domPathToString(path));
+
+    const finalPath = subLastPathElem(path, elem);
+    elem.mount(parentStateNamespace, domPathToString(finalPath),
+        domPathToKeyPath(finalPath));
     const out = new BuildResults(options.recorder, elem);
     out.mountedElements.push(elem);
     return out;
@@ -762,4 +777,14 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
 
 export function domPathToString(domPath: DomPath): string {
     return "/" + domPath.map((el) => el.componentType.name).join("/");
+}
+
+function domPathToKeyPath(domPath: DomPath): KeyPath {
+    return domPath.map((el) => {
+        const key = el.props.key;
+        if (typeof key !== "string") {
+            throw new Error(`Internal error: element has no key`);
+        }
+        return key;
+    });
 }
