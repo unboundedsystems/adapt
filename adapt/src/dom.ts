@@ -274,8 +274,8 @@ async function computeContents(
     const out = await computeContentsFromElement(element, options);
 
     // Default behavior if the component doesn't explicitly call
-    // handle.replace is to do the replace for them.
-    if (!hand.replaced) hand.replace(out.contents);
+    // handle.replaceTarget is to do the replace for them.
+    if (!hand.targetReplaced) hand.replaceTarget(out.contents);
 
     options.recorder({
         type: "step",
@@ -303,8 +303,8 @@ function ApplyStyle(
     });
 
     // Default behavior if they don't explicitly call
-    // handle.replace is to do the replace for them.
-    if (!hand.replaced) hand.replace(ret);
+    // handle.replaceTarget is to do the replace for them.
+    if (!hand.targetReplaced) hand.replaceTarget(ret);
 
     return ret;
 }
@@ -364,12 +364,12 @@ function mountElement(
     const foundOverride = elem !== ld.last(path);
 
     // Default behavior if they don't explicitly call
-    // handle.replace is to do the replace for them.
-    if (!foundOverride && !hand.replaced) hand.replace(elem);
+    // handle.replaceTarget is to do the replace for them.
+    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
 
     hand = getInternalHandle(elem);
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
-    if (!foundOverride && !hand.replaced) hand.replace(elem);
+    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
 
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");

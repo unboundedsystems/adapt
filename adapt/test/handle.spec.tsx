@@ -30,7 +30,7 @@ class CallReplace extends Component<{}> {
     build() {
         const a1 = <Anything id={1} />;
         const a2 = <Anything id={2} />;
-        this.props.handle!.replace(a2);
+        this.props.handle!.replaceTarget(a2);
 
         return (
             <Group handle={handle()}>
@@ -156,7 +156,7 @@ describe("Element Handle", () => {
             <Style>
                 {Empty} {rule((props) => {
                     const a3 = <Anything id={3} />;
-                    props.handle!.replace(a3);
+                    props.handle!.replaceTarget(a3);
                     return (
                         <Group>
                             <Anything id={2} />

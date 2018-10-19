@@ -4,7 +4,7 @@ import { findMummyUrn, registerObject } from "./reanimate";
 export interface Handle {
     readonly target: AdaptElement | null;
     readonly name?: string;
-    replace(child: AdaptElement | null): void;
+    replaceTarget(child: AdaptElement | null): void;
 }
 
 export function isHandle(val: unknown): val is Handle {
@@ -12,7 +12,7 @@ export function isHandle(val: unknown): val is Handle {
 }
 
 export interface HandleInternal extends Handle {
-    replaced: boolean;
+    targetReplaced: boolean;
     unresolvedTarget?: KeyPath | null;
 
     associate(el: AdaptElement): void;
@@ -76,9 +76,9 @@ class HandleImpl implements HandleInternal {
         this[origElement] = el;
     }
 
-    replace = (el: AdaptElement | null) => {
-        if (this.replaced) {
-            throw new Error(`Cannot call replace on a Handle more than once`);
+    replaceTarget = (el: AdaptElement | null) => {
+        if (this.targetReplaced) {
+            throw new Error(`Cannot call replaceTarget on a Handle more than once`);
         }
         // Replacing with origElement doesn't modify anything (and importantly,
         // doesn't create a loop for target).
@@ -87,7 +87,7 @@ class HandleImpl implements HandleInternal {
         this.childElement = el;
     }
 
-    get replaced(): boolean {
+    get targetReplaced(): boolean {
         return this.childElement !== undefined;
     }
 
