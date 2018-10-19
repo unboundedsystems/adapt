@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import { npm } from "@usys/utils";
+import { mkdtmp, npm } from "@usys/utils";
 import { UserError } from "../error";
 import {
     AdaptModule,
@@ -13,7 +13,6 @@ import {
     verifyAdaptModule,
     verifyDeployState,
 } from "../types/adapt_shared";
-import { mkdtmp } from "../utils";
 import { VersionString } from "./gen";
 
 export interface Session {

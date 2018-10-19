@@ -72,7 +72,7 @@ export class CFStackBase extends Component<CFStackProps, CFStackState> {
 
         // Make sure StackName (and any other ResourceIds are just strings
         // in the primitive component)
-        const primProps = { ...this.props, ...ids };
+        const { handle, ...primProps } = { ...this.props, ...ids };
         return <CFStackPrimitive {...primProps} />;
     }
 }

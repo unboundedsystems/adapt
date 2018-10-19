@@ -34,7 +34,7 @@
     "outDir": "dist",
     "sourceMap": true,
     "strictNullChecks": true,
-    "target": "es6",
+    "target": "es2017",
     "typeRoots": [ // Only allow types to be pulled from specific directories
       "./types",
       "./node_modules/@types",

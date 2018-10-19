@@ -14,6 +14,7 @@
     "fs-extra": "^6.0.1",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.11",
+    "node-graceful": "^0.3.1",
     "type-ops": "^3.0.1"
   },
   "devDependencies": {
@@ -21,7 +22,7 @@
     "@types/execa": "^0.9.0",
     "@types/fs-extra": "^5.0.3",
     "@types/lodash": "^4.14.116",
-    "@types/node": "^8.10.20",
+    "@types/node": "^10.11.7",
     "@types/stream-buffers": "^3.0.2",
     "mocha": "^5.2.0",
     "mocked-env": "^1.2.1",

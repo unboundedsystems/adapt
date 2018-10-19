@@ -203,7 +203,7 @@ interface StackParams extends Partial<AWS.CloudFormation.Stack> {
  * that can be given to the client to create the stack.
  */
 export function createStackParams(el: StackElement, deployID: string) {
-    const { key, awsCredentials, children, ...params } = el.props;
+    const { handle, key, awsCredentials, children, ...params } = el.props;
     addAdaptDeployId(params, deployID);
     addAdaptId(params, adaptStackId(el));
     params.TemplateBody = toTemplateBody(createTemplate(el));

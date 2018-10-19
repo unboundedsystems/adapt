@@ -6,7 +6,7 @@
     </__props__>
     <LocalDockerHost>
       <__props__>
-        <prop name="key">"DockerHost-LocalDockerHost"</prop>
+        <prop name="key">"DockerHost"</prop>
       </__props__>
     </LocalDockerHost>
     <LocalContainer name="mongo">

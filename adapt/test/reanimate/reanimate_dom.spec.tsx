@@ -33,22 +33,30 @@ describe("Reanimate DOM basic tests", () => {
     });
 
     it("Should reanimate a simple DOM", async () => {
-        const origDom = <Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>;
+        const origDom =
+            <Adapt.Group key="a">
+                <Flex id={1} key="a"/>
+                <Flex id={2} key="b"/>
+            </Adapt.Group>;
         await roundTrip(origDom);
     });
 
     it("Should reanimate DOM with non-Element children", async () => {
         const someObj = { a: { b: "c" } };
         const origDom =
-            <Adapt.Group>
-                <Flex id={1}>{someObj}{someObj}</Flex>
-                <Flex id={2} />
+            <Adapt.Group key="a">
+                <Flex id={1} key="a">{someObj}{someObj}</Flex>
+                <Flex id={2} key="b"/>
             </Adapt.Group>;
         await roundTrip(origDom);
     });
 
     it("Should build a reanimated simple DOM", async () => {
-        const origDom = <Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>;
+        const origDom =
+            <Adapt.Group key="Group">
+                <Flex id={1} key="a"/>
+                <Flex id={2} key="b"/>
+            </Adapt.Group>;
         const zombie = await roundTrip(origDom);
         if (zombie == null) {
             should(zombie).not.be.Null();

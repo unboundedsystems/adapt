@@ -282,8 +282,9 @@ describe("Swagger to GraphQL remote query tests", () => {
 
         mockServer = http.createServer(mockApp);
         await new Promise((res, rej) => mockServer.listen((err: Error) => err ? rej(err) : res()));
-        const port = mockServer.address().port;
-        mockHost = "http://localhost:" + port.toString();
+        const addr = mockServer.address();
+        if (typeof addr === "string") throw new Error(`Expected an object`);
+        mockHost = "http://localhost:" + addr.port.toString();
     });
 
     afterEach(async () => {

@@ -21,6 +21,7 @@ import {
     isMountedElement,
     isMountedPrimitiveElement,
     isPrimitiveElement,
+    KeyPath,
     popComponentConstructorData,
     pushComponentConstructorData,
     simplifyChildren,
@@ -43,6 +44,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, isError, ThrewNonError } from "./error";
+import { getInternalHandle } from "./handle";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
 
 export type DomPath = AdaptElement[];
@@ -267,7 +269,13 @@ async function computeContents(
         return ret;
     }
 
+    const hand = getInternalHandle(element);
+
     const out = await computeContentsFromElement(element, options);
+
+    // Default behavior if the component doesn't explicitly call
+    // handle.replaceTarget is to do the replace for them.
+    if (!hand.targetReplaced) hand.replaceTarget(out.contents);
 
     options.recorder({
         type: "step",
@@ -288,10 +296,17 @@ function ApplyStyle(
         return props.element;
     };
 
-    return props.override(props.element.props, {
+    const hand = getInternalHandle(props.element);
+    const ret = props.override(props.element.props, {
         origBuild,
         origElement: props.element
     });
+
+    // Default behavior if they don't explicitly call
+    // handle.replaceTarget is to do the replace for them.
+    if (!hand.targetReplaced) hand.replaceTarget(ret);
+
+    return ret;
 }
 
 function doOverride(
@@ -339,13 +354,30 @@ function mountElement(
         throw new Error("Attempt to remount element: " + util.inspect(elem));
     }
 
+    let hand = getInternalHandle(elem);
+
     const newKey = computeMountKey(elem, parentStateNamespace);
     elem = doOverride(path, newKey, styles, options);
+
+    // In the case that there is an override, ApplyStyle takes care of
+    // doing the handle replace, so don't do it here.
+    const foundOverride = elem !== ld.last(path);
+
+    // Default behavior if they don't explicitly call
+    // handle.replaceTarget is to do the replace for them.
+    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
+
+    hand = getInternalHandle(elem);
     elem = cloneElement(elem, { key: newKey }, elem.props.children);
+    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
+
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
     }
-    elem.mount(parentStateNamespace, domPathToString(path));
+
+    const finalPath = subLastPathElem(path, elem);
+    elem.mount(parentStateNamespace, domPathToString(finalPath),
+        domPathToKeyPath(finalPath));
     const out = new BuildResults(options.recorder, elem);
     out.mountedElements.push(elem);
     return out;
@@ -745,4 +777,14 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
 
 export function domPathToString(domPath: DomPath): string {
     return "/" + domPath.map((el) => el.componentType.name).join("/");
+}
+
+function domPathToKeyPath(domPath: DomPath): KeyPath {
+    return domPath.map((el) => {
+        const key = el.props.key;
+        if (typeof key !== "string") {
+            throw new Error(`Internal error: element has no key`);
+        }
+        return key;
+    });
 }

@@ -406,9 +406,9 @@
   version "10.5.2"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.2.tgz#f19f05314d5421fe37e74153254201a7bf00a707"
 
-"@types/node@^8.10.20":
-  version "8.10.21"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-8.10.21.tgz#12b3f2359b27aa05a45d886c8ba1eb8d1a77e285"
+"@types/node@^10.11.7":
+  version "10.12.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.12.0.tgz#ea6dcbddbc5b584c83f06c60e82736d8fbb0c235"
 
 "@types/normalize-package-data@*":
   version "2.4.0"
@@ -3599,6 +3599,10 @@ node-fetch@^2.2.0:
 node-forge@^0.7.1:
   version "0.7.5"
   resolved "https://registry.yarnpkg.com/node-forge/-/node-forge-0.7.5.tgz#6c152c345ce11c52f465c2abd957e8639cd674df"
+
+node-graceful@^0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/node-graceful/-/node-graceful-0.3.1.tgz#0c8c5038e379b3afef6528340408542a5ce53a3e"
 
 node-int64@^0.4.0:
   version "0.4.0"

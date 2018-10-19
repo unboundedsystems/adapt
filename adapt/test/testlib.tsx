@@ -78,7 +78,9 @@ export function deepFilterElemsToPublic(o: any): any {
         });
 
         if (filtered.props != null) {
-            (filtered as any).props = deepFilterElemsToPublic(filtered.props);
+            // Don't include props.handle
+            const { handle, ...fProps } = filtered.props;
+            (filtered as any).props = deepFilterElemsToPublic(fProps);
         }
         return filtered;
     }
