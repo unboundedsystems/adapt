@@ -202,6 +202,7 @@ export interface Swagger2PathItem {
 export interface Swagger2 {
     swagger: "2.0";
     info: Swagger2Info;
+    host?: string;
     basePath?: string;
     paths: { [path: string]: Swagger2PathItem; };
     schemes?: Swagger2Schemes;

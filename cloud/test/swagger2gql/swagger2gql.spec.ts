@@ -1,7 +1,11 @@
 import { gql } from "@usys/adapt";
+import express = require("express");
+import { Express } from "express";
 import { execute, GraphQLError, GraphQLResolveInfo, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
+import * as http from "http";
 import * as ld from "lodash";
+import fetch from "node-fetch";
 import * as should from "should";
 import swagger2gql from "../../src/swagger2gql";
 import {
@@ -10,6 +14,9 @@ import {
     Swagger2Schema
 } from "../../src/swagger2gql/swagger_types";
 import k8sSwagger = require("./kubernetes-1.8-swagger.json");
+
+// tslint:disable-next-line:no-var-requires
+const swaggerClient = require("swagger-client");
 
 function lineWithContext(txt: string, lineNo: number): string {
     const contextAmt = 10;
@@ -148,10 +155,10 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
             }
         });
 
-        const result17 = execute(schema, gql`query { getApi(foo: 17) }`);
+        const result17 = await execute(schema, gql`query { getApi(foo: 17) }`);
         should(ld.cloneDeep(result17)).eql({ data: { getApi: 18 } });
 
-        const resultDefault = execute(schema, gql`query { getApi }`);
+        const resultDefault = await execute(schema, gql`query { getApi }`);
         should(ld.cloneDeep(resultDefault)).eql({ data: { getApi: 4 } });
     });
 
@@ -184,10 +191,10 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
             }
         });
 
-        const resultPlus1 = execute(schema, gql`query { plus1(addend: 17) }`);
+        const resultPlus1 = await execute(schema, gql`query { plus1(addend: 17) }`);
         should(ld.cloneDeep(resultPlus1)).eql({ data: { plus1: 18 } });
 
-        const resultSquareDefault = execute(schema, gql`query { square }`);
+        const resultSquareDefault = await execute(schema, gql`query { square }`);
         should(ld.cloneDeep(resultSquareDefault)).eql({ data: { square: 9 } });
     });
 });
@@ -201,5 +208,136 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", function () {
         const schemaTxt = printSchema(schema);
 
         reportGraphQLError(schemaTxt, (s) => makeExecutableSchema({ typeDefs: s }));
+    });
+});
+
+describe("Swagger to GraphQL remote query tests", () => {
+    let mockServer: http.Server;
+    let mockApp: Express;
+    let mockHost: string;
+
+    const mockSwagger: Swagger2 = {
+        swagger: "2.0",
+        info: {
+            title: "Test spec",
+            version: "1.0"
+        },
+        paths: {
+            "/api/plus1": {
+                get: {
+                    operationId: "plus1",
+                    produces: ["application/json"],
+                    parameters: [{
+                        name: "addend",
+                        in: "query",
+                        type: "integer"
+                    }],
+                    responses: {
+                        ["200"]: { description: "Addend + 1", schema: { type: "integer" } },
+                        ["400"]: { description: "Bad Request", schema: { type: "string" } }
+                    }
+                }
+            },
+            "/api/square": {
+                get: {
+                    operationId: "square",
+                    produces: ["application/json"],
+                    parameters: [{
+                        name: "base",
+                        in: "query",
+                        type: "integer"
+                    }],
+                    responses: {
+                        ["200"]: { description: "Base squared", schema: { type: "integer" } },
+                        ["400"]: { description: "Bad Request", schema: { type: "string" } }
+                    }
+                }
+            }
+        }
+    };
+
+    beforeEach(async () => {
+        mockApp = express();
+        mockApp.get("/api/plus1", (req, res) => {
+            const addendString = req.query.addend ? req.query.addend : "7";
+            const addend = Number(addendString);
+            if (Number.isNaN(addend)) {
+                res.status(400).json("Must have numeric addend");
+            } else {
+                res.status(200).json(addend + 1);
+            }
+            res.end();
+        });
+
+        mockApp.get("/api/square", (req, res) => {
+            const baseString = req.query.base ? req.query.base : "3";
+            const base = Number(baseString);
+            if (Number.isNaN(base)) {
+                res.status(400).send("Must have numeric addend");
+            } else {
+                res.json(base * base);
+            }
+            res.end();
+        });
+
+        mockServer = http.createServer(mockApp);
+        await new Promise((res, rej) => mockServer.listen((err: Error) => err ? rej(err) : res()));
+        const port = mockServer.address().port;
+        mockHost = "http://localhost:" + port.toString();
+    });
+
+    afterEach(async () => {
+        await new Promise((res, rej) => mockServer.close((err: Error) => err ? rej(err) : res()));
+    });
+
+    it("Server baseline (no graphql)", async () => {
+        //This is just a baseline to make sure the server setup is working.
+        //Doesn't test the library but is useful for diagnosing other test failures
+        const req = await swaggerClient.buildRequest({
+            spec: mockSwagger,
+            operationId: "plus1",
+            parameters: { addend: 17 },
+            requestContentType: "application/json",
+            responseContentType: "application/json"
+        });
+
+        const url = mockHost + req.url;
+
+        // tslint:disable-next-line:no-object-literal-type-assertion
+        const resp = await fetch(url, req);
+        should(resp.status).equal(200);
+        should(await resp.json()).equal(18);
+    });
+
+    it("Should connect to server and get data", async () => {
+        const schema = swagger2gql(mockSwagger, {
+            fieldResolvers: (_type, fieldName, isQuery) => {
+                if (!isQuery) return;
+                return async (_obj, args, _context, _info) => {
+                    const req = await swaggerClient.buildRequest({
+                        spec: mockSwagger,
+                        operationId: fieldName,
+                        parameters: args,
+                        requestContentType: "application/json",
+                        responseContentType: "application/json"
+                    });
+
+                    const url = mockHost + req.url;
+
+                    const resp = await fetch(url, req);
+                    if (resp.status !== 200) {
+                        throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
+                    }
+
+                    return resp.json();
+                };
+            }
+        });
+
+        const resultPlus1 = await execute(schema, gql`query { plus1(addend: 3) }`);
+        should(ld.cloneDeep(resultPlus1)).eql({ data: { plus1: 4 } });
+
+        const resultSquare = await execute(schema, gql`query { square(base: 5) }`);
+        should(ld.cloneDeep(resultSquare)).eql({ data: { square: 25 } });
     });
 });
