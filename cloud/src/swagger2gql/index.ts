@@ -8,4 +8,5 @@ function swagger2gql(swaggerIn: string | object, getResolver?: ResolverFactory) 
     return buildGraphQLSchema(swagger, getResolver);
 }
 
+export { ResolverFactory };
 export default swagger2gql;

@@ -1,18 +1,20 @@
 import { gql } from "@usys/adapt";
-import express = require("express");
 import { Express } from "express";
-import { execute, GraphQLError, GraphQLResolveInfo, printSchema } from "graphql";
+import express = require("express");
+import { execute, GraphQLError, GraphQLResolveInfo, GraphQLSchema, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import * as http from "http";
+import * as https from "https";
 import * as ld from "lodash";
 import fetch from "node-fetch";
 import * as should from "should";
-import swagger2gql from "../../src/swagger2gql";
+import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
     Swagger2,
     Swagger2PathItem,
     Swagger2Schema
 } from "../../src/swagger2gql/swagger_types";
+import { mkInstance } from "../run_minikube";
 import k8sSwagger = require("./kubernetes-1.8-swagger.json");
 
 // tslint:disable-next-line:no-var-requires
@@ -85,6 +87,31 @@ function makeMultiGetSwagger(paths: { path: string, op: string, responseSchema: 
         ld.merge(ret, s);
     }
     return ret;
+}
+
+function swaggerResolverFactory(spec: Swagger2, host: string, agent?: https.Agent): ResolverFactory {
+    return {
+        fieldResolvers: (_type, fieldName, isQuery) => {
+            if (!isQuery) return;
+            return async (_obj, args, _context, _info) => {
+                const req = await swaggerClient.buildRequest({
+                    spec,
+                    operationId: fieldName,
+                    parameters: args,
+                    requestContentType: "application/json",
+                    responseContentType: "application/json"
+                });
+
+                const url = host + req.url;
+                const resp = await fetch(url, { ...req, agent });
+                if (resp.status !== 200) {
+                    throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
+                }
+
+                return resp.json();
+            };
+        }
+    };
 }
 
 describe("Swagger to GraphQL Tests (simple)", () => {
@@ -199,15 +226,117 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
     });
 });
 
-describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", function () {
-    this.timeout(30000);
-    it("Should convert kubernetes 1.8 swagger specification and reparse schema", async () => {
-        const schema = swagger2gql(k8sSwagger);
+interface Kubeconfig {
+    kind: "Config";
+    "current-context": string;
+    contexts: [{
+        name: string,
+        context: {
+            cluster: string,
+            user: string
+        }
+    }];
+    clusters: [{
+        name: string,
+        cluster: {
+            "certificate-authority-data": string;
+            server: string;
+        };
+    }];
+    users: [{
+        name: string,
+        user: {
+            "client-certificate-data": string,
+            "client-key-data": string
+        }
+    }];
+}
+
+function getK8sInfo(kubeconfig: Kubeconfig) {
+    function byName(name: string) { return (x: { name: string }) => x.name === name; }
+    const contextName: string = kubeconfig["current-context"];
+    const context = kubeconfig.contexts.find(byName(contextName));
+    if (!context) throw new Error(`Could no find context ${contextName}`);
+
+    const cluster = kubeconfig.clusters.find(byName(context.context.cluster));
+    const user = kubeconfig.users.find(byName(context.context.user));
+
+    if (!cluster) throw new Error(`Could not find cluster ${context.context.cluster}`);
+    const caData = cluster.cluster["certificate-authority-data"];
+    const ca = caData ? Buffer.from(caData, "base64").toString() : undefined;
+
+    const url = cluster.cluster.server;
+
+    if (!user) throw new Error(`Could not find user ${context.context.user}`);
+    const keyData = user.user["client-key-data"];
+    const certData = user.user["client-certificate-data"];
+    const key = Buffer.from(keyData, "base64").toString();
+    const cert = Buffer.from(certData, "base64").toString();
+
+    return {
+        ca,
+        url,
+        key,
+        cert
+    };
+}
+
+describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
+    let schema: GraphQLSchema;
+    before(function () {
+        this.timeout(30000);
+        const kubeconfig = mkInstance.kubeconfig;
+        const info = getK8sInfo(kubeconfig as Kubeconfig);
+        const agent = new https.Agent({
+            key: info.key,
+            cert: info.cert,
+            ca: info.ca,
+        });
+        const host = info.url;
+        schema = swagger2gql(
+            k8sSwagger,
+            swaggerResolverFactory(k8sSwagger, host, agent));
+    });
+
+    it("Should convert and reparse schema", async () => {
         should(schema).not.Undefined();
         should(schema).not.Null();
         const schemaTxt = printSchema(schema);
 
         reportGraphQLError(schemaTxt, (s) => makeExecutableSchema({ typeDefs: s }));
+    });
+
+    it("Should convert and fetch running pods", async () => {
+        const result = await execute(schema,
+            gql`query {
+                listCoreV1NamespacedPod(namespace: "kube-system") {
+                    kind
+                    items { metadata { name } }
+                }
+            }`);
+        should(result.errors).Undefined();
+
+        const data = result.data;
+        if (data === undefined) return should(data).not.Undefined();
+
+        const pods = data.listCoreV1NamespacedPod;
+        if (pods === undefined) return should(pods).not.Undefined();
+        should(pods.kind).equal("PodList");
+
+        const items = pods.items as ({ metadata?: { name?: string } } | undefined)[];
+        if (items === undefined) return should(items).not.Undefined();
+        if (!ld.isArray(items)) return should(items).Array();
+
+        for (const item of items) {
+            if (item === undefined) return should(item).not.Undefined();
+            const meta = item.metadata;
+            if (meta === undefined) return should(meta).not.Undefined();
+            const name = meta.name;
+            if (name === undefined) return should(name).not.Undefined();
+            const re = /(^(?:kube-dns)|(?:kube-addon-manager)|(?:storage-provisioner))-[a-z\-0-9]+$/;
+            return should(name).match(re);
+        }
+        should(items.length).equal(3);
     });
 });
 
@@ -311,29 +440,7 @@ describe("Swagger to GraphQL remote query tests", () => {
     });
 
     it("Should connect to server and get data", async () => {
-        const schema = swagger2gql(mockSwagger, {
-            fieldResolvers: (_type, fieldName, isQuery) => {
-                if (!isQuery) return;
-                return async (_obj, args, _context, _info) => {
-                    const req = await swaggerClient.buildRequest({
-                        spec: mockSwagger,
-                        operationId: fieldName,
-                        parameters: args,
-                        requestContentType: "application/json",
-                        responseContentType: "application/json"
-                    });
-
-                    const url = mockHost + req.url;
-
-                    const resp = await fetch(url, req);
-                    if (resp.status !== 200) {
-                        throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
-                    }
-
-                    return resp.json();
-                };
-            }
-        });
+        const schema = swagger2gql(mockSwagger, swaggerResolverFactory(mockSwagger, mockHost));
 
         const resultPlus1 = await execute(schema, gql`query { plus1(addend: 3) }`);
         should(ld.cloneDeep(resultPlus1)).eql({ data: { plus1: 4 } });
