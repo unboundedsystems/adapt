@@ -1,4 +1,5 @@
 import Docker = require("dockerode");
+import { merge } from "lodash";
 import * as moment from "moment";
 import graceful from "node-graceful";
 import { addToNetwork, createNetwork, dockerPull } from "./dockerutils";
@@ -80,7 +81,7 @@ class DockerFixtureImpl implements DockerFixture {
 
         const tempName = `test_${process.pid}_${moment().format("MMDD-HHmm-ss-SSSSSS")}`;
 
-        const spec = { ...specDefaults, name: tempName, ...containerSpec };
+        const spec = merge(specDefaults, { name: tempName }, containerSpec);
 
         await dockerPull(this.dockerClient, image, "      ");
         const container = await this.dockerClient.createContainer(spec);
