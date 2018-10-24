@@ -28,14 +28,20 @@ export interface RawStyle {
 
 type SelFrag = cssWhat.ParsedSelectorFrag;
 
+interface Matched {
+    newPath: DomPath;
+    matched: boolean;
+}
+
 interface MatchConfigType {
-    [type: string]: (frag: SelFrag,
-        path: DomPath) => { newPath: DomPath, matched: boolean };
+    [type: string]: (frag: SelFrag, path: DomPath) => Matched;
 }
 
 const matchConfig: MatchConfigType = {
+    attribute: matchAttribute,
     child: matchChild,
     descendant: () => { throw new Error("Internal Error: should not get here"); },
+    pseudo: matchPseudo,
     tag: matchTag
 };
 
@@ -47,12 +53,99 @@ function last<T>(arr: T[]): { prefix: T[], elem: T | null } {
     return { prefix: arr.slice(0, -1), elem: lastElem };
 }
 
+function getPropValue(elem: jsx.AdaptElement, prop: string, ignoreCase: boolean): string | undefined {
+    let val: any;
+
+    if (ignoreCase) {
+        prop = prop.toLowerCase();
+        for (const key of Object.keys(elem.props)) {
+            if (key.toLowerCase() === prop) val = elem.props[key];
+        }
+    } else {
+        val = elem.props[prop];
+    }
+    return typeof val === "string" ? val : undefined;
+}
+
 function fragToString(frag: SelFrag): string {
     //FIXME(manishv) Actually convert back to CSS syntax
     return util.inspect(frag);
 }
 
-function matchTag(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: boolean } {
+/*
+ * Pseudo-classes
+ */
+
+const matchPseudoConfig: MatchConfigType = {
+    root: matchRoot,
+    not: matchNot,
+};
+
+function matchPseudo(frag: SelFrag, path: DomPath): Matched {
+    if (frag.type !== "pseudo") throw new Error("Internal Error: " + util.inspect(frag));
+    const matcher = matchPseudoConfig[frag.name];
+    if (matcher == null) throw new Error(`Unsupported CSS pseudo-class :${frag.name}`);
+    return matcher(frag, path);
+}
+
+function matchNot(frag: SelFrag, path: DomPath): Matched {
+    if (frag.type !== "pseudo") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.data == null || frag.data.length === 0 || frag.data[0].length === 0) {
+        throw new Error(`CSS ":not" requires at least one selector argument in parentheses`);
+    }
+
+    return { newPath: path, matched: !matchWithSelector(frag.data, path) };
+}
+
+function matchRoot(frag: SelFrag, path: DomPath): Matched {
+    // NOTE(mark): This implementation for matchRoot depends on path always
+    // starting with the actual root element, so therefore path.length is
+    // the actual depth of the last element in path. matchChild and
+    // matchDecendant both modify path, but always remove from the END of
+    // the path.
+    return { newPath: path, matched: path.length === 1 };
+}
+
+/*
+ * Basic selectors
+ */
+
+function matchAttribute(frag: SelFrag, path: DomPath): Matched {
+    if (frag.type !== "attribute") throw new Error("Internal Error: " + util.inspect(frag));
+
+    const { elem } = last(path);
+    if (elem == null) throw new Error("Internal error, null element");
+
+    const value = getPropValue(elem, frag.name, frag.ignoreCase);
+    if (value === undefined) return { newPath: path, matched: false };
+
+    let matched: boolean;
+    switch (frag.action) {
+        case "exists":
+            matched = true;
+            break;
+        case "equals":
+            matched = value === frag.value;
+            break;
+        case "start":
+            matched = value.startsWith(frag.value);
+            break;
+        case "any":
+            matched = value.includes(frag.value);
+            break;
+        case "end":
+            matched = value.endsWith(frag.value);
+            break;
+        case "element":
+            matched = value.split(/\s+/).indexOf(frag.value) !== -1;
+            break;
+        default:
+            throw new Error(`CSS attribute selector action '${frag.action}' not supported`);
+    }
+    return { newPath: path, matched };
+}
+
+function matchTag(frag: SelFrag, path: DomPath): Matched {
     if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
 
     const { elem } = last(path);
@@ -61,21 +154,13 @@ function matchTag(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: bo
     return { newPath: path, matched: uniqueName(elem.componentType) === frag.name };
 }
 
-function matchChild(frag: SelFrag, path: DomPath): { newPath: DomPath, matched: boolean } {
+/*
+ * Combinators
+ */
+function matchChild(frag: SelFrag, path: DomPath): Matched {
     if (frag.type !== "child") throw new Error("Internal Error: " + util.inspect(frag));
     if (path.length < 1) return { newPath: path, matched: false };
     return { newPath: path.slice(0, -1), matched: true };
-}
-
-function matchFrag(
-    selFrag: SelFrag,
-    path: DomPath) {
-
-    const matcher = matchConfig[selFrag.type];
-    if (matcher === undefined) {
-        throw new Error("Unsupported selector fragment: " + fragToString(selFrag));
-    }
-    return matcher(selFrag, path);
 }
 
 function matchDescendant(
@@ -99,6 +184,21 @@ function matchDescendant(
         }
     }
     return false;
+}
+
+/*
+ * Top-level matching
+ */
+
+function matchFrag(
+    selFrag: SelFrag,
+    path: DomPath) {
+
+    const matcher = matchConfig[selFrag.type];
+    if (matcher === undefined) {
+        throw new Error("Unsupported selector fragment: " + fragToString(selFrag));
+    }
+    return matcher(selFrag, path);
 }
 
 function matchWithSelector(
@@ -294,7 +394,7 @@ export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
             rawStyles.push(makeStyle(curSelector.trim(), child.override));
             curSelector = "";
         } else {
-            throw new Error("Unsupported child type in Styles: " + util.inspect(child));
+            throw new Error(`Unsupported child type in Styles: "${typeof child}" (value: ${util.inspect(child)})`);
         }
     }
 

@@ -105,6 +105,101 @@ describe("Selector matching", () => {
             testStyleDom(outerStyle, outerFooDom, innerFooDom);
         }
     });
+
+    it("Should match :root", () => {
+        const style = <css.Style>:root {css.rule(() => null)}</css.Style>;
+        const matchDom = <Dummy/>;
+        const noMatchDom = <Adapt.Group><Dummy/></Adapt.Group>;
+        testStyleDom(style, matchDom, noMatchDom);
+    });
+
+    it("Should not match :root as descendant", () => {
+        const style = <css.Style>{Dummy} :root {Dummy} {css.rule(() => null)}</css.Style>;
+        const noMatchDom = <Dummy id="1"><Dummy id="2"><Dummy id="3"></Dummy></Dummy></Dummy>;
+        testStyleDom(style, null, noMatchDom);
+    });
+
+    it("Should not match :root as child", () => {
+        const style = <css.Style>{Dummy} > :root {css.rule(() => null)}</css.Style>;
+        const noMatchDom = <Dummy id="1"><Dummy id="2"><Dummy id="3"></Dummy></Dummy></Dummy>;
+        testStyleDom(style, null, noMatchDom);
+    });
+
+    it("Should match :not(element)", () => {
+        const style = <css.Style>:not({Dummy}) {css.rule(() => null)}</css.Style>;
+        testStylePath(style, [<Foo />], [<Dummy />]);
+    });
+
+    it("Should error on :not without parens", () => {
+        const style = <css.Style>:not{css.rule(() => null)}</css.Style>;
+        const matchDom = <Dummy/>;
+        should(() => testStyleDom(style, matchDom, null)).throwError(/requires at least one selector/);
+    });
+
+    it("Should error on :not with no args", () => {
+        const style = <css.Style>:not(){css.rule(() => null)}</css.Style>;
+        const matchDom = <Dummy/>;
+        should(() => testStyleDom(style, matchDom, null)).throwError(/requires at least one selector/);
+    });
+
+    it("Should match :not(element, element)", () => {
+        const style = <css.Style>:not({Dummy},{Adapt.Group}) {css.rule(() => null)}</css.Style>;
+        testStylePath(style, [<Foo />], [<Dummy />]);
+        testStylePath(style, null, [<Adapt.Group />]);
+    });
+
+    it("Should match attribute exists", () => {
+        const style = <css.Style>{Dummy}[here] {css.rule(() => null)}</css.Style>;
+        const matchDom = <Dummy here="hi" />;
+        const noMatchDom = <Dummy />;
+        testStyleDom(style, matchDom, noMatchDom);
+    });
+
+    it("Should match attribute equals", () => {
+        testStyleDom(
+            <css.Style>{Dummy}[here="hi"] {css.rule(() => null)}</css.Style>,
+            <Dummy here="hi" />,  // match
+            <Dummy here="hill" /> // no match
+        );
+        // An attribute value without quotes is still treated as a string
+        testStyleDom(
+            <css.Style>{Dummy}[here=1] {css.rule(() => null)}</css.Style>,
+            <Dummy here="1" />,  // match
+            <Dummy here={1} />   // no match
+        );
+    });
+
+    it("Should match attribute start", () => {
+        testStyleDom(
+            <css.Style>{Dummy}[here^="hi"] {css.rule(() => null)}</css.Style>,
+            <Dummy here="hill" />,  // match
+            <Dummy here="ahill" />  // no match
+        );
+    });
+
+    it("Should match attribute end", () => {
+        testStyleDom(
+            <css.Style>{Dummy}[here$="hi"] {css.rule(() => null)}</css.Style>,
+            <Dummy here="lohi" />,  // match
+            <Dummy here="hilo" />   // no match
+        );
+    });
+
+    it("Should match attribute any (substring)", () => {
+        testStyleDom(
+            <css.Style>{Dummy}[here*="hi"] {css.rule(() => null)}</css.Style>,
+            <Dummy here="chilly" />, // match
+            <Dummy here="warm" />    // no match
+        );
+    });
+
+    it("Should match attribute tilde", () => {
+        testStyleDom(
+            <css.Style>{Dummy}[here~="hi"] {css.rule(() => null)}</css.Style>,
+            <Dummy here="low medium hi max" />, // match
+            <Dummy here="low high" />           // no match
+        );
+    });
 });
 
 describe("concatStyles", () => {
