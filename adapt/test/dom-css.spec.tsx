@@ -114,6 +114,56 @@ describe("DOM CSS Build Tests", () => {
             f.callCount.should.equal(1, msg);
         });
     });
+
+    it("Should match root element", async () => {
+        const orig =
+            <Adapt.Group key="root">
+                <Empty id={1} />
+            </Adapt.Group>;
+        const styles =
+            <Adapt.Style>
+                :root {Adapt.rule((props, info) => Adapt.ruleNoRematch(info,
+                    <Empty id={2}>{props.children}</Empty>
+                ))}
+            </Adapt.Style>;
+
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
+
+        should(Adapt).not.Null();
+        should(Adapt.isElement(dom)).True();
+        const expected = deepFilterElemsToPublic(
+            <Empty id={2} key="root-Empty">
+                <Empty id={1} key="Empty" />
+            </Empty>
+        );
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
+    it("Should replace root with a wrapper element", async () => {
+        class Wrapper extends Adapt.PrimitiveComponent<{children: any}> { }
+        const orig =
+            <Adapt.Group key="root">
+                <Empty id={1} />
+            </Adapt.Group>;
+        const styles =
+            <Adapt.Style>
+                :root:not({Wrapper}) {Adapt.rule((props) => (
+                    <Wrapper key={props.key}>{props.children}</Wrapper>
+                ))}
+            </Adapt.Style>;
+
+        const { contents: dom } = await Adapt.buildOnce(orig, styles);
+
+        should(Adapt).not.Null();
+        should(Adapt.isElement(dom)).True();
+        const expected = deepFilterElemsToPublic(
+            <Wrapper key="root">
+                <Empty id={1} key="Empty" />
+            </Wrapper>
+        );
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
 });
 
 describe("DOM CSS find tests", () => {

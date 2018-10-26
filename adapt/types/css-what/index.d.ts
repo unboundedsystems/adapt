@@ -19,7 +19,7 @@ namespace parser {
     export interface Pseudo {
         type: 'pseudo';
         name: string;
-        data?: string;
+        data?: ParsedSelector;
     }
 
     export interface Attribute {
