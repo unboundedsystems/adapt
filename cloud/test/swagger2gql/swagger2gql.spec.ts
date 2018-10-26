@@ -161,6 +161,12 @@ describe("Swagger to GraphQL Tests (simple)", () => {
         should(schemaTxt).match(/getApi\(foo: Int = 3, bar: Int!\): String/);
     });
 
+    it("Should detect invalid swagger files", () => {
+        should(() => swagger2gql({})).throwError();
+        //make sure cached status is valid
+        should(() => swagger2gql({})).throwError();
+    });
+
     it("Should convert with $ref parameter spec"); //Not supported yet
 
     it("Should convert with $ref response spec"); //Tested by k8s test cases below, add smaller tests in future here
