@@ -8,6 +8,7 @@ import * as https from "https";
 import * as ld from "lodash";
 import fetch from "node-fetch";
 import * as should from "should";
+import { getK8sConnectInfo, Kubeconfig } from "../../src/k8s/k8s_observer";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
@@ -16,7 +17,6 @@ import {
     Swagger2Schema
 } from "../../src/swagger2gql/swagger_types";
 import { mkInstance } from "../run_minikube";
-import k8sSwagger = require("./kubernetes-1.8-swagger.json");
 
 // tslint:disable-next-line:no-var-requires
 const swaggerClient = require("swagger-client");
@@ -233,67 +233,12 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
     });
 });
 
-interface Kubeconfig {
-    kind: "Config";
-    "current-context": string;
-    contexts: [{
-        name: string,
-        context: {
-            cluster: string,
-            user: string
-        }
-    }];
-    clusters: [{
-        name: string,
-        cluster: {
-            "certificate-authority-data": string;
-            server: string;
-        };
-    }];
-    users: [{
-        name: string,
-        user: {
-            "client-certificate-data": string,
-            "client-key-data": string
-        }
-    }];
-}
-
-function getK8sInfo(kubeconfig: Kubeconfig) {
-    function byName(name: string) { return (x: { name: string }) => x.name === name; }
-    const contextName: string = kubeconfig["current-context"];
-    const context = kubeconfig.contexts.find(byName(contextName));
-    if (!context) throw new Error(`Could no find context ${contextName}`);
-
-    const cluster = kubeconfig.clusters.find(byName(context.context.cluster));
-    const user = kubeconfig.users.find(byName(context.context.user));
-
-    if (!cluster) throw new Error(`Could not find cluster ${context.context.cluster}`);
-    const caData = cluster.cluster["certificate-authority-data"];
-    const ca = caData ? Buffer.from(caData, "base64").toString() : undefined;
-
-    const url = cluster.cluster.server;
-
-    if (!user) throw new Error(`Could not find user ${context.context.user}`);
-    const keyData = user.user["client-key-data"];
-    const certData = user.user["client-certificate-data"];
-    const key = Buffer.from(keyData, "base64").toString();
-    const cert = Buffer.from(certData, "base64").toString();
-
-    return {
-        ca,
-        url,
-        key,
-        cert
-    };
-}
-
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
     let schema: GraphQLSchema;
     before(function () {
         this.timeout(30000);
         const kubeconfig = mkInstance.kubeconfig;
-        const info = getK8sInfo(kubeconfig as Kubeconfig);
+        const info = getK8sConnectInfo(kubeconfig as Kubeconfig);
         const agent = new https.Agent({
             key: info.key,
             cert: info.cert,
