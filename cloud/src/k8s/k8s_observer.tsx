@@ -110,7 +110,8 @@ const k8sObserveResolverFactory: ResolverFactory = {
                     cert: info.cert,
                     ca: info.ca,
                 });
-                return { [infoSym]: { host, agent, id: jsonStableStringify(info) } };
+                //FIXME(manishv) Canonicalize id here (e.g. port, fqdn, etc.)
+                return { [infoSym]: { host, agent, id: host } };
             };
         }
 
@@ -151,7 +152,7 @@ const k8sQueryResolverFactory: ResolverFactory = {
                 const kubeconfig = args.kubeconfig;
                 if (kubeconfig === undefined) throw new Error("No kubeconfig specified");
                 const info = getK8sConnectInfo(kubeconfig);
-                return { [infoSym]: { id: jsonStableStringify(info) } };
+                return { [infoSym]: { id: info.url } };
             };
         }
 
