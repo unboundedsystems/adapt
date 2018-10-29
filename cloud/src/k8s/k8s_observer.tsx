@@ -131,7 +131,7 @@ const k8sObserveResolverFactory: ResolverFactory = {
                 throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
             }
 
-            const ret = resp.json();
+            const ret = await resp.json();
             const queryId = computeQueryId(obj[infoSym].id, fieldName, args);
             context[queryId] = ret; //Overwrite in case data got updated on later query
 
