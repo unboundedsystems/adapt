@@ -1,5 +1,5 @@
 import { ExecutedQuery, ObserverNeedsData, ObserverPlugin, ObserverResponse } from "@usys/adapt";
-import { execute, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
+import { execute, ExecutionResult, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";
 import jsonStableStringify = require("json-stable-stringify");
@@ -212,6 +212,17 @@ function buildQuerySchema() {
 let querySchema: GraphQLSchema;
 let observeSchema: GraphQLSchema;
 
+function notNull<T>(x: T | null | undefined): x is T {
+    return x != null;
+}
+
+function reportErrors(results: ExecutionResult[]) {
+    const errors = results.map((r) => r.errors).filter(notNull);
+    if (errors.length === 0) return;
+    const msgs = errors.map((e) => e.toString()).join("\n");
+    throw new Error("Errors during observation:\n" + msgs);
+}
+
 export class K8sObserver implements ObserverPlugin {
     constructor() {
         querySchema = buildQuerySchema();
@@ -227,7 +238,7 @@ export class K8sObserver implements ObserverPlugin {
         const observations = {};
         const waitFor = queries.map((q) =>
             Promise.resolve(execute(observeSchema, q.query, null, observations, q.variables)));
-        await Promise.all(waitFor);
+        reportErrors(await Promise.all(waitFor));
 
         return { context: observations };
     }
