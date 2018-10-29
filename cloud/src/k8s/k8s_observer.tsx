@@ -118,7 +118,7 @@ const k8sObserveResolverFactory: ResolverFactory = {
 
         return async (obj: K8sObserveResolverInfo, args, context: Observations, _info) => {
             const req = await swaggerClient.buildRequest({
-                k8sSwagger,
+                spec: k8sSwagger,
                 operationId: fieldName,
                 parameters: args,
                 requestContentType: "application/json",
