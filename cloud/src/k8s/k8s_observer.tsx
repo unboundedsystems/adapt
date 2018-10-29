@@ -156,10 +156,9 @@ const k8sQueryResolverFactory: ResolverFactory = {
             };
         }
 
-        if (type.name !== "K8sApi") return;
-
-        return async (obj: K8sQueryResolverInfo, args, context: Observations, _info) => {
+        return async (obj: K8sQueryResolverInfo, args, context: Observations | undefined, _info) => {
             const queryId = computeQueryId(obj[infoSym].id, fieldName, args);
+            if (!context) throw new ObserverNeedsData();
             if (!Object.hasOwnProperty.call(context, queryId)) throw new ObserverNeedsData();
             return context[queryId];
         };
