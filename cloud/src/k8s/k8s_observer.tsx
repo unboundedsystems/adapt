@@ -94,8 +94,9 @@ function computeQueryId(clusterId: unknown, fieldName: string, args: unknown) {
 }
 
 const k8sObserveResolverFactory: ResolverFactory = {
-    fieldResolvers: (type, fieldName, isQuery) => {
-        if (isQuery && fieldName === "withKubeconfig") {
+    fieldResolvers: (_type, fieldName, isQuery) => {
+        if (!isQuery) return;
+        if (fieldName === "withKubeconfig") {
             return async (
                 _obj,
                 args: { kubeconfig: Kubeconfig },
@@ -114,8 +115,6 @@ const k8sObserveResolverFactory: ResolverFactory = {
                 return { [infoSym]: { host, agent, id: host } };
             };
         }
-
-        if (type.name !== "K8sApi") return;
 
         return async (obj: K8sObserveResolverInfo, args, context: Observations, _info) => {
             const req = await swaggerClient.buildRequest({
@@ -142,8 +141,9 @@ const k8sObserveResolverFactory: ResolverFactory = {
 };
 
 const k8sQueryResolverFactory: ResolverFactory = {
-    fieldResolvers: (type, fieldName, isQuery) => {
-        if (isQuery && fieldName === "withKubeconfig") {
+    fieldResolvers: (_type, fieldName, isQuery) => {
+        if (!isQuery) return;
+        if (fieldName === "withKubeconfig") {
             return async (
                 _obj,
                 args: { kubeconfig: Kubeconfig },
