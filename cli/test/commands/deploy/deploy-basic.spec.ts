@@ -293,7 +293,8 @@ const observerTest = testBase
     });
 
 describe("Observer Needs Data Reporting", function () {
-    this.timeout(30000);
+    this.slow(20 * 1000);
+    this.timeout(50 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     observerTest
@@ -454,7 +455,9 @@ const stateIncrementTestChain =
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-describe("Deploy update basic tests", () => {
+describe("Deploy update basic tests", function () {
+    this.slow(5 * 1000);
+    this.timeout(10 * 1000);
     let deployID = "NOTFOUND";
 
     // These tests must all use a single temp directory where the
@@ -466,7 +469,10 @@ describe("Deploy update basic tests", () => {
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })")))
     .command(["deploy:create", "--init", "dev"])
 
-    .it("Should create initial state", async (ctx) => {
+    .it("Should create initial state", async function (ctx) {
+        this.slow(13 * 1000);
+        this.timeout(20 * 1000);
+
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
