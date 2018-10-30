@@ -40,7 +40,7 @@ export function getK8sConnectInfo(kubeconfig: Kubeconfig) {
     function byName(name: string) { return (x: { name: string }) => x.name === name; }
     const contextName: string = kubeconfig["current-context"];
     const context = kubeconfig.contexts.find(byName(contextName));
-    if (!context) throw new Error(`Could no find context ${contextName}`);
+    if (!context) throw new Error(`Could not find context ${contextName}`);
 
     const cluster = kubeconfig.clusters.find(byName(context.context.cluster));
     const user = kubeconfig.users.find(byName(context.context.user));
