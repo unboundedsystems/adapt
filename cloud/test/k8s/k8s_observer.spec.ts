@@ -77,6 +77,7 @@ describe("k8s observer tests", () => {
     beforeEach(function () {
         this.timeout(20000);
         observer = new K8sObserver();
+        observer.schema; //Force slow construction of schema once for whole suite
     });
 
     it("should observe running system pods", async function () {

@@ -223,10 +223,6 @@ function reportErrors(results: ExecutionResult[]) {
 }
 
 export class K8sObserver implements ObserverPlugin {
-    constructor() {
-        querySchema = buildQuerySchema();
-    }
-
     get schema() {
         if (!querySchema) querySchema = buildQuerySchema();
         return querySchema;
