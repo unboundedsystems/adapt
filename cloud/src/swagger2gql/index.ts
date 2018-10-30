@@ -9,4 +9,8 @@ function swagger2gql(swaggerIn: string | object, getResolver?: ResolverFactory) 
 }
 
 export { ResolverFactory };
+export {
+    Swagger2
+} from "./swagger_types";
+
 export default swagger2gql;
