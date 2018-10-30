@@ -58,7 +58,7 @@ export {
     ProjectRunError,
 } from "./error";
 export { handle, Handle, isHandle } from "./handle";
-
+export { isDefaultKey } from "./keys";
 export {
     Context,
     createContext,
