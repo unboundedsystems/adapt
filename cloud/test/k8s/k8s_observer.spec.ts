@@ -46,6 +46,13 @@ describe("k8s observer tests", () => {
     let observer: K8sObserver;
     let queries: ExecutedQuery[];
 
+    before("Construct schema", function () {
+        this.timeout(40 * 1000);
+        this.slow(17 * 1000);
+        observer = new K8sObserver();
+        observer.schema; //Force slow construction of schema once for whole suite
+    });
+
     before(() => {
         queries = [
             {
@@ -74,13 +81,14 @@ describe("k8s observer tests", () => {
         ];
     });
 
-    beforeEach(function () {
-        this.timeout(20000);
+    beforeEach("Instantiate observer", function () {
+        this.slow(500);
+        this.timeout(2 * 1000);
         observer = new K8sObserver();
-        observer.schema; //Force slow construction of schema once for whole suite
     });
 
     it("should observe running system pods", async function () {
+        this.slow(500);
         this.timeout(5000);
 
         const observations = await observer.observe(queries);
@@ -88,6 +96,7 @@ describe("k8s observer tests", () => {
     });
 
     it("should query running system pods", async function () {
+        this.slow(500);
         this.timeout(5000);
 
         const schema = observer.schema;

@@ -28,7 +28,8 @@ const projOpts: proj.ProjectOptions = {
 };
 
 describe("Project basic tests", function () {
-    this.timeout(20000);
+    this.slow(3 * 1000);
+    this.timeout(10 * 1000);
     mochaTmpdir.each("adapt-cli-test-proj");
 
     it("Should open a local directory", async () => {
@@ -58,7 +59,9 @@ describe("Project basic tests", function () {
         expect(p.manifest.dependencies.typescript).equal("^2.9.2");
     });
 
-    it("Should get a registry package", async () => {
+    it("Should get a registry package", async function () {
+        this.slow(9 * 1000);
+        this.timeout(20 * 1000);
         const p = await proj.load("decamelize@2.0.0", projOpts);
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("decamelize");
@@ -85,7 +88,8 @@ describe("Project basic tests", function () {
     });
 
     it("Should get a github package", async function () {
-        this.timeout(40000);
+        this.slow(10 * 1000);
+        this.timeout(40 * 1000);
         const p = await proj.load("substack/json-stable-stringify#1.0.1", projOpts);
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("json-stable-stringify");
@@ -112,7 +116,9 @@ describe("Project basic tests", function () {
         return expect(proj.load("XXXBADPACKAGE", projOpts)).to.be.rejectedWith("404 Not Found: XXXBADPACKAGE");
     });
 
-    it("Should load from alternate registry", async () => {
+    it("Should load from alternate registry", async function () {
+        this.slow(20 * 1000);
+        this.timeout(50 * 1000);
         const opts = { ...cliLocalRegistry.npmProxyOpts, ...projOpts };
         // FIXME(mark): Once we actually publish @usys/cloud publicly, this
         // test is no longer a great test. Change the package to something

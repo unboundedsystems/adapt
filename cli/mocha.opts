@@ -1,7 +1,7 @@
 --require test/init.js
 --require source-map-support/register
 --recursive
---reporter spec
+--reporter mocha-slow-options
 --timeout 30000
 --expose-gc
 dist/test
