@@ -26,6 +26,9 @@ describe("Adapt GraphQL Query Transforms", () => {
 
             type Query {
                 foo: Foo
+            }
+            
+            type Mutation {
                 bar: Bar
             }`
     });
@@ -81,6 +84,21 @@ describe("Adapt GraphQL Query Transforms", () => {
       foo
       barNull
     }
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
+
+    it("should pick correct top-level type based on operation type", () => {
+        const q = gql`mutation { bar @all }`
+        const ref = `mutation {
+  bar @all {
+    y
+    foo
+    barNull
   }
 }
 `;

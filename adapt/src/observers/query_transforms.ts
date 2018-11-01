@@ -1,7 +1,6 @@
 import {
     ASTNode,
     FieldNode,
-    GraphQLObjectType,
     GraphQLOutputType,
     GraphQLSchema,
     isObjectType,
@@ -11,14 +10,9 @@ import {
     DocumentNode,
     GraphQLField,
     isNonNullType,
+    OperationDefinitionNode,
 } from "graphql";
 import * as ld from "lodash";
-
-function schemaQueryTypeOrThrow(schema: GraphQLSchema) {
-    const qType = schema.getQueryType();
-    if (qType == null) throw new Error("No query type");
-    return qType;
-}
 
 function buildSelectionSet(names: string[], orig?: SelectionSetNode): SelectionSetNode | undefined {
     if (names.length === 0) return orig;
@@ -51,7 +45,7 @@ function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
     if (!f.args) return true;
     if (f.args.length === 0) return true;
     const noDefaultArgs = f.args.filter((arg) => arg.defaultValue === undefined);
-    if(noDefaultArgs.length === 0) return true;
+    if (noDefaultArgs.length === 0) return true;
     const nonNullArgs = f.args.filter((arg) => isNonNullType(arg.type));
     return nonNullArgs.length === 0;
 }
@@ -59,11 +53,11 @@ function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
 class AllDirectiveVisitor {
     get type() { return ld.last(this.typeStack); }
     typeStack: (GraphQLOutputType | null)[];
-    queryType: GraphQLObjectType;
 
     leave = {
-        Document: () => {
-            this.typeStack = [];
+        OperationDefinition: () => {
+            this.typeStack.pop();
+            if (this.typeStack.length !== 0) throw new Error("Internal Error, typeStack not empty after operation");
         },
 
         Field: (f: FieldNode): ASTNode => {
@@ -90,8 +84,17 @@ class AllDirectiveVisitor {
     };
 
     enter = {
-        Document: () => {
-            this.typeStack = [this.queryType];
+        OperationDefinition: (op: OperationDefinitionNode) => {
+            switch (op.operation) {
+                case "query":
+                    this.typeStack = [this.schema.getQueryType() || null];
+                    break;
+                case "mutation":
+                    this.typeStack = [this.schema.getMutationType() || null];
+                    break;
+                case "subscription":
+                    this.typeStack = [this.schema.getSubscriptionType() || null];
+            }
         },
 
         Field: (f: FieldNode) => {
@@ -115,9 +118,8 @@ class AllDirectiveVisitor {
         }
     };
 
-    constructor(public schema: GraphQLSchema) {
-        this.queryType = schemaQueryTypeOrThrow(schema);
-    }
+    constructor(public schema: GraphQLSchema) { }
+
 }
 
 export function applyAdaptTransforms(schema: GraphQLSchema, q: DocumentNode): DocumentNode {
