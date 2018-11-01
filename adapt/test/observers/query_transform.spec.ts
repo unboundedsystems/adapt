@@ -72,6 +72,12 @@ describe("Adapt GraphQL Query Transforms", () => {
         }
     });
 
+    function transformPrintAndCheck(schema: GraphQLSchema, q: DocumentNode, ref: string) {
+        const transformed = applyAdaptTransforms(schema, q);
+        const tSerialized = print(transformed);
+        should(tSerialized).equal(ref);
+    }
+
     it("should transform top-level fields tagged with all (depth=1)", () => {
         const q = gql`{
             foo @all {
@@ -79,8 +85,7 @@ describe("Adapt GraphQL Query Transforms", () => {
             }
         }`;
 
-        const ref = 
-`{
+        const ref = `{
   foo @all {
     baz
     x
@@ -88,13 +93,24 @@ describe("Adapt GraphQL Query Transforms", () => {
     bar
   }
 }
-`
+`;
 
-        const serialized = print(q);
-        should(serialized).match(/@all/);
+        transformPrintAndCheck(schema, q, ref);
+    });
 
-        const transformed = applyAdaptTransforms(schema, q);
-        const tSerialized = print(transformed);
-        should(tSerialized).equal(ref);
+    it("should transform inner fields tagged with all", () => {
+        const q = gql`{ foo { foo @all } }`
+        const ref = `{
+  foo {
+    foo @all {
+      x
+      foo
+      bar
+    }
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
     });
 });
