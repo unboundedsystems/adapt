@@ -9,6 +9,7 @@ import {
     SelectionSetNode,
     visit,
     DocumentNode,
+    GraphQLField,
 } from "graphql";
 import * as ld from "lodash";
 
@@ -45,8 +46,13 @@ function buildSelectionSet(names: string[], orig?: SelectionSetNode): SelectionS
     return ret;
 }
 
-class AllDirectiveVisitor {
+function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
+    if (!f.args) return true;
+    if (f.args.length === 0) return true;
+    return f.args.find((arg) => arg.defaultValue === undefined) === undefined;
+}
 
+class AllDirectiveVisitor {
     get type() { return ld.last(this.typeStack); }
     typeStack: (GraphQLOutputType | null)[];
     queryType: GraphQLObjectType;
@@ -67,7 +73,7 @@ class AllDirectiveVisitor {
             const origSel = f.selectionSet;
             const fields = type.getFields();
             const fieldNames = Object.keys(fields).filter((n) => {
-                return fields[n].args.length === 0;
+                return needsNoArgs(fields[n]);
             });
 
             const sel = buildSelectionSet(fieldNames, origSel);

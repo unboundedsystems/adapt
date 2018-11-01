@@ -14,13 +14,13 @@ describe("Adapt GraphQL Query Transforms", () => {
             type Foo {
                 x: Int!
                 foo: Foo
-                bar: Bar
+                bar(y: Int = 3): Bar
             }
 
             type Bar {
                 y: Int!
                 foo: Foo
-                bar: Bar
+                bar(y: Int!): Bar
             }
 
             type Query {
@@ -98,7 +98,7 @@ describe("Adapt GraphQL Query Transforms", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
-    it("should transform inner fields tagged with all", () => {
+    it("should transform inner fields tagged with all (depth=1)", () => {
         const q = gql`{ foo { foo @all } }`
         const ref = `{
   foo {
