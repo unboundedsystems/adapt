@@ -26,50 +26,7 @@ describe("Adapt GraphQL Query Transforms", () => {
             type Query {
                 foo: Foo
                 bar: Bar
-            }`,
-
-        resolvers: {
-            Query: {
-                foo: () => {
-                    return {
-                        x: 0,
-                        foo: {
-                            x: 1,
-                            foo: {
-                                x: 2,
-                                foo: {
-                                    x: 3,
-                                    foo: {
-                                        x: 4
-                                    }
-                                }
-                            }
-                        }
-                    };
-                },
-
-                bar: () => {
-                    return {
-                        y: 0,
-                        bar: {
-                            y: 1,
-                            bar: {
-                                y: 2,
-                                bar: {
-                                    y: 3,
-                                    bar: {
-                                        y: 4,
-                                        bar: {
-                                            y: 5
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    };
-                }
-            }
-        }
+            }`
     });
 
     function transformPrintAndCheck(schema: GraphQLSchema, q: DocumentNode, ref: string) {
@@ -106,6 +63,21 @@ describe("Adapt GraphQL Query Transforms", () => {
       x
       foo
       bar
+    }
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
+    it("should ignore fields that require parameters for all (depth=1)", () => {
+        const q = gql`{ foo { bar @all } }`
+        const ref = `{
+  foo {
+    bar @all {
+      y
+      foo
     }
   }
 }
