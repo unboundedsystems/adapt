@@ -43,7 +43,7 @@ if [ -z "${IP_ADDR}" ]; then
     exit 1
 fi
 
-docker run --rm -d --cap-add=NET_ADMIN --name "${NAME}" --net=host -v/etc/resolv.conf:/etc/resolv.conf "${IMAGE}" --listen-address="${IP_ADDR}" --log-facility=- > /dev/null
+docker run --rm -d --cap-add=NET_ADMIN --name "${NAME}" --net=host -v/etc/resolv.conf:/etc/resolv.conf "${IMAGE}" --bind-interfaces --listen-address="${IP_ADDR}" --log-facility=- > /dev/null
 if [ $? -ne 0 ]; then
     echo Cannot start DNS cache. Docker run failed.
     exit 1
