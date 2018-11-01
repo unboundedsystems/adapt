@@ -10,6 +10,7 @@ import {
     visit,
     DocumentNode,
     GraphQLField,
+    isNonNullType,
 } from "graphql";
 import * as ld from "lodash";
 
@@ -49,7 +50,10 @@ function buildSelectionSet(names: string[], orig?: SelectionSetNode): SelectionS
 function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
     if (!f.args) return true;
     if (f.args.length === 0) return true;
-    return f.args.find((arg) => arg.defaultValue === undefined) === undefined;
+    const noDefaultArgs = f.args.filter((arg) => arg.defaultValue === undefined);
+    if(noDefaultArgs.length === 0) return true;
+    const nonNullArgs = f.args.filter((arg) => isNonNullType(arg.type));
+    return nonNullArgs.length === 0;
 }
 
 class AllDirectiveVisitor {

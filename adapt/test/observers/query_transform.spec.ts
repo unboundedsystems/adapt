@@ -21,6 +21,7 @@ describe("Adapt GraphQL Query Transforms", () => {
                 y: Int!
                 foo: Foo
                 bar(y: Int!): Bar
+                barNull(y: Int): Bar
             }
 
             type Query {
@@ -35,7 +36,7 @@ describe("Adapt GraphQL Query Transforms", () => {
         should(tSerialized).equal(ref);
     }
 
-    it("should transform top-level fields tagged with all (depth=1)", () => {
+    it("should transform top-level fields tagged with @all (depth=1)", () => {
         const q = gql`{
             foo @all {
                 baz
@@ -55,7 +56,7 @@ describe("Adapt GraphQL Query Transforms", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
-    it("should transform inner fields tagged with all (depth=1)", () => {
+    it("should transform inner fields tagged with @all (depth=1)", () => {
         const q = gql`{ foo { foo @all } }`
         const ref = `{
   foo {
@@ -71,13 +72,14 @@ describe("Adapt GraphQL Query Transforms", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
-    it("should ignore fields that require parameters for all (depth=1)", () => {
+    it("should skip fields taggd with @all that require parameters (depth=1)", () => {
         const q = gql`{ foo { bar @all } }`
         const ref = `{
   foo {
     bar @all {
       y
       foo
+      barNull
     }
   }
 }
