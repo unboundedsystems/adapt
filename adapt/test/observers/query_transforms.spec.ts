@@ -103,6 +103,67 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
+    it("should transform nested fields tagged with @all", () => {
+        const q = gql`{
+            foo @all(depth: 3) {
+                baz
+                bar @all(depth: 3)
+            }
+        }`;
+
+        const ref = `{
+  foo @all(depth: 3) {
+    baz
+    bar @all(depth: 3) {
+      y
+      foo {
+        x
+        foo {
+          x
+          foo
+          bar
+        }
+        bar {
+          y
+          foo
+          barNull
+        }
+      }
+      barNull {
+        y
+        foo {
+          x
+          foo
+          bar
+        }
+        barNull {
+          y
+          foo
+          barNull
+        }
+      }
+    }
+    x
+    foo {
+      x
+      foo {
+        x
+        foo
+        bar
+      }
+      bar {
+        y
+        foo
+        barNull
+      }
+    }
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
 
     it("should transform inner fields tagged with @all (depth=1)", () => {
         const q = gql`{ foo { foo @all } }`;
