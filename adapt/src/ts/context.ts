@@ -108,16 +108,12 @@ export class VmModule {
      * ONLY.
      * @param ctx The vm context where the DOM code will run.
      */
-    initMain(ctx: vm.Context) {
+    initMain(ctx: vm.Context, innerObj: ObjectConstructor) {
         if (this.parent) {
             throw new Error(`Internal error: initMain should only be called ` +
                 `on top-level VmModule`);
         }
         this.vmContext = ctx;
-        const innerObj = vm.runInContext("Object", this.vmContext);
-        if (!innerObj || innerObj.name !== "Object") {
-            throw new Error(`Internal error: Unable to get inner Object constructor`);
-        }
         this.innerObject = innerObj;
 
         // Update the top level module now that we have innerObject
@@ -295,9 +291,13 @@ export class VmModule {
     private destroySelf() {
         if (this.ctxModule) {
             this.deleteProps(this.ctxModule.exports);
+            if (this.innerObject && this.ctxModule.exports instanceof this.innerObject) {
+                Object.setPrototypeOf(this.ctxModule.exports, null);
+            }
             this.ctxModule.exports = undefined;
             this.ctxModule.children = [];
             this.ctxModule.parent = null;
+            this.innerObject = undefined;
         }
         // @ts-ignore
         this.host = undefined;
@@ -321,12 +321,17 @@ const hostGlobals = {
     Buffer,
 };
 
+type Listener = (...args: any[]) => void;
+type ListenFor = [string | symbol, Listener];
+
 /*
  * Prepares a context object to be the global object within a new
  * V8 context.
  */
 export class VmContext {
     mainModule: VmModule;
+    innerObject: ObjectConstructor;
+    listeners: ListenFor[] = [];
 
     constructor(public vmGlobal: any, dirname: string, public filename: string,
         public host: ChainableHost) {
@@ -347,12 +352,25 @@ export class VmContext {
         }
 
         vm.createContext(vmGlobal);
+        this.innerObject = vm.runInContext("Object", vmGlobal);
+        if (!this.innerObject || this.innerObject.name !== "Object") {
+            throw new Error(`Internal error: Unable to get inner Object constructor`);
+        }
 
-        module.initMain(vmGlobal);
+        module.initMain(vmGlobal, this.innerObject);
     }
 
     destroy() {
+        for (const [event, listener] of this.listeners) {
+            process.removeListener(event, listener);
+        }
+        this.listeners = [];
+
         this.mainModule.destroy();
+        // @ts-ignore
+        this.mainModule = undefined;
+        // @ts-ignore
+        this.innerObject = undefined;
         this.vmGlobal.exports = undefined;
         this.vmGlobal.module = undefined;
         this.vmGlobal.require = undefined;
@@ -360,8 +378,17 @@ export class VmContext {
         this.host = undefined;
     }
 
+    newListener = (event: string | symbol, listener: Listener) => {
+        if (listener instanceof this.innerObject) {
+            this.listeners.push([event, listener]);
+        }
+    }
+
     @tracef(debugVm)
     run(jsText: string): any {
+        this.listeners.push(["newListener", this.newListener]);
+        process.on("newListener", this.newListener);
+
         let val;
         try {
             // Execute the program
@@ -370,14 +397,16 @@ export class VmContext {
             // Translate internal error that has all the diags in it
             // to an external API text-only version.
             if (err instanceof CompileError) {
-                throw new ProjectCompileError(err.message);
+                err = new ProjectCompileError(err.message);
             }
             if (!isError(err)) err = new ThrewNonError(err);
             if (!(err instanceof ProjectRunError)) {
                 err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
+            this.destroy();
             throw err;
         }
+
         if (debugVm) {
             trace(debugVm, `RESULT: ${JSON.stringify(val, null, 2)}`);
         }
