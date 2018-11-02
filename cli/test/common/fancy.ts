@@ -1,6 +1,6 @@
 import { command, expect, test as oclifTest } from "@oclif/test";
 // tslint:disable-next-line:no-submodule-imports
-import { loadConfig } from "@oclif/test/lib/load_config";
+import { loadConfig } from "@oclif/test/lib/load-config";
 // tslint:disable-next-line:no-submodule-imports
 import fancyEnv from "fancy-test/lib/env";
 // tslint:disable-next-line:no-submodule-imports
@@ -15,8 +15,10 @@ function delayedenv(getEnv?: DelayedEnvFunc, opts?: EnvOptions) {
     let envCtx: any;
     return {
         run() {
-            const newEnv = getEnv && getEnv();
-            envCtx = fancyEnv(newEnv, opts);
+            if (getEnv == null) {
+                throw new Error(`Must supply a function as the first argument to delayedenv`);
+            }
+            envCtx = fancyEnv(getEnv(), opts);
             envCtx.run();
         },
         finally() {
@@ -25,7 +27,7 @@ function delayedenv(getEnv?: DelayedEnvFunc, opts?: EnvOptions) {
     };
 }
 
-type DelayedCmdFunc = () => string[] | string | undefined;
+type DelayedCmdFunc = () => string[] | string;
 
 function delayedcommand(getCmd?: DelayedCmdFunc, opts: loadConfig.Options = {}) {
     return {
