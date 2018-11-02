@@ -97,27 +97,8 @@ class AllDirectiveVisitor {
     infoStack: InfoElement[];
 
     leave = {
-        OperationDefinition: () => {
-            this.infoStack.pop();
-            if (this.infoStack.length !== 0) throw new Error("Internal Error, typeStack not empty after operation");
-        },
-
-        Field: (f: FieldNode): ASTNode => {
-            const info = this.infoStack.pop();
-            if (!info) return f;
-
-            const type = info.type;
-            if (!isObjectType(type)) return f;
-            if (info.allDepth === 0) return f;
-
-            const origSel = f.selectionSet;
-            const sel = buildSelectionSet(type, origSel, info.allDepth);
-
-            return {
-                ...f,
-                selectionSet: sel
-            };
-        }
+        OperationDefinition: (op: OperationDefinitionNode) => this.processFieldOrOpNode(op),
+        Field: (f: FieldNode) => this.processFieldOrOpNode(f)
     };
 
     enter = {
@@ -163,6 +144,32 @@ class AllDirectiveVisitor {
 
     constructor(public schema: GraphQLSchema) { }
 
+    processFieldOrOpNode = (n: FieldNode | OperationDefinitionNode): ASTNode => {
+        const info = this.infoStack.pop();
+        if (!info) return n;
+
+        const type = info.type;
+        if (!isObjectType(type)) return n;
+        if (info.allDepth === 0) return n;
+
+        const origSel = n.selectionSet;
+        const sel = buildSelectionSet(type, origSel, info.allDepth);
+
+        if (n.kind === Kind.OPERATION_DEFINITION) {
+            if (sel === undefined) {
+                throw new Error("Cannot have empty selection set at top-level operation: " + n.operation);
+            }
+            return {
+                ...n,
+                selectionSet: sel
+            };
+        }
+
+        return {
+            ...n,
+            selectionSet: sel
+        };
+    }
 }
 
 export function applyAdaptTransforms(schema: GraphQLSchema, q: DocumentNode): DocumentNode {

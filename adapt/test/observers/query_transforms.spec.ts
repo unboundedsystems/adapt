@@ -59,6 +59,20 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
+    it("should transform operation tagged with @all (depth=1)", () => {
+        const q = gql`query @all {
+            dummy #For syntax compliance :(
+        }`;
+
+        const ref = `query @all {
+  dummy
+  foo
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
     it("should transform top-level fields tagged with @all (depth=3)", () => {
         const q = gql`{
             foo @all(depth: 3) {
@@ -163,7 +177,6 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
 
         transformPrintAndCheck(schema, q, ref);
     });
-
 
     it("should transform inner fields tagged with @all (depth=1)", () => {
         const q = gql`{ foo { foo @all } }`;
