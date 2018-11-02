@@ -14,31 +14,45 @@ import {
 } from "graphql";
 import * as ld from "lodash";
 
-function buildSelectionSet(names: string[], orig?: SelectionSetNode): SelectionSetNode | undefined {
-    if (names.length === 0) return orig;
+function notUndefined<T>(x: T | undefined): x is T {
+    return x !== undefined;
+}
 
-    const newSelections = names.map((n) => ({
-        kind: Kind.FIELD,
-        name: { kind: Kind.NAME, value: n }
-    }));
+function buildSelectionSet(
+    type: GraphQLOutputType,
+    orig?: SelectionSetNode,
+    allDepth: number = 1): SelectionSetNode | undefined {
 
-    if (!orig) {
-        return {
-            kind: Kind.SELECTION_SET,
-            selections: newSelections
-        };
-    }
+    if (allDepth === 0) return orig;
+    if (!isObjectType(type)) return orig; //FIXME(manishv) handle interfaces and fragments spreads
 
-    const ret = ld.clone(orig);
-    const origNames = orig.selections.map((f) => {
-        if (f.kind !== Kind.FIELD) return undefined;
-        return f.alias ? f.alias.value : f.name.value;
-    }).filter((x) => x !== undefined);
+    const origNames = orig
+        ? orig.selections.map((f) => {
+            if (f.kind !== Kind.FIELD) return undefined; //FIXME(manishv) Need to look into fragment refs here
+            return f.alias ? f.alias.value : f.name.value;
+        }).filter((x) => x !== undefined)
+        : [];
     const origSet = new Set(origNames);
-    const newSelectionsLessOrig = newSelections.filter((f) => !origSet.has(f.name.value));
-    const finalSelections = orig.selections.concat(newSelectionsLessOrig);
-    ret.selections = finalSelections;
-    return ret;
+    const fields = type.getFields();
+
+    const newSelectionNamesLessOrig = Object.keys(fields).filter((n) => !origSet.has(n));
+    const newSelectionsLessOrig = newSelectionNamesLessOrig.map((name) => {
+        const field = fields[name];
+        if (!needsNoArgs(field)) return undefined;
+        const selectionSet = buildSelectionSet(field.type, undefined, allDepth - 1);
+        return {
+            kind: Kind.FIELD,
+            name: { kind: Kind.NAME, value: name },
+            selectionSet
+        };
+    }).filter(notUndefined);
+
+    const finalSelections = orig ? orig.selections.concat(newSelectionsLessOrig) : newSelectionsLessOrig;
+    return {
+        kind: Kind.SELECTION_SET,
+        loc: orig ? orig.loc : undefined,
+        selections: finalSelections
+    };
 }
 
 function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
@@ -50,31 +64,54 @@ function needsNoArgs(f: GraphQLField<unknown, unknown>): boolean {
     return nonNullArgs.length === 0;
 }
 
+function findAllDepth(n: FieldNode | OperationDefinitionNode): number {
+    const dirs = n.directives;
+    if (dirs === undefined) return 0;
+    const alls = dirs.filter((d) => d.name.value === "all");
+    if (alls.length === 0) return 0;
+    const depths = alls.map((all) => {
+        const args = all.arguments;
+        if (!args || args.length === 0) return 1;
+        const depthArgs = args.filter((a) => a.name.value === "depth");
+        const depthValues = depthArgs.map((da) => {
+            const valNode = da.value;
+            if (valNode.kind !== Kind.INT) throw new Error("@all has a non-integer depth argument");
+            const ret = Number(valNode.value);
+            if (isNaN(ret)) throw new Error("@all has a non-integer depth argument");
+            if (ret < 0) throw new Error("@all has depth < 0");
+            return ret;
+        });
+
+        return Math.max(0, ...depthValues);
+    });
+
+    return Math.max(0, ...depths);
+}
+
+interface InfoElement {
+    type: GraphQLOutputType | null;
+    allDepth: number;
+}
+
 class AllDirectiveVisitor {
-    get type() { return ld.last(this.typeStack); }
-    typeStack: (GraphQLOutputType | null)[];
+    infoStack: InfoElement[];
 
     leave = {
         OperationDefinition: () => {
-            this.typeStack.pop();
-            if (this.typeStack.length !== 0) throw new Error("Internal Error, typeStack not empty after operation");
+            this.infoStack.pop();
+            if (this.infoStack.length !== 0) throw new Error("Internal Error, typeStack not empty after operation");
         },
 
         Field: (f: FieldNode): ASTNode => {
-            const type = this.type;
-            this.typeStack.pop();
-            const dirs = f.directives;
-            if (dirs === undefined) return f;
-            if (!dirs.find((d) => d.name.value === "all")) return f;
+            const info = this.infoStack.pop();
+            if (!info) return f;
+
+            const type = info.type;
             if (!isObjectType(type)) return f;
+            if (info.allDepth === 0) return f;
 
             const origSel = f.selectionSet;
-            const fields = type.getFields();
-            const fieldNames = Object.keys(fields).filter((n) => {
-                return needsNoArgs(fields[n]);
-            });
-
-            const sel = buildSelectionSet(fieldNames, origSel);
+            const sel = buildSelectionSet(type, origSel, info.allDepth);
 
             return {
                 ...f,
@@ -85,36 +122,42 @@ class AllDirectiveVisitor {
 
     enter = {
         OperationDefinition: (op: OperationDefinitionNode) => {
+            const allDepth = findAllDepth(op);
             switch (op.operation) {
                 case "query":
-                    this.typeStack = [this.schema.getQueryType() || null];
+                    this.infoStack = [{ type: this.schema.getQueryType() || null, allDepth }];
                     break;
                 case "mutation":
-                    this.typeStack = [this.schema.getMutationType() || null];
+                    this.infoStack = [{ type: this.schema.getMutationType() || null, allDepth }];
                     break;
                 case "subscription":
-                    this.typeStack = [this.schema.getSubscriptionType() || null];
+                    this.infoStack = [{ type: this.schema.getSubscriptionType() || null, allDepth }];
             }
         },
 
         Field: (f: FieldNode) => {
             const fieldName = f.name.value;
-            const type = this.type;
-            if (type === undefined) throw new Error("Internal error, no type for field");
+            const info = ld.last(this.infoStack);
+            if (info === undefined) throw new Error("Internal error, no info for field:" + fieldName);
+
+            const type = info.type;
+            if (type === undefined) throw new Error("Internal error, no type for field:" + fieldName);
             if (!isObjectType(type)) return; //FIXME(manishv) Fix fragment spreads and interfaces here
 
+            const allDepth = Math.max(findAllDepth(f), (info.allDepth - 1));
+
             if (type === null) {
-                this.typeStack.push(null);
+                this.infoStack.push({ type: null, allDepth });
                 return;
             }
             const fields = type.getFields();
             const field = fields[fieldName];
             if (field === undefined) {
-                this.typeStack.push(null);
+                this.infoStack.push({ type: null, allDepth });
                 return;
             }
 
-            this.typeStack.push(field.type);
+            this.infoStack.push({ type: field.type, allDepth });
         }
     };
 

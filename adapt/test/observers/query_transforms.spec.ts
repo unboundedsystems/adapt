@@ -8,7 +8,7 @@ import * as should from "should";
 import { gql } from "../../src/observers";
 import { applyAdaptTransforms } from "../../src/observers/query_transforms";
 
-describe("Adapt GraphQL Query Transforms", () => {
+describe("Adapt GraphQL Query Transforms (@all)", () => {
     const schema = makeExecutableSchema({
         typeDefs: `
             type Foo {
@@ -58,6 +58,51 @@ describe("Adapt GraphQL Query Transforms", () => {
 
         transformPrintAndCheck(schema, q, ref);
     });
+
+    it("should transform top-level fields tagged with @all (depth=3)", () => {
+        const q = gql`{
+            foo @all(depth: 3) {
+                baz
+            }
+        }`;
+
+        const ref = `{
+  foo @all(depth: 3) {
+    baz
+    x
+    foo {
+      x
+      foo {
+        x
+        foo
+        bar
+      }
+      bar {
+        y
+        foo
+        barNull
+      }
+    }
+    bar {
+      y
+      foo {
+        x
+        foo
+        bar
+      }
+      barNull {
+        y
+        foo
+        barNull
+      }
+    }
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
 
     it("should transform inner fields tagged with @all (depth=1)", () => {
         const q = gql`{ foo { foo @all } }`;
