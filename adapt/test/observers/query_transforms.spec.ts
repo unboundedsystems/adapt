@@ -1,7 +1,7 @@
 import {
+    DocumentNode,
     GraphQLSchema,
-    print,
-    DocumentNode
+    print
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import * as should from "should";
@@ -27,14 +27,14 @@ describe("Adapt GraphQL Query Transforms", () => {
             type Query {
                 foo: Foo
             }
-            
+
             type Mutation {
                 bar: Bar
             }`
     });
 
-    function transformPrintAndCheck(schema: GraphQLSchema, q: DocumentNode, ref: string) {
-        const transformed = applyAdaptTransforms(schema, q);
+    function transformPrintAndCheck(s: GraphQLSchema, q: DocumentNode, ref: string) {
+        const transformed = applyAdaptTransforms(s, q);
         const tSerialized = print(transformed);
         should(tSerialized).equal(ref);
     }
@@ -60,7 +60,7 @@ describe("Adapt GraphQL Query Transforms", () => {
     });
 
     it("should transform inner fields tagged with @all (depth=1)", () => {
-        const q = gql`{ foo { foo @all } }`
+        const q = gql`{ foo { foo @all } }`;
         const ref = `{
   foo {
     foo @all {
@@ -76,7 +76,7 @@ describe("Adapt GraphQL Query Transforms", () => {
     });
 
     it("should skip fields taggd with @all that require parameters (depth=1)", () => {
-        const q = gql`{ foo { bar @all } }`
+        const q = gql`{ foo { bar @all } }`;
         const ref = `{
   foo {
     bar @all {
@@ -91,9 +91,8 @@ describe("Adapt GraphQL Query Transforms", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
-
     it("should pick correct top-level type based on operation type", () => {
-        const q = gql`mutation { bar @all }`
+        const q = gql`mutation { bar @all }`;
         const ref = `mutation {
   bar @all {
     y

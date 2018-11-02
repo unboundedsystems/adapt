@@ -1,16 +1,16 @@
 import {
     ASTNode,
+    DocumentNode,
     FieldNode,
+    GraphQLField,
     GraphQLOutputType,
     GraphQLSchema,
+    isNonNullType,
     isObjectType,
     Kind,
+    OperationDefinitionNode,
     SelectionSetNode,
     visit,
-    DocumentNode,
-    GraphQLField,
-    isNonNullType,
-    OperationDefinitionNode,
 } from "graphql";
 import * as ld from "lodash";
 
@@ -101,7 +101,7 @@ class AllDirectiveVisitor {
             const fieldName = f.name.value;
             const type = this.type;
             if (type === undefined) throw new Error("Internal error, no type for field");
-            if (!isObjectType(type)) return;
+            if (!isObjectType(type)) return; //FIXME(manishv) Fix fragment spreads and interfaces here
 
             if (type === null) {
                 this.typeStack.push(null);
