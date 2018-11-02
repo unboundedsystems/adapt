@@ -1,4 +1,5 @@
-import { filePathToUrl, mochaTmpdir } from "@usys/utils";
+import { mochaTmpdir } from "@usys/testutils";
+import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";

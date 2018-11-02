@@ -1,16 +1,18 @@
 import {
+    createMockLogger,
     localRegistryDefaults,
-    messagesToString,
     mochaLocalRegistry,
     mochaTmpdir as tmpdir,
+    MockLogger,
+} from "@usys/testutils";
+import {
+    messagesToString,
     npm
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as should from "should";
 import { stdout } from "stdout-stderr";
-
-import { createMockLogger, MockLogger } from "@usys/testutils";
 
 import { createDeployment, updateDeployment } from "../../src/ops";
 import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";

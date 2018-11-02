@@ -1,4 +1,5 @@
-import { mochaTmpdir as tmpdir, npm } from "@usys/utils";
+import { mochaTmpdir as tmpdir } from "@usys/testutils";
+import { npm } from "@usys/utils";
 import * as should from "should";
 
 import * as path from "path";
@@ -13,7 +14,9 @@ import {
 
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
-describe("Exec basic tests", () => {
+describe("Exec basic tests", function () {
+    this.slow(1000);
+
     it("Should execute a string", function () {
         this.timeout(5000);
 
@@ -28,8 +31,9 @@ describe("Exec basic tests", () => {
             const mytest = new Test(5);
             mytest.y(); // final value returns to caller
         `;
-        const { value } = execString(source);
-        should(value).equal("5");
+        const ret = execString(source);
+        should(ret.value).equal("5");
+        ret.destroy();
     });
 
     it("Should import a builtin module", function () {
@@ -39,8 +43,9 @@ describe("Exec basic tests", () => {
             import * as util from "util";
             util.inspect({test: 5});
         `;
-        const { value } = execString(source);
-        should(value).equal("{ test: 5 }");
+        const ret = execString(source);
+        should(ret.value).equal("{ test: 5 }");
+        ret.destroy();
     });
 
     it("Should modify context state", function () {
@@ -50,8 +55,9 @@ describe("Exec basic tests", () => {
             (global as any).foo.bar = 1;
         `;
         const context = { foo: {} };
-        execString(source, context);
+        const ret = execString(source, context);
         should(context.foo).eql({bar: 1});
+        ret.destroy();
     });
 
     it("Should throw ProjectRunError upon error", function () {
@@ -105,8 +111,9 @@ describe("Exec module tests", function () {
         host.writeFile("stuff.json", JSON.stringify(orig), false);
         host.writeFile("index.ts", source, false);
 
-        const { value } = exec(path.join(projDir, "index.ts"), {host});
-        should(value).eql(orig);
+        const ret = exec(path.join(projDir, "index.ts"), {host});
+        should(ret.value).eql(orig);
+        ret.destroy();
     });
 
     it("Should require absolute json file", () => {
@@ -126,8 +133,9 @@ describe("Exec module tests", function () {
         host.writeFile("stuff.json", JSON.stringify(orig), false);
         host.writeFile("index.ts", source, false);
 
-        const { value } = exec(path.join(projDir, "index.ts"), {host});
-        should(value).eql(orig);
+        const ret = exec(path.join(projDir, "index.ts"), {host});
+        should(ret.value).eql(orig);
+        ret.destroy();
     });
 
     it("Should import a node module", async () => {
@@ -135,7 +143,8 @@ describe("Exec module tests", function () {
         await npm.install();
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);
-        const { value } = exec(index, {host});
-        should(value).equal("test_camel");
+        const ret = exec(index, {host});
+        should(ret.value).equal("test_camel");
+        ret.destroy();
     });
 });

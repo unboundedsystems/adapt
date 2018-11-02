@@ -1,20 +1,6 @@
 import * as fs from "fs-extra";
 import * as http from "http";
-
-// verdaccio is only available in a dev install because of the
-// huge number of additional dependencies.
-
-// Types-only import of the module
-import * as verdaccioTypes from "verdaccio";
-
-let startVerdaccio: typeof verdaccioTypes.default | undefined;
-try {
-    // tslint:disable-next-line:no-var-requires
-    const verdaccioMod: typeof verdaccioTypes = require("verdaccio");
-    startVerdaccio = verdaccioMod.default;
-} catch {
-    // verdaccio unavailable
-}
+import startVerdaccio from "verdaccio";
 
 export interface Registry {
     url: string;
@@ -77,10 +63,6 @@ export async function start(config: Config, configPath: string): Promise<Server>
     else await fs.ensureDir(storage);
 
     const server = await new Promise<http.Server>((resolve, reject) => {
-        if (startVerdaccio === undefined) {
-            reject(new Error(`Verdaccio module not installed.`));
-            return;
-        }
         try {
             startVerdaccio(config, config.listen, configPath, "1.0.0", "verdaccio",
                 (webServer: http.Server, addr: any, _pkgName: any, _pkgVersion: any) => {
