@@ -6,7 +6,7 @@ import {
 import * as should from "should";
 
 describe("Observation Reconstitution Tests", () => {
-    it("Should reconsitute empty observations", () => {
+    it("Should reconstitute empty observations", () => {
         const cand = {};
         const obs = reconstituteAllObservations(cand);
         should(obs).eql(cand);
@@ -26,7 +26,7 @@ describe("Observation Reconstitution Tests", () => {
         should(obs).eql(cand);
     });
 
-    it("Should reconsitute single observation with a query", () => {
+    it("Should reconstitute single observation with a query", () => {
         const cand = {
             foo: {
                 observations: {
