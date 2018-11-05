@@ -30,8 +30,7 @@
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",
     "stream-buffers": "^3.0.2",
-    "typescript": "^3.0.3",
-    "verdaccio": "^3.2.0"
+    "typescript": "^3.0.3"
   },
   "peerDependencies": {},
   "files": [

@@ -3,8 +3,9 @@ import {
     describeLong,
     k8sutils,
     minikubeMocha,
+    mochaTmpdir,
 } from "@usys/testutils";
-import { filePathToUrl, mochaTmpdir, sleep } from "@usys/utils";
+import { filePathToUrl, sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { clitest, expect } from "../common/fancy";

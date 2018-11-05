@@ -1,4 +1,4 @@
-import { localRegistryDefaults, mochaLocalRegistry } from "@usys/utils";
+import { localRegistryDefaults, mochaLocalRegistry } from "@usys/testutils";
 
 // Use the mocha-verdaccio test fixture. Starts verdaccio before any test
 // starts

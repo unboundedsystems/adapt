@@ -1,8 +1,6 @@
+import { npm, repoDirs } from "@usys/utils";
 import * as path from "path";
 import { Config } from "./local-registry";
-import { repoDirs } from "./paths";
-
-import * as npm from "./npm";
 
 export const localRegistryPort = 4873;
 export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;

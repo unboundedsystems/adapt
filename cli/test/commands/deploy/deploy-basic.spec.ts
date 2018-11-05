@@ -1,4 +1,5 @@
-import { filePathToUrl, mochaTmpdir } from "@usys/utils";
+import { mochaTmpdir } from "@usys/testutils";
+import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";
@@ -465,14 +466,12 @@ describe("Deploy update basic tests", function () {
     mochaTmpdir.all("adapt-cli-test-deploy");
 
     stateIncrementTestChain
+    .timeout(20 * 1000)
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })")))
     .command(["deploy:create", "--init", "dev"])
 
-    .it("Should create initial state", async function (ctx) {
-        this.slow(13 * 1000);
-        this.timeout(20 * 1000);
-
+    .it("Should create initial state", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");

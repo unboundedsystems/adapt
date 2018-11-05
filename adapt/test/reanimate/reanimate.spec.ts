@@ -1,7 +1,6 @@
+import { mochaLocalRegistry, mochaTmpdir } from "@usys/testutils";
 import {
     Constructor,
-    mochaLocalRegistry,
-    mochaTmpdir,
     npm,
     repoDirs,
 } from "@usys/utils";

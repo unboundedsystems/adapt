@@ -11,6 +11,7 @@
   "dependencies": {
     "@usys/utils": "0.0.1",
     "aws-sdk": "^2.302.0",
+    "callsites": "^2.0.0",
     "dockerode": "^2.5.5",
     "fs-extra": "^6.0.1",
     "heapdump": "^0.3.9",
@@ -21,9 +22,11 @@
     "node-graceful": "^0.3.1",
     "numeral": "^2.0.6",
     "stream-buffers": "^3.0.2",
-    "strip-ansi": "^4.0.0"
+    "strip-ansi": "^4.0.0",
+    "verdaccio": "^3.2.0"
   },
   "devDependencies": {
+    "@types/callsites": "^2.0.0",
     "@types/dockerode": "^2.5.5",
     "@types/fs-extra": "^5.0.3",
     "@types/heapdump": "^0.3.1",
