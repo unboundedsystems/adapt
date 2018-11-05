@@ -10,6 +10,7 @@ const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
 const stateFilename = "adapt_state.json";
 const infoFilename = "adapt_deploy.json";
+const dataDirFilename = "dataDir";
 
 const basicPackageJson = {
     name: "test",
@@ -190,6 +191,7 @@ async function checkBasicIndexTsxState(
         domFilename,
         observationsFilename,
         stateFilename,
+        dataDirFilename,
     ]);
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
@@ -205,6 +207,7 @@ async function checkBasicIndexTsxState(
         fileName,
         projectRoot,
         stackName,
+        dataDir: path.join(historyDir, dataDirFilename),
     });
 }
 

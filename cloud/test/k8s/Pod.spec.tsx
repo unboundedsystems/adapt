@@ -152,6 +152,7 @@ describe("k8s Pod Operation Tests", function () {
         logs = new WritableStreamBuffer();
         deployID = randomName("cloud-pod-op");
         options = {
+            dataDir: "/fake/datadir",
             deployID,
             log: new Console(logs, logs).log
         };

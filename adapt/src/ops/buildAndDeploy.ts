@@ -50,6 +50,7 @@ export interface BuildOptions {
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
     const { deployment, logger, stackName } = options;
 
+    let dataDir: string | undefined;
     const prev = await deployment.lastEntry();
     const prevStateJson =
         options.prevStateJson ||
@@ -61,7 +62,6 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     })();
 
     let observerObservations = observations.observer ? observations.observer : {};
-    const history = await deployment.historyWriter();
 
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
@@ -127,7 +127,11 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         const mgr = createPluginManager(ctx.pluginModules);
         const prevDom = prev ? await inAdapt.internal.reanimateDom(prev.domXml) : null;
 
+        // This grabs a lock on the deployment's uncommitted data dir
+        dataDir = await deployment.getDataDir();
+
         await mgr.start(prevDom, newDom, {
+            dataDir: path.join(dataDir, "plugins"),
             deployID: deployment.deployID,
             logger,
         });
@@ -143,7 +147,8 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             observer: observerObservations
         });
 
-        await history.appendEntry({
+        await deployment.commitEntry({
+            dataDir,
             domXml,
             stateJson,
             stackName,
@@ -168,5 +173,6 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
 
     } finally {
         if (ctx) ctx.destroy();
+        if (dataDir) await deployment.releaseDataDir();
     }
 }

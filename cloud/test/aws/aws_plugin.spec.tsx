@@ -256,6 +256,7 @@ describe("AWS plugin basic tests", () => {
         options = {
             deployID: "abc123",
             log: logger.info,
+            dataDir: "/fake/datadir",
         };
     });
     after(() => {
@@ -376,6 +377,7 @@ describeLong("AWS plugin live tests", function () {
         options = {
             deployID,
             log: logger.info,
+            dataDir: "/fake/datadir",
         };
     });
     after(async function () {

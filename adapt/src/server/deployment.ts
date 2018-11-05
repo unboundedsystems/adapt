@@ -1,11 +1,13 @@
 import * as randomstring from "randomstring";
 import { InternalError } from "../error";
-import { HistoryEntry, HistoryName, HistoryStore, HistoryWriter } from "./history";
+import { HistoryEntry, HistoryName, HistoryStore } from "./history";
 import { AdaptServer } from "./server";
 
 export interface Deployment {
     readonly deployID: string;
-    historyWriter(): Promise<HistoryWriter>;
+    getDataDir(): Promise<string>;
+    releaseDataDir(): Promise<void>;
+    commitEntry(toStore: HistoryEntry): Promise<void>;
     historyEntry(historyName: HistoryName): Promise<HistoryEntry>;
     lastEntry(): Promise<HistoryEntry | undefined>;
 }
@@ -104,24 +106,23 @@ export async function listDeployments(server: AdaptServer): Promise<string[]> {
 }
 
 class DeploymentImpl implements Deployment {
-    private historyStore?: HistoryStore;
+    private historyStore_?: HistoryStore;
 
     constructor(public deployID: string, private server: AdaptServer) {}
 
-    async init() {
-        this.historyStore = await this.server.historyStore(dpath(this.deployID), true);
+    init = async () => {
+        this.historyStore_ = await this.server.historyStore(dpath(this.deployID), true);
     }
 
-    async historyWriter(): Promise<HistoryWriter> {
-        if (this.historyStore == null) throw new InternalError(`null historyStore`);
-        return this.historyStore.writer();
+    getDataDir = () => this.historyStore.getDataDir();
+    releaseDataDir = () => this.historyStore.releaseDataDir();
+    commitEntry = (toStore: HistoryEntry) => this.historyStore.commitEntry(toStore);
+    historyEntry = (name: string) => this.historyStore.historyEntry(name);
+    lastEntry = () => this.historyStore.last();
+
+    private get historyStore() {
+        if (this.historyStore_ == null) throw new InternalError(`null historyStore`);
+        return this.historyStore_;
     }
-    async historyEntry(historyName: HistoryName): Promise<HistoryEntry> {
-        if (this.historyStore == null) throw new InternalError(`null historyStore`);
-        return this.historyStore.historyEntry(historyName);
-    }
-    async lastEntry(): Promise<HistoryEntry | undefined> {
-        if (this.historyStore == null) throw new InternalError(`null historyStore`);
-        return this.historyStore.last();
-    }
+
 }

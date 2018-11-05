@@ -7,10 +7,11 @@ import * as should from "should";
 import { HistoryEntry } from "../../src/server/history";
 import {
     createLocalHistoryStore,
+    dataDirName,
     domFilename,
     infoFilename,
     observationsFilename,
-    stateFilename
+    stateFilename,
 } from "../../src/server/local_history";
 
 async function initLocalHistory() {
@@ -34,20 +35,25 @@ describe("Local history store tests", () => {
         const last = await hs.last();
         should(last).be.Undefined();
 
-        const writer = await hs.writer();
-
         const origInfo = {
             fileName: "somefile.tsx",
             projectRoot: "/somedir",
             stackName: "mystack",
         };
+        const dataDir = await hs.getDataDir();
+        should(dataDir).equal(path.join(process.cwd(), dataDirName + ".uncommitted"));
+        should(await fs.pathExists(dataDir)).be.True();
+
+        await fs.writeFile(path.join(dataDir, "testfile"), "this is a test");
+
         const entry: HistoryEntry = {
+            dataDir,
             domXml: "<Adapt/>",
             stateJson: `{"stateJson":true}`,
             observationsJson: `{ "test": { data: { "foo": 1 }, context: {"bar": 1}  } }`,
             ...origInfo
         };
-        await writer.appendEntry(entry);
+        await hs.commitEntry(entry);
 
         const hDirs = await historyDirs();
         should(hDirs).have.length(1);
@@ -56,14 +62,60 @@ describe("Local history store tests", () => {
         const stateJson = await fs.readFile(path.resolve(hDirs[0], stateFilename));
         const observationsJson = await fs.readFile(path.resolve(hDirs[0], observationsFilename));
         const info = await fs.readJson(path.resolve(hDirs[0], infoFilename));
+        const committedDataDir = path.resolve(hDirs[0], dataDirName);
+        const testfile = await fs.readFile(path.join(committedDataDir, "testfile"));
 
         should(domXml.toString()).equal(entry.domXml);
         should(stateJson.toString()).equal(entry.stateJson);
         should(observationsJson.toString()).equal(entry.observationsJson);
-        should(info).eql(origInfo);
+        should(info).eql({
+            ...origInfo,
+            dataDir: committedDataDir,
+        });
+        should(testfile.toString()).equal("this is a test");
 
         should(db.getData("/deployments/dep1")).eql({
             stateDirs: hDirs
         });
+    });
+
+    it("Should reconstitute previous dataDir", async () => {
+        const { hs } = await initLocalHistory();
+        const last = await hs.last();
+        should(last).be.Undefined();
+
+        const origInfo = {
+            fileName: "somefile.tsx",
+            projectRoot: "/somedir",
+            stackName: "mystack",
+        };
+        let dataDir = await hs.getDataDir();
+        should(dataDir).equal(path.join(process.cwd(), dataDirName + ".uncommitted"));
+        should(await fs.pathExists(dataDir)).be.True();
+
+        await fs.writeFile(path.join(dataDir, "testfile"), "this is a test");
+
+        const entry: HistoryEntry = {
+            dataDir,
+            domXml: "<Adapt/>",
+            stateJson: `{"stateJson":true}`,
+            observationsJson: `{ "test": { data: { "foo": 1 }, context: {"bar": 1}  } }`,
+            ...origInfo
+        };
+        await hs.commitEntry(entry);
+
+        // First commit complete. dataDir should be gone.
+        should(await fs.pathExists(dataDir)).be.False();
+
+        dataDir = await hs.getDataDir();
+        should(await fs.pathExists(dataDir)).be.True();
+
+        const testfile = await fs.readFile(path.join(dataDir, "testfile"));
+        should(testfile.toString()).equal("this is a test");
+
+        await hs.releaseDataDir();
+
+        // Commit aborted. dataDir should be gone.
+        should(await fs.pathExists(dataDir)).be.False();
     });
 });

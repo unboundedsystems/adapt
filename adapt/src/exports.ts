@@ -100,6 +100,7 @@ export {
 } from "./status";
 
 export {
+    Observed,
     WidgetPlugin,
     QueryDomain,
     WidgetPair,

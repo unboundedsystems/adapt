@@ -1,3 +1,4 @@
+import * as fs from "fs-extra";
 import * as ld from "lodash";
 import * as path from "path";
 import {
@@ -9,10 +10,23 @@ import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
 
 type PluginKey = string;
-type RegisteredPlugins = Map<PluginKey, Plugin>;
+type PluginInstances = Map<PluginKey, Plugin>;
+type PluginModules = Map<PluginKey, PluginModule>;
+
+export interface PluginRegistration {
+    name: string;
+    module: NodeModule;
+    create(): Plugin;
+}
+
+export interface PluginModule extends PluginRegistration {
+    packageName: string;
+    version: string;
+}
 
 export interface PluginConfig {
-    plugins: RegisteredPlugins;
+    plugins: PluginInstances;
+    modules: PluginModules;
 }
 
 export interface Action {
@@ -23,6 +37,7 @@ export interface Action {
 export interface PluginOptions {
     deployID: string;
     log: Logger;
+    dataDir: string;
 }
 
 export interface PluginObservations {
@@ -39,6 +54,7 @@ export interface Plugin<Observations extends object = object> {
 export interface PluginManagerStartOptions {
     deployID: string;
     logger: MessageLogger;
+    dataDir: string;
 }
 
 export interface ActionResult {
@@ -121,7 +137,8 @@ interface AnyObservation {
 }
 
 class PluginManagerImpl implements PluginManager {
-    plugins: Map<PluginKey, Plugin>;
+    plugins: PluginInstances;
+    modules: PluginModules;
     dom?: AdaptElementOrNull;
     prevDom?: AdaptElementOrNull;
     actions?: Action[];
@@ -131,6 +148,7 @@ class PluginManagerImpl implements PluginManager {
 
     constructor(config: PluginConfig) {
         this.plugins = new Map(config.plugins);
+        this.modules = new Map(config.modules);
         this.state = PluginManagerState.Initial;
     }
 
@@ -153,7 +171,17 @@ class PluginManagerImpl implements PluginManager {
             deployID: options.deployID,
             log: options.logger.info, //FIXME(manishv) have a per-plugin log here
         };
-        const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.start(loptions));
+        const waitingFor = mapMap(this.plugins, async (key, plugin) => {
+            const pMod = this.modules.get(key);
+            if (!pMod) throw new Error(`Internal error: no module found for ${key}`);
+            const dataDir = pluginDataDir(options.dataDir, pMod);
+            await fs.ensureDir(dataDir);
+            return plugin.start({
+                dataDir,
+                ...loptions
+            });
+        });
+
         await Promise.all(waitingFor);
         this.transitionTo(PluginManagerState.PreObserve);
     }
@@ -242,22 +270,14 @@ class PluginManagerImpl implements PluginManager {
     }
 }
 
-export interface PluginRegistration {
-    name: string;
-    module: NodeModule;
-    create(): Plugin;
-}
-
-export interface PluginModule extends PluginRegistration {
-    packageName: string;
-    version: string;
-}
-
 function pluginKey(pMod: PluginModule): PluginKey {
     return `${pMod.name} [${pMod.packageName}@${pMod.version}]`;
 }
 
-type PluginModules = Map<PluginKey, PluginModule>;
+function pluginDataDir(dataDirRoot: string, pMod: PluginModule): string {
+    return path.join(dataDirRoot, "plugins",
+        `${pMod.packageName}@${pMod.version}`, pMod.name);
+}
 
 export function registerPlugin(plugin: PluginRegistration) {
     const modules = getAdaptContext().pluginModules;
@@ -282,10 +302,10 @@ export function registerPlugin(plugin: PluginRegistration) {
 
 export function createPluginConfig(modules: PluginModules): PluginConfig {
     if (modules.size === 0) throw new Error(`No plugins registered`);
-    const plugins: RegisteredPlugins = new Map<PluginKey, Plugin>();
+    const plugins: PluginInstances = new Map<PluginKey, Plugin>();
 
     for (const [key, mod] of modules) {
         plugins.set(key, mod.create());
     }
-    return { plugins };
+    return { modules, plugins };
 }
