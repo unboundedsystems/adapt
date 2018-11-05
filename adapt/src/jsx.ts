@@ -9,6 +9,7 @@ import { Handle, handle, isHandleInternal } from "./handle";
 import { ObserverManagerDeployment } from "./observers";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
+import { defaultStatus, NoStatusAvailable } from "./status";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -31,6 +32,8 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
+
+    status<T = unknown>(): Promise<T>;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -72,6 +75,12 @@ export interface AdaptComponentElement<P extends object = AnyProps> extends Adap
 }
 export function isComponentElement<P extends object = AnyProps>(val: any): val is AdaptComponentElement<P> {
     return isElement(val) && isComponent(val.componentType.prototype);
+}
+export interface AdaptSFCElement<P extends object = AnyProps> extends AdaptElement<P> {
+    readonly componentType: FunctionComponentTyp<P>;
+}
+export function isSFCElement<P extends object = AnyProps>(val: any): val is AdaptSFCElement<P> {
+    return isElement(val) && !isComponentElement(val);
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {
@@ -137,6 +146,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
+    status(): Promise<unknown> { return defaultStatus(this.props, this.state); }
 }
 
 export type PropsType<Comp extends Constructor<Component<any, any>>> =
@@ -175,6 +185,7 @@ export interface ComponentStatic<P> {
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
+    status?: (props: P) => Promise<unknown>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -286,6 +297,17 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             stateChanged: applyStateUpdates(this.stateNamespace, stateStore,
                 this.props, updates)
         };
+    }
+
+    status = () => {
+        if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
+        if (isSFCElement(this)) {
+            const customStatus = this.componentType.status;
+            if (customStatus) return customStatus(this.props);
+            return defaultStatus(this.props);
+        }
+        if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
+        return this.component.status();
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }
