@@ -13,6 +13,7 @@ import { OverwriteT } from "type-ops";
 import {
     getResourceIds,
     resourceIdList,
+    ResourceIdPolicy,
     ResourceIdProps,
     ResourceIdState,
     updateResourceIdState
@@ -61,7 +62,10 @@ export class CFStackBase extends Component<CFStackProps, CFStackState> {
 
     constructor(props: CFStackProps) {
         super(props);
-        this.setState((prev) => updateResourceIdState(resourceIds, props, prev));
+        this.setState((prev) =>
+            updateResourceIdState(resourceIds, props, prev,
+                                  ResourceIdPolicy.local, { separator: "-" })
+        );
     }
 
     initialState() { return {}; }

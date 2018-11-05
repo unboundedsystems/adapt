@@ -391,8 +391,8 @@ describeLong("AWS plugin live tests", function () {
         stackNames = getStackNames(dom);
 
         should(stackNames).have.length(2);
-        should(stackNames[0]).match(/^ci-testStack1[a-z]{8}$/);
-        should(stackNames[1]).match(/^ci-testStack2[a-z]{8}$/);
+        should(stackNames[0]).match(/^ci-testStack1-[a-z]{8}$/);
+        should(stackNames[1]).match(/^ci-testStack2-[a-z]{8}$/);
 
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, dom);
