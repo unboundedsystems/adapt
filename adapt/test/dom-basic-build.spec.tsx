@@ -84,6 +84,7 @@ describe("DOM Basic Build Tests", () => {
         }
 
         should(dom.id).eql(JSON.stringify(["root"]));
+        should(await dom.status()).eql({ noStatus: true });
     });
 
     it("Should validate primitive component", async () => {
@@ -121,6 +122,7 @@ describe("DOM Basic Build Tests", () => {
         const ref = deepFilterElemsToPublic(<Empty key="a" id={1} />);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+        should(await dom.status()).eql({ childStatus: [{ noStatus: true }] });
     });
 
     it("Should substitute props.children as flat", async () => {
@@ -138,6 +140,7 @@ describe("DOM Basic Build Tests", () => {
         const ref = deepFilterElemsToPublic([<Empty key="a" id={1} />, <Empty key="b" id={2} />]);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+        should(await dom.status()).eql({ childStatus: [{ noStatus: true }, { noStatus: true }] });
     });
 
     it("Should build recursively", async () => {
@@ -217,7 +220,7 @@ describe("DOM Basic Build Tests", () => {
         const child = <MakeEmpty key="a" id={1} />;
         const orig = <Adapt.Group>
             <NonDeferredFlex key="1" recordChildren={(children) => { recordedChild = childrenToArray(children); }}>
-               {child}
+                {child}
             </NonDeferredFlex>
         </Adapt.Group>;
 
@@ -333,14 +336,9 @@ describe("DOM Shallow Build Tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should respect depth 0 as no-op", async () => {
-        const orig = <MakeMakeEmpty id={1} />;
-        const { contents: dom } = await Adapt.buildOnce(orig, null, { depth: 0 });
-        if (dom == null) {
-            should(dom).not.Null();
-            return;
-        }
-        should(dom).eql(orig);
+    it("Should not allow depth 0 builds", async () => {
+        const orig = <Adapt.Group />;
+        return should(Adapt.buildOnce(orig, null, { depth: 0 })).rejectedWith(/depth cannot be 0/);
     });
 
     it("Should respect depth option", async () => {

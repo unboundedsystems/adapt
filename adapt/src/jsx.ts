@@ -9,7 +9,7 @@ import { Handle, handle, isHandleInternal } from "./handle";
 import { ObserverManagerDeployment } from "./observers";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
-import { defaultStatus, NoStatusAvailable } from "./status";
+import { defaultStatus, NoStatusAvailable, Status } from "./status";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -33,7 +33,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly path: string;
     readonly keyPath: KeyPath;
 
-    status<T = unknown>(): Promise<T>;
+    status<T extends Status>(): Promise<T>;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -63,6 +63,8 @@ export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
+
+    status<T extends Status>(): Promise<T>;
     validate(): Message[];
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
@@ -81,6 +83,17 @@ export interface AdaptSFCElement<P extends object = AnyProps> extends AdaptEleme
 }
 export function isSFCElement<P extends object = AnyProps>(val: any): val is AdaptSFCElement<P> {
     return isElement(val) && !isComponentElement(val);
+}
+
+export function componentStateNow<
+    C extends Component<P, S>,
+    P extends object,
+    S extends object>(c: C): S | undefined {
+    try {
+        return c.state;
+    } catch {
+        return undefined;
+    }
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {
@@ -146,7 +159,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
-    status(): Promise<unknown> { return defaultStatus(this.props, this.state); }
+    status(): Promise<unknown> { return defaultStatus(this.props, componentStateNow(this)); }
 }
 
 export type PropsType<Comp extends Constructor<Component<any, any>>> =

@@ -8,6 +8,7 @@ import {
     AdaptComponentElement,
     AdaptElement,
     AdaptElementOrNull,
+    AdaptMountedElement,
     AnyProps,
     childrenToArray,
     cloneElement,
@@ -157,7 +158,12 @@ class BuildResults {
     toBuildOutput(): BuildOutput {
         if (this.buildErr && this.messages.length === 0) {
             throw new Error(`Internal error: buildErr is true, but there are ` +
-                            `no messages to describe why`);
+                `no messages to describe why`);
+        }
+        if (this.contents != null) {
+            if (!isMountedElement(this.contents)) {
+                throw new Error(`Internal error: contents is not a mounted element: ${this.contents}`);
+            }
         }
         return {
             messages: this.messages,
@@ -490,7 +496,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
 }
 
 export interface BuildOutput {
-    contents: AdaptElementOrNull;
+    contents: AdaptMountedElement | null;
     messages: Message[];
 }
 export async function build(
@@ -501,6 +507,8 @@ export async function build(
     const optionsReq = computeOptions(options);
     const results = new BuildResults(optionsReq.recorder);
     const styleList = css.buildStyles(styles);
+
+    if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
 
     await pathBuild([root], styleList, optionsReq, results);
     return results.toBuildOutput();
@@ -550,7 +558,7 @@ async function pathBuildOnceGuts(
 
     if (results.buildPassStarts++ > options.maxBuildPasses) {
         results.error(`DOM build exceeded maximum number of build iterations ` +
-                     `(${options.maxBuildPasses})`);
+            `(${options.maxBuildPasses})`);
         return;
     }
 
