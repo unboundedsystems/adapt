@@ -1,5 +1,6 @@
 import { domFromString, DOMNode, isDOMNode, isDOMObject } from "@usys/dom-parser";
 import { Constructor } from "@usys/utils";
+import { InternalError } from "../error";
 import { HandleInternal, isHandleInternal } from "../handle";
 import {
     AdaptElement,
@@ -78,7 +79,7 @@ async function reanimateNode(
 function resolveHandles(handleReg: HandleReg) {
     for (const hand of handleReg.handles) {
         const target = hand.unresolvedTarget;
-        if (target == null) throw new Error(`Internal error: target is null`);
+        if (target == null) throw new InternalError(`target is null`);
         const node = handleReg.nodes.get(JSON.stringify(target));
         if (node == null) throw new Error(`DOM reanimation error: cannot find DOM node path '${target}'`);
 

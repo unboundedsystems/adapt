@@ -4,6 +4,7 @@ import * as stringify from "json-stable-stringify";
 import * as path from "path";
 import URN = require("urn-lib");
 import { inspect } from "util";
+import { InternalError } from "../error";
 import { findPackageInfo } from "../packageinfo";
 
 // As long as utilsTypes is not used as a value, TS will only pull in the
@@ -197,7 +198,7 @@ export function registerObject(obj: any, name: string,
 
     const mod = findModule(modOrCallerNum);
     if (mod.exports == null) {
-        throw new Error(`Internal error: exports unexpectedly null for ` +
+        throw new InternalError(`exports unexpectedly null for ` +
             `${mod.id}\n${inspect(mod)}`);
     }
 
@@ -376,7 +377,7 @@ export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
         throw new Error(`Invalid domain in URN '${mummyUrn}'`);
     }
 
-    if (!isMummy(mummy)) throw new Error(`Internal error isMummy returned false`);
+    if (!isMummy(mummy)) throw new InternalError(`isMummy returned false`);
     return registry.awaken(stringify(mummy));
 }
 

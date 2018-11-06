@@ -4,7 +4,7 @@ import * as ld from "lodash";
 
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { StyleRule } from "./css";
-import { BuildNotImplemented } from "./error";
+import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
 import { ObserverManagerDeployment } from "./observers";
 import { registerConstructor } from "./reanimate";
@@ -267,7 +267,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         children: any[]) {
 
         const hand = props.handle || handle();
-        if (!isHandleInternal(hand)) throw new Error(`Internal Error: handle is not a HandleImpl`);
+        if (!isHandleInternal(hand)) throw new InternalError(`handle is not a HandleImpl`);
         hand.associate(this);
 
         this.props = {
@@ -296,7 +296,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             const propsWithKey = this.props as Props & { key: string };
             this.stateNamespace = [...parentNamespace, propsWithKey.key];
         } else {
-            throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
+            throw new InternalError(`props has no key at mount: ${util.inspect(this)}`);
         }
         this.path = path;
         this.keyPath = keyPath;
@@ -360,16 +360,11 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferr
 
     validate(): Message[] {
         if (!this.mounted) {
-            throw new Error(
-                `Internal error: validate called on unmounted component at ` +
-                `${this.path}`
+            throw new InternalError(`validate called on unmounted component at ${this.path}`
             );
         }
         if (this.component == null) {
-            throw new Error(
-                `Internal error: validate called but component instance not ` +
-                `created at ${this.path}`
-            );
+            throw new InternalError(`validate called but component instance not created at ${this.path}`);
         }
 
         let ret = this.component.validate();
@@ -506,7 +501,7 @@ export function popComponentConstructorData() {
 export function getComponentConstructorData(): ComponentConstructorData {
     const data = ld.last(componentConstructorStack);
     if (data == null) {
-        throw new Error(`Internal error: componentConstructorStack is empty`);
+        throw new InternalError(`componentConstructorStack is empty`);
     }
     return data;
 }

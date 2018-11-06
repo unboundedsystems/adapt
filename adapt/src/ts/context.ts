@@ -6,6 +6,7 @@ const Module = require("module");
 
 import * as ld from "lodash";
 import {
+    InternalError,
     isError,
     ProjectCompileError,
     ProjectRunError,
@@ -109,10 +110,8 @@ export class VmModule {
      * @param ctx The vm context where the DOM code will run.
      */
     initMain(ctx: vm.Context, innerObj: ObjectConstructor) {
-        if (this.parent) {
-            throw new Error(`Internal error: initMain should only be called ` +
-                `on top-level VmModule`);
-        }
+        if (this.parent) throw new InternalError(`initMain should only be called on top-level VmModule`);
+
         this.vmContext = ctx;
         this.innerObject = innerObj;
 
@@ -152,7 +151,7 @@ export class VmModule {
 
         if (builtInModules.has(modName)) {
             hostMod = this.requireBuiltin(modName);
-            if (hostMod === undefined) throw new Error(`Internal Error: Cannot find module '${modName}'`);
+            if (hostMod === undefined) throw new InternalError(`Cannot find module '${modName}'`);
             return hostMod;
         }
 
@@ -278,7 +277,7 @@ export class VmModule {
         for (const k of Object.keys(obj)) {
             try {
                 delete obj[k];
-            } catch (e) {/**/}
+            } catch (e) {/**/ }
         }
     }
 
@@ -354,7 +353,7 @@ export class VmContext {
         vm.createContext(vmGlobal);
         this.innerObject = vm.runInContext("Object", vmGlobal);
         if (!this.innerObject || this.innerObject.name !== "Object") {
-            throw new Error(`Internal error: Unable to get inner Object constructor`);
+            throw new InternalError(`Unable to get inner Object constructor`);
         }
 
         module.initMain(vmGlobal, this.innerObject);

@@ -1,3 +1,4 @@
+import { InternalError } from "./error";
 import { AdaptElement, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
@@ -24,7 +25,7 @@ export function isHandleInternal(val: unknown): val is HandleInternal {
 
 export function getInternalHandle(el: AdaptElement): HandleInternal {
     const hand = el.props.handle;
-    if (!isHandleInternal(hand)) throw new Error(`Internal error: handle is not a HandleImpl`);
+    if (!isHandleInternal(hand)) throw new InternalError(`handle is not a HandleImpl`);
     return hand;
 }
 
@@ -111,10 +112,10 @@ class HandleImpl implements HandleInternal {
 
             const childHand = hand.childElement.props.handle;
             if (childHand == null) {
-                throw new Error(`Internal error: no Handle present on Element in child chain`);
+                throw new InternalError(`no Handle present on Element in child chain`);
             }
             if (!(childHand instanceof HandleImpl)) {
-                throw new Error(`Internal error: Handle present on Element is not a HandleImpl`);
+                throw new InternalError(`Handle present on Element is not a HandleImpl`);
             }
 
             hand = childHand;
@@ -141,7 +142,7 @@ class HandleImpl implements HandleInternal {
  * @param name Name to associate with the handle for debugging/display purposes
  */
 export function handle(name?: string): Handle {
-    return new HandleImpl({name});
+    return new HandleImpl({ name });
 }
 
 registerObject(HandleImpl, "HandleImpl", module);

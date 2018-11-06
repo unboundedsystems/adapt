@@ -9,6 +9,7 @@ import {
     Plugin,
     PluginOptions,
 } from ".";
+import { InternalError } from "./error";
 
 export interface WidgetPair<E extends AdaptElement, O extends object> {
     queryDomainKey: QueryDomainKey;
@@ -167,7 +168,7 @@ export abstract class WidgetPlugin<
 
     get deployID(): string {
         if (this.deployID_ == null) {
-            throw new Error(`Internal error: deployID not initialized yet`);
+            throw new InternalError(`deployID not initialized yet`);
         }
         return this.deployID_;
     }
@@ -186,7 +187,7 @@ export abstract class WidgetPlugin<
         let key: string | undefined;
         const el = pair.element;
         if (el != null) {
-            if (!isMountedElement(el)) throw new Error(`Internal error`);
+            if (!isMountedElement(el)) throw new InternalError(`element not mounted`);
             type = this.getWidgetTypeFromElem(el);
             id = this.getWidgetIdFromElem(el);
             key = el.props.key;
@@ -194,7 +195,7 @@ export abstract class WidgetPlugin<
             type = this.getWidgetTypeFromObs(pair.observed);
             id = this.getWidgetIdFromObs(pair.observed);
         } else {
-            throw new Error(`Internal error: WidgetPair with no content`);
+            throw new InternalError(`WidgetPair with no content`);
         }
         return { type, id, key };
     }
@@ -214,7 +215,7 @@ export abstract class WidgetPlugin<
             const description = `${actionType} ${type}${k} (id=${id})`;
 
             const domain = this.queryDomain(p.queryDomainKey);
-            if (domain == null) throw new Error(`Internal error: domain null`);
+            if (domain == null) throw new InternalError(`domain null`);
             actions.push({
                 description,
                 act: async () => {

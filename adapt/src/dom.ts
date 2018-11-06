@@ -44,7 +44,7 @@ import {
     BuildListener,
     BuildOp,
 } from "./dom_build_data_recorder";
-import { BuildNotImplemented, isError, ThrewNonError } from "./error";
+import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
 import { getInternalHandle } from "./handle";
 import { assignKeysAtPlacement, computeMountKey } from "./keys";
 
@@ -123,7 +123,7 @@ class BuildResults {
     message(msg: WithPartialT<OmitT<Message, "content">, "from" | "timestamp">, err: Error): void;
     message(msg: WithPartialT<Message, "from" | "timestamp" | "content">, err?: Error): void {
         const content = err ? err.message : msg.content;
-        if (!content) throw new Error(`Internal error: build message doesn't have content or err`);
+        if (!content) throw new InternalError(`build message doesn't have content or err`);
 
         const copy = {
             ...msg,
@@ -164,12 +164,12 @@ class BuildResults {
     }
     toBuildOutput(): BuildOutput {
         if (this.buildErr && this.messages.length === 0) {
-            throw new Error(`Internal error: buildErr is true, but there are ` +
+            throw new InternalError(`buildErr is true, but there are ` +
                 `no messages to describe why`);
         }
         if (this.contents != null) {
             if (!isMountedElement(this.contents)) {
-                throw new Error(`Internal error: contents is not a mounted element: ${this.contents}`);
+                throw new InternalError(`contents is not a mounted element: ${this.contents}`);
             }
         }
         return {
@@ -226,7 +226,7 @@ async function computeContentsFromElement<P extends object>(
     }
 
     if (!isComponentElement(element)) {
-        throw new Error(`Internal error: trying to construct non-component`);
+        throw new InternalError(`trying to construct non-component`);
     }
     let component: Component;
     try {
@@ -282,7 +282,7 @@ async function computeContents(
         const ret = new BuildResults(options.recorder);
         return ret;
     }
-    if (!isMountedElement(element)) throw new Error(`Internal Error: computeContents for umounted element: ${element}`);
+    if (!isMountedElement(element)) throw new InternalError(`computeContents for umounted element: ${element}`);
 
     const hand = getInternalHandle(element);
 
@@ -360,7 +360,7 @@ function mountElement(
 
     let elem = ld.last(path);
     if (elem === undefined) {
-        throw new Error("Internal Error: Attempt to mount empty path");
+        throw new InternalError("Attempt to mount empty path");
     }
 
     if (elem === null) return new BuildResults(options.recorder, elem, elem);
@@ -393,7 +393,7 @@ function mountElement(
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
         domPathToKeyPath(finalPath));
-    if (!isMountedElement(elem)) throw new Error(`Internal Error: just mounted element is not mounted ${elem}`);
+    if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
     return out;
@@ -413,12 +413,12 @@ async function buildElement(
 
     const elem = ld.last(path);
     if (elem === undefined) {
-        throw new Error("Internal Error: buildElement called with empty path");
+        throw new InternalError("buildElement called with empty path");
     }
 
     if (elem === null) return new BuildResults(options.recorder, null, null);
 
-    if (!isMountedElement(elem)) throw new Error(`Internal Error: attempt to build unmounted element ${elem}`);
+    if (!isMountedElement(elem)) throw new InternalError(`attempt to build unmounted element ${elem}`);
     if (!isElementImpl(elem)) throw new Error(`Elements must derive from ElementImpl ${elem}`);
 
     if (isPrimitiveElement(elem)) {
@@ -453,7 +453,7 @@ function constructComponent<P extends object = {}>(
     elem: AdaptComponentElement<P>, stateStore: StateStore, observerManager: ObserverManagerDeployment): Component<P> {
 
     if (!isElementImpl(elem)) {
-        throw new Error(`Internal error: Element is not an ElementImpl`);
+        throw new InternalError(`Element is not an ElementImpl`);
     }
 
     pushComponentConstructorData({
@@ -674,14 +674,14 @@ async function realBuildOnce(
     let deferring = false;
     const atDepthFlag = atDepth(options, pathIn.length);
 
-    if (options.depth === 0) throw new Error("Internal Error: build depth 0 not supported");
+    if (options.depth === 0) throw new InternalError("build depth 0 not supported");
 
     if (parentStateNamespace == null) {
         parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
     }
 
     const oldElem = ld.last(pathIn);
-    if (oldElem === undefined) throw new Error("Internal Error: realBuild called with empty path");
+    if (oldElem === undefined) throw new InternalError("realBuild called with empty path");
     if (oldElem === null) return new BuildResults(options.recorder, null);
     if (workingElem === undefined) {
         workingElem = oldElem;
@@ -695,7 +695,7 @@ async function realBuildOnce(
         out.contents = mountedElem = mountOut.contents;
         out.combine(mountOut);
     }
-    if (!isMountedElement(mountedElem)) throw new Error("Internal Error: element not mounted after mount");
+    if (!isMountedElement(mountedElem)) throw new InternalError("element not mounted after mount");
     out.mountedOrig = mountedElem;
 
     if (mountedElem === null) {
@@ -808,7 +808,7 @@ function domPathToKeyPath(domPath: DomPath): KeyPath {
     return domPath.map((el) => {
         const key = el.props.key;
         if (typeof key !== "string") {
-            throw new Error(`Internal error: element has no key`);
+            throw new InternalError(`element has no key`);
         }
         return key;
     });

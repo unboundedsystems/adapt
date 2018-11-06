@@ -1,5 +1,6 @@
 import * as path from "path";
 
+import { InternalError } from "../error";
 import { ObserverManagerDeployment } from "../observers";
 import { PluginModule } from "../plugin_support";
 import { Stack, Stacks } from "../stack";
@@ -31,7 +32,7 @@ export function getAdaptContext(): AdaptContext {
     if (typeof g.getAdaptContext !== "function") {
         // If we're running inside a VmContext, this should exist on global.
         // It is invalid to call this function from outside a VmContext.
-        throw new Error(`Internal error: Unable to get global AdaptContext`);
+        throw new InternalError(`Unable to get global AdaptContext`);
     }
     return g.getAdaptContext();
 }

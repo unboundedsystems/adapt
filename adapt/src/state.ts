@@ -3,6 +3,7 @@ import * as util from "util";
 import * as ld from "lodash";
 
 import { removeUndef } from "@usys/utils";
+import { InternalError } from "./error";
 import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
 import { StateNamespace } from "./state";
 
@@ -91,7 +92,7 @@ export function applyStateUpdates<
 
     const prev: S | undefined = store.elementState(path) as S;
     if (prev === undefined) {
-        throw new Error(`Internal error: previous Component state should have been initialized`);
+        throw new InternalError(`previous Component state should have been initialized`);
     }
 
     let newState = prev;
