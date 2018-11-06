@@ -53,6 +53,7 @@ export type DomPath = AdaptElement[];
 type CleanupFunc = () => void;
 class BuildResults {
     // These reset each build pass
+    mountedOrig: AdaptMountedElement | null;
     contents: AdaptElementOrNull;
     cleanups: CleanupFunc[];
     mountedElements: AdaptElement[];
@@ -66,6 +67,7 @@ class BuildResults {
 
     constructor(
         readonly recorder: BuildListener,
+        mountedOrig?: AdaptMountedElement | null,
         contents?: AdaptElementOrNull,
         other?: BuildResults) {
 
@@ -75,12 +77,17 @@ class BuildResults {
             this.contents = contents;
         }
 
+        if (mountedOrig !== undefined) {
+            this.mountedOrig = mountedOrig;
+        }
+
         if (other !== undefined) {
             this.combine(other);
         }
     }
 
     buildPassReset() {
+        this.mountedOrig = null;
         this.contents = null;
         this.cleanups = [];
         this.mountedElements = [];
@@ -168,6 +175,7 @@ class BuildResults {
         return {
             messages: this.messages,
             contents: this.contents,
+            mountedOrig: this.mountedOrig
         };
     }
 }
@@ -202,9 +210,9 @@ function recordDomError(
 }
 
 async function computeContentsFromElement<P extends object>(
-    element: AdaptElement<P & WithChildren>,
+    element: AdaptMountedElement<P & WithChildren>,
     options: BuildOptionsReq): Promise<BuildResults> {
-    const ret = new BuildResults(options.recorder);
+    const ret = new BuildResults(options.recorder, element);
 
     try {
         ret.contents =
@@ -274,6 +282,7 @@ async function computeContents(
         const ret = new BuildResults(options.recorder);
         return ret;
     }
+    if (!isMountedElement(element)) throw new Error(`Internal Error: computeContents for umounted element: ${element}`);
 
     const hand = getInternalHandle(element);
 
@@ -354,7 +363,7 @@ function mountElement(
         throw new Error("Internal Error: Attempt to mount empty path");
     }
 
-    if (elem === null) return new BuildResults(options.recorder, elem);
+    if (elem === null) return new BuildResults(options.recorder, elem, elem);
 
     if (isMountedElement(elem)) {
         throw new Error("Attempt to remount element: " + util.inspect(elem));
@@ -384,7 +393,8 @@ function mountElement(
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
         domPathToKeyPath(finalPath));
-    const out = new BuildResults(options.recorder, elem);
+    if (!isMountedElement(elem)) throw new Error(`Internal Error: just mounted element is not mounted ${elem}`);
+    const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
     return out;
 }
@@ -406,15 +416,13 @@ async function buildElement(
         throw new Error("Internal Error: buildElement called with empty path");
     }
 
-    if (elem === null) return new BuildResults(options.recorder, null);
+    if (elem === null) return new BuildResults(options.recorder, null, null);
 
-    if (!isElementImpl(elem)) {
-        throw new Error("Elements must derive from ElementImpl");
-    }
+    if (!isMountedElement(elem)) throw new Error(`Internal Error: attempt to build unmounted element ${elem}`);
+    if (!isElementImpl(elem)) throw new Error(`Elements must derive from ElementImpl ${elem}`);
 
     if (isPrimitiveElement(elem)) {
-        if (!isElementImpl(elem)) throw new Error("Elements must inherit from ElementImpl");
-        const res = new BuildResults(options.recorder, elem);
+        const res = new BuildResults(options.recorder, elem, elem);
         try {
             constructComponent(elem, options.stateStore, options.observerManager);
             res.builtElements.push(elem);
@@ -496,6 +504,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
 }
 
 export interface BuildOutput {
+    mountedOrig: AdaptMountedElement | null;
     contents: AdaptMountedElement | null;
     messages: Message[];
 }
@@ -569,6 +578,7 @@ async function pathBuildOnceGuts(
         const once = await realBuildOnce(path, null, styles, options);
         once.cleanup();
         results.combine(once);
+        results.mountedOrig = once.mountedOrig;
         results.contents = once.contents;
     } catch (error) {
         options.recorder({ type: "error", error });
@@ -664,7 +674,7 @@ async function realBuildOnce(
     let deferring = false;
     const atDepthFlag = atDepth(options, pathIn.length);
 
-    if (options.depth === 0) return new BuildResults(options.recorder, pathIn[0]);
+    if (options.depth === 0) throw new Error("Internal Error: build depth 0 not supported");
 
     if (parentStateNamespace == null) {
         parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
@@ -685,6 +695,8 @@ async function realBuildOnce(
         out.contents = mountedElem = mountOut.contents;
         out.combine(mountOut);
     }
+    if (!isMountedElement(mountedElem)) throw new Error("Internal Error: element not mounted after mount");
+    out.mountedOrig = mountedElem;
 
     if (mountedElem === null) {
         options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
@@ -709,12 +721,14 @@ async function realBuildOnce(
         if (newRoot !== null) {
             if (newRoot !== mountedElem) {
                 newPath = subLastPathElem(mountedPath, newRoot);
-                return (await realBuildOnce(
+                const ret = (await realBuildOnce(
                     newPath,
                     mountedElem.stateNamespace,
                     styles,
                     options,
                     workingElem)).combine(out);
+                ret.mountedOrig = out.mountedOrig;
+                return ret;
             }
         }
     } else {
@@ -761,7 +775,10 @@ async function realBuildOnce(
     if (atDepthFlag && newRoot.props.children === undefined) return out;
 
     //We must have deferred to get here
-    return (await realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem)).combine(out);
+    const deferredRet =
+        (await realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem)).combine(out);
+    deferredRet.mountedOrig = out.mountedOrig;
+    return deferredRet;
 }
 
 function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {
