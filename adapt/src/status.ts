@@ -1,5 +1,13 @@
+import { DocumentNode as Query } from "graphql";
 import { CustomError } from "ts-custom-error";
 import { childrenToArray } from "../src/jsx";
+import { Variables } from "./observers/obs_manager_deployment";
+import { ObserverNameHolder } from "./observers/registry";
+
+export type ObserveForStatus<T = unknown> = (
+    observer: ObserverNameHolder,
+    query: Query,
+    vars?: Variables) => Promise<T | undefined>;
 
 export interface Status {
     noStatus?: true;

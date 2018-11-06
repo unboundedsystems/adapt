@@ -3,13 +3,16 @@ import * as util from "util";
 import * as ld from "lodash";
 
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
+import { printError as gqlPrintError } from "graphql";
 import { StyleRule } from "./css";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
-import { ObserverManagerDeployment } from "./observers";
+import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
+import { adaptGqlExecute } from "./observers/query_transforms";
+import { findObserver } from "./observers/registry";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
-import { defaultStatus, NoStatusAvailable, Status } from "./status";
+import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -159,7 +162,9 @@ export abstract class Component<Props extends object = {}, State extends object 
     initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
-    status(): Promise<unknown> { return defaultStatus(this.props, componentStateNow(this)); }
+    status(observeForStatus: ObserveForStatus): Promise<unknown> {
+        return defaultStatus(this.props, componentStateNow(this));
+    }
 }
 
 export type PropsType<Comp extends Constructor<Component<any, any>>> =
@@ -320,7 +325,25 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             return defaultStatus(this.props);
         }
         if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
-        return this.component.status();
+        const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
+            //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
+            const plugin = findObserver(observer);
+            if (!plugin) throw new Error(`Cannot find observer ${observer.observerName}`);
+            const observations = await plugin.observe([{ query, variables }]);
+            const schema = plugin.schema;
+            const result = await adaptGqlExecute<unknown>(
+                schema,
+                query,
+                observations.data,
+                observations.context,
+                variables);
+            if (result.errors) {
+                const msgs = result.errors.map((e) => e.originalError ? e.stack : gqlPrintError(e)).join("\n");
+                throw new Error(msgs);
+            }
+            return result.data;
+        };
+        return this.component.status(observeForStatus);
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }

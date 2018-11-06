@@ -1,6 +1,7 @@
 import {
     ASTNode,
     DocumentNode,
+    execute as gqlExecute,
     FieldNode,
     GraphQLField,
     GraphQLOutputType,
@@ -10,7 +11,7 @@ import {
     Kind,
     OperationDefinitionNode,
     SelectionSetNode,
-    visit,
+    visit
 } from "graphql";
 import * as ld from "lodash";
 import { InternalError } from "../error";
@@ -175,4 +176,13 @@ class AllDirectiveVisitor {
 
 export function applyAdaptTransforms(schema: GraphQLSchema, q: DocumentNode): DocumentNode {
     return visit(q, new AllDirectiveVisitor(schema));
+}
+
+export function adaptGqlExecute<R>(
+    schema: GraphQLSchema,
+    query: DocumentNode,
+    data?: unknown,
+    context?: unknown,
+    vars?: { [name: string]: unknown}) {
+    return gqlExecute<R>(schema, query, data, context, vars);
 }
