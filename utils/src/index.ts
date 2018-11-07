@@ -3,6 +3,7 @@ export * from "./crypto";
 export * from "./env";
 export * from "./message";
 export * from "./mkdtmp";
+export * from "./object_set";
 export * from "./paths";
 
 import * as npm from "./npm";
