@@ -1,8 +1,10 @@
 import Adapt, {
+    Group,
     PluginOptions,
 } from "@usys/adapt";
 import * as execa from "execa";
 import * as fs from "fs-extra";
+import * as path from "path";
 import * as should from "should";
 
 import {
@@ -16,14 +18,15 @@ import { dockerExec } from "@usys/testutils/dist/src/dockerutils";
 import { act, doBuild } from "../testlib";
 
 import {
-    AnsiblePluginImpl,
-    createAnsiblePlugin,
-} from "../../src/ansible/ansible_plugin";
-import {
+    AnsibleGroup,
     AnsibleHost,
     ansibleHostLocal,
     AnsiblePlaybook,
-} from "../../src/ansible/AnsiblePlaybook";
+} from "../../src/ansible";
+import {
+    AnsiblePluginImpl,
+    createAnsiblePlugin,
+} from "../../src/ansible/ansible_plugin";
 
 const echoPlaybook = `
 - name: Echo playbook
@@ -73,7 +76,7 @@ async function setupDir() {
     await fs.writeFile("echo.yaml", echoPlaybook);
 }
 
-const  sshdContainerSpec: dockerMocha.ContainerSpec = {
+const sshdContainerSpec: dockerMocha.ContainerSpec = {
     Image: "sickp/alpine-sshd:7.5-r2",
     Hostname: "sshd-test",
     ExposedPorts: { "22/tcp": {} },
@@ -92,14 +95,17 @@ describe("Ansible plugin", async function () {
     let logger: MockLogger;
     let sshdAddr: string;
     const sshdPort = 22;
+    const dataDir = path.join(process.cwd(), "pluginData");
 
     mochaTmpdir.all("test-cloud-ansible");
     const sshd = dockerMocha.all(sshdContainerSpec);
 
     before("Ansible bootstrap & dir setup", async function () {
         this.timeout(60 * 1000);
+
         await bootstrapLocalSystem();
         await setupDir();
+        await fs.ensureDir(dataDir);
 
         const sshdInfo = await sshd.container.inspect();
         sshdAddr = sshdInfo.NetworkSettings.IPAddress;
@@ -120,16 +126,19 @@ describe("Ansible plugin", async function () {
         options = {
             deployID: "abc123",
             log: logger.info,
+            dataDir,
         };
     });
 
     async function simplePlaybook(host: AnsibleHost, vars: any) {
         const orig =
-            <AnsiblePlaybook
-                ansibleHost={host}
-                playbookFile="echo.yaml"
-                vars={vars}
-            />;
+            <Group>
+                <AnsiblePlaybook
+                    playbookFile="echo.yaml"
+                    vars={vars}
+                />
+                <AnsibleGroup ansibleHost={host} groups="somegroup" />
+            </Group>;
         const dom = await doBuild(orig);
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
