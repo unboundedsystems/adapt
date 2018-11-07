@@ -1,27 +1,9 @@
 import {
     DocumentNode as GraphQLDocument,
-    GraphQLSchema
 } from "graphql";
 import gqlTag from "graphql-tag";
 import { CustomError } from "ts-custom-error";
-import { ExecutedQuery } from "./obs_manager_deployment";
-
-export interface Observations {
-    [observerName: string]: {
-        observations: ObserverResponse;
-        queries: ExecutedQuery[];
-    };
-}
-
-export interface ObserverResponse<D = object, C = any> {
-    data?: D;
-    context?: C;
-}
-
-export interface ObserverPlugin<D = object, C = any> {
-    readonly schema: GraphQLSchema;
-    observe(possibleQueries: ExecutedQuery[]): Promise<ObserverResponse<D, C>>;
-}
+import { ExecutedQuery, Observations } from "./obs_manager_deployment";
 
 export const gql: (literals: TemplateStringsArray, ...placeholders: any[]) => GraphQLDocument = gqlTag;
 
@@ -36,8 +18,14 @@ export {
     ObserverManagerDeployment,
     ExecutedQuery,
     simplifyNeedsData,
-    ObserversThatNeedData
+    ObserversThatNeedData,
+    Observations
 } from "./obs_manager_deployment";
+
+export {
+    ObserverPlugin,
+    ObserverResponse
+} from "./plugin";
 
 export {
     registerObserver,

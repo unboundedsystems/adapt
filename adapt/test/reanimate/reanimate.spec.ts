@@ -429,6 +429,7 @@ const reanimatePackage: Package = {
             "callsites": "2.0.0",
             "json-stable-stringify": "1.0.1",
             "read-pkg-up": "4.0.0",
+            "ts-custom-error": "^2.2.1",
             "urn-lib": "1.1.2",
         },
     },
@@ -437,6 +438,7 @@ const reanimatePackage: Package = {
     },
     copy: {
         "reanimate/index.js": path.join(distSrc, "reanimate", "reanimate.js"),
+        "error.js": path.join(distSrc, "error.js"),
         "packageinfo.js": path.join(distSrc, "packageinfo.js"),
     }
 };

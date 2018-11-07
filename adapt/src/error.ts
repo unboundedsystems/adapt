@@ -40,6 +40,12 @@ export class ThrewNonError extends CustomError {
     }
 }
 
+export class InternalError extends CustomError {
+    constructor(msg: string) {
+        super(`Internal Error: ${msg}`);
+    }
+}
+
 export function isError(val: any): val is Error {
     return (
         (val != null) &&

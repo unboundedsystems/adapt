@@ -6,6 +6,7 @@ import Adapt, {
     childrenToArray,
     Component,
     DeferredComponent,
+    isMountedElement,
     PrimitiveComponent,
     rule,
     Style,
@@ -69,7 +70,7 @@ function ReturnsNull(_props: {}): AdaptElementOrNull {
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", async () => {
         const orig = <Adapt.Group key="root" />;
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
 
         const ref = deepFilterElemsToPublic(orig);
 
@@ -77,6 +78,8 @@ describe("DOM Basic Build Tests", () => {
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
         should(deepFilterElemsToPublic(dom)).eql(ref);
+        should(Adapt.isMountedElement(mountedOrig)).True();
+        should(deepFilterElemsToPublic(mountedOrig)).eql(ref);
 
         if (!Adapt.isMountedElement(dom)) {
             should(Adapt.isMountedElement(dom)).True();
@@ -84,6 +87,9 @@ describe("DOM Basic Build Tests", () => {
         }
 
         should(dom.id).eql(JSON.stringify(["root"]));
+        should(await dom.status()).eql({ noStatus: true });
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(mountedOrig.buildData.successor).Undefined();
     });
 
     it("Should validate primitive component", async () => {
@@ -108,19 +114,29 @@ describe("DOM Basic Build Tests", () => {
     });
 
     it("Should build single child", async () => {
-        const orig = <MakeGroup>
+        const orig = <MakeGroup key="root">
             <Empty key="a" id={1} />
         </MakeGroup>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
 
+        const mountedOrigRef = deepFilterElemsToPublic(<MakeGroup key="root">
+            <Empty key="a" id={1} />
+        </MakeGroup>);
+        should(deepFilterElemsToPublic(mountedOrig)).eql(mountedOrigRef);
+
         const ref = deepFilterElemsToPublic(<Empty key="a" id={1} />);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+        should(await dom.status()).eql({ childStatus: [{ noStatus: true }] });
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const succRef = deepFilterElemsToPublic(<Adapt.Group key="root-Group"><Empty key="a" id={1} /></Adapt.Group>);
+        should(deepFilterElemsToPublic(mountedOrig.buildData.successor)).eql(succRef);
     });
 
     it("Should substitute props.children as flat", async () => {
@@ -138,15 +154,16 @@ describe("DOM Basic Build Tests", () => {
         const ref = deepFilterElemsToPublic([<Empty key="a" id={1} />, <Empty key="b" id={2} />]);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+        should(await dom.status()).eql({ childStatus: [{ noStatus: true }, { noStatus: true }] });
     });
 
-    it("Should build recursively", async () => {
-        const orig = <Adapt.Group>
+    it("Should build recursively (outer primitive)", async () => {
+        const orig = <Adapt.Group key="root">
             <MakeMakeEmpty key="a" id={1} />
             <MakeMakeEmpty key="b" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -156,6 +173,54 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="a-MakeEmpty-Empty" id={1} />,
             <Empty key="b-MakeEmpty-Empty" id={2} />]);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+
+        const origRef = deepFilterElemsToPublic(<Adapt.Group key="root">
+            <Empty key="a-MakeEmpty-Empty" id={1} />
+            <Empty key="b-MakeEmpty-Empty" id={2} />
+        </Adapt.Group>);
+        should(Adapt.isMountedElement(mountedOrig)).True();
+        should(deepFilterElemsToPublic(mountedOrig)).eql(origRef);
+    });
+
+    it("Should build recursively (outer composite)", async () => {
+        const orig = <MakeGroup key="root">
+            <MakeMakeEmpty key="a" id={1} />
+            <MakeMakeEmpty key="b" id={2} />
+        </MakeGroup>;
+
+        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Empty, Empty);
+        const ref = deepFilterElemsToPublic([
+            <Empty key="a-MakeEmpty-Empty" id={1} />,
+            <Empty key="b-MakeEmpty-Empty" id={2} />]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
+
+        should(Adapt.isMountedElement(mountedOrig)).True();
+        should(deepFilterElemsToPublic(mountedOrig)).eql(deepFilterElemsToPublic(orig));
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const succ = mountedOrig.buildData.successor;
+        if (!succ) throw should(succ).not.Undefined();
+
+        const origChildren = succ.buildData.origChildren;
+        if (!origChildren) throw should(origChildren).not.Undefined();
+
+        const child0 = origChildren[0];
+        if (!isMountedElement(child0)) throw should(isMountedElement(child0)).True();
+        should(deepFilterElemsToPublic(child0)).eql(deepFilterElemsToPublic(<MakeMakeEmpty key="a" id={1} />));
+
+        const succRef1 = deepFilterElemsToPublic(<MakeEmpty key="a-MakeEmpty" id={1} />);
+        const succRef2 = deepFilterElemsToPublic(<Empty key="a-MakeEmpty-Empty" id={1} />);
+
+        const child0Succ = child0.buildData.successor;
+        if (child0Succ === undefined) throw should(child0Succ).not.Undefined();
+        if (child0Succ === null) throw should(child0Succ).not.Null();
+        should(deepFilterElemsToPublic(child0Succ)).eql(succRef1);
+        should(deepFilterElemsToPublic(child0Succ.buildData.successor)).eql(succRef2);
     });
 
     it("Should pass through primitives with children", async () => {
@@ -217,7 +282,7 @@ describe("DOM Basic Build Tests", () => {
         const child = <MakeEmpty key="a" id={1} />;
         const orig = <Adapt.Group>
             <NonDeferredFlex key="1" recordChildren={(children) => { recordedChild = childrenToArray(children); }}>
-               {child}
+                {child}
             </NonDeferredFlex>
         </Adapt.Group>;
 
@@ -333,14 +398,9 @@ describe("DOM Shallow Build Tests", () => {
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
-    it("Should respect depth 0 as no-op", async () => {
-        const orig = <MakeMakeEmpty id={1} />;
-        const { contents: dom } = await Adapt.buildOnce(orig, null, { depth: 0 });
-        if (dom == null) {
-            should(dom).not.Null();
-            return;
-        }
-        should(dom).eql(orig);
+    it("Should not allow depth 0 builds", async () => {
+        const orig = <Adapt.Group />;
+        return should(Adapt.buildOnce(orig, null, { depth: 0 })).rejectedWith(/depth cannot be 0/);
     });
 
     it("Should respect depth option", async () => {

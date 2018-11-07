@@ -7,16 +7,16 @@
 import { removeUndef } from "@usys/utils";
 import {
     DocumentNode as Query,
-    execute as gqlExecute,
     ExecutionResult,
     GraphQLSchema,
     print as gqlPrint
 } from "graphql";
 import * as ld from "lodash";
 import { ObserverResponse } from ".";
+import { adaptGqlExecute } from "./query_transforms";
 import { ObserverNameHolder } from "./registry";
 
-interface Variables {
+export interface Variables {
     [n: string]: any;
 }
 
@@ -34,8 +34,16 @@ export interface ExecutedQuery {
     variables?: Variables;
 }
 
+export interface Observations {
+    [observerName: string]: {
+        observations: ObserverResponse;
+        queries: ExecutedQuery[];
+    };
+}
+
 export interface ObserverManagerDeployment {
     registerSchema(name: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void;
+    findObserverSchema(observer: ObserverNameHolder): GraphQLSchema | undefined;
     executedQueries(): { [name: string]: ExecutedQuery[] };
     executedQueriesThatNeededData(): { [name: string]: ExecutedQuery[] };
     executeQuery<R = any>(observer: ObserverNameHolder, q: Query, vars?: Variables): Promise<ExecutionResult<R>>;
@@ -95,6 +103,10 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         };
     }
 
+    findObserverSchema = (observer: ObserverNameHolder): GraphQLSchema | undefined => {
+        return this.observable[observer.observerName].schema;
+    }
+
     executedQueries = () => {
         const ret: { [name: string]: ExecutedQuery[] } = {};
         for (const schemaName in this.observable) {
@@ -120,7 +132,7 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
         const { schema, observations, executedQueries } = this.observable[schemaName];
         const query = { query: q, variables: vars };
         addExecutedQuery(executedQueries, query);
-        const ret = await Promise.resolve(gqlExecute<R>(schema, q, observations.data, observations.context, vars));
+        const ret = await Promise.resolve(adaptGqlExecute<R>(schema, q, observations.data, observations.context, vars));
         if (ret.errors) {
             const needDataErr = ret.errors.find((e) => e.message.startsWith("Adapt Observer Needs Data:"));
             if (needDataErr !== undefined) {

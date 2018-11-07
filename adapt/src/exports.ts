@@ -18,7 +18,8 @@ export {
     isDeferredElement,
     isPrimitiveElement,
     WithChildren,
-    PropsType
+    PropsType,
+    SFC
 } from "./jsx";
 
 export {
@@ -29,6 +30,7 @@ export {
 
 export {
     build,
+    BuildData,
     buildOnce,
     BuildOutput,
     DomPath
@@ -92,6 +94,10 @@ export {
     registerPlugin,
     PluginRegistration,
 } from "./plugin_support";
+
+export {
+    ObserveForStatus,
+} from "./status";
 
 export {
     WidgetPlugin,

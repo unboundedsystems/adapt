@@ -1,4 +1,5 @@
 import * as randomstring from "randomstring";
+import { InternalError } from "../error";
 import { HistoryEntry, HistoryName, HistoryStore, HistoryWriter } from "./history";
 import { AdaptServer } from "./server";
 
@@ -112,15 +113,15 @@ class DeploymentImpl implements Deployment {
     }
 
     async historyWriter(): Promise<HistoryWriter> {
-        if (this.historyStore == null) throw new Error(`Internal error: null historyStore`);
+        if (this.historyStore == null) throw new InternalError(`null historyStore`);
         return this.historyStore.writer();
     }
     async historyEntry(historyName: HistoryName): Promise<HistoryEntry> {
-        if (this.historyStore == null) throw new Error(`Internal error: null historyStore`);
+        if (this.historyStore == null) throw new InternalError(`null historyStore`);
         return this.historyStore.historyEntry(historyName);
     }
     async lastEntry(): Promise<HistoryEntry | undefined> {
-        if (this.historyStore == null) throw new Error(`Internal error: null historyStore`);
+        if (this.historyStore == null) throw new InternalError(`null historyStore`);
         return this.historyStore.last();
     }
 }

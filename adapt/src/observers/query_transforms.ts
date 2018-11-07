@@ -1,6 +1,7 @@
 import {
     ASTNode,
     DocumentNode,
+    execute as gqlExecute,
     FieldNode,
     GraphQLField,
     GraphQLOutputType,
@@ -10,9 +11,10 @@ import {
     Kind,
     OperationDefinitionNode,
     SelectionSetNode,
-    visit,
+    visit
 } from "graphql";
 import * as ld from "lodash";
+import { InternalError } from "../error";
 
 function notUndefined<T>(x: T | undefined): x is T {
     return x !== undefined;
@@ -119,10 +121,10 @@ class AllDirectiveVisitor {
         Field: (f: FieldNode) => {
             const fieldName = f.name.value;
             const info = ld.last(this.infoStack);
-            if (info === undefined) throw new Error("Internal error, no info for field:" + fieldName);
+            if (info === undefined) throw new InternalError(`no info for field: ${fieldName}`);
 
             const type = info.type;
-            if (type === undefined) throw new Error("Internal error, no type for field:" + fieldName);
+            if (type === undefined) throw new InternalError(`no type for field: ${fieldName}`);
             if (!isObjectType(type)) return; //FIXME(manishv) Fix fragment spreads and interfaces here
 
             const allDepth = Math.max(findAllDepth(f), (info.allDepth - 1));
@@ -174,4 +176,13 @@ class AllDirectiveVisitor {
 
 export function applyAdaptTransforms(schema: GraphQLSchema, q: DocumentNode): DocumentNode {
     return visit(q, new AllDirectiveVisitor(schema));
+}
+
+export function adaptGqlExecute<R>(
+    schema: GraphQLSchema,
+    query: DocumentNode,
+    data?: unknown,
+    context?: unknown,
+    vars?: { [name: string]: unknown}) {
+    return gqlExecute<R>(schema, query, data, context, vars);
 }

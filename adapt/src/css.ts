@@ -4,6 +4,7 @@ import cssWhat = require("css-what");
 import * as ld from "lodash";
 
 import { DomPath } from "./dom";
+import { InternalError } from "./error";
 import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
@@ -40,7 +41,7 @@ interface MatchConfigType {
 const matchConfig: MatchConfigType = {
     attribute: matchAttribute,
     child: matchChild,
-    descendant: () => { throw new Error("Internal Error: should not get here"); },
+    descendant: () => { throw new InternalError("should not get here"); },
     pseudo: matchPseudo,
     tag: matchTag
 };
@@ -82,14 +83,14 @@ const matchPseudoConfig: MatchConfigType = {
 };
 
 function matchPseudo(frag: SelFrag, path: DomPath): Matched {
-    if (frag.type !== "pseudo") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "pseudo") throw new InternalError(util.inspect(frag));
     const matcher = matchPseudoConfig[frag.name];
     if (matcher == null) throw new Error(`Unsupported CSS pseudo-class :${frag.name}`);
     return matcher(frag, path);
 }
 
 function matchNot(frag: SelFrag, path: DomPath): Matched {
-    if (frag.type !== "pseudo") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "pseudo") throw new InternalError(util.inspect(frag));
     if (frag.data == null || frag.data.length === 0 || frag.data[0].length === 0) {
         throw new Error(`CSS ":not" requires at least one selector argument in parentheses`);
     }
@@ -111,10 +112,10 @@ function matchRoot(frag: SelFrag, path: DomPath): Matched {
  */
 
 function matchAttribute(frag: SelFrag, path: DomPath): Matched {
-    if (frag.type !== "attribute") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "attribute") throw new InternalError(util.inspect(frag));
 
     const { elem } = last(path);
-    if (elem == null) throw new Error("Internal error, null element");
+    if (elem == null) throw new InternalError("null element");
 
     const value = getPropValue(elem, frag.name, frag.ignoreCase);
     if (value === undefined) return { newPath: path, matched: false };
@@ -146,10 +147,10 @@ function matchAttribute(frag: SelFrag, path: DomPath): Matched {
 }
 
 function matchTag(frag: SelFrag, path: DomPath): Matched {
-    if (frag.type !== "tag") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "tag") throw new InternalError(util.inspect(frag));
 
     const { elem } = last(path);
-    if (elem == null) throw new Error("Internal error, null element");
+    if (elem == null) throw new InternalError("null element");
 
     return { newPath: path, matched: uniqueName(elem.componentType) === frag.name };
 }
@@ -158,7 +159,7 @@ function matchTag(frag: SelFrag, path: DomPath): Matched {
  * Combinators
  */
 function matchChild(frag: SelFrag, path: DomPath): Matched {
-    if (frag.type !== "child") throw new Error("Internal Error: " + util.inspect(frag));
+    if (frag.type !== "child") throw new InternalError(util.inspect(frag));
     if (path.length < 1) return { newPath: path, matched: false };
     return { newPath: path.slice(0, -1), matched: true };
 }
@@ -168,8 +169,7 @@ function matchDescendant(
     path: DomPath): boolean {
 
     if (selector.length <= 0) {
-        throw new Error("Internal Error: validated but malformed CSS" +
-            util.inspect(selector));
+        throw new InternalError(`validated but malformed CSS ${util.inspect(selector)}`);
     }
 
     //Note(manishv) An optimization here is to find the deepest element in path

@@ -17,6 +17,7 @@
 import * as fs from "fs";
 import { dirname, resolve, sep } from "path";
 import * as ts from "typescript";
+import { InternalError } from "../error";
 import { trace, tracef } from "../utils";
 // tslint:disable-next-line:no-var-requires
 const typeName = require("type-name");
@@ -50,7 +51,7 @@ function callSource(proto: object, propKey: string, desc: PropertyDescriptor) {
     return {
         ...desc,
         value: function _toSource(this: ChainableHost, ...args: any[]) {
-            if (!this.source) throw new Error(`Internal Error: source for ${this.constructor.name} is null`);
+            if (!this.source) throw new InternalError(`source for ${this.constructor.name} is null`);
             return (this.source as any)[propKey].apply(this.source, args);
         }
     };
@@ -295,7 +296,7 @@ export class MemoryHost extends ChainableHost {
             const dir = dirname(path);
             this.mkdirs(dir);
             const dirSet = this.dirs.get(dir);
-            if (!dirSet) throw new Error(`Internal error: dir not found`);
+            if (!dirSet) throw new InternalError(`dir not found`);
             dirSet.add(path);
         }
     }

@@ -24,6 +24,7 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
+import { InternalError } from "../error";
 import {
     ExecutedQuery,
 } from "../observers";
@@ -74,7 +75,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         const inAdapt = ctx.Adapt;
 
         const stacks = ctx.adaptStacks;
-        if (!stacks) throw new Error(`Internal Error: No stacks found`);
+        if (!stacks) throw new InternalError(`No stacks found`);
         const stack = stacks.get(stackName);
         if (!stack) throw new Error(`Adapt stack '${stackName}' not found`);
 

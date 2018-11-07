@@ -3,12 +3,17 @@ import * as util from "util";
 import * as ld from "lodash";
 
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
+import { printError as gqlPrintError } from "graphql";
 import { StyleRule } from "./css";
-import { BuildNotImplemented } from "./error";
+import { BuildData } from "./dom";
+import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
-import { ObserverManagerDeployment } from "./observers";
+import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
+import { adaptGqlExecute } from "./observers/query_transforms";
+import { findObserver } from "./observers/registry";
 import { registerConstructor } from "./reanimate";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
+import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
 import * as tySup from "./type_support";
 
 //This is broken, why does JSX.ElementClass correspond to both the type
@@ -31,6 +36,9 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
+    readonly buildData: BuildData;
+
+    status<T extends Status>(): Promise<T>;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -60,6 +68,8 @@ export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
+
+    status<T extends Status>(): Promise<T>;
     validate(): Message[];
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
@@ -72,6 +82,23 @@ export interface AdaptComponentElement<P extends object = AnyProps> extends Adap
 }
 export function isComponentElement<P extends object = AnyProps>(val: any): val is AdaptComponentElement<P> {
     return isElement(val) && isComponent(val.componentType.prototype);
+}
+export interface AdaptSFCElement<P extends object = AnyProps> extends AdaptElement<P> {
+    readonly componentType: FunctionComponentTyp<P>;
+}
+export function isSFCElement<P extends object = AnyProps>(val: any): val is AdaptSFCElement<P> {
+    return isElement(val) && !isComponentElement(val);
+}
+
+export function componentStateNow<
+    C extends Component<P, S>,
+    P extends object,
+    S extends object>(c: C): S | undefined {
+    try {
+        return c.state;
+    } catch {
+        return undefined;
+    }
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {
@@ -137,6 +164,9 @@ export abstract class Component<Props extends object = {}, State extends object 
     initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
+    status(observeForStatus: ObserveForStatus, buildData: BuildData): Promise<unknown> {
+        return defaultStatus(this.props, componentStateNow(this));
+    }
 }
 
 export type PropsType<Comp extends Constructor<Component<any, any>>> =
@@ -163,7 +193,11 @@ export function isPrimitive<P extends object>(component: Component<P>):
     return component instanceof PrimitiveComponent;
 }
 
-export type SFC = (props: AnyProps) => AdaptElementOrNull;
+export interface SFC<Props extends object = AnyProps> {
+    (props: Props & Partial<BuiltinProps>): AdaptElementOrNull;
+    defaultProps?: Partial<Props>;
+    status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
+}
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
@@ -175,6 +209,7 @@ export interface ComponentStatic<P> {
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
+    status?: (props: P, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -236,6 +271,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     component: GenericComponent | null;
     path?: string;
     keyPath?: KeyPath;
+    buildData: BuildData = {};
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -243,7 +279,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         children: any[]) {
 
         const hand = props.handle || handle();
-        if (!isHandleInternal(hand)) throw new Error(`Internal Error: handle is not a HandleImpl`);
+        if (!isHandleInternal(hand)) throw new InternalError(`handle is not a HandleImpl`);
         hand.associate(this);
 
         this.props = {
@@ -272,7 +308,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             const propsWithKey = this.props as Props & { key: string };
             this.stateNamespace = [...parentNamespace, propsWithKey.key];
         } else {
-            throw new Error(`Internal Error: props has no key at mount: ${util.inspect(this)}`);
+            throw new InternalError(`props has no key at mount: ${util.inspect(this)}`);
         }
         this.path = path;
         this.keyPath = keyPath;
@@ -286,6 +322,37 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             stateChanged: applyStateUpdates(this.stateNamespace, stateStore,
                 this.props, updates)
         };
+    }
+
+    status = () => {
+        if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
+        const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
+            //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
+            const plugin = findObserver(observer);
+            if (!plugin) throw new Error(`Cannot find observer ${observer.observerName}`);
+            const observations = await plugin.observe([{ query, variables }]);
+            const schema = plugin.schema;
+            const result = await adaptGqlExecute<unknown>(
+                schema,
+                query,
+                observations.data,
+                observations.context,
+                variables);
+            if (result.errors) {
+                const msgs = result.errors.map((e) => e.originalError ? e.stack : gqlPrintError(e)).join("\n");
+                throw new Error(msgs);
+            }
+            return result.data;
+        };
+        const buildData = this.buildData;
+        if (buildData === undefined) throw new Error(`Status requested but no buildData: ${this}`);
+        if (isSFCElement(this)) {
+            const customStatus = this.componentType.status;
+            if (customStatus) return customStatus(this.props, observeForStatus, buildData);
+            return defaultStatus(this.props);
+        }
+        if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
+        return this.component.status(observeForStatus, buildData);
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }
@@ -325,16 +392,11 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferr
 
     validate(): Message[] {
         if (!this.mounted) {
-            throw new Error(
-                `Internal error: validate called on unmounted component at ` +
-                `${this.path}`
+            throw new InternalError(`validate called on unmounted component at ${this.path}`
             );
         }
         if (this.component == null) {
-            throw new Error(
-                `Internal error: validate called but component instance not ` +
-                `created at ${this.path}`
-            );
+            throw new InternalError(`validate called but component instance not created at ${this.path}`);
         }
 
         let ret = this.component.validate();
@@ -471,7 +533,7 @@ export function popComponentConstructorData() {
 export function getComponentConstructorData(): ComponentConstructorData {
     const data = ld.last(componentConstructorStack);
     if (data == null) {
-        throw new Error(`Internal error: componentConstructorStack is empty`);
+        throw new InternalError(`componentConstructorStack is empty`);
     }
     return data;
 }

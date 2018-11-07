@@ -1,4 +1,4 @@
-import { MessageStreamer } from "@usys/utils";
+import { MessageLogger, MessageStreamer } from "@usys/utils";
 import * as ld from "lodash";
 import * as util from "util";
 import {
@@ -6,9 +6,10 @@ import {
     ExecutedQuery,
     Observations,
     ObserverManagerDeployment,
+} from "./obs_manager_deployment";
+import {
     ObserverPlugin
-} from ".";
-import { MessageLogger } from "..";
+} from "./plugin";
 
 interface ObserverRecord {
     [name: string]: ObserverPlugin;
@@ -41,6 +42,10 @@ export function registerObserver(obs: ObserverPlugin, nameIn?: string): string {
 
     if (constructor.observerName === undefined) constructor.observerName = name;
     return name;
+}
+
+export function findObserver(observer: ObserverNameHolder): ObserverPlugin | undefined {
+    return observers[observer.observerName];
 }
 
 export async function observe(
