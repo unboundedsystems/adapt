@@ -94,6 +94,10 @@ export {
 } from "./plugin_support";
 
 export {
+    ObserveForStatus,
+} from "./status";
+
+export {
     WidgetPlugin,
     QueryDomain,
     WidgetPair,
