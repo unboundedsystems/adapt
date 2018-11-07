@@ -6,6 +6,7 @@ import Adapt, {
     childrenToArray,
     Component,
     DeferredComponent,
+    isMountedElement,
     PrimitiveComponent,
     rule,
     Style,
@@ -87,6 +88,8 @@ describe("DOM Basic Build Tests", () => {
 
         should(dom.id).eql(JSON.stringify(["root"]));
         should(await dom.status()).eql({ noStatus: true });
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(mountedOrig.buildData.successor).Undefined();
     });
 
     it("Should validate primitive component", async () => {
@@ -130,6 +133,10 @@ describe("DOM Basic Build Tests", () => {
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
         should(await dom.status()).eql({ childStatus: [{ noStatus: true }] });
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const succRef = deepFilterElemsToPublic(<Adapt.Group key="root-Group"><Empty key="a" id={1} /></Adapt.Group>);
+        should(deepFilterElemsToPublic(mountedOrig.buildData.successor)).eql(succRef);
     });
 
     it("Should substitute props.children as flat", async () => {
@@ -194,6 +201,26 @@ describe("DOM Basic Build Tests", () => {
 
         should(Adapt.isMountedElement(mountedOrig)).True();
         should(deepFilterElemsToPublic(mountedOrig)).eql(deepFilterElemsToPublic(orig));
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const succ = mountedOrig.buildData.successor;
+        if (!succ) throw should(succ).not.Undefined();
+
+        const origChildren = succ.buildData.origChildren;
+        if (!origChildren) throw should(origChildren).not.Undefined();
+
+        const child0 = origChildren[0];
+        if (!isMountedElement(child0)) throw should(isMountedElement(child0)).True();
+        should(deepFilterElemsToPublic(child0)).eql(deepFilterElemsToPublic(<MakeMakeEmpty key="a" id={1} />));
+
+        const succRef1 = deepFilterElemsToPublic(<MakeEmpty key="a-MakeEmpty" id={1} />);
+        const succRef2 = deepFilterElemsToPublic(<Empty key="a-MakeEmpty-Empty" id={1} />);
+
+        const child0Succ = child0.buildData.successor;
+        if (child0Succ === undefined) throw should(child0Succ).not.Undefined();
+        if (child0Succ === null) throw should(child0Succ).not.Null();
+        should(deepFilterElemsToPublic(child0Succ)).eql(succRef1);
+        should(deepFilterElemsToPublic(child0Succ.buildData.successor)).eql(succRef2);
     });
 
     it("Should pass through primitives with children", async () => {

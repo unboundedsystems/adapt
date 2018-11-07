@@ -7,6 +7,7 @@ import * as css from "./css";
 import {
     AdaptComponentElement,
     AdaptElement,
+    AdaptElementImpl,
     AdaptElementOrNull,
     AdaptMountedElement,
     AnyProps,
@@ -575,7 +576,7 @@ async function pathBuildOnceGuts(
     results.buildPassReset();
 
     try {
-        const once = await realBuildOnce(path, null, styles, options);
+        const once = await realBuildOnce(path, null, styles, options, null);
         once.cleanup();
         results.combine(once);
         results.mountedOrig = once.mountedOrig;
@@ -613,6 +614,10 @@ async function pathBuildOnceGuts(
     });
 }
 
+function setOrigChildren(predecessor: AdaptElementImpl<AnyProps>, origChildren: any[]) {
+    predecessor.buildData.origChildren = origChildren;
+}
+
 async function buildChildren(
     newRoot: AdaptElement,
     workingPath: DomPath,
@@ -641,27 +646,50 @@ async function buildChildren(
 
     assignKeysAtPlacement(childList);
     newChildren = [];
+    const mountedOrigChildren: any[] = [];
     for (const child of childList) {
         if (isMountedElement(child)) {
             newChildren.push(child); //Must be from a deferred build
+            mountedOrigChildren.push(child);
             continue;
         }
         if (isElementImpl(child)) {
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
-            const ret = await realBuildOnce([...workingPath, child], newRoot.stateNamespace, styles, options, child);
+            const ret = await realBuildOnce(
+                [...workingPath, child],
+                newRoot.stateNamespace,
+                styles,
+                options,
+                null,
+                child);
             options.recorder({ type: "ascend", ascendTo: newRoot, ascendFrom: child });
             ret.cleanup(); // Do lower level cleanups before combining msgs
             out.combine(ret);
             newChildren.push(ret.contents);
+            mountedOrigChildren.push(ret.mountedOrig);
             continue;
         } else {
             newChildren.push(child);
+            mountedOrigChildren.push(child);
             continue;
         }
     }
 
+    setOrigChildren(newRoot, mountedOrigChildren);
     newChildren = newChildren.filter(notNull);
     return { newChildren, childBldResults: out };
+}
+
+export interface BuildData {
+    successor?: AdaptMountedElement | null;
+    //Only defined for deferred elements since other elements may never mount their children
+    origChildren?: (AdaptMountedElement | null | unknown)[];
+}
+
+function setSuccessor(predecessor: AdaptMountedElement | null, succ: AdaptMountedElement): void {
+    if (predecessor === null) return;
+    if (!isElementImpl(predecessor)) throw new InternalError(`Element is not ElementImpl: ${predecessor}`);
+    predecessor.buildData.successor = succ;
 }
 
 async function realBuildOnce(
@@ -669,6 +697,7 @@ async function realBuildOnce(
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
     options: BuildOptionsReq,
+    predecessor: AdaptMountedElement | null,
     workingElem?: AdaptElement): Promise<BuildResults> {
 
     let deferring = false;
@@ -697,6 +726,7 @@ async function realBuildOnce(
     }
     if (!isMountedElement(mountedElem)) throw new InternalError("element not mounted after mount");
     out.mountedOrig = mountedElem;
+    setSuccessor(predecessor, mountedElem);
 
     if (mountedElem === null) {
         options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
@@ -726,9 +756,13 @@ async function realBuildOnce(
                     mountedElem.stateNamespace,
                     styles,
                     options,
+                    mountedElem,
                     workingElem)).combine(out);
                 ret.mountedOrig = out.mountedOrig;
                 return ret;
+            } else {
+                options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
+                return out;
             }
         }
     } else {
@@ -776,7 +810,13 @@ async function realBuildOnce(
 
     //We must have deferred to get here
     const deferredRet =
-        (await realBuildOnce(newPath, mountedElem.stateNamespace, styles, options, workingElem)).combine(out);
+        (await realBuildOnce(
+            newPath,
+            mountedElem.stateNamespace,
+            styles,
+            options,
+            predecessor,
+            workingElem)).combine(out);
     deferredRet.mountedOrig = out.mountedOrig;
     return deferredRet;
 }

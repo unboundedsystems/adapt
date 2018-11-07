@@ -5,6 +5,7 @@ import * as ld from "lodash";
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
 import { StyleRule } from "./css";
+import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
@@ -35,6 +36,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
+    readonly buildData: BuildData;
 
     status<T extends Status>(): Promise<T>;
 }
@@ -162,7 +164,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     initialState?(): State;
 
     abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
-    status(observeForStatus: ObserveForStatus): Promise<unknown> {
+    status(observeForStatus: ObserveForStatus, buildData: BuildData): Promise<unknown> {
         return defaultStatus(this.props, componentStateNow(this));
     }
 }
@@ -191,7 +193,11 @@ export function isPrimitive<P extends object>(component: Component<P>):
     return component instanceof PrimitiveComponent;
 }
 
-export type SFC = (props: AnyProps) => AdaptElementOrNull;
+export interface SFC<Props extends object = AnyProps> {
+    (props: Props & Partial<BuiltinProps>): AdaptElementOrNull;
+    defaultProps?: Partial<Props>;
+    status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
+}
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
@@ -203,7 +209,7 @@ export interface ComponentStatic<P> {
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
-    status?: (props: P) => Promise<unknown>;
+    status?: (props: P, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -265,6 +271,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     component: GenericComponent | null;
     path?: string;
     keyPath?: KeyPath;
+    buildData: BuildData = {};
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -319,12 +326,6 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 
     status = () => {
         if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
-        if (isSFCElement(this)) {
-            const customStatus = this.componentType.status;
-            if (customStatus) return customStatus(this.props);
-            return defaultStatus(this.props);
-        }
-        if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
         const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
             //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
             const plugin = findObserver(observer);
@@ -343,7 +344,15 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             }
             return result.data;
         };
-        return this.component.status(observeForStatus);
+        const buildData = this.buildData;
+        if (buildData === undefined) throw new Error(`Status requested but no buildData: ${this}`);
+        if (isSFCElement(this)) {
+            const customStatus = this.componentType.status;
+            if (customStatus) return customStatus(this.props, observeForStatus, buildData);
+            return defaultStatus(this.props);
+        }
+        if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
+        return this.component.status(observeForStatus, buildData);
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }
