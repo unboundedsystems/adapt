@@ -99,7 +99,8 @@ describe("Context basic tests", () => {
             // @ts-ignore
             <TestContext.Provider key="Provider" value={2}>
                 <DomError>Component Provider cannot be built with current
-                    props: A context Provider may only have a single child</DomError>
+                    props: A context Provider may only have a single child,
+                    which must be a Component or SFC</DomError>
                 <Empty id={1} />
                 <Empty id={2} />
             </TestContext.Provider>);
@@ -130,4 +131,49 @@ describe("Context basic tests", () => {
             </TestContext.Consumer>);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
+
+    it("Should pass key through Provider", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(1);
+        const orig =
+            <TestContext.Provider key="mykey" value={1} >
+                <Empty id={1} />
+            </TestContext.Provider>;
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) throw should(dom).not.Null();
+
+        const expected = deepFilterElemsToPublic(<Empty key="mykey" id={1} />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
+    it("Should pass key through two Providers", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(1);
+        const orig =
+            <TestContext.Provider key="mykey" value={1} >
+                <TestContext.Provider value={2} >
+                    <Empty id={1} />
+                </TestContext.Provider>
+            </TestContext.Provider>;
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) throw should(dom).not.Null();
+
+        const expected = deepFilterElemsToPublic(<Empty key="mykey" id={1} />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
+    it("Should not override existing key", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(1);
+        const orig =
+            <TestContext.Provider key="mykey" value={1} >
+                <Empty id={1} key="donttouch" />
+            </TestContext.Provider>;
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) throw should(dom).not.Null();
+
+        const expected = deepFilterElemsToPublic(<Empty key="donttouch" id={1} />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
 });

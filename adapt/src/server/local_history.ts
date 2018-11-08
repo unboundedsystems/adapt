@@ -3,10 +3,12 @@ import { padStart } from "lodash";
 import * as moment from "moment";
 import JsonDB = require("node-json-db");
 import * as path from "path";
+import * as lockfile from "proper-lockfile";
 
-import { HistoryEntry, HistoryName, HistoryStore, HistoryWriter } from "./history";
+import { HistoryEntry, HistoryName, HistoryStore } from "./history";
 
 // These are exported only for testing
+export const dataDirName = "dataDir";
 export const domFilename = "adapt_dom.xml";
 export const stateFilename = "adapt_state.json";
 export const observationsFilename = "adapt_observations.json";
@@ -16,14 +18,17 @@ interface DirInfo {
     stateDirs: string[];
 }
 
-type AsyncAction = () => Promise<void>;
-
 class LocalHistoryStore implements HistoryStore {
+    dataDir: string;
+    dataDirRelease?: () => Promise<void>;
+
     constructor(
         private db: JsonDB,
         private dbPath: string,
         private rootDir: string,
-    ) {}
+    ) {
+        this.dataDir = path.join(rootDir, dataDirName + ".uncommitted");
+    }
 
     async init(create: boolean) {
         let currentInfo: DirInfo;
@@ -52,22 +57,27 @@ class LocalHistoryStore implements HistoryStore {
         await fs.remove(this.rootDir);
     }
 
-    async appendState(toStore: HistoryEntry): Promise<AsyncAction[]> {
+    async commitEntry(toStore: HistoryEntry): Promise<void> {
         const { domXml, stateJson, observationsJson, ...info } = toStore;
-        const revertActions: AsyncAction[] = [];
+
+        if (toStore.dataDir !== this.dataDir) {
+            throw new Error(`Internal error: commiting invalid dataDir ` +
+                `'${toStore.dataDir}'. Should be '${this.dataDir}'`);
+        }
 
         const dirName = await this.nextDirName();
         const dirPath = path.join(this.rootDir, dirName);
+
+        info.dataDir = path.join(dirPath, dataDirName);
 
         await fs.outputFile(path.join(dirPath, domFilename), domXml);
         await fs.outputFile(path.join(dirPath, stateFilename), stateJson);
         await fs.outputFile(path.join(dirPath, observationsFilename), observationsJson);
         await fs.outputJson(path.join(dirPath, infoFilename), info);
+        await fs.move(this.dataDir, path.join(dirPath, dataDirName));
+        await this.releaseDataDir();
 
         this.db.push(this.dbPath + "/stateDirs[]", dirName);
-        revertActions.push(() => this.remove(dirName));
-
-        return revertActions;
     }
 
     async last(): Promise<HistoryEntry | undefined> {
@@ -98,11 +108,40 @@ class LocalHistoryStore implements HistoryStore {
             fileName: info.fileName,
             projectRoot: info.projectRoot,
             stackName: info.stackName,
+            dataDir: info.dataDir,
         };
     }
 
-    async writer(): Promise<HistoryWriter> {
-        return new LocalHistoryWriter(this);
+    async getDataDir(): Promise<string> {
+        if (this.dataDirRelease) {
+            throw new Error(`Internal error: attempting to lock dataDir ` +
+                `'${this.dataDir}' twice`);
+        }
+        // dataDir must exist in order to lock it.
+        await fs.ensureDir(this.dataDir);
+        try {
+            this.dataDirRelease = await lockfile.lock(this.dataDir, { retries: 2 });
+        } catch (e) {
+            throw new Error(`Unable to get exclusive access to deployment ` +
+                `directory '${this.dataDir}'. Please retry in a moment. ` +
+                `[${e.message}]`);
+        }
+
+        // Ensure we start from the last committed state
+        await fs.remove(this.dataDir);
+        await fs.ensureDir(this.dataDir);
+        const last = this.lastDir();
+        if (last) {
+            await fs.copy(path.join(this.rootDir, last, dataDirName), this.dataDir);
+        }
+        return this.dataDir;
+    }
+
+    async releaseDataDir(): Promise<void> {
+        if (!this.dataDirRelease) return; // We don't hold the lock
+        await fs.remove(this.dataDir);
+        await this.dataDirRelease();
+        this.dataDirRelease = undefined;
     }
 
     private async nextDirName(): Promise<string> {
@@ -149,34 +188,4 @@ export async function createLocalHistoryStore(
     const h = new LocalHistoryStore(db, dbPath, rootDir);
     await h.init(create);
     return h;
-}
-
-class LocalHistoryWriter implements HistoryWriter {
-    private revertActions: AsyncAction[] = [];
-
-    constructor(private store: LocalHistoryStore) {}
-
-    async appendEntry(toStore: HistoryEntry): Promise<void> {
-        const reverts = await this.store.appendState(toStore);
-        this.revertActions.push(...reverts);
-    }
-
-    async revert(): Promise<void> {
-        const errors: any[] = [];
-
-        while (true) {
-            const act = this.revertActions.pop();
-            if (act === undefined) break;
-            try {
-                await act();
-            } catch (err) {
-                errors.push(err);
-            }
-        }
-        if (errors.length !== 0) {
-            let i = 1;
-            const msg = errors.map((e) => `  ${i++}) ${e}`).join("\n");
-            throw new Error(`Errors occurred while reverting deployment history:\n${msg}`);
-        }
-    }
 }

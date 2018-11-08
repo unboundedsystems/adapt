@@ -1,13 +1,15 @@
+import Adapt, { AnyProps, PrimitiveComponent } from "@usys/adapt";
 import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import * as should from "should";
-import { loadAwsCreds } from "../../src/aws";
+import { awsCredentialsContext, loadAwsCreds, withCredentials} from "../../src/aws";
+import { doBuild } from "../testlib";
 // tslint:disable-next-line:no-var-requires
 const mockedEnv = require("mocked-env");
 
 type EnvRestore = () => void;
-describe("AWS test credentials", () => {
+describe("loadAwsCreds", () => {
     let envRestore: undefined | EnvRestore;
     let origdir: string;
     let tmpdir: string;
@@ -64,5 +66,38 @@ describe("AWS test credentials", () => {
         const creds = await loadAwsCreds({credsFile: "./awscreds"});
         should(creds).eql(fileCreds);
     });
+});
 
+class Foo extends PrimitiveComponent<AnyProps> { }
+// tslint:disable-next-line:variable-name
+const Wrapped = withCredentials(Foo);
+
+describe("withCredentials", () => {
+    it("Should pass key through to wrapped component", async () => {
+        const orig = <Wrapped key="mykey" />;
+        const dom = await doBuild(orig);
+        should(dom).not.be.Null();
+        should(dom.componentType).equal(Foo);
+        should(dom.props.key).equal("mykey");
+    });
+});
+
+describe("awsCredentialsContext", () => {
+    it("Should pass key through Provider", async () => {
+        const creds = {
+            awsAccessKeyId: "id",
+            awsSecretAccessKey: "key",
+            awsRegion: "region",
+        };
+        // tslint:disable-next-line:variable-name
+        const Ctx = awsCredentialsContext(creds);
+        const orig =
+            <Ctx.Provider key="mykey" value={creds}>
+                <Foo />
+            </Ctx.Provider>;
+        const dom = await doBuild(orig);
+        should(dom).not.be.Null();
+        should(dom.componentType).equal(Foo);
+        should(dom.props.key).equal("mykey");
+    });
 });

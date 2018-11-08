@@ -33,7 +33,7 @@ type QueryDomainKey = string;
 interface Expected<E extends AdaptElement> {
     [ queryDomainKey: string ]: E[];
 }
-interface Observed<O extends object> {
+export interface Observed<O extends object> {
     [ queryDomainKey: string ]: O[];
 }
 
@@ -59,6 +59,7 @@ export abstract class WidgetPlugin<
 
     deployID_?: string;
     log_?: Logger;
+    dataDir_?: string;
     queryDomains = new Map<QueryDomainKey, QDomain>();
 
     /*
@@ -94,6 +95,7 @@ export abstract class WidgetPlugin<
     async start(options: PluginOptions) {
         this.deployID_ = options.deployID;
         this.log_ = options.log;
+        this.dataDir_ = options.dataDir;
     }
 
     async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observed<WidgetObs>> {
@@ -171,6 +173,13 @@ export abstract class WidgetPlugin<
             throw new InternalError(`deployID not initialized yet`);
         }
         return this.deployID_;
+    }
+
+    get dataDir(): string {
+        if (this.dataDir_ == null) {
+            throw new Error(`Internal error: dataDir not initialized yet`);
+        }
+        return this.dataDir_;
     }
 
     log = (arg: any, ...args: any[]): void => {

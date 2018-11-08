@@ -15,12 +15,12 @@ describe("AWS CFStack component tests", () => {
 
         let domXml = serializeDom(dom);
         // Replace random portion of the stack name
-        domXml = domXml.replace(/mystack[a-z]{8}/, "mystackXXXXXXXX");
+        domXml = domXml.replace(/mystack-[a-z]{8}/, "mystack-XXXXXXXX");
         const expected =
 `<Adapt>
   <CFStackPrimitive>
     <__props__>
-      <prop name="StackName">"mystackXXXXXXXX"</prop>
+      <prop name="StackName">"mystack-XXXXXXXX"</prop>
       <prop name="awsCredentials">{
   "awsAccessKeyId": "",
   "awsSecretAccessKey": "",

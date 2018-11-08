@@ -1,9 +1,12 @@
 import { BuildNotImplemented } from "./index";
 import {
     AdaptElementOrNull,
+    cloneElement,
     Component,
     ComponentType,
+    isElement,
 } from "./jsx";
+import { isDefaultKey } from "./keys";
 
 import * as ld from "lodash";
 
@@ -43,13 +46,21 @@ export function createContext<T>(defaultValue: T): Context<T> {
     // tslint:disable-next-line:no-shadowed-variable
     class Provider extends Component<ProviderProps<T>> {
         build(): AdaptElementOrNull {
-            const { children } = this.props;
-            if ((children == null) || Array.isArray(children)) {
-                throw new BuildNotImplemented(`A context Provider may only have a single child`);
+            const { children: child, key } = this.props;
+            if ((child == null) || Array.isArray(child) || !isElement(child)) {
+                throw new BuildNotImplemented(
+                    `A context Provider may only have a single child, which ` +
+                    `must be a Component or SFC`);
             }
             providerPush(this);
 
-            return children;
+            // If there was an explicit key set (i.e. not default), propagate
+            // our key to our child, but don't overwrite any key
+            // already on the child props.
+            if (!key || isDefaultKey(this.props) || "key" in child.props) return child;
+
+            const { children, handle, ...childProps } = child.props;
+            return cloneElement(child, { key, ...childProps }, children);
         }
         cleanup = () => providerPop();
     }

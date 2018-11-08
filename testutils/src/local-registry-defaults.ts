@@ -18,6 +18,7 @@ export const npmLocalProxyOpts = {
 export const defaultPublishList = [
     repoDirs.adapt,
     repoDirs.cloud,
+    repoDirs["collections-ts"],
     repoDirs["dom-parser"],
     repoDirs.utils,
 ];

@@ -11,24 +11,43 @@ import {
 } from "./jsx";
 import { StateNamespace } from "./state";
 
-export function setKey(elem: AdaptElement, key: string) {
+const defaultKeySym = Symbol("defaultKey");
+
+export interface ElementKey {
+    key?: string;
+    [defaultKeySym]?: boolean;
+}
+
+export function isDefaultKey(props: AnyProps & ElementKey) {
+    return props[defaultKeySym] === true;
+}
+
+export function setKey(elem: AdaptElement, key: ElementKey) {
+    // Ensure key doesn't have extra properties for later use of assign
+    key = ld.pick(key, "key", defaultKeySym);
     if (Object.isFrozen(elem.props)) {
-        const newProps = Object.assign(ld.clone(elem.props), { key });
+        const newProps = Object.assign(ld.clone(elem.props), key);
         Object.freeze(newProps);
         (elem as { props: AnyProps }).props = newProps;
     } else {
-        elem.props.key = key;
+        Object.assign(elem.props, key);
     }
 }
 
-export function computeMountKey(elem: AdaptElement, parentStateNamespace: StateNamespace): string {
+export function computeMountKey(
+    elem: AdaptElement,
+    parentStateNamespace: StateNamespace): ElementKey {
+
     let newKey: string | undefined = elem.props.key;
     if (newKey == null) {
         const lastKey = ld.last(parentStateNamespace);
         const name = (elem.componentType.name === "") ? "anonymous" : elem.componentType.name;
         newKey = (lastKey == null) ? name : `${lastKey}-${name}`;
     }
-    return newKey;
+    return {
+        key: newKey,
+        [defaultKeySym]: isDefaultKey(elem.props) || elem.props.key == null,
+    };
 }
 
 export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined) {
@@ -65,7 +84,7 @@ export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined
     for (const elem of needsKeys) {
         const elemName = elem.componentType.name;
         const key = existingKeys.getUnique(elemName);
-        setKey(elem, key);
+        setKey(elem, { key, [defaultKeySym]: true });
     }
 }
 

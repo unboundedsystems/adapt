@@ -96,6 +96,7 @@ describe("AWS EC2Instance to real API tests", () => {
         plugin  = createAwsPlugin();
         logger = createMockLogger();
         options = {
+            dataDir: "/fake/datadir",
             deployID: "abc123",
             log: logger.info,
         };

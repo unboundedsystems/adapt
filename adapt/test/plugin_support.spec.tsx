@@ -4,7 +4,7 @@ import * as path from "path";
 import * as should from "should";
 import * as sinon from "sinon";
 
-import { createMockLogger, MockLogger } from "@usys/testutils";
+import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
 import Adapt, { AdaptElementOrNull, Group } from "../src";
 import * as pluginSupport from "../src/plugin_support";
 import { MockAdaptContext, mockAdaptContext } from "../src/ts";
@@ -48,7 +48,10 @@ describe("Plugin Support Basic Tests", () => {
     let spy: sinon.SinonSpy;
     let logger: MockLogger;
     let options: pluginSupport.PluginManagerStartOptions;
+    let dataDir: string;
     const dom = <Group />;
+
+    mochaTmpdir.all("adapt-plugin-tests");
 
     beforeEach(() => {
         spy = sinon.spy();
@@ -63,9 +66,11 @@ describe("Plugin Support Basic Tests", () => {
         });
 
         mgr = pluginSupport.createPluginManager(registered);
+        dataDir = path.join(process.cwd(), "pluginData");
         options = {
             logger,
             deployID: "deploy123",
+            dataDir,
         };
     });
 
@@ -78,6 +83,17 @@ describe("Plugin Support Basic Tests", () => {
         should(spy.calledOnce).True();
         should(spy.getCall(0).args[0]).eql("start");
         should(spy.getCall(0).args[1].deployID).eql("deploy123");
+        should(spy.getCall(0).args[1].dataDir)
+            .eql(path.join(dataDir, "plugins", "test_plugin@1.0.0", "TestPlugin"));
+    });
+
+    it("Should create plugin data directory", async () => {
+        await mgr.start(null, dom, options);
+        should(spy.calledOnce).True();
+        should(spy.getCall(0).args[0]).eql("start");
+        const expected = path.join(dataDir, "plugins", "test_plugin@1.0.0", "TestPlugin");
+        should(spy.getCall(0).args[1].dataDir).equal(expected);
+        should(fs.existsSync(expected)).be.True();
     });
 
     it("Should call observe after start", async () => {
@@ -209,6 +225,7 @@ describe("Plugin register and deploy", () => {
         options = {
             logger,
             deployID: "deploy123",
+            dataDir: "/tmp/fakeDataDir",
         };
     });
     afterEach(() => {

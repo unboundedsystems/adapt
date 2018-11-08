@@ -100,6 +100,7 @@ describe("k8s Service Operation Tests", function () {
         logs = new WritableStreamBuffer();
         deployID = randomName("cloud-service-op");
         options = {
+            dataDir: "/fake/datadir",
             deployID,
             log: new Console(logs, logs).log
         };

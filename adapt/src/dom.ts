@@ -47,7 +47,7 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
 import { getInternalHandle } from "./handle";
-import { assignKeysAtPlacement, computeMountKey } from "./keys";
+import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 
 export type DomPath = AdaptElement[];
 
@@ -327,7 +327,7 @@ function ApplyStyle(
 
 function doOverride(
     path: DomPath,
-    key: string,
+    key: ElementKey,
     styles: css.StyleList,
     options: BuildOptionsReq): AdaptElement {
 
@@ -340,7 +340,8 @@ function doOverride(
 
     if (overrideFound != null) {
         const { style, override } = overrideFound;
-        const newElem = createElement(ApplyStyle, { key, override, element });
+        const props = { ...key, override, element };
+        const newElem = createElement(ApplyStyle, props);
         options.recorder({
             type: "step",
             oldElem: element,
@@ -384,7 +385,7 @@ function mountElement(
     if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
 
     hand = getInternalHandle(elem);
-    elem = cloneElement(elem, { key: newKey }, elem.props.children);
+    elem = cloneElement(elem, newKey, elem.props.children);
     if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
 
     if (!isElementImpl(elem)) {

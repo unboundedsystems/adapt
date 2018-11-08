@@ -4,6 +4,7 @@ import Adapt, { Group, } from "../src";
 import {
     assignKeysAtPlacement,
     computeMountKey,
+    isDefaultKey,
     KeyTracker,
 } from "../src/keys";
 import {
@@ -20,7 +21,9 @@ describe("Assign Keys", () => {
 
         assignKeysAtPlacement(tree.props.children);
         should(tree.props.children[0].props.key).equal("Empty");
+        should(isDefaultKey(tree.props.children[0].props)).be.True();
         should(tree.props.children[1].props.key).equal("Empty1");
+        should(isDefaultKey(tree.props.children[1].props)).be.True();
     });
 
     it("Should not overwrite keys", () => {
@@ -31,7 +34,9 @@ describe("Assign Keys", () => {
 
         assignKeysAtPlacement(tree.props.children);
         should(tree.props.children[0].props.key).equal("userDef");
+        should(isDefaultKey(tree.props.children[0].props)).be.False();
         should(tree.props.children[1].props.key).equal("Empty");
+        should(isDefaultKey(tree.props.children[1].props)).be.True();
     });
 
     it("Should assign singleton child key", () => {
@@ -50,7 +55,8 @@ describe("Assign Keys", () => {
         const tree = <Foo />;
 
         const newKey = computeMountKey(tree, []);
-        should(newKey).equal("anonymous");
+        should(newKey.key).equal("anonymous");
+        should(isDefaultKey(newKey)).be.True();
     });
 });
 

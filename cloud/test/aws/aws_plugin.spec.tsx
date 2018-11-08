@@ -25,6 +25,7 @@ import {
     awsDefaultCredentialsContext,
     CFStack,
     EC2Instance,
+    EIPAssociation,
     loadAwsCreds,
 } from "../../src/aws";
 import {
@@ -255,6 +256,7 @@ describe("AWS plugin basic tests", () => {
         options = {
             deployID: "abc123",
             log: logger.info,
+            dataDir: "/fake/datadir",
         };
     });
     after(() => {
@@ -303,7 +305,46 @@ describe("AWS plugin basic tests", () => {
         const templ = createTemplate(stackEls[0]);
         should(Object.keys(templ.Resources)).have.length(2);
     });
+
+    it("Should create template logical reference", async () => {
+        const instHandle = Adapt.handle();
+        const orig =
+            <CFStack StackName="ci-testStack1">
+                <EC2Instance
+                    imageId={ubuntuAmi}
+                    instanceType="t2.micro"
+                    name="docker-host"
+                    sshKeyName={sshKeyName}
+                    securityGroups={[defaultSecurityGroup]}
+                    handle={instHandle}
+                />
+                <EIPAssociation
+                    AllocationId="eipalloc-7fe45618"
+                    InstanceId={instHandle}
+                />
+            </CFStack>;
+        const dom = await doBuild(orig);
+        const stackEls = findStackElems(dom);
+        should(stackEls).have.length(1);
+        const templ = createTemplate(stackEls[0]);
+        const logicalIds = Object.keys(templ.Resources);
+        should(logicalIds).have.length(2);
+
+        const ec2Id = findId("AWSEC2Instance", logicalIds);
+        const eipId = findId("AWSEC2EIP", logicalIds);
+
+        should(templ.Resources[eipId].Properties.InstanceId).eql({
+            Ref: ec2Id
+        });
+    });
 });
+
+function findId(prefix: string, ids: string[]) {
+    for (const id of ids) {
+        if (id.startsWith(prefix)) return id;
+    }
+    throw new Error(`Unable to find id that starts with '${prefix}`);
+}
 
 // NOTE(mark): These tests purposely build on one another to reduce total
 // runtime, since the real AWS API is pretty slow.
@@ -336,6 +377,7 @@ describeLong("AWS plugin live tests", function () {
         options = {
             deployID,
             log: logger.info,
+            dataDir: "/fake/datadir",
         };
     });
     after(async function () {
@@ -349,8 +391,8 @@ describeLong("AWS plugin live tests", function () {
         stackNames = getStackNames(dom);
 
         should(stackNames).have.length(2);
-        should(stackNames[0]).match(/^ci-testStack1[a-z]{8}$/);
-        should(stackNames[1]).match(/^ci-testStack2[a-z]{8}$/);
+        should(stackNames[0]).match(/^ci-testStack1-[a-z]{8}$/);
+        should(stackNames[1]).match(/^ci-testStack2-[a-z]{8}$/);
 
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, dom);

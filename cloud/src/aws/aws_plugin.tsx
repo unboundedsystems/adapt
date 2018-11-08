@@ -2,6 +2,8 @@ import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
     findElementsInDom,
+    Handle,
+    isHandle,
     isMountedElement,
     QueryDomain,
     registerPlugin,
@@ -56,6 +58,10 @@ interface AwsSecret {
 
 type StackObs = AWS.CloudFormation.Stack;
 
+interface LogicalRef {
+    Ref: string;
+}
+
 const adaptDeployIdTag = "adapt:deployID";
 const adaptIdTag = "adapt:ID";
 
@@ -84,6 +90,15 @@ export function getTag(obj: Tagged, tag: string) {
         }
     }
     return undefined;
+}
+
+function cfLogicalRef(handle: Handle): LogicalRef {
+    const el = handle.target;
+    if (el == null) throw new Error(`Cannot get a CloudFormation ref for an unassociated handle`);
+    if (!isCFResourceElement(el)) {
+        throw new Error(`Cannot get a CloudFormation ref for an element that is not a CFResource`);
+    }
+    return { Ref: adaptResourceId(el) };
 }
 
 function addAdaptDeployId(input: AWS.CloudFormation.CreateStackInput, deployID: string) {
@@ -124,6 +139,12 @@ export function createTemplate(stackEl: StackElement): Template {
 
     const resources = findResourceElems(stackEl);
     for (const r of resources) {
+        const properties = r.props.Properties;
+        for (const k of Object.keys(properties)) {
+            if (isHandle(properties[k])) {
+                properties[k] = cfLogicalRef(properties[k]);
+            }
+        }
         template.Resources[adaptResourceId(r)] = {
             Type: r.props.Type,
             Properties: r.props.Properties,

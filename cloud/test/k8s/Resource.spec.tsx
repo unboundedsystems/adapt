@@ -47,6 +47,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         logs = new WritableStreamBuffer();
         deployID = randomName("cloud-k8s-plugin");
         options = {
+            dataDir: "/fake/datadir",
             deployID,
             log: new Console(logs, logs).log
         };

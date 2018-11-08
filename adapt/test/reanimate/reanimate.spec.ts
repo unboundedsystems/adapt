@@ -501,6 +501,7 @@ describe("Reanimate in package tests", function () {
     const localRegistry = mochaLocalRegistry.all({
         publishList: [
             repoDirs.utils,
+            repoDirs["collections-ts"],
             "reanimate",
             "oldlib",
             "victim1",

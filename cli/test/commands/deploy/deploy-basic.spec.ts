@@ -10,6 +10,7 @@ const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
 const stateFilename = "adapt_state.json";
 const infoFilename = "adapt_deploy.json";
+const dataDirFilename = "dataDir";
 
 const basicPackageJson = {
     name: "test",
@@ -190,6 +191,7 @@ async function checkBasicIndexTsxState(
         domFilename,
         observationsFilename,
         stateFilename,
+        dataDirFilename,
     ]);
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
@@ -205,6 +207,7 @@ async function checkBasicIndexTsxState(
         fileName,
         projectRoot,
         stackName,
+        dataDir: path.join(historyDir, dataDirFilename),
     });
 }
 
@@ -232,7 +235,8 @@ function checkPluginStdout(stdout: string, dryRun = false) {
 }
 
 describe("Deploy create basic tests", function () {
-    this.timeout(30000);
+    this.slow(30 * 1000);
+    this.timeout(60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
