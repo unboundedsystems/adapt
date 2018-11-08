@@ -232,7 +232,8 @@ function checkPluginStdout(stdout: string, dryRun = false) {
 }
 
 describe("Deploy create basic tests", function () {
-    this.timeout(30000);
+    this.slow(30 * 1000);
+    this.timeout(60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain

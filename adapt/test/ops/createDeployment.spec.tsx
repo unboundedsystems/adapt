@@ -185,7 +185,7 @@ describe("createDeployment Tests", async function () {
     });
 
     before(async () => {
-        this.timeout(20 * 1000);
+        this.timeout(30 * 1000);
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
         adaptUrl = `file://${process.cwd()}/`;
