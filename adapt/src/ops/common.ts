@@ -12,6 +12,7 @@ export interface DeploySuccess {
     stateJson: string;
     needsData: ObserversThatNeedData;
     deployID: string;
+    mountedOrigStatus: any;
 }
 
 export interface DeployError {

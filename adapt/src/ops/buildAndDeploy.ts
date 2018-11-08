@@ -25,6 +25,7 @@ import AdaptDontUse, {
 let Adapt: never;
 
 import { InternalError } from "../error";
+import { AdaptMountedElement } from "../jsx";
 import {
     ExecutedQuery,
 } from "../observers";
@@ -88,6 +89,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             throw new Error(msg);
         }
 
+        let mountedOrig: AdaptMountedElement | null = null;
         let newDom: AdaptElementOrNull = null;
         let buildMessages: Message[] = [];
 
@@ -98,7 +100,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             const preObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
             const preObserve = await inAdapt.build(
-                root, style, { stateStore, observerManager: preObserverManager });
+                root, style, { stateStore, observerManager: preObserverManager, deployID: deployment.deployID });
             if (preObserve.messages.length !== 0) {
                 logger.append(preObserve.messages);
                 throw new ProjectBuildError(inAdapt.serializeDom(preObserve.contents));
@@ -109,12 +111,15 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             const postObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
             const postObserve = await inAdapt.build(
                 root, style, { stateStore, observerManager: postObserverManager });
+            mountedOrig = postObserve.mountedOrig;
             newDom = postObserve.contents;
             buildMessages = postObserve.messages;
             needsData = postObserverManager.executedQueriesThatNeededData();
             inAdapt.internal.patchInNewQueries(observerObservations, postObserverManager.executedQueries());
         }
 
+        const statusInContext = mountedOrig != null ? await mountedOrig.status() : { noStatus: true };
+        const mountedOrigStatus = JSON.parse(JSON.stringify(statusInContext)); //podify status
         const domXml = inAdapt.serializeDom(newDom, true);
 
         if (buildMessages.length !== 0) {
@@ -169,6 +174,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(needsData)))),
             messages: logger.messages,
             summary: logger.summary,
+            mountedOrigStatus,
         };
 
     } finally {

@@ -398,6 +398,7 @@ function mountElement(
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
+    elem.buildData.deployID = options.deployID;
     return out;
 }
 
@@ -485,6 +486,7 @@ export interface BuildOptions {
     observerManager?: ObserverManagerDeployment;
     maxBuildPasses?: number;
     buildOnce?: boolean;
+    deployID?: string;
 }
 
 type BuildOptionsReq = Required<BuildOptions>;
@@ -501,6 +503,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
         observerManager: createObserverManagerDeployment(),
         maxBuildPasses: 200,
         buildOnce: false,
+        deployID: "<none>"
     };
     return { ...defaultBuildOptions, ...optionsIn };
 }
@@ -682,6 +685,8 @@ async function buildChildren(
 }
 
 export interface BuildData {
+    id: string;
+    deployID: string;
     successor?: AdaptMountedElement | null;
     //Only defined for deferred elements since other elements may never mount their children
     origChildren?: (AdaptMountedElement | null | unknown)[];
