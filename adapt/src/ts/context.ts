@@ -221,7 +221,7 @@ export class VmModule {
     @tracef(debugVm)
     private runJsonModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);
-        if (!contents) {
+        if (contents == null) {
             throw new Error(`Unable to find file contents for ${filename}`);
         }
         try {
@@ -235,7 +235,7 @@ export class VmModule {
     @tracef(debugVm)
     private runJsModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);
-        if (!contents) {
+        if (contents == null) {
             throw new Error(`Unable to find file contents for ${filename}`);
         }
         return mod.runJs(contents, filename);
