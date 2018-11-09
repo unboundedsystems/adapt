@@ -59,6 +59,38 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         transformPrintAndCheck(schema, q, ref);
     });
 
+    it("should transform field that requires args, but args are provided", () => {
+      const q = gql`{
+          foo {
+            bar {
+              bar(y: 10) @all(depth: 2)
+            }
+          }
+      }`;
+
+      const ref = `{
+  foo {
+    bar {
+      bar(y: 10) @all(depth: 2) {
+        y
+        foo {
+          x
+          foo
+          bar
+        }
+        barNull {
+          y
+          foo
+          barNull
+        }
+      }
+    }
+  }
+}
+`;
+      transformPrintAndCheck(schema, q, ref);
+    });
+
     it("should transform operation tagged with @all (depth=1)", () => {
         const q = gql`query @all {
             dummy #For syntax compliance :(
