@@ -184,5 +184,6 @@ export function adaptGqlExecute<R>(
     data?: unknown,
     context?: unknown,
     vars?: { [name: string]: unknown}) {
-    return gqlExecute<R>(schema, query, data, context, vars);
+    const tQuery = applyAdaptTransforms(schema, query);
+    return gqlExecute<R>(schema, tQuery, data, context, vars);
 }
