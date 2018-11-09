@@ -1,4 +1,4 @@
-import Adapt, { PluginOptions, serializeDom } from "@usys/adapt";
+import Adapt, { PluginOptions, PrimitiveComponent, serializeDom } from "@usys/adapt";
 import * as should from "should";
 
 import { awsutils, createMockLogger, MockLogger } from "@usys/testutils";
@@ -8,6 +8,8 @@ import { doBuild } from "../testlib";
 
 const { fakeCreds } = awsutils;
 
+class Foo extends PrimitiveComponent<{}> {}
+
 describe("AWS EC2Instance component tests", () => {
     it("Should instantiate EC2Instance", async () => {
         const orig =
@@ -16,7 +18,9 @@ describe("AWS EC2Instance component tests", () => {
                 instanceType="t2.micro"
                 sshKeyName="mykey"
                 securityGroups={["secgroupname"]}
-            />;
+            >
+                <Foo />
+            </EC2Instance>;
         const { dom } = await doBuild(orig, "<none>");
 
         const domXml = serializeDom(dom);
@@ -33,8 +37,9 @@ describe("AWS EC2Instance component tests", () => {
   ]
 }</prop>
       <prop name="Type">"AWS::EC2::Instance"</prop>
-      <prop name="key">"anonymous-CFResource"</prop>
+      <prop name="key">"anonymous"</prop>
     </__props__>
+    <Foo key="Foo"/>
   </CFResource>
 </Adapt>
 `;
@@ -72,7 +77,7 @@ apt-get update -qq
   "UserData": "IyEvYmluL2Jhc2gKYXB0LWdldCB1cGRhdGUgLXFxCg=="
 }</prop>
       <prop name="Type">"AWS::EC2::Instance"</prop>
-      <prop name="key">"anonymous-CFResource"</prop>
+      <prop name="key">"anonymous"</prop>
     </__props__>
   </CFResource>
 </Adapt>
