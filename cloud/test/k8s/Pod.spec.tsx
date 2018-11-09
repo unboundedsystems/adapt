@@ -25,6 +25,7 @@ import {
     Pod,
     resourceElementToName
 } from "../../src/k8s";
+import { K8sObserver } from "../../src/k8s/k8s_observer";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
 import { act, doBuild, randomName } from "../testlib";
@@ -99,7 +100,7 @@ describe("k8s Pod Component Tests", () => {
 
         const domXml = Adapt.serializeDom(dom);
         const expected =
-`<Adapt>
+            `<Adapt>
   <Resource kind="Pod">
     <__props__>
       <prop name="config">{}</prop>
@@ -142,9 +143,12 @@ describe("k8s Pod Operation Tests", function () {
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
-    before(async () => {
+    before(async function () {
+        this.timeout(30 * 1000);
+        this.slow(20 * 1000);
         kubeconfig = mkInstance.kubeconfig;
         client = await mkInstance.client;
+        (new K8sObserver()).schema; //Force slow schema load once at start of tests
     });
 
     beforeEach(async () => {
@@ -226,7 +230,7 @@ describe("k8s Pod Operation Tests", function () {
                 <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
-        const { dom } = await doBuild(pod, options.deployID);
+        const { mountedOrig, dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -241,6 +245,19 @@ describe("k8s Pod Operation Tests", function () {
         should(pods).length(1);
         should(pods[0].metadata.name)
             .equal(resourceElementToName(dom, deployID));
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const status = await mountedOrig.status<{
+            noStatus?: true, //Why is this needed?
+            kind: string,
+            metadata: {
+                name: string,
+                annotations: { [key: string]: any }
+            }
+        }>();
+        should(status.kind).equal("Pod");
+        should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
+        should(status.metadata.annotations).containEql({ adaptName: dom.id });
 
         await plugin.finish();
         return dom;
