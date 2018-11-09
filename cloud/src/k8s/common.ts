@@ -34,3 +34,9 @@ export interface ResourceService extends ResourceBase {
     kind: Kind.service;
     spec: ServiceSpec;
 }
+
+export function computeNamespaceFromMetadata(metadata?: Metadata) {
+    if (!metadata) return "default";
+    if (!metadata.namespace) return "default";
+    return metadata.namespace;
+}

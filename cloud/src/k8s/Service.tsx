@@ -1,9 +1,11 @@
-import Adapt, { BuiltinProps, Component } from "@usys/adapt";
+import Adapt, { BuildData, BuiltinProps, Component, gql, ObserveForStatus } from "@usys/adapt";
 import * as stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
-import { Kind, ResourceService } from "./common";
-import { Resource } from "./Resource";
+import { computeNamespaceFromMetadata, Kind, ResourceService } from "./common";
+import { K8sObserver } from "./k8s_observer";
+import { resourceIdToName } from "./k8s_plugin";
+import { Resource, ResourceProps } from "./Resource";
 
 // FIXME(mark): Remove comment when working
 // CLI that exposes a port
@@ -167,6 +169,12 @@ export class Service extends Component<ServiceProps> {
                 spec={manifest.spec}
             />);
     }
+
+    async status(_observe: ObserveForStatus, buildData: BuildData) {
+        const succ = buildData.successor;
+        if (!succ) return undefined;
+        return succ.status();
+    }
 }
 
 /*
@@ -252,5 +260,20 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>): ResourceS
 export const serviceResourceInfo = {
     kind: Kind.service,
     apiName: "services",
+    statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
+        const obs: any = await observe(K8sObserver, gql`
+            query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
+                withKubeconfig(kubeconfig: $kubeconfig) {
+                    readCoreV1NamespacedService(name: $name, namespace: $namespace) @all(depth: 100)
+                }
+            }`,
+            {
+                name: resourceIdToName(buildData.id, buildData.deployID),
+                kubeconfig: props.config,
+                namespace: computeNamespaceFromMetadata(props.metadata)
+            }
+        );
+        return obs.withKubeconfig.readCoreV1NamespacedService;
+    },
     specsEqual: serviceSpecsEqual,
 };

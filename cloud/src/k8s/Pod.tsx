@@ -10,7 +10,7 @@ import Adapt, {
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
-import { Kind, Metadata } from "./common";
+import { computeNamespaceFromMetadata, Kind } from "./common";
 import { ContainerSpec, isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
 import { resourceIdToName } from "./k8s_plugin";
@@ -140,26 +140,20 @@ function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
     return ld.isEqual(s1, s2);
 }
 
-function computeNamespace(metadata?: Metadata) {
-    if (!metadata) return "default";
-    if (!metadata.namespace) return "default";
-    return metadata.namespace;
-}
-
 export const podResourceInfo = {
     kind: Kind.pod,
     apiName: "pods",
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
-                query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
-                    withKubeconfig(kubeconfig: $kubeconfig) {
-                        readCoreV1NamespacedPod(name: $name, namespace: $namespace) @all(depth: 100)
-                    }
-                }`,
+            query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
+                withKubeconfig(kubeconfig: $kubeconfig) {
+                    readCoreV1NamespacedPod(name: $name, namespace: $namespace) @all(depth: 100)
+                }
+            }`,
             {
                 name: resourceIdToName(buildData.id, buildData.deployID),
                 kubeconfig: props.config,
-                namespace: computeNamespace(props.metadata)
+                namespace: computeNamespaceFromMetadata(props.metadata)
             }
         );
         return obs.withKubeconfig.readCoreV1NamespacedPod;
