@@ -5,7 +5,9 @@
   "main": "./dist/src/index.js",
   "typings": "./dist/src/index.d.ts",
   "files": [
-    "dist/src"
+    "dist/src",
+    "*.js",
+    "*.d.ts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
