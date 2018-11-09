@@ -1,4 +1,10 @@
-import { ExecutedQuery, ObserverNeedsData, ObserverPlugin, ObserverResponse } from "@usys/adapt";
+import {
+    ExecutedQuery,
+    ObserverNeedsData,
+    ObserverPlugin,
+    ObserverResponse,
+    registerObserver
+} from "@usys/adapt";
 import { execute, ExecutionResult, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";
@@ -223,6 +229,8 @@ function reportErrors(results: ExecutionResult[]) {
 }
 
 export class K8sObserver implements ObserverPlugin {
+    static observerName: string;
+
     get schema() {
         if (!querySchema) querySchema = buildQuerySchema();
         return querySchema;
@@ -238,3 +246,5 @@ export class K8sObserver implements ObserverPlugin {
         return { context: observations };
     }
 }
+
+registerObserver(new K8sObserver());

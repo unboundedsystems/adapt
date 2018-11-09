@@ -1,4 +1,4 @@
-import Adapt, { AdaptElement, childrenToArray, PrimitiveComponent } from "@usys/adapt";
+import Adapt, { AdaptElement, BuildData, childrenToArray, ObserveForStatus, PrimitiveComponent } from "@usys/adapt";
 import * as ld from "lodash";
 
 /*
@@ -8,42 +8,8 @@ import * as ld from "lodash";
  * Service.
  */
 
-import { PodSpec } from "./Pod";
-import { ServiceSpec } from "./Service";
-
-export enum Kind {
-    pod = "Pod",
-    service = "Service",
-    // NOTE: ResourceAdd
-}
-
-export type Spec =
-    PodSpec |
-    ServiceSpec
-    // NOTE: ResourceAdd
-    ;
-
-export interface Metadata {
-    namespace?: string;
-    labels?: { [key: string]: string };
-    annotations?: { [key: string]: string };
-}
-
-export interface ResourceBase {
-    config: object; //Legal kubeconfig object
-    kind: Kind;
-    metadata?: Metadata;
-}
-
-export interface ResourcePod extends ResourceBase {
-    kind: Kind.pod;
-    spec: PodSpec;
-}
-
-export interface ResourceService extends ResourceBase {
-    kind: Kind.service;
-    spec: ServiceSpec;
-}
+import { ResourcePod, ResourceService } from "./common";
+import { getResourceInfo } from "./k8s_plugin";
 
 export type ResourceProps =
     ResourcePod |
@@ -68,4 +34,13 @@ export class Resource extends PrimitiveComponent<ResourceProps> {
         //Do other validations of Specs here
     }
 
+    async status(observe: ObserveForStatus, buildData: BuildData) {
+        const info = getResourceInfo(this.props.kind);
+        if (!info) return undefined;
+
+        const statusQuery = info.statusQuery;
+        if (!statusQuery) throw new Error(`statusQuery not defined for ${this.props.kind}: ${info}`);
+
+        return statusQuery(this.props, observe, buildData);
+    }
 }

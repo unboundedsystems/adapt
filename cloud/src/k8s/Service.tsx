@@ -2,7 +2,8 @@ import Adapt, { BuiltinProps, Component } from "@usys/adapt";
 import * as stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
-import { Kind, Resource, ResourceService } from "./Resource";
+import { Kind, ResourceService } from "./common";
+import { Resource } from "./Resource";
 
 // FIXME(mark): Remove comment when working
 // CLI that exposes a port
