@@ -105,7 +105,7 @@ exec 3<&0 0<&-
 PATH=\${PATH}:"${CTR_ADD_PATH}"
 export PATH
 
-node /src/utils/bin/run-local-registry.js &
+node /src/testutils/bin/run-local-registry.js &
 sleep 3
 
 bash <&3 &
