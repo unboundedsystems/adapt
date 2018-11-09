@@ -172,7 +172,7 @@ describe("k8s Pod Operation Tests", function () {
                 <K8sContainer name="container" image="node:latest" />
             </Pod>;
 
-        const dom = await doBuild(pod);
+        const { dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -190,7 +190,7 @@ describe("k8s Pod Operation Tests", function () {
             </Pod>;
         if (!deployID) throw new Error(`Missing deployID?`);
 
-        const dom = await doBuild(pod);
+        const { dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -226,7 +226,7 @@ describe("k8s Pod Operation Tests", function () {
                 <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
-        const dom = await doBuild(pod);
+        const { dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -260,7 +260,7 @@ describe("k8s Pod Operation Tests", function () {
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
-        const dom = await doBuild(pod);
+        const { dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -291,7 +291,7 @@ describe("k8s Pod Operation Tests", function () {
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
-        const dom = await doBuild(pod);
+        const { dom } = await doBuild(pod, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -303,7 +303,7 @@ describe("k8s Pod Operation Tests", function () {
     it("Should delete pod", async () => {
         const oldDom = await createPod("test");
 
-        const dom = await doBuild(<Group />);
+        const { dom } = await doBuild(<Group />, options.deployID);
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);

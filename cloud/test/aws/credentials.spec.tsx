@@ -75,7 +75,7 @@ const Wrapped = withCredentials(Foo);
 describe("withCredentials", () => {
     it("Should pass key through to wrapped component", async () => {
         const orig = <Wrapped key="mykey" />;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
         should(dom).not.be.Null();
         should(dom.componentType).equal(Foo);
         should(dom.props.key).equal("mykey");
@@ -95,7 +95,7 @@ describe("awsCredentialsContext", () => {
             <Ctx.Provider key="mykey" value={creds}>
                 <Foo />
             </Ctx.Provider>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
         should(dom).not.be.Null();
         should(dom.componentType).equal(Foo);
         should(dom.props.key).equal("mykey");

@@ -122,7 +122,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -141,7 +141,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -174,7 +174,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key={name} ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -207,7 +207,7 @@ describe("k8s Service Operation Tests", function () {
         ];
         const svc =
             <Service key="test" ports={newPorts} config={kubeconfig} />;
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -240,7 +240,7 @@ describe("k8s Service Operation Tests", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
-        const dom = await doBuild(<Group />);
+        const { dom } = await doBuild(<Group />, options.deployID);
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
