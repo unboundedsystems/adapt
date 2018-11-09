@@ -1,6 +1,7 @@
 import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
+    build,
     findElementsInDom,
     QueryDomain,
     registerPlugin,
@@ -9,11 +10,13 @@ import Adapt, {
     WidgetPair,
     WidgetPlugin,
 } from "@usys/adapt";
-import { Logger, mkdtmp, ObjectSet } from "@usys/utils";
-import * as execa from "execa";
+import { Logger, mapMap, mkdtmp, ObjectSet, removeUndef } from "@usys/utils";
+import execa from "execa";
 import * as fs from "fs-extra";
-import { compact } from "lodash";
+import { safeDump } from "js-yaml";
+import { compact, uniq } from "lodash";
 import * as path from "path";
+import { inspect } from "util";
 
 import { AnsibleHost, isAnsibleHostSsh } from "./ansible_host";
 import {
@@ -47,7 +50,6 @@ type GroupElement = AdaptElement<AnsibleGroupProps>;
 export function findPlaybookElems(dom: AdaptElementOrNull): PlaybookElement[] {
     const rules = <Style>{AnsiblePlaybook},{AnsibleImplicitPlaybook} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    console.log(candidateElems);
     return compact(candidateElems.map((e) => isAnsiblePlaybookElement(e) ? e : null));
 }
 
@@ -137,9 +139,7 @@ async function writeInventory(
     }
 }
 
-async function execPlaybook(el: PlaybookElement, pluginDir: string,
-    log: Logger, _deployID: string) {
-
+async function execPlaybook(el: PlaybookElement, pluginDir: string, log: Logger) {
     const args = [];
     let tmpdir: string | undefined;
 
@@ -154,7 +154,10 @@ async function execPlaybook(el: PlaybookElement, pluginDir: string,
         args.push("-i", inventoryFile(pluginDir), el.props.playbookFile);
 
         const child = execa("ansible-playbook", args, {
-            env: { ANSIBLE_HOST_KEY_CHECKING: "False" },
+            env: {
+                ANSIBLE_HOST_KEY_CHECKING: "False",
+                ANSIBLE_ROLES_PATH: rolesDir(pluginDir),
+            },
         });
 
         // FIXME(mark): For debugging. Should probably simply go to MessageLogger,
@@ -179,6 +182,31 @@ async function execPlaybook(el: PlaybookElement, pluginDir: string,
     }
 }
 
+async function installGalaxyRoles(roleEls: RoleElement[], pluginDir: string,
+    log: Logger) {
+    const roles = compact(uniq(roleEls.map((el) => el.props.galaxy)));
+    if (roles.length === 0) return;
+
+    await fs.ensureDir(rolesDir(pluginDir));
+
+    for (const role of roles) {
+        try {
+            const ret = await execa("ansible-galaxy", [
+                "install",
+                "--roles-path", rolesDir(pluginDir),
+                "--force", role
+            ]);
+            log(`Successfully installed ansible role '${role}':\n${ret.stdout}`);
+
+        } catch (err) {
+            if (err.stderr) log(err.stderr);
+            if (err.stdout) log(err.stdout);
+            const msg = err.message || err;
+            throw new Error(`Error installing Ansible role: ${msg}`);
+        }
+    }
+}
+
 function implicitPlaybookFile(pluginDir: string) {
     return path.join(pluginDir, "implicit_playbook.yaml");
 }
@@ -187,47 +215,56 @@ function inventoryFile(pluginDir: string) {
     return path.join(pluginDir, "inventory");
 }
 
-async function writeImplicitPlaybook(roleEls: RoleElement[], pluginDir: string) {
-    const hostRoles = new Map<string, string[]>();
-
-    for (const roleEl of roleEls) {
-        const role = roleName(roleEl.props);
-        if (!role) throw new Error(`AnsibleRole does not have a role name`);
-        const hostname = getHostname(roleEl.props.ansibleHost);
-        let list = hostRoles.get(hostname);
-        if (!list) {
-            list = [];
-            hostRoles.set(hostname, list);
-        }
-        list.push(role);
-    }
-
-    /*
-     * TODO(mark): Switch to using a YAML writer.
-     * Example output:
-     * - hosts: webservers
-     *   roles:
-     *     - common
-     *     - webservers
-     */
-    const lines = [];
-    for (const [host, roles] of hostRoles) {
-        lines.push(`- hosts: ${host}`);
-        lines.push(`  roles:`);
-        for (const role of roles) {
-            lines.push(`    - ${role}`);
-        }
-    }
-    lines.push("");
-
-    await fs.writeFile(implicitPlaybookFile(pluginDir), lines.join("\n"));
+function rolesDir(pluginDir: string) {
+    return path.join(pluginDir, "roles");
 }
 
-function implicitPlaybook(pluginDir: string): PlaybookElement {
+function collectRolesByHost(roleEls: RoleElement[]) {
+    const rolesByHost = new Map<string, RoleElement[]>();
+
+    for (const roleEl of roleEls) {
+        const hostname = getHostname(roleEl.props.ansibleHost);
+        let list = rolesByHost.get(hostname);
+        if (!list) {
+            list = [];
+            rolesByHost.set(hostname, list);
+        }
+        list.push(roleEl);
+    }
+    return rolesByHost;
+}
+
+async function writeImplicitPlaybook(roleEls: RoleElement[], pluginDir: string) {
+    const rolesByHost = collectRolesByHost(roleEls);
+
+    const playbookObj = mapMap(rolesByHost, (host, roles) => ({
+        hosts: host,
+        roles: roles.map((el) => removeUndef({
+            role: roleName(el.props),
+            vars: getVars(el.props.vars),
+        }))
+    }));
+
+    await fs.writeFile(implicitPlaybookFile(pluginDir), safeDump(playbookObj));
+
+    function getVars(obj: object | undefined) {
+        if (!obj || Object.keys(obj).length === 0) return undefined;
+        return obj;
+    }
+}
+
+async function implicitPlaybook(pluginDir: string): Promise<PlaybookElement> {
     const el =
-        <AnsibleImplicitPlaybook playbookFile={implicitPlaybookFile(pluginDir)} />;
-    if (!isAnsibleImplicitPlaybookElement(el)) throw new Error(`Internal error`);
-    return el;
+        <AnsibleImplicitPlaybook
+            key="Implcit Playbook"
+            playbookFile={implicitPlaybookFile(pluginDir)}
+        />;
+    const built = await build(el, null);
+    if (built.messages.length !== 0) {
+        throw new Error(`Internal Error: Build of implicit playbook failed: ${inspect(built.messages)}`);
+    }
+    if (!isAnsibleImplicitPlaybookElement(built.contents)) throw new Error(`Internal error`);
+    return built.contents;
 }
 
 // Exported for testing
@@ -252,10 +289,13 @@ export class AnsiblePluginImpl
         this.hosts = hosts;
 
         this.playbooks = findPlaybookElems(dom);
-        if (this.roles.length > 0) this.playbooks.push(implicitPlaybook(this.dataDir));
+        if (this.roles.length > 0) this.playbooks.push(await implicitPlaybook(this.dataDir));
 
-        await writeInventory(this.hosts, this.groups, this.dataDir);
-        await writeImplicitPlaybook(this.roles, this.dataDir);
+        if (hosts.length > 0) {
+            await writeInventory(this.hosts, this.groups, this.dataDir);
+            await writeImplicitPlaybook(this.roles, this.dataDir);
+            await installGalaxyRoles(this.roles, this.dataDir, this.log);
+        }
 
         return super.observe(prevDom, dom);
     }
@@ -295,13 +335,13 @@ export class AnsiblePluginImpl
 
     createWidget = async (
         _domain: AnsibleQueryDomain,
-        deployID: string,
+        _deployID: string,
         resource: PlaybookPair): Promise<void> => {
 
         const el = resource.element;
         if (!el) throw new Error(`resource element null`);
 
-        await execPlaybook(el, this.dataDir, this.log, deployID);
+        await execPlaybook(el, this.dataDir, this.log);
     }
 
     destroyWidget = async (
@@ -315,13 +355,13 @@ export class AnsiblePluginImpl
 
     modifyWidget = async (
         _domain: AnsibleQueryDomain,
-        deployID: string,
+        _deployID: string,
         resource: PlaybookPair): Promise<void> => {
 
         const el = resource.element;
         if (!el) throw new Error(`resource element null`);
 
-        await execPlaybook(el, this.dataDir, this.log, deployID);
+        await execPlaybook(el, this.dataDir, this.log);
     }
 }
 

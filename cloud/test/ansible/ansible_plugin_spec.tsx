@@ -1,11 +1,12 @@
 import Adapt, {
+    AdaptElement,
     Group,
     PluginOptions,
 } from "@usys/adapt";
-import * as execa from "execa";
+import execa from "execa";
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 
 import {
     createMockLogger,
@@ -22,15 +23,16 @@ import {
     AnsibleHost,
     ansibleHostLocal,
     AnsiblePlaybook,
+    AnsibleRole,
 } from "../../src/ansible";
 import {
     AnsiblePluginImpl,
     createAnsiblePlugin,
 } from "../../src/ansible/ansible_plugin";
 
-const echoPlaybook = `
+const echoPlaybook = (hosts: string) => `
 - name: Echo playbook
-  hosts: all
+  hosts: ${hosts}
   vars:
     test_val: success
     output_file: test.output
@@ -73,7 +75,9 @@ async function bootstrapLocalSystem(verbose = false) {
 }
 
 async function setupDir() {
-    await fs.writeFile("echo.yaml", echoPlaybook);
+    await fs.writeFile("echo_all.yaml", echoPlaybook("all"));
+    await fs.writeFile("echo_group1.yaml", echoPlaybook("group1"));
+    await fs.writeFile("echo_localhost.yaml", echoPlaybook("localhost"));
 }
 
 const sshdContainerSpec: dockerMocha.ContainerSpec = {
@@ -95,7 +99,7 @@ describe("Ansible plugin", async function () {
     let logger: MockLogger;
     let sshdAddr: string;
     const sshdPort = 22;
-    const dataDir = path.join(process.cwd(), "pluginData");
+    let dataDir: string;
 
     mochaTmpdir.all("test-cloud-ansible");
     const sshd = dockerMocha.all(sshdContainerSpec);
@@ -103,6 +107,7 @@ describe("Ansible plugin", async function () {
     before("Ansible bootstrap & dir setup", async function () {
         this.timeout(60 * 1000);
 
+        dataDir = path.join(process.cwd(), "pluginData");
         await bootstrapLocalSystem();
         await setupDir();
         await fs.ensureDir(dataDir);
@@ -130,16 +135,35 @@ describe("Ansible plugin", async function () {
         };
     });
 
-    async function simplePlaybook(host: AnsibleHost, vars: any) {
+    async function simplePlaybook(
+        host: AnsibleHost,
+        playbookFile: string,
+        groups: string | string[],
+        vars: any) {
+
         const orig =
             <Group>
                 <AnsiblePlaybook
-                    playbookFile="echo.yaml"
+                    playbookFile={playbookFile}
                     vars={vars}
                 />
-                <AnsibleGroup ansibleHost={host} groups="somegroup" />
+                <AnsibleGroup ansibleHost={host} groups={groups} />
             </Group>;
-        const dom = await doBuild(orig);
+        await buildAndRun(orig);
+    }
+
+    async function simpleRole(
+        host: AnsibleHost,
+        role: string,
+        vars: any) {
+
+        const orig =
+            <AnsibleRole ansibleHost={host} galaxy={role} vars={vars} />;
+        await buildAndRun(orig);
+    }
+
+    async function buildAndRun(orig: AdaptElement) {
+        const { dom } = await doBuild(orig, "<none>");
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
@@ -151,7 +175,7 @@ describe("Ansible plugin", async function () {
     }
 
     it("Should run a local playbook", async () => {
-        await simplePlaybook(ansibleHostLocal, {});
+        await simplePlaybook(ansibleHostLocal, "echo_all.yaml", "somegroup", {});
 
         const output = await fs.readFile("test.output");
         should(output.toString()).equal("Test success\n");
@@ -161,7 +185,7 @@ describe("Ansible plugin", async function () {
         const vars = {
             test_val: "a different success"
         };
-        await simplePlaybook(ansibleHostLocal, vars);
+        await simplePlaybook(ansibleHostLocal, "echo_all.yaml", "somegroup", vars);
 
         const output = await fs.readFile("test.output");
         should(output.toString()).equal("Test a different success\n");
@@ -179,7 +203,7 @@ describe("Ansible plugin", async function () {
             ansible_user: "root",
             ansible_ssh_pass: "root",
         };
-        await simplePlaybook(host, vars);
+        await simplePlaybook(host, "echo_all.yaml", "somegroup", vars);
 
         const output = await dockerExec(sshd.container, [
             "cat", "/tmp/ansible.test.out"
@@ -199,7 +223,7 @@ describe("Ansible plugin", async function () {
             ansible_user: "root",
             ansible_ssh_private_key: sshPrivKey,
         };
-        await simplePlaybook(host, vars);
+        await simplePlaybook(host, "echo_all.yaml", "somegroup", vars);
 
         const output = await dockerExec(sshd.container, [
             "cat", "/tmp/ansible.test.out"
@@ -220,10 +244,76 @@ describe("Ansible plugin", async function () {
             ansible_ssh_pass: "badpassword",
         };
 
-        await should(simplePlaybook(host, vars)).be.rejectedWith(
-            /Error executing ansible-playbook/m);
+        await should(simplePlaybook(host, "echo_all.yaml", "somegroup", vars))
+            .be.rejectedWith(/Error executing ansible-playbook/m);
     });
 
     it("Should reject a playbook file outside the project directory");
 
+    it("Should match host with group name", async () => {
+        // tslint:disable-next-line:variable-name
+        const output_file = "match_group.output";
+        await simplePlaybook(ansibleHostLocal, "echo_group1.yaml", "group1", {
+            output_file,
+        });
+
+        const output = (await fs.readFile(output_file)).toString();
+        should(output).equal("Test success\n");
+    });
+
+    it("Should not match host with group name", async () => {
+        // tslint:disable-next-line:variable-name
+        const output_file = "no_match_group.output";
+        await simplePlaybook(ansibleHostLocal, "echo_group1.yaml", "group2", {
+            output_file,
+        });
+
+        should(await fs.pathExists(output_file)).be.False();
+    });
+
+    it("Should match host with hostname", async () => {
+        // tslint:disable-next-line:variable-name
+        const output_file = "match_host.output";
+        await simplePlaybook(ansibleHostLocal, "echo_localhost.yaml", "group2", {
+            output_file,
+        });
+
+        const output = (await fs.readFile(output_file)).toString();
+        should(output).equal("Test success\n");
+    });
+
+    it("Should apply role from galaxy", async () => {
+        let output = (await fs.readFile("/etc/motd")).toString();
+        should(output).not.match(/This system is managed by Ansible/);
+
+        await simpleRole(ansibleHostLocal, "adriagalin.motd", {});
+
+        output = (await fs.readFile("/etc/motd")).toString();
+        should(output).match(/This system is managed by Ansible/);
+    });
+
+    it("Should apply role from galaxy with vars", async () => {
+        const msg = `
+            This system is managed by Adapt!"
+            This is a second line.
+        `;
+        const template = `{{ ag_motd_info }}`;
+        const more = `- This is some more of the motd\n\n`;
+
+        let output = (await fs.readFile("/etc/motd")).toString();
+        should(output).not.match(/This system is managed by Adapt/);
+
+        await simpleRole(ansibleHostLocal, "adriagalin.motd", {
+            ag_motd_content: msg + template,
+            ag_motd_info: more,
+        });
+
+        output = (await fs.readFile("/etc/motd")).toString();
+        should(output).equal(msg + more);
+    });
+
+    it("Should throw error on invalid galaxy name", async () => {
+        return should(simpleRole(ansibleHostLocal, "invaliduser.dontexist", {}))
+            .be.rejectedWith(/invaliduser.dontexist was not found/);
+    });
 });
