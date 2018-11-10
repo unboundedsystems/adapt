@@ -178,7 +178,6 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         };
 
     } finally {
-        if (ctx) ctx.destroy();
         if (dataDir) await deployment.releaseDataDir();
     }
 }

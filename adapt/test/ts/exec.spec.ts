@@ -32,8 +32,7 @@ describe("Exec basic tests", function () {
             mytest.y(); // final value returns to caller
         `;
         const ret = execString(source);
-        should(ret.value).equal("5");
-        ret.destroy();
+        should(ret).equal("5");
     });
 
     it("Should import a builtin module", function () {
@@ -44,8 +43,7 @@ describe("Exec basic tests", function () {
             util.inspect({test: 5});
         `;
         const ret = execString(source);
-        should(ret.value).equal("{ test: 5 }");
-        ret.destroy();
+        should(ret).equal("{ test: 5 }");
     });
 
     it("Should modify context state", function () {
@@ -55,9 +53,8 @@ describe("Exec basic tests", function () {
             (global as any).foo.bar = 1;
         `;
         const context = { foo: {} };
-        const ret = execString(source, context);
+        execString(source, context);
         should(context.foo).eql({bar: 1});
-        ret.destroy();
     });
 
     it("Should throw ProjectRunError upon error", function () {
@@ -112,8 +109,7 @@ describe("Exec module tests", function () {
         host.writeFile("index.ts", source, false);
 
         const ret = exec(path.join(projDir, "index.ts"), {host});
-        should(ret.value).eql(orig);
-        ret.destroy();
+        should(ret).eql(orig);
     });
 
     it("Should require absolute json file", () => {
@@ -134,8 +130,7 @@ describe("Exec module tests", function () {
         host.writeFile("index.ts", source, false);
 
         const ret = exec(path.join(projDir, "index.ts"), {host});
-        should(ret.value).eql(orig);
-        ret.destroy();
+        should(ret).eql(orig);
     });
 
     it("Should import a node module", async () => {
@@ -144,7 +139,6 @@ describe("Exec module tests", function () {
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);
         const ret = exec(index, {host});
-        should(ret.value).equal("test_camel");
-        ret.destroy();
+        should(ret).equal("test_camel");
     });
 });
