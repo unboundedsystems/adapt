@@ -5,6 +5,7 @@ export * from "./message";
 export * from "./mkdtmp";
 export * from "./object_set";
 export * from "./paths";
+export * from "./type_check";
 
 import * as npm from "./npm";
 import { removeUndef } from "./removeUndef";

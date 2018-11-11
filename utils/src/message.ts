@@ -1,6 +1,8 @@
 import * as stream from "stream";
 import { format } from "util";
 
+import { hasValidProps, validateProps, ValidationError } from "./type_check";
+
 export type Logger = (arg: any, ...args: any[]) => void;
 
 export enum MessageType {
@@ -13,6 +15,35 @@ export interface Message {
     timestamp: number;
     from: string;
     content: string;
+}
+
+const msgProps = {
+    type: "string",
+    content: "string",
+    from: "string",
+    timestamp: "number",
+};
+
+function validType(val: unknown) {
+    switch (val) {
+        case "info":
+        case "warning":
+        case "error":
+            return true;
+    }
+    return false;
+}
+
+export function isMessage(val: unknown): val is Message {
+    if (!hasValidProps(val, msgProps)) return false;
+    return validType((val as any).type);
+}
+
+export function validateMessage(val: unknown) {
+    validateProps("Message", val, msgProps);
+    if (!validType((val as any).type)) {
+        throw new ValidationError("Message", `invalid 'type' property value '${(val as any).type}'`);
+    }
 }
 
 export interface MessageSummary {
@@ -31,14 +62,39 @@ export interface MessageLogger {
     append: (this: MessageLogger, toAppend: Message[]) => void;
 }
 
-export function messagesToString(msgs: Message[], filter?: MessageType): string {
-    if (filter) msgs = msgs.filter((m) => m.type === filter);
-    return msgs.map((m) => messageToString(m)).join("\n");
+export interface Options {
+    timestamp?: boolean;
+    type?: boolean;
 }
 
-export function messageToString(msg: Message): string {
-    const dateStr = (new Date(msg.timestamp)).toUTCString();
-    return `${dateStr} [${msg.from}] ${msg.type.toUpperCase()}: ${msg.content}`;
+const defaultOptions: Options = {
+    timestamp: true,
+    type: true,
+};
+
+export function messagesToString(msgs: Message[], filter?: MessageType,
+                                 options = defaultOptions): string {
+    if (filter) msgs = msgs.filter((m) => m.type === filter);
+    return msgs.map((m) => messageToString(m, options)).join("\n");
+}
+
+export function messageToString(msg: Message, options = defaultOptions): string {
+    let ret = "";
+    if (options.timestamp) ret += (new Date(msg.timestamp)).toUTCString() + " ";
+    ret += `[${msg.from}] `;
+    if (options.type) ret += `${msg.type.toUpperCase()}`;
+    ret += `: ${msg.content}`;
+    return ret;
+}
+
+export function getErrors(msgs: Message[]): string {
+    return messagesToString(msgs, MessageType.error,
+                            { timestamp: false, type: false });
+}
+
+export function getWarnings(msgs: Message[]): string {
+    return messagesToString(msgs, MessageType.warning,
+                            { timestamp: false, type: false });
 }
 
 export class MessageStreamer implements MessageLogger {
@@ -100,3 +156,4 @@ export class MessageStreamer implements MessageLogger {
 
     protected updateSummary(type: MessageType) { this.summary[type]++; }
 }
+
