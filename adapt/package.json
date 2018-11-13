@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/callsites": "^2.0.0",
+    "@types/debug": "^0.0.31",
     "@types/execa": "^0.9.0",
     "@types/fs-extra": "^5.0.3",
     "@types/graphql": "^14.0.1",
@@ -69,7 +70,9 @@
     "@usys/utils": "0.0.1",
     "callsites": "^2.0.0",
     "css-what": "^2.1.0",
+    "debug": "^4.1.0",
     "flush-write-stream": "^1.0.3",
+    "fork-require": "1.0.9-unb1",
     "graphql": "^14.0.2",
     "graphql-tag": "^2.9.2",
     "graphql-tools": "^3.1.1",

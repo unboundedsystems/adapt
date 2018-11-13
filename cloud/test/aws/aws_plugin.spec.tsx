@@ -266,7 +266,7 @@ describe("AWS plugin basic tests", () => {
     it("Should allow additional DOM elements under CFStack", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
         const orig = simpleDom({ creds, addExtra: true });
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -285,7 +285,7 @@ describe("AWS plugin basic tests", () => {
     it("Should compute create actions", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
         const orig = simpleDom({ creds });
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -299,7 +299,7 @@ describe("AWS plugin basic tests", () => {
 
     it("Should create template", async () => {
         const orig = simpleDom({ creds });
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, options.deployID);
         const stackEls = findStackElems(dom);
         should(stackEls).have.length(2);
         const templ = createTemplate(stackEls[0]);
@@ -323,7 +323,7 @@ describe("AWS plugin basic tests", () => {
                     InstanceId={instHandle}
                 />
             </CFStack>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, options.deployID);
         const stackEls = findStackElems(dom);
         should(stackEls).have.length(1);
         const templ = createTemplate(stackEls[0]);
@@ -387,7 +387,7 @@ describeLong("AWS plugin live tests", function () {
 
     it("Should create stacks [step 1]", async () => {
         const orig = simpleDom(domConfig);
-        const dom = await doBuild(orig, stateStore);
+        const { dom } = await doBuild(orig, options.deployID, stateStore);
         stackNames = getStackNames(dom);
 
         should(stackNames).have.length(2);
@@ -451,7 +451,7 @@ describeLong("AWS plugin live tests", function () {
         // Remove one of the stacks from the dom
         domConfig.secondStack = false;
         const orig = simpleDom(domConfig);
-        const dom = await doBuild(orig, stateStore);
+        const { dom } = await doBuild(orig, options.deployID, stateStore);
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change
@@ -497,7 +497,7 @@ describeLong("AWS plugin live tests", function () {
         // Just update the tag value
         domConfig.testTagVal = "newvalue";
         const orig = simpleDom(domConfig);
-        const dom = await doBuild(orig, stateStore);
+        const { dom } = await doBuild(orig, options.deployID, stateStore);
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change
@@ -532,7 +532,7 @@ describeLong("AWS plugin live tests", function () {
         // Remove the FIRST instance from the first stack
         domConfig.secondInstance = false;
         const orig = simpleDom(domConfig);
-        const dom = await doBuild(orig, stateStore);
+        const { dom } = await doBuild(orig, options.deployID, stateStore);
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change

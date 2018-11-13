@@ -1,10 +1,9 @@
 import { Command, flags } from "@oclif/command";
-import { filePathToUrl } from "@usys/utils";
+import { filePathToUrl, getErrors, getWarnings } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
 import { DeployError, DeploySuccess } from "../types/adapt_shared";
-import { getErrors, getWarnings } from "../utils";
 
 import {
     getGen,

@@ -11,7 +11,7 @@ describe("AWS CFStack component tests", () => {
             <CFStack
                 StackName="mystack"
             />;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
 
         let domXml = serializeDom(dom);
         // Replace random portion of the stack name
@@ -40,7 +40,7 @@ describe("AWS CFStack component tests", () => {
             <CFStack
                 StackName={name}
             />;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
 
         const domXml = serializeDom(dom);
         const expected =

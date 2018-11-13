@@ -9,8 +9,10 @@ import { buildAndDeploy } from "./buildAndDeploy";
 import {
     defaultDeployCommonOptions,
     DeployCommonOptions,
-    DeployState
+    DeployState,
+    setupLogger,
 } from "./common";
+import { forkExports } from "./fork";
 
 export interface CreateOptions extends DeployCommonOptions {
     projectName: string;
@@ -32,9 +34,18 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         ...defaultOptions,
         ...options
     };
+
     const {
-        adaptUrl, initLocalServer, initialStateJson, initialObservationsJson, projectName, ...buildOpts
+        adaptUrl,
+        initLocalServer,
+        initialStateJson,
+        initialObservationsJson,
+        logger: _logger,
+        projectName,
+        ...buildOpts
     } = finalOptions;
+
+    const logger = await setupLogger(_logger);
 
     let ds: DeployState;
     let server: AdaptServer | null = null;
@@ -47,6 +58,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             finalOptions.stackName);
         ds = await buildAndDeploy({
             deployment,
+            logger,
             prevStateJson: initialStateJson,
             observationsJson: initialObservationsJson,
             ...buildOpts
@@ -54,11 +66,11 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
 
     } catch (err) {
         const backtrace = err instanceof ProjectRunError ? err.projectStack : err.stack;
-        finalOptions.logger.error(`Error creating deployment: ${err}:\n`, backtrace);
+        logger.error(`Error creating deployment: ${err}:\n`, backtrace);
         ds = {
             type: "error",
-            messages: finalOptions.logger.messages,
-            summary: finalOptions.logger.summary,
+            messages: logger.messages,
+            summary: logger.summary,
             domXml: err.domXml,
         };
     }
@@ -67,8 +79,10 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
         try {
             await destroyDeployment(server, deployment.deployID);
         } catch (err) {
-            finalOptions.logger.warning(`Error destroying deployment: ${err}`);
+            logger.warning(`Error destroying deployment: ${err}`);
         }
     }
     return ds;
 }
+
+forkExports(module, "createDeployment");

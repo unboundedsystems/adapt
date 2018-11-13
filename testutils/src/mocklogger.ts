@@ -8,12 +8,14 @@ export interface MockLogger extends MessageLogger {
 
 class MockLoggerImpl extends MessageStreamer {
     // These are set in the base class
-    protected outStream!: WritableStreamBuffer;
-    protected errStream!: WritableStreamBuffer;
+    outStream!: WritableStreamBuffer;
+    errStream!: WritableStreamBuffer;
 
     constructor() {
-        super("MockLogger", new WritableStreamBuffer(),
-              new WritableStreamBuffer());
+        super("MockLogger", {
+            outStream: new WritableStreamBuffer(),
+            errStream: new WritableStreamBuffer(),
+        });
     }
     get stdout() {
         return this.outStream.getContentsAsString();

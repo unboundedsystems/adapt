@@ -20,6 +20,7 @@ import {
 } from "graphql";
 
 import GraphQLJSON = require("graphql-type-json");
+import * as ld from "lodash";
 import * as util from "util";
 import {
     isRef,
@@ -51,25 +52,27 @@ function buildFieldsFromSchema(
     baseName: string,
     schema: Swagger2Schema,
     tyResolver: LTypeResolver,
-    inputType: true): () => Fields<GraphQLInputType>;
+    inputType: true): (() => Fields<GraphQLInputType>) | GraphQLInputType;
 function buildFieldsFromSchema(
     baseName: string,
     schema: Swagger2Schema,
     tyResolver: LTypeResolver,
-    inputType: false): () => Fields<GraphQLOutputType>;
+    inputType: false): (() => Fields<GraphQLOutputType>) | GraphQLOutputType;
 function buildFieldsFromSchema(
     baseName: string,
     schema: Swagger2Schema,
     tyResolver: LTypeResolver,
-    inputType: boolean): () => Fields<GraphQLInputType | GraphQLOutputType>;
+    inputType: boolean): (() => Fields<GraphQLInputType | GraphQLOutputType>) | GraphQLInputType | GraphQLOutputType;
 function buildFieldsFromSchema(
     baseName: string,
     schema: Swagger2Schema,
     tyResolverIn: LTypeResolver,
-    inputType: boolean): () => Fields<GraphQLInputType | GraphQLOutputType> {
+    inputType: boolean): (() => Fields<GraphQLInputType | GraphQLOutputType>) | GraphQLInputType | GraphQLOutputType {
 
     const properties = schema.properties;
-    if (properties === undefined) return () => ({ dummyField: { type: GraphQLInt } });
+    //FIXME(manishv) add a unit test for these two cases below, do not rely on k8s tests
+    if (properties === undefined) return GraphQLJSON;
+    if (Object.keys(properties).length === 0) return GraphQLJSON;
 
     return () => {
         const tyResolver = inputType ? tyResolverIn.input : tyResolverIn.output;
@@ -89,7 +92,7 @@ function buildFieldsFromSchema(
             };
         }
         if (Object.keys(ret).length === 0) {
-            return { dummyField: { type: GraphQLInt } };
+            throw new Error("Internal Error: no fields, how'd we get here??");
         }
         return ret;
     };
@@ -154,10 +157,12 @@ function jsonSchema2GraphQLType(
 
     if (inputType) {
         const fields = buildFieldsFromSchema(name, schema, tyResolverIn, true);
+        if (!ld.isFunction(fields)) return fields;
         return new GraphQLInputObjectType({ ...consArgs, fields });
     } else {
         //FIXME(manishv) attach resolvers somewhere
         const fields = buildFieldsFromSchema(name, schema, tyResolverIn, false);
+        if (!ld.isFunction(fields)) return fields;
         return new GraphQLObjectType({ ...consArgs, fields });
     }
 }
@@ -197,8 +202,8 @@ const primitiveTypes = {
     string: GraphQLString,
     boolean: GraphQLBoolean,
     _Empty: {
-        input: new GraphQLInputObjectType({ name: "_Empty", fields: () => ({ dummyField: { type: GraphQLInt } }) }),
-        output: new GraphQLObjectType({ name: "_Empty", fields: () => ({ dummyField: { type: GraphQLInt } }) })
+        input: GraphQLJSON,
+        output: GraphQLJSON
     }
 };
 

@@ -85,6 +85,7 @@ export class LocalServer implements AdaptServer {
     async set(dataPath: string, val: any, options?: SetOptions): Promise<void> {
         if (options != null && options.mustCreate === true) {
             try {
+                this.db.reload();
                 this.db.getData(dataPath);
                 throw new Error(`Local server: path '${dataPath}' already exists`);
             } catch (err) {
@@ -95,6 +96,7 @@ export class LocalServer implements AdaptServer {
     }
 
     async get(dataPath: string): Promise<any> {
+        this.db.reload();
         return this.db.getData(dataPath);
     }
 

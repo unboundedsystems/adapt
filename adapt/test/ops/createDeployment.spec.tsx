@@ -273,6 +273,7 @@ describe("createDeployment Tests", async function () {
         should(ds.domXml).equal(defaultDomXmlOutput);
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::default");
+        should(ds.mountedOrigStatus).eql({ noStatus: true });
 
         const lstdout = logger.stdout;
         should(lstdout).match(/EchoPlugin: start/);

@@ -271,7 +271,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     component: GenericComponent | null;
     path?: string;
     keyPath?: KeyPath;
-    buildData: BuildData = {};
+    buildData: Partial<BuildData> = {};
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -313,6 +313,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.path = path;
         this.keyPath = keyPath;
         this.mounted = true;
+        this.buildData.id = this.id;
     }
 
     postBuild(stateStore: StateStore): { stateChanged: boolean } {
@@ -344,7 +345,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             }
             return result.data;
         };
-        const buildData = this.buildData;
+        const buildData = this.buildData as BuildData; //After build, this type assertion should hold
         if (buildData === undefined) throw new Error(`Status requested but no buildData: ${this}`);
         if (isSFCElement(this)) {
             const customStatus = this.componentType.status;

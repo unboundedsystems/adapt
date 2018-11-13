@@ -2,8 +2,10 @@ import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
+    BuildData,
     findElementsInDom,
     isMountedElement,
+    ObserveForStatus,
     QueryDomain,
     registerPlugin,
     Style,
@@ -15,7 +17,8 @@ import { sha256hex } from "@usys/utils";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 
-import { isResourceElement, Kind, Metadata, Resource, ResourceBase, ResourceProps, Spec } from ".";
+import { Kind, Metadata, ResourceBase, Spec } from "./common";
+import { isResourceElement, Resource, ResourceProps } from "./Resource";
 
 import { podResourceInfo } from "./Pod";
 import { serviceResourceInfo } from "./Service";
@@ -65,6 +68,7 @@ export function createK8sPlugin() {
 export interface ResourceInfo {
     kind: Kind;
     apiName: string;
+    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown;
     specsEqual(spec1: Spec, spec2: Spec): boolean;
 }
 
@@ -74,7 +78,7 @@ const resourceInfo = {
     // NOTE: ResourceAdd
 };
 
-function getResourceInfo(kind: keyof typeof resourceInfo): ResourceInfo {
+export function getResourceInfo(kind: keyof typeof resourceInfo): ResourceInfo {
     return resourceInfo[kind];
 }
 
@@ -156,13 +160,17 @@ interface Manifest {
     spec: Spec;
 }
 
+export function resourceIdToName(id: string, deployID: string) {
+    return "adapt-resource-" + sha256hex(id + deployID).slice(0, 32);
+}
+
 export function resourceElementToName(
     elem: Adapt.AdaptElement<AnyProps>,
     deployID: string
 ): string {
     if (!isResourceElement(elem)) throw new Error("Can only compute name of Resource elements");
     if (!isMountedElement(elem)) throw new Error("Can only compute name of mounted elements");
-    return "adapt-resource-" + sha256hex(elem.id + deployID).slice(0, 32);
+    return resourceIdToName(elem.id, deployID);
 }
 
 function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {

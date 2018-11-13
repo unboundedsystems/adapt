@@ -1,16 +1,16 @@
-import { Message, MessageType } from "../types/adapt_shared";
+import { Message, MessageType } from "./common";
 
-export interface Options {
+export interface MessageStringOptions {
     timestamp?: boolean;
     type?: boolean;
 }
 
-const defaultOptions: Options = {
+const defaultOptions: MessageStringOptions = {
     timestamp: true,
     type: true,
 };
 
-export function messagesToString(msgs: Message[], filter?: MessageType,
+export function messagesToString(msgs: ReadonlyArray<Message>, filter?: MessageType,
                                  options = defaultOptions): string {
     if (filter) msgs = msgs.filter((m) => m.type === filter);
     return msgs.map((m) => messageToString(m, options)).join("\n");

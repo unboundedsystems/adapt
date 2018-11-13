@@ -24,6 +24,7 @@ import {
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
 import { act, doBuild, randomName } from "../testlib";
+import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -90,9 +91,12 @@ describe("k8s Service Operation Tests", function () {
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
-    before(async () => {
+    before(async function () {
+        this.timeout(30 * 1000);
+        this.slow(20 * 1000);
         kubeconfig = mkInstance.kubeconfig;
         client = await mkInstance.client;
+        forceK8sObserverSchemaLoad();
     });
 
     beforeEach(async () => {
@@ -122,7 +126,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -141,7 +145,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -174,7 +178,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key={name} ports={ports} config={kubeconfig} />;
 
-        const dom = await doBuild(svc);
+        const { mountedOrig, dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -188,6 +192,12 @@ describe("k8s Service Operation Tests", function () {
         should(svcs).length(1);
         should(svcs[0].metadata.name)
             .equal(resourceElementToName(dom, options.deployID));
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const status = await mountedOrig.status<K8sTestStatusType>();
+        should(status.kind).equal("Service");
+        should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
+        should(status.metadata.annotations).containEql({ adaptName: dom.id });
 
         await plugin.finish();
         return dom;
@@ -207,7 +217,7 @@ describe("k8s Service Operation Tests", function () {
         ];
         const svc =
             <Service key="test" ports={newPorts} config={kubeconfig} />;
-        const dom = await doBuild(svc);
+        const { dom } = await doBuild(svc, options.deployID);
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -240,7 +250,7 @@ describe("k8s Service Operation Tests", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
-        const dom = await doBuild(<Group />);
+        const { dom } = await doBuild(<Group />, options.deployID);
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);

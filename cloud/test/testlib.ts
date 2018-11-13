@@ -6,9 +6,9 @@ import * as util from "util";
 const debugBuild = false;
 const buildOpts = debugBuild ? { recorder: buildPrinter() } : undefined;
 
-export async function doBuild(elem: AdaptElement, stateStore?: StateStore) {
-    const { contents: dom, messages } = await build(elem, null,
-        { ...buildOpts, stateStore });
+export async function doBuild(elem: AdaptElement, deployID: string, stateStore?: StateStore) {
+    const { mountedOrig, contents: dom, messages } = await build(elem, null,
+        { ...buildOpts, stateStore, deployID });
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
@@ -16,7 +16,7 @@ export async function doBuild(elem: AdaptElement, stateStore?: StateStore) {
     }
 
     should(messages).have.length(0);
-    return dom;
+    return { mountedOrig, dom };
 }
 
 export async function act(actions: Action[]) {

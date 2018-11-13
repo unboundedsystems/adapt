@@ -1,60 +1,43 @@
 import * as stream from "stream";
 import { format } from "util";
+import {
+    LocalStore,
+    Logger,
+    Message,
+    MessageLogger,
+    MessageStore,
+    MessageSummary,
+    MessageType
+} from "./common";
+import { messageToString } from "./stringify";
 
-export type Logger = (arg: any, ...args: any[]) => void;
-
-export enum MessageType {
-    info = "info",
-    warning = "warning",
-    error = "error",
-}
-export interface Message {
-    type: MessageType;
-    timestamp: number;
-    from: string;
-    content: string;
-}
-
-export interface MessageSummary {
-    info: number;
-    warning: number;
-    error: number;
-}
-
-export interface MessageLogger {
-    messages: Message[];
-    summary: MessageSummary;
-    info: Logger;
-    warning: Logger;
-    error: Logger;
-    log: (type: MessageType, arg: any, ...args: any[]) => void;
-    append: (this: MessageLogger, toAppend: Message[]) => void;
-}
-
-export function messagesToString(msgs: Message[], filter?: MessageType): string {
-    if (filter) msgs = msgs.filter((m) => m.type === filter);
-    return msgs.map((m) => messageToString(m)).join("\n");
-}
-
-export function messageToString(msg: Message): string {
-    const dateStr = (new Date(msg.timestamp)).toUTCString();
-    return `${dateStr} [${msg.from}] ${msg.type.toUpperCase()}: ${msg.content}`;
+export interface MessageStreamerOptions {
+    outStream?: stream.Writable;
+    errStream?: stream.Writable;
+    store?: MessageStore;
 }
 
 export class MessageStreamer implements MessageLogger {
-    messages: Message[] = [];
     summary: MessageSummary = {
         info: 0,
         warning: 0,
         error: 0,
     };
 
-    constructor(public from: string,
-                protected outStream?: stream.Writable,
-                protected errStream?: stream.Writable) {
-        if (outStream != null && errStream == null) {
-            this.errStream = outStream;
-        }
+    outStream?: stream.Writable;
+    errStream?: stream.Writable;
+    protected store: MessageStore;
+
+    constructor(public from: string, options: MessageStreamerOptions = {}) {
+        this.outStream = options.outStream;
+        this.errStream = (options.outStream != null && options.errStream == null) ?
+            options.outStream :
+            options.errStream;
+        this.store = options.store || new LocalStore();
+    }
+
+    get messages() {
+        return this.store.messages;
     }
 
     info: Logger = (arg: any, ...args: any[]) => {
@@ -68,8 +51,6 @@ export class MessageStreamer implements MessageLogger {
     }
 
     log = (type: MessageType, arg: any, ...args: any[]) => {
-        this.updateSummary(type);
-
         const m = {
             type,
             timestamp: Date.now(),
@@ -86,7 +67,7 @@ export class MessageStreamer implements MessageLogger {
                 if (this.outStream) this.outStream.write(messageToString(m) + "\n");
                 break;
         }
-        this.messages.push(m);
+        this.message(m);
     }
 
     // FIXME(mark): This function is meant to help with the transition period
@@ -94,8 +75,12 @@ export class MessageStreamer implements MessageLogger {
     // MessageLogger. Any use of this function should be replaced with
     // direct use of MessageLogger instead.
     append(toAppend: Message[]) {
-        for (const m of toAppend) { this.updateSummary(m.type); }
-        this.messages = this.messages.concat(toAppend);
+        for (const m of toAppend) { this.message(m); }
+    }
+
+    message = (msg: Message) => {
+        this.updateSummary(msg.type);
+        this.store.store(msg);
     }
 
     protected updateSummary(type: MessageType) { this.summary[type]++; }

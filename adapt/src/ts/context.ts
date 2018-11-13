@@ -64,8 +64,6 @@ export class VmModule {
     _compile = this.runJs;
     ctxModule: NodeModule;
     vmModules: Modules;
-    innerObject?: ObjectConstructor;
-
     private hostModCache: any;
 
     constructor(public id: string, private vmContext: vm.Context | undefined,
@@ -76,7 +74,6 @@ export class VmModule {
             this.requireCache = parent.requireCache;
             this.hostModCache = parent.hostModCache;
             this.vmModules = parent.vmModules;
-            this.innerObject = parent.innerObject;
         } else {
             this.extensions = Object.create(null);
             this.requireCache = Object.create(null);
@@ -87,20 +84,6 @@ export class VmModule {
         }
         this.ctxModule = new Module(id, (parent && parent.ctxModule) || null);
         this.ctxModule.filename = id;
-        this.setExportsProto();
-    }
-
-    destroy() {
-        // Have each VmModule destroy its own stuff
-        for (const k of Object.keys(this.vmModules)) {
-            this.vmModules[k].destroySelf();
-        }
-
-        // Now destroy the shared stuff
-        this.deleteProps(this.extensions, false);
-        this.deleteProps(this.requireCache, false);
-        this.deleteProps(this.hostModCache, false);
-        this.destroySelf();
     }
 
     /**
@@ -109,14 +92,10 @@ export class VmModule {
      * ONLY.
      * @param ctx The vm context where the DOM code will run.
      */
-    initMain(ctx: vm.Context, innerObj: ObjectConstructor) {
+    initMain(ctx: vm.Context) {
         if (this.parent) throw new InternalError(`initMain should only be called on top-level VmModule`);
 
         this.vmContext = ctx;
-        this.innerObject = innerObj;
-
-        // Update the top level module now that we have innerObject
-        this.setExportsProto();
 
         // NOTE(mark): There's some strange behavior with allowing this
         // module to be re-loaded in the context when used alongside
@@ -221,7 +200,7 @@ export class VmModule {
     @tracef(debugVm)
     private runJsonModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);
-        if (!contents) {
+        if (contents == null) {
             throw new Error(`Unable to find file contents for ${filename}`);
         }
         try {
@@ -235,7 +214,7 @@ export class VmModule {
     @tracef(debugVm)
     private runJsModule(mod: VmModule, filename: string) {
         const contents = this.host.readFile(filename);
-        if (!contents) {
+        if (contents == null) {
             throw new Error(`Unable to find file contents for ${filename}`);
         }
         return mod.runJs(contents, filename);
@@ -265,49 +244,11 @@ export class VmModule {
             throw new ProjectRunError(err, getProjectStack(err), err.stack);
         }
     }
-
-    private deleteProps(obj: any, checkProto = true) {
-        if (obj == null || typeof obj !== "object") return;
-
-        if (checkProto &&
-            !(this.innerObject && obj instanceof this.innerObject)) {
-            return;
-        }
-
-        for (const k of Object.keys(obj)) {
-            try {
-                delete obj[k];
-            } catch (e) {/**/ }
-        }
-    }
-
-    private setExportsProto() {
-        if (this.innerObject) {
-            Object.setPrototypeOf(this.ctxModule.exports, this.innerObject);
-        }
-    }
-
-    private destroySelf() {
-        if (this.ctxModule) {
-            this.deleteProps(this.ctxModule.exports);
-            if (this.innerObject && this.ctxModule.exports instanceof this.innerObject) {
-                Object.setPrototypeOf(this.ctxModule.exports, null);
-            }
-            this.ctxModule.exports = undefined;
-            this.ctxModule.children = [];
-            this.ctxModule.parent = null;
-            this.innerObject = undefined;
-        }
-        // @ts-ignore
-        this.host = undefined;
-        this.vmModules = {};
-    }
-
 }
 
 // Javascript defines a set of properties that should be available on the
 // global object. V8 takes care of those. Only add the ones that Node defines.
-const hostGlobals = {
+const hostGlobals = () => ({
     version: parseInt(process.versions.node.split(".")[0], 10),
     process,
     console,
@@ -318,10 +259,7 @@ const hostGlobals = {
     clearInterval,
     clearImmediate,
     Buffer,
-};
-
-type Listener = (...args: any[]) => void;
-type ListenFor = [string | symbol, Listener];
+});
 
 /*
  * Prepares a context object to be the global object within a new
@@ -329,8 +267,6 @@ type ListenFor = [string | symbol, Listener];
  */
 export class VmContext {
     mainModule: VmModule;
-    innerObject: ObjectConstructor;
-    listeners: ListenFor[] = [];
 
     constructor(public vmGlobal: any, dirname: string, public filename: string,
         public host: ChainableHost) {
@@ -346,48 +282,17 @@ export class VmContext {
         vmGlobal.require = module.require.bind(module);
         vmGlobal.global = vmGlobal;
 
-        for (const prop of Object.keys(hostGlobals)) {
-            vmGlobal[prop] = (hostGlobals as any)[prop];
+        const hGlobals = hostGlobals();
+        for (const prop of Object.keys(hGlobals)) {
+            vmGlobal[prop] = (hGlobals as any)[prop];
         }
 
         vm.createContext(vmGlobal);
-        this.innerObject = vm.runInContext("Object", vmGlobal);
-        if (!this.innerObject || this.innerObject.name !== "Object") {
-            throw new InternalError(`Unable to get inner Object constructor`);
-        }
-
-        module.initMain(vmGlobal, this.innerObject);
-    }
-
-    destroy() {
-        for (const [event, listener] of this.listeners) {
-            process.removeListener(event, listener);
-        }
-        this.listeners = [];
-
-        this.mainModule.destroy();
-        // @ts-ignore
-        this.mainModule = undefined;
-        // @ts-ignore
-        this.innerObject = undefined;
-        this.vmGlobal.exports = undefined;
-        this.vmGlobal.module = undefined;
-        this.vmGlobal.require = undefined;
-        // @ts-ignore
-        this.host = undefined;
-    }
-
-    newListener = (event: string | symbol, listener: Listener) => {
-        if (listener instanceof this.innerObject) {
-            this.listeners.push([event, listener]);
-        }
+        module.initMain(vmGlobal);
     }
 
     @tracef(debugVm)
     run(jsText: string): any {
-        this.listeners.push(["newListener", this.newListener]);
-        process.on("newListener", this.newListener);
-
         let val;
         try {
             // Execute the program
@@ -402,7 +307,6 @@ export class VmContext {
             if (!(err instanceof ProjectRunError)) {
                 err = new ProjectRunError(err, getProjectStack(err), err.stack);
             }
-            this.destroy();
             throw err;
         }
 

@@ -17,7 +17,7 @@ describe("AWS EC2Instance component tests", () => {
                 sshKeyName="mykey"
                 securityGroups={["secgroupname"]}
             />;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
 
         const domXml = serializeDom(dom);
         const expected =
@@ -54,7 +54,7 @@ apt-get update -qq
                 securityGroups={["secgroupname"]}
                 userData={userData}
             />;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
 
         const domXml = serializeDom(dom);
         // FIXME: key prop is incorrect
@@ -114,7 +114,7 @@ describe("AWS EC2Instance to real API tests", () => {
                     />
                 </CFStack>
             </Creds.Provider>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig, "<none>");
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);

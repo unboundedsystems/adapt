@@ -2,14 +2,13 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import { mkdtmp, npm } from "@usys/utils";
+import { mkdtmp, npm, ValidationError } from "@usys/utils";
 import { UserError } from "../error";
 import {
     AdaptModule,
     CreateOptions,
     DeployState,
     UpdateOptions,
-    ValidationError,
     verifyAdaptModule,
     verifyDeployState,
 } from "../types/adapt_shared";
