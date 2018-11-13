@@ -32,8 +32,9 @@ import {
 import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
 import { createStateStore, StateStore } from "../state";
+import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
-import { DeployState } from "./common";
+import { DeployState, DeploySuccess } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 export interface BuildOptions {
@@ -43,34 +44,71 @@ export interface BuildOptions {
     logger: MessageLogger;
     stackName: string;
 
+    withStatus?: boolean;
     observationsJson?: string;
     prevStateJson?: string;
     projectRoot?: string;
 }
 
-export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
-    const { deployment, logger, stackName } = options;
+interface FullBuildOptions extends Required<BuildOptions> {
+    ctx?: AdaptContext;
+}
 
-    let dataDir: string | undefined;
-    const prev = await deployment.lastEntry();
-    const prevStateJson =
-        options.prevStateJson ||
-        (prev ? prev.stateJson : "");
-    const observations = (() => {
-        if (options.observationsJson) return parseFullObservationsJson(options.observationsJson);
-        if (prev && prev.observationsJson) return parseFullObservationsJson(prev.observationsJson);
-        return {};
-    })();
-
-    let observerObservations = observations.observer ? observations.observer : {};
-
+export function computePaths(options: BuildOptions): { fileName: string, projectRoot: string } {
     const fileName = path.resolve(options.fileName);
     const projectRoot = options.projectRoot || path.dirname(fileName);
+    return { fileName, projectRoot };
+}
 
-    // Compile and run the project
-    let ctx: AdaptContext | undefined;
-    try {
-        ctx = projectExec(projectRoot, fileName);
+export function initialState(options: BuildOptions): FullBuildOptions {
+    const paths = computePaths(options);
+    return {
+        ...options,
+        ...paths,
+        withStatus: options.withStatus || false,
+        observationsJson: options.observationsJson || JSON.stringify({}),
+        prevStateJson: options.prevStateJson || "{}",
+    };
+}
+
+export async function currentState(options: BuildOptions): Promise<FullBuildOptions> {
+    const { deployment } = options;
+    const prev = await deployment.lastEntry();
+    if (!prev) return initialState(options);
+    const paths = computePaths(options);
+    return {
+        ...options,
+        ...paths,
+        withStatus: options.withStatus || false,
+        observationsJson: options.observationsJson || prev.observationsJson,
+        prevStateJson: options.prevStateJson || prev.observationsJson
+    };
+}
+
+interface ExecutedQueries {
+    [name: string]: ExecutedQuery[];
+}
+
+interface BuildResults extends FullBuildOptions {
+    domXml: string;
+    mountedOrigStatus: Status;
+    executedQueries: ExecutedQueries;
+    needsData: ExecutedQueries;
+}
+
+function podify<T>(x: T): T {
+    return JSON.parse(JSON.stringify(x));
+}
+
+export async function build(options: FullBuildOptions): Promise<BuildResults> {
+    return withContext(options, async (ctx: AdaptContext) => {
+        const { deployment, logger, stackName } = options;
+
+        const prevStateJson = options.prevStateJson;
+        const observations = parseFullObservationsJson(options.observationsJson);
+        const observerObservations = observations.observer || {};
+
+        // Compile and run the project
 
         // This is the inner context's copy of Adapt
         const inAdapt = ctx.Adapt;
@@ -92,92 +130,153 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: AdaptElementOrNull = null;
         let buildMessages: Message[] = [];
+        let executedQueries: ExecutedQueries = {};
 
-        let needsData: { [name: string]: ExecutedQuery[] } = {};
+        let needsData: ExecutedQueries = {};
         const root = await stack.root;
         const style = await stack.style;
         if (root != null) {
-            const preObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
+            const observeManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
-            const preObserve = await inAdapt.build(
-                root, style, { stateStore, observerManager: preObserverManager, deployID: deployment.deployID });
-            if (preObserve.messages.length !== 0) {
-                logger.append(preObserve.messages);
-                throw new ProjectBuildError(inAdapt.serializeDom(preObserve.contents));
-            }
+            const results = await inAdapt.build(
+                root, style, { stateStore, observerManager: observeManager, deployID: deployment.deployID });
 
-            observerObservations = await inAdapt.internal.observe(preObserverManager.executedQueries(), logger);
-
-            const postObserverManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
-            const postObserve = await inAdapt.build(
-                root, style, { stateStore, observerManager: postObserverManager });
-            mountedOrig = postObserve.mountedOrig;
-            newDom = postObserve.contents;
-            buildMessages = postObserve.messages;
-            needsData = postObserverManager.executedQueriesThatNeededData();
-            inAdapt.internal.patchInNewQueries(observerObservations, postObserverManager.executedQueries());
+            newDom = results.contents;
+            mountedOrig = results.mountedOrig;
+            buildMessages = results.messages;
+            executedQueries = podify(observeManager.executedQueries());
+            needsData = podify(observeManager.executedQueriesThatNeededData());
         }
-
-        const statusInContext = mountedOrig != null ? await mountedOrig.status() : { noStatus: true };
-        const mountedOrigStatus = JSON.parse(JSON.stringify(statusInContext)); //podify status
-        const domXml = inAdapt.serializeDom(newDom, true);
 
         if (buildMessages.length !== 0) {
             logger.append(buildMessages);
-            throw new ProjectBuildError(domXml);
+            throw new ProjectBuildError(inAdapt.serializeDom(newDom));
         }
 
-        const stateJson = stateStore.serialize();
-
-        const mgr = createPluginManager(ctx.pluginModules);
-        const prevDom = prev ? await inAdapt.internal.reanimateDom(prev.domXml) : null;
-
-        // This grabs a lock on the deployment's uncommitted data dir
-        dataDir = await deployment.getDataDir();
-
-        await mgr.start(prevDom, newDom, {
-            dataDir: path.join(dataDir, "plugins"),
-            deployID: deployment.deployID,
-            logger,
-        });
-        const newPluginObs = await mgr.observe();
-        mgr.analyze();
-
-        /*
-        * NOTE: There should be no deployment side effects prior to here, but
-        * once act is called, that is no longer true.
-        */
-        const observationsJson = stringifyFullObservations({
-            plugin: newPluginObs,
-            observer: observerObservations
-        });
-
-        await deployment.commitEntry({
-            dataDir,
-            domXml,
-            stateJson,
-            stackName,
-            projectRoot,
-            fileName,
-            observationsJson
-        });
-
-        await mgr.act(options.dryRun);
-        await mgr.finish();
-
         return {
-            type: "success",
-            deployID: deployment.deployID,
-            domXml,
-            stateJson,
-            //Move data from inner adapt to outer adapt via JSON
-            needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(needsData)))),
-            messages: logger.messages,
-            summary: logger.summary,
-            mountedOrigStatus,
+            ...options,
+            domXml: inAdapt.serializeDom(newDom, true),
+            mountedOrigStatus: (mountedOrig && options.withStatus) ?
+                podify(await mountedOrig.status()) : { noStatus: true },
+            needsData,
+            executedQueries,
+            prevStateJson: stateStore.serialize(),
         };
+    });
+}
 
-    } finally {
-        if (dataDir) await deployment.releaseDataDir();
+interface ObserveResults extends FullBuildOptions {
+    needsData: ExecutedQueries;
+}
+
+interface ObserveOptions extends ObserveResults {
+    executedQueries: ExecutedQueries;
+}
+
+export async function observe(options: ObserveOptions): Promise<ObserveResults> {
+    return withContext(options, async (ctx: AdaptContext) => {
+        const { logger } = options;
+
+        const origObservations = parseFullObservationsJson(options.observationsJson);
+        // This is the inner context's copy of Adapt
+        const inAdapt = ctx.Adapt;
+        const observations = await inAdapt.internal.observe(options.executedQueries, logger);
+        inAdapt.internal.patchInNewQueries(observations, options.executedQueries);
+        const { executedQueries, ...orig } = options;
+        return {
+            ...orig,
+            observationsJson: stringifyFullObservations({
+                plugin: origObservations.plugin,
+                observer: observations
+            })
+        };
+    });
+}
+
+export async function withContext<T>(
+    options: FullBuildOptions,
+    f: (ctx: AdaptContext) => T | Promise<T>): Promise<T> {
+
+    let ctx: AdaptContext | undefined = options.ctx;
+    if (ctx === undefined) {
+        ctx = projectExec(options.projectRoot, options.fileName);
     }
+    return f(ctx);
+}
+
+export async function deploy(options: BuildResults): Promise<DeployState> {
+    const { deployment, stackName, logger, fileName, projectRoot } = options;
+
+    return withContext(options, async (ctx: AdaptContext): Promise<DeploySuccess> => {
+        try {
+            // This is the inner context's copy of Adapt
+            const inAdapt = ctx.Adapt;
+            const prev = await deployment.lastEntry();
+
+            const mgr = createPluginManager(ctx.pluginModules);
+            const prevDom = prev ? await inAdapt.internal.reanimateDom(prev.domXml) : null;
+
+            // This grabs a lock on the deployment's uncommitted data dir
+            const dataDir = await deployment.getDataDir();
+
+            const newDom = await inAdapt.internal.reanimateDom(options.domXml);
+            await mgr.start(prevDom, newDom, {
+                dataDir: path.join(dataDir, "plugins"),
+                deployID: deployment.deployID,
+                logger,
+            });
+            const newPluginObs = await mgr.observe();
+            mgr.analyze();
+
+            /*
+            * NOTE: There should be no deployment side effects prior to here, but
+            * once act is called, that is no longer true.
+            */
+            const observationsJson = stringifyFullObservations({
+                plugin: newPluginObs,
+                observer: parseFullObservationsJson(options.observationsJson).observer
+            });
+
+            if (!options.dryRun) {
+                await deployment.commitEntry({
+                    dataDir,
+                    domXml: options.domXml,
+                    stateJson: options.prevStateJson,
+                    stackName,
+                    projectRoot,
+                    fileName,
+                    observationsJson
+                });
+            }
+
+            await mgr.act(options.dryRun);
+            await mgr.finish();
+
+            return {
+                type: "success",
+                deployID: deployment.deployID,
+                domXml: options.domXml,
+                stateJson: options.prevStateJson,
+                //Move data from inner adapt to outer adapt via JSON
+                needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(options.needsData)))),
+                messages: logger.messages,
+                summary: logger.summary,
+                mountedOrigStatus: options.mountedOrigStatus,
+            };
+        } finally {
+            await deployment.releaseDataDir();
+        }
+    });
+
+}
+
+export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
+    const initial = await currentState(options);
+    return withContext(initial, async (ctx: AdaptContext) => {
+        const build1 = await build({ ...initial, ctx, withStatus: false });
+        const obs = await observe(build1);
+        const { needsData, ...build2Options } = obs;
+        const build2 = await build({ ...build2Options, withStatus: true });
+        return deploy(build2);
+    });
 }
