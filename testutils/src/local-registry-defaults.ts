@@ -21,6 +21,7 @@ export const defaultPublishList = [
     repoDirs["collections-ts"],
     repoDirs["dom-parser"],
     repoDirs.utils,
+    path.join(path.dirname(repoDirs.adapt), "fork-require"),
 ];
 
 export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOpts = {}): Promise<void> {
@@ -89,5 +90,5 @@ export const config: Config = {
     // Our additional config items
     listen: `0.0.0.0:${localRegistryPort}`,
     onStart: setupDefault,
-    clearStorage: true,
+    clearStorage: false,
 };

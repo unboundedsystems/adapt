@@ -4,9 +4,9 @@ import { MessageStreamer } from "../src/message";
 
 describe("MessageStreamer tests", () => {
     it("Should allow using info and error as standalone function", () => {
-        const sstdout = new WritableStreamBuffer();
-        const sstderr = new WritableStreamBuffer();
-        const ms = new MessageStreamer("MS Test", sstdout, sstderr);
+        const outStream = new WritableStreamBuffer();
+        const errStream = new WritableStreamBuffer();
+        const ms = new MessageStreamer("MS Test", { outStream, errStream });
 
         const info = ms.info;
         const error = ms.error;
@@ -24,8 +24,8 @@ describe("MessageStreamer tests", () => {
         should(ms.messages[1].content).equal("Testing error");
         should(ms.messages[1].from).equal("MS Test");
 
-        const stdout = sstdout.getContentsAsString();
-        const stderr = sstderr.getContentsAsString();
+        const stdout = outStream.getContentsAsString();
+        const stderr = errStream.getContentsAsString();
         should(stdout).match(/^.*\[MS Test\] INFO: Testing info\n$/);
         should(stderr).match(/^.*\[MS Test\] ERROR: Testing error\n$/);
     });

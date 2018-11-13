@@ -4,8 +4,10 @@ import { buildAndDeploy } from "./buildAndDeploy";
 import {
     defaultDeployCommonOptions,
     DeployCommonOptions,
-    DeployState
+    DeployState,
+    setupLogger,
 } from "./common";
+import { forkExports } from "./fork";
 
 export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
@@ -22,7 +24,9 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
         ...defaultOptions,
         ...options
     };
-    const { adaptUrl, deployID, ...buildOpts } = finalOptions;
+    const { adaptUrl, deployID, logger: _logger, ...buildOpts } = finalOptions;
+
+    const logger = await setupLogger(_logger);
 
     try {
         const server = await adaptServer(adaptUrl, {});
@@ -30,16 +34,19 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
 
         return buildAndDeploy({
             deployment,
+            logger,
             ...buildOpts,
         });
 
     } catch (err) {
-        finalOptions.logger.error(`Error updating deployment: ${err}`);
+        logger.error(`Error updating deployment: ${err}`);
         return {
             type: "error",
-            messages: finalOptions.logger.messages,
-            summary: finalOptions.logger.summary,
+            messages: logger.messages,
+            summary: logger.summary,
             domXml: err.domXml,
         };
     }
 }
+
+forkExports(module, "updateDeployment");
