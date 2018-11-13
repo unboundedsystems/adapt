@@ -68,8 +68,6 @@ export {
     stack,
 } from "./stack";
 
-export * from "./utils";
-
 export {
     StateStore,
     createStateStore
