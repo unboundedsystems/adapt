@@ -1,9 +1,18 @@
 import * as ld from "lodash";
+import * as util from "util";
 import * as xmlbuilder from "xmlbuilder";
 
 import { AdaptElement, AdaptElementOrNull, isElement } from ".";
 import { Handle, handleUrn, isHandle } from "./handle";
-import { childrenToArray, isComponentElement } from "./jsx";
+import {
+    AdaptElementImpl,
+    AdaptMountedElement,
+    AnyProps,
+    childrenToArray,
+    isComponentElement,
+    isElementImpl,
+    isMountedElement
+} from "./jsx";
 import { findMummyUrn } from "./reanimate";
 
 interface PreparedProps {
@@ -81,17 +90,15 @@ function addPropsNode(
 }
 
 function serializeChildren(
+    context: SerializationContext,
     node: xmlbuilder.XMLElementOrXMLNode,
-    elem: AdaptElement,
-    reanimateable: boolean,
+    children: any[],
+    reanimateable: boolean
 ): void {
-
-    const children: any[] = childrenToArray(elem.props.children);
-
     for (const child of children) {
         switch (true) {
             case isElement(child):
-                serializeElement(node, child, reanimateable);
+                serializeElement(context, node, child, reanimateable);
                 break;
 
             case isHandle(child):
@@ -107,6 +114,16 @@ function serializeChildren(
                 }
         }
     }
+}
+
+function serializeChildrenFromElem(
+    context: SerializationContext,
+    node: xmlbuilder.XMLElementOrXMLNode,
+    elem: AdaptElement,
+    reanimateable: boolean,
+): void {
+    const children: any[] = childrenToArray(elem.props.children);
+    serializeChildren(context, node, children, reanimateable);
 }
 
 function getUrn(elem: AdaptElement) {
@@ -127,11 +144,52 @@ function getUrn(elem: AdaptElement) {
     return findMummyUrn(elem.componentType);
 }
 
+function serializeBuildData(
+    context: SerializationContext,
+    parent: xmlbuilder.XMLElementOrXMLNode,
+    elem: AdaptElementImpl<AnyProps>
+) {
+    const bdNode = parent.ele("buildData", {});
+    const succ = elem.buildData.successor;
+    const origChildren = elem.buildData.origChildren;
+    if (succ !== undefined) {
+        const isNull = succ === null;
+        const succNode = bdNode.ele("successor", { isNull });
+        //We can just serialize here because only an element or its successor can appear in a dom, not both
+        if (succ !== null) serializeElement(context, succNode, succ, true);
+    }
+    if (origChildren !== undefined) {
+        const origChildrenNode = bdNode.ele("origChildren", {});
+        serializeChildren(context, origChildrenNode, origChildren, true);
+    }
+}
+
+function addLifecycleNode(
+    context: SerializationContext,
+    parent: xmlbuilder.XMLElementOrXMLNode,
+    elem: AdaptMountedElement
+): void {
+    if (!isElementImpl(elem)) throw new Error(`Element not an ElementImpl: ${util.inspect(elem)}`);
+    const lcNode = parent.ele("__lifecycle__", {});
+    lcNode.ele("field", { name: "stateNamespace" }).cdata(JSON.stringify(elem.stateNamespace));
+    lcNode.ele("field", { name: "keyPath" }).cdata(JSON.stringify(elem.keyPath));
+    lcNode.ele("field", { name: "path" }).cdata(JSON.stringify(elem.path));
+    if ("Enable this when we figure out how to serialize and reanimate SFCs".length === 0) {
+        serializeBuildData(context, lcNode, elem);
+    }
+}
+
 function serializeElement(
+    context: SerializationContext,
     parent: xmlbuilder.XMLElementOrXMLNode,
     elem: AdaptElement,
     reanimateable: boolean,
 ): void {
+    if (context.serializedElements.has(elem) && isMountedElement(elem)) {
+        parent.ele("__elementRef__", { ref: elem.id });
+        return;
+    }
+
     const { shortProps, longProps } = collectProps(elem);
     let node: xmlbuilder.XMLElementOrXMLNode;
 
@@ -144,7 +202,10 @@ function serializeElement(
     if (longProps != null) {
         addPropsNode(node, longProps, reanimateable);
     }
-    serializeChildren(node, elem, reanimateable);
+    serializeChildrenFromElem(context, node, elem, reanimateable);
+    if (isMountedElement(elem) && reanimateable) {
+        context.work.push(() => addLifecycleNode(context, node, elem));
+    }
 }
 
 function serializeHandle(
@@ -156,9 +217,22 @@ function serializeHandle(
     parent.ele("Handle", attrs, JSON.stringify(hand, null, 2));
 }
 
+interface SerializationContext {
+    serializedElements: Set<AdaptElement>;
+    work: (() => void)[];
+}
+
 export function serializeDom(root: AdaptElementOrNull, reanimateable = false): string {
+    const context: SerializationContext = {
+        serializedElements: new Set<AdaptElement>(),
+        work: []
+    };
     const doc = xmlbuilder.create("Adapt");
-    if (root != null) serializeElement(doc, root, reanimateable);
+    if (root != null) serializeElement(context, doc, root, reanimateable);
+    while (context.work.length > 0) {
+        const toDo = context.work.shift();
+        if (toDo) toDo();
+    }
     doc.end({
         headless: true,
         pretty: true

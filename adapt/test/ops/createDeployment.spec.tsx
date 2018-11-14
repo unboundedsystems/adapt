@@ -78,11 +78,24 @@ Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName:
 Adapt.stack("promises", makeSimple(), makeNull());
 `;
 
-const defaultDomXmlOutput =
-    `<Adapt>
-  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple"/>
+function defaultDomXmlOutput(namespace: string[]) {
+    return `<Adapt>
+  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple">
+    <__lifecycle__>
+      <field name="stateNamespace">
+        <![CDATA[${JSON.stringify(namespace)}]]>
+      </field>
+      <field name="keyPath">
+        <![CDATA[["Simple"]]]>
+      </field>
+      <field name="path">
+        <![CDATA["/Simple"]]>
+      </field>
+    </__lifecycle__>
+  </Simple>
 </Adapt>
 `;
+}
 
 const simplePluginTs = `
 import { Action, AdaptElementOrNull, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
@@ -270,7 +283,7 @@ describe("createDeployment Tests", async function () {
     it("Should build a single file", async () => {
         const ds = await createSuccess("default");
 
-        should(ds.domXml).equal(defaultDomXmlOutput);
+        should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::default");
         should(ds.mountedOrigStatus).eql({ noStatus: true });
@@ -287,7 +300,7 @@ describe("createDeployment Tests", async function () {
     it("Should build stack that is a promise", async () => {
         const ds = await createSuccess("promises");
 
-        should(ds.domXml).equal(defaultDomXmlOutput);
+        should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::promises");
 
@@ -345,7 +358,7 @@ describe("createDeployment Tests", async function () {
         }
 
         should(ds2.summary.error).equal(0);
-        should(ds2.domXml).equal(defaultDomXmlOutput);
+        should(ds2.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds2.stateJson).equal("{}");
     });
 
@@ -374,7 +387,7 @@ describe("createDeployment Tests", async function () {
         stdout.stop();
 
         should(ds1.summary.error).equal(0);
-        should(ds1.domXml).equal(defaultDomXmlOutput);
+        should(ds1.domXml).equal(defaultDomXmlOutput(["ObserverToSimple", "ObserverToSimple-Observer", "Simple"]));
 
         should(stdout.output).match(/Props: undefined null/);
         should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
@@ -404,7 +417,7 @@ describe("createDeployment Tests", async function () {
         }
 
         should(ds2.summary.error).equal(0);
-        should(ds2.domXml).equal(defaultDomXmlOutput);
+        should(ds2.domXml).equal(defaultDomXmlOutput(["ObserverToSimple", "ObserverToSimple-Observer", "Simple"]));
 
         should(stdout.output).not.match(/Props: undefined null/);
         should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
@@ -418,7 +431,7 @@ describe("createDeployment Tests", async function () {
         stdout.stop();
 
         should(ds1.summary.error).equal(0);
-        should(ds1.domXml).equal(defaultDomXmlOutput);
+        should(ds1.domXml).equal(defaultDomXmlOutput(["ObserverToSimple", "ObserverToSimple-Observer", "Simple"]));
 
         should(stdout.output).match(/Props: undefined null/);
         should(stdout.output).match(/Props: undefined null/);

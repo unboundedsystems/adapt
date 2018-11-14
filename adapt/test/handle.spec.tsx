@@ -240,6 +240,17 @@ describe("Element Handle", () => {
       <__props__>
         <prop name="key">"MakeEmpty-Empty"</prop>
       </__props__>
+      <__lifecycle__>
+        <field name="stateNamespace">
+          <![CDATA[["Group","MakeEmpty","MakeEmpty-Empty"]]]>
+        </field>
+        <field name="keyPath">
+          <![CDATA[["Group","MakeEmpty-Empty"]]]>
+        </field>
+        <field name="path">
+          <![CDATA["/Group/Empty"]]>
+        </field>
+      </__lifecycle__>
     </Empty>
     <Anything xmlns="urn:Adapt:@usys/adapt:0.0.1:$adaptExports:../test/handle.spec.js:Anything">
       <__props__>
@@ -253,7 +264,29 @@ describe("Element Handle", () => {
 }</Handle>
         </prop>
       </__props__>
+      <__lifecycle__>
+        <field name="stateNamespace">
+          <![CDATA[["Group","Anything"]]]>
+        </field>
+        <field name="keyPath">
+          <![CDATA[["Group","Anything"]]]>
+        </field>
+        <field name="path">
+          <![CDATA["/Group/Anything"]]>
+        </field>
+      </__lifecycle__>
     </Anything>
+    <__lifecycle__>
+      <field name="stateNamespace">
+        <![CDATA[["Group"]]]>
+      </field>
+      <field name="keyPath">
+        <![CDATA[["Group"]]]>
+      </field>
+      <field name="path">
+        <![CDATA["/Group"]]>
+      </field>
+    </__lifecycle__>
   </Group>
 </Adapt>
 `);

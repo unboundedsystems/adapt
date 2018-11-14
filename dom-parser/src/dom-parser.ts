@@ -212,6 +212,8 @@ function buildFromXMLNode(xmlNode: XMLNode): DOMNode {
                 if (ld.isObject(child)) {
                     if (nameOf(child) === "__props__") {
                         continue;
+                    } else if (nameOf(child) === "__lifecycle__") {
+                        continue;
                     } else if (nameOf(child) === "json") {
                         children.push(handleJSON(child));
                     } else {
