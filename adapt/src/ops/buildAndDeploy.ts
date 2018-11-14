@@ -81,7 +81,7 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         ...paths,
         withStatus: options.withStatus || false,
         observationsJson: options.observationsJson || prev.observationsJson,
-        prevStateJson: options.prevStateJson || prev.observationsJson
+        prevStateJson: options.prevStateJson || prev.stateJson
     };
 }
 
