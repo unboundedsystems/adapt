@@ -46,6 +46,16 @@ export interface XMLPropNode extends GenericXMLNode {
     "$$": XMLTextNode[];
 }
 
+export interface XMLLifecycleNode extends GenericXMLNode {
+    "#name": "__lifecycle__";
+    "$$"?: XMLLifecycleFieldNode[];
+}
+
+export interface XMLLifecycleFieldNode extends GenericXMLNode {
+    "#name": "field";
+    "$$": XMLTextNode[];
+}
+
 export interface XMLTextNode extends GenericXMLNode {
     "#name": "__text__";
     "_": string;
@@ -120,7 +130,7 @@ function extractSoleText(xmlNode: XMLNode) {
 }
 
 function extractDOMObject(xmlNode: XMLNode): DOMObject {
-    if (xmlNode.$$ == null)  new Error("body missing");
+    if (xmlNode.$$ == null) new Error("body missing");
     if (!ld.isArray(xmlNode.$$)) throw new Error("Internal Error");
     if (xmlNode.$$.length > 1) throw new Error("too many children");
     if (xmlNode.$$.length === 0) throw new Error("node has no body");
@@ -201,10 +211,91 @@ function computeProps(xmlNodeIn: XMLNode): AnyProps {
     return ret;
 }
 
+export interface LifecycleInfo {
+    stateNamespace: string[];
+    keyPath: string[];
+    path: string;
+}
+
+function getLifecycleNode(xmlNode: XMLNode): XMLLifecycleNode[] {
+    const anode = xmlNode as any;
+    if (anode.__lifecycle__ != null) {
+        return anode.__lifecycle__;
+    }
+    return [];
+}
+
+function extractStringArray(xmlNode: XMLNode): string[] {
+    const dataJson = extractSoleText(xmlNode);
+    if (dataJson == null) throw new Error(`No text data in node: ${util.inspect(xmlNode)}`);
+    const data = JSON.parse(dataJson);
+    if (!util.isArray(data)) throw new Error(`text data is not an array, expecting string[]: ${util.inspect(xmlNode)}`);
+    const notString = data.find((v) => !util.isString(v));
+    if (notString !== undefined) {
+        throw new Error(`${util.inspect(notString)} is not string, expecting string[]:` + util.inspect(xmlNode));
+    }
+    return data as string[];
+}
+
+function extractString(xmlNode: XMLNode): string {
+    const dataJson = extractSoleText(xmlNode);
+    if (dataJson == null) throw new Error(`No text data in node: ${util.inspect(xmlNode)}`);
+    const data = JSON.parse(dataJson);
+    if (!util.isString(data)) throw new Error(`text data is not a string: ${util.inspect(xmlNode)}`);
+    return data;
+}
+
+function augmentError<T>(msg: string, f: () => T): T {
+    try {
+        return f();
+    } catch (e) {
+        throw new Error(msg + ":" + e.message);
+    }
+}
+
+function computeLifecycleInfo(xmlNode: XMLNode): LifecycleInfo | undefined {
+    const lifecycleNodes = getLifecycleNode(xmlNode);
+    if (lifecycleNodes.length > 1) {
+        throw new Error(`malformed ndoe, multiple __lifecycle__ children: ${util.inspect(xmlNode)}`);
+    }
+    if (lifecycleNodes.length < 1) return;
+    const lifecycleNode = lifecycleNodes[0];
+    if (lifecycleNode.$$ == null) return;
+    const ret: Partial<LifecycleInfo> = {};
+    for (const field of lifecycleNode.$$) {
+        if (field.$ == null) {
+            throw new Error(`malformed node, lifecycle field with no name ${util.inspect(lifecycleNode)}`);
+        }
+        const fieldName = field.$.name.value;
+        switch (fieldName) {
+            case "stateNamespace":
+                ret.stateNamespace = augmentError("extracting stateNamespace", () => extractStringArray(field));
+                break;
+            case "keyPath":
+                ret.keyPath = augmentError("extracting keyPath", () => extractStringArray(field));
+                break;
+            case "path":
+                ret.path = augmentError("extracting path", () => extractString(field));
+                break;
+            default:
+                throw new Error(`malformed node, ` +
+                    `uknown lifecycle field name "${fieldName}": ${util.inspect(lifecycleNode)}`);
+        }
+    }
+
+    const nodeInfo = util.inspect(xmlNode);
+    if (ret.stateNamespace === undefined) throw new Error(`no stateNamespace in lifecycle data: ${nodeInfo}`);
+    if (ret.keyPath === undefined) throw new Error (`no keyPath in lifecycle data: ${nodeInfo}`);
+    if (ret.path === undefined) throw new Error (`no path in lifecycle data: ${nodeInfo}`);
+
+    return ret as LifecycleInfo;
+}
+
 function buildFromXMLNode(xmlNode: XMLNode): DOMNode {
     const name = nameOf(xmlNode);
     const uri = uriOf(xmlNode);
     const props = computeProps(xmlNode);
+    const lifecycle = computeLifecycleInfo(xmlNode);
     const children: any[] = [];
     if (xmlNode.$$ != null) {
         if (ld.isArray(xmlNode.$$)) {
@@ -228,7 +319,7 @@ function buildFromXMLNode(xmlNode: XMLNode): DOMNode {
         }
     }
 
-    return new DOMNode(name, props, uri, children);
+    return new DOMNode(name, props, lifecycle, uri, children);
 }
 
 export async function domFromXMLObj(xmlObj: XMLNode) {
