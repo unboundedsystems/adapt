@@ -42,7 +42,7 @@ async function reanimateNode(
 ): Promise<AdaptElement> {
 
     const nodeKey = domNode.props.key;
-    if (typeof nodeKey !== "string") throw new Error(`Invalid DOM XML. Element with no key`);
+    if (typeof nodeKey !== "string") throw new Error(`Invalid DOM XML. Element with no key: ${domNode}`);
 
     const keyPath = parentPath.concat([nodeKey]);
     const component: ClassComponentTyp<AnyProps, AnyState> =
