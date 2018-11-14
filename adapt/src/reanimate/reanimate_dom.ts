@@ -1,5 +1,7 @@
 import { domFromString, DOMNode, isDOMNode, isDOMObject } from "@usys/dom-parser";
 import { Constructor } from "@usys/utils";
+import * as ld from "lodash";
+import * as util from "util";
 import { InternalError } from "../error";
 import { HandleInternal, isHandleInternal } from "../handle";
 import {
@@ -10,6 +12,7 @@ import {
     childrenToArray,
     ClassComponentTyp,
     createElement,
+    isElementImpl,
     KeyPath,
 } from "../jsx";
 import { reanimateUrn } from "./reanimate";
@@ -35,6 +38,20 @@ export async function reanimateDom(xmlString: string): Promise<AdaptElementOrNul
     return dom;
 }
 
+function updateLifecycle(domNode: DOMNode, elem: AdaptElement): void {
+    if (!domNode.lifecycleInfo) return;
+    if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
+    const info = domNode.lifecycleInfo;
+    if (elem.props.key !== ld.last(info.stateNamespace)) {
+        throw new Error(`Invalid DOM XML. Element key does not match stateNamespace: ${util.inspect(domNode)}`);
+    }
+    elem.mount(
+        domNode.lifecycleInfo.stateNamespace.slice(0, -1),
+        domNode.lifecycleInfo.path,
+        domNode.lifecycleInfo.keyPath);
+    elem.reanimated = true;
+}
+
 async function reanimateNode(
     domNode: DOMNode,
     parentPath: KeyPath,
@@ -42,7 +59,7 @@ async function reanimateNode(
 ): Promise<AdaptElement> {
 
     const nodeKey = domNode.props.key;
-    if (typeof nodeKey !== "string") throw new Error(`Invalid DOM XML. Element with no key: ${domNode}`);
+    if (typeof nodeKey !== "string") throw new Error(`Invalid DOM XML. Element with no key: ${util.inspect(domNode)}`);
 
     const keyPath = parentPath.concat([nodeKey]);
     const component: ClassComponentTyp<AnyProps, AnyState> =
@@ -70,6 +87,7 @@ async function reanimateNode(
     }
 
     const node = createElement(component, props, ...children);
+    updateLifecycle(domNode, node);
 
     handleReg.nodes.set(JSON.stringify(keyPath), node);
 
