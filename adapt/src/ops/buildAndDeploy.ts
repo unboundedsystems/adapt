@@ -24,6 +24,7 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
+import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement } from "../jsx";
 import {
@@ -34,10 +35,11 @@ import { Deployment } from "../server/deployment";
 import { createStateStore, StateStore } from "../state";
 import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
-import { DeployState, DeploySuccess } from "./common";
+import { DeployState, DeploySuccess, parseDebugString } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 export interface BuildOptions {
+    debug: string;
     deployment: Deployment;
     dryRun: boolean;
     fileName: string;
@@ -107,8 +109,8 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         const prevStateJson = options.prevStateJson;
         const observations = parseFullObservationsJson(options.observationsJson);
         const observerObservations = observations.observer || {};
-
-        // Compile and run the project
+        const debugFlags = parseDebugString(options.debug);
+        const recorder = debugFlags.build ? buildPrinter() : undefined;
 
         // This is the inner context's copy of Adapt
         const inAdapt = ctx.Adapt;
@@ -139,7 +141,12 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
             const observeManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
             const results = await inAdapt.build(
-                root, style, { stateStore, observerManager: observeManager, deployID: deployment.deployID });
+                root, style, {
+                    deployID: deployment.deployID,
+                    observerManager: observeManager,
+                    recorder,
+                    stateStore,
+                });
 
             newDom = results.contents;
             mountedOrig = results.mountedOrig;
@@ -199,6 +206,7 @@ export async function withContext<T>(
 
     let ctx: AdaptContext | undefined = options.ctx;
     if (ctx === undefined) {
+        // Compile and run the project
         ctx = projectExec(options.projectRoot, options.fileName);
     }
     return f(ctx);

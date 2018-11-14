@@ -37,11 +37,13 @@ export interface DeployCommonOptions extends WithLogger {
     fileName: string;
     stackName: string;
 
+    debug?: string;
     dryRun?: boolean;
     projectRoot?: string;
 }
 
 export const defaultDeployCommonOptions = {
+    debug: "",
     dryRun: false,
     projectRoot: undefined,
 };
@@ -61,4 +63,14 @@ export async function setupLogger(
         });
     }
     return logger;
+}
+
+export interface DebugFlags {
+    [ flag: string ]: true;
+}
+
+export function parseDebugString(s: string): DebugFlags {
+    const flags: DebugFlags = {};
+    s.split(/\s*,\s*/).map((f) => flags[f] = true);
+    return flags;
 }

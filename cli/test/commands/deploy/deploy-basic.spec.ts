@@ -256,6 +256,9 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
+        // Should not have debug=build output
+        expect(ctx.stdout).does.not.contain("BUILD [start]");
+
         checkPluginStdout(ctx.stdout);
 
         await checkBasicIndexTsxState(
@@ -300,6 +303,30 @@ describe("Deploy create basic tests", function () {
 
         const deploymentList = await fs.readdir("deployments");
         expect(deploymentList).length(0);
+    });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "--debug=build", "dev"])
+
+    .it("Should show build recorder output with --debug=build", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+
+        checkPluginStdout(ctx.stdout);
+
+        // Should have debug=build output
+        expect(ctx.stdout).contains("BUILD [start]");
+        expect(ctx.stdout).contains("BUILD [done]");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces,
+        );
     });
 });
 

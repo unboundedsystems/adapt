@@ -48,6 +48,7 @@ export default class CreateCommand extends DeployBase {
                     try {
                         const createOptions: CreateOptions = {
                             adaptUrl: ctx.adaptUrl,
+                            debug: ctx.debug,
                             dryRun: ctx.dryRun,
                             fileName: ctx.projectFile,
                             projectName: ctx.project.name,

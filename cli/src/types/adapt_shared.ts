@@ -100,6 +100,7 @@ export interface DeployCommonOptions {
     fileName: string;
     stackName: string;
 
+    debug?: string;
     dryRun?: boolean;
     logger?: MessageLogger;
     projectRoot?: string;

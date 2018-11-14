@@ -54,6 +54,7 @@ an alternate description file, "somefile.tsx":
                     try {
                         const updateOptions: UpdateOptions = {
                             adaptUrl: ctx.adaptUrl,
+                            debug: ctx.debug,
                             deployID,
                             dryRun: ctx.dryRun,
                             fileName: ctx.projectFile,

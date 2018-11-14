@@ -18,6 +18,7 @@ export const cantDeploy = "This project cannot be deployed.\n";
 export interface DeployCtx {
     // Provided by init
     adaptUrl: string;
+    debug: string;
     dryRun: boolean;
     projectFile: string;
     stackName: string;
@@ -28,6 +29,14 @@ export interface DeployCtx {
 
 export abstract class DeployBase extends Command {
     static flags = {
+        debug: flags.string({
+            char: "d",
+            description:
+                "Enable additional debug output. Should be a comma-separated " +
+                "list of debug flags. Valid debug flags are: build",
+            default: "",
+            helpValue: "debugFlags",
+        }),
         dryRun: flags.boolean({
             description: "Show what would happen during deploy, but do not modify the deployment",
         }),
@@ -94,6 +103,7 @@ export abstract class DeployBase extends Command {
         }
         const ctx: DeployCtx = {
             adaptUrl,
+            debug: flags.debug,
             dryRun: flags.dryRun,
             projectFile,
             stackName,
