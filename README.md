@@ -45,6 +45,15 @@ enable troubleshooting of memory leaks by changing the options passed into
 the heapdump-mocha `use()` function. Modify start-heapdump.ts in each
 project to enable heap snapshotting.
 
+## Debugging the CLI and other users of the `adapt/src/ops` module
+The `adapt/src/ops` module is unique because it creates a child process to run
+the major API functions it exposes. Because that can make debugging more
+difficult, you can run everything in the same process by defining the environment
+variable:
+```
+ADAPT_NO_FORK=1
+```
+
 # Setting up CI for your fork
 
 1. Create a GitLab CI runner
