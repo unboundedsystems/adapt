@@ -84,14 +84,14 @@ describe("Plugin Support Basic Tests", () => {
         should(spy.getCall(0).args[0]).eql("start");
         should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(0).args[1].dataDir)
-            .eql(path.join(dataDir, "plugins", "test_plugin@1.0.0", "TestPlugin"));
+            .eql(path.join(dataDir, "test_plugin@1.0.0", "TestPlugin"));
     });
 
     it("Should create plugin data directory", async () => {
         await mgr.start(null, dom, options);
         should(spy.calledOnce).True();
         should(spy.getCall(0).args[0]).eql("start");
-        const expected = path.join(dataDir, "plugins", "test_plugin@1.0.0", "TestPlugin");
+        const expected = path.join(dataDir, "test_plugin@1.0.0", "TestPlugin");
         should(spy.getCall(0).args[1].dataDir).equal(expected);
         should(fs.existsSync(expected)).be.True();
     });

@@ -268,8 +268,7 @@ function pluginKey(pMod: PluginModule): PluginKey {
 }
 
 function pluginDataDir(dataDirRoot: string, pMod: PluginModule): string {
-    return path.join(dataDirRoot, "plugins",
-        `${pMod.packageName}@${pMod.version}`, pMod.name);
+    return path.join(dataDirRoot, `${pMod.packageName}@${pMod.version}`, pMod.name);
 }
 
 export function registerPlugin(plugin: PluginRegistration) {
