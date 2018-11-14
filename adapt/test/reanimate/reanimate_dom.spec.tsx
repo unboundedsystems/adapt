@@ -16,11 +16,11 @@ export class Flex extends PrimitiveComponent<AnyProps> { }
 describe("Reanimate DOM basic tests", () => {
     componentConstructorDataFixture();
 
-    async function roundTrip(origDom: AdaptElement) {
+    async function roundTrip(origDom: AdaptElement, eql = true) {
         const xmlString = serializeDom(origDom, true);
         const newDom = await reanimateDom(xmlString);
 
-        should(newDom).eql(origDom);
+        if (eql) should(newDom).eql(origDom);
         return newDom;
     }
 
@@ -75,6 +75,11 @@ describe("Reanimate DOM basic tests", () => {
         }
         should(isMountedElement(built)).be.True();
         should(built.props.key).equal("Group");
+
+        const builtZombie = await roundTrip(built, false);
+        if (zombie == null) throw should(zombie).not.Null();
+        if (!isMountedElement(builtZombie)) throw should(isMountedElement(builtZombie)).True();
+        should(builtZombie.status()).rejectedWith(/not supported yet/);
     });
 
 });
