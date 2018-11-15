@@ -546,6 +546,17 @@ describe("Deploy update basic tests", function () {
 
         await checkStateUpdateState(3);
     });
+
+    stateIncrementTestChain
+    .delayedcommand(() => ["deploy:status", deployID, "dev"])
+
+    .it("Should report status", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains(`Deployment ${deployID} status:`);
+        expect(ctx.stdout).contains(`{
+  "noStatus": true
+}`);
+    });
 });
 
 describe("Build negative tests", () => {

@@ -8,6 +8,7 @@ import {
     AdaptModule,
     CreateOptions,
     DeployState,
+    StatusOptions,
     UpdateOptions,
     verifyAdaptModule,
     verifyDeployState,
@@ -117,6 +118,10 @@ export class Project {
 
     async update(options: UpdateOptions): Promise<DeployState> {
         return this.deploy(options, (adapt) => adapt.updateDeployment(options));
+    }
+
+    async status(options: StatusOptions): Promise<DeployState> {
+        return this.deploy(options, (adapt) => adapt.fetchStatus(options));
     }
 
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
