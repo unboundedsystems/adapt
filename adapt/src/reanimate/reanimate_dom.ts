@@ -1,9 +1,9 @@
-import { domFromString, DOMNode, isDOMNode, isDOMObject } from "@usys/dom-parser";
+import { domFromString, DOMNode, isDOMNode } from "@usys/dom-parser";
 import { Constructor } from "@usys/utils";
 import * as ld from "lodash";
 import * as util from "util";
 import { InternalError } from "../error";
-import { HandleInternal, isHandleInternal } from "../handle";
+import { HandleInternal, HandleObj, isHandleInternal, isHandleObj } from "../handle";
 import {
     AdaptElement,
     AdaptElementOrNull,
@@ -52,6 +52,34 @@ function updateLifecycle(domNode: DOMNode, elem: AdaptElement): void {
     elem.reanimated = true;
 }
 
+async function makeHandle(val: HandleObj, handleReg: HandleReg): Promise<unknown> {
+    const ctor: Constructor<any> = await reanimateUrn(val.urn);
+    const handle = new ctor(val);
+    if (isHandleInternal(handle) && handle.unresolvedTarget !== null) {
+        handleReg.handles.push(handle);
+    }
+    return handle;
+}
+
+//val must be a pod, prototpyes are not preserved
+async function convertHandles(val: any, handleReg: HandleReg): Promise<unknown> {
+    if (!(ld.isObject(val) || ld.isArray(val))) return val;
+    if (ld.isObject(val) && isHandleObj(val)) return makeHandle(val, handleReg);
+    if (ld.isObject(val)) {
+        const ret: any = {};
+        for (const key of Object.keys(val)) {
+            ret[key] = await convertHandles(val[key], handleReg);
+        }
+        return ret;
+    }
+    if (ld.isArray(val)) {
+        const retP = val.map(async (v) => convertHandles(v, handleReg));
+        const ret = Promise.all(retP);
+        return ret;
+    }
+    throw new InternalError(`should be unreachable: ${util.inspect(val)}`);
+}
+
 async function reanimateNode(
     domNode: DOMNode,
     parentPath: KeyPath,
@@ -66,24 +94,16 @@ async function reanimateNode(
         await reanimateUrn(domNode.uri);
 
     const pChildren = childrenToArray(domNode.props.children).map(async (c) => {
-        if (!isDOMNode(c)) return c;
+        if (!isDOMNode(c)) return convertHandles(c, handleReg);
         return reanimateNode(c, keyPath, handleReg);
     });
-    const children = await Promise.all(pChildren);
+    const children: any[] = await Promise.all(pChildren);
 
     // Reanimate any DOMObjects
     const props: AnyProps = {};
     for (const k of Object.keys(domNode.props)) {
-        let prop = domNode.props[k];
-        if (isDOMObject(prop)) {
-            const ctor: Constructor<any> = await reanimateUrn(prop.uri);
-            prop = new ctor(prop.data);
-
-            if (isHandleInternal(prop) && prop.unresolvedTarget !== null) {
-                handleReg.handles.push(prop);
-            }
-        }
-        props[k] = prop;
+        if (k === "children") continue;
+        props[k] = await convertHandles(domNode.props[k], handleReg);
     }
 
     const node = createElement(component, props, ...children);

@@ -1,3 +1,4 @@
+import { sha256hex } from "@usys/utils";
 import { InternalError } from "./error";
 import { AdaptElement, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
@@ -37,6 +38,18 @@ const origElement = Symbol.for("AdaptHandleOrigElement");
 interface HandleOptions {
     name?: string;
     target?: KeyPath;
+}
+
+export const handleSignature = sha256hex("This is an Adapt.Handle");
+export interface HandleObj {
+    __adaptIsHandle: string;
+    name?: string;
+    target: string[] | null;
+    urn: string;
+}
+
+export function isHandleObj(val: object): val is HandleObj {
+    return (val as any).__adaptIsHandle === handleSignature;
 }
 
 class HandleImpl implements HandleInternal {
@@ -126,13 +139,14 @@ class HandleImpl implements HandleInternal {
         return `Handle(${this.id})`;
     }
 
-    toJSON() {
+    toJSON(): HandleObj {
         const el = this.target;
         const target = isMountedElement(el) ? el.keyPath : null;
-
         return {
+            __adaptIsHandle: handleSignature,
             name: this.name,
             target,
+            urn: handleUrn
         };
     }
 }

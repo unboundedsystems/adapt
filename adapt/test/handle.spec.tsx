@@ -206,14 +206,14 @@ describe("Element Handle", () => {
     <Anything>
       <__props__>
         <prop name="key">"Anything"</prop>
-        <prop name="ref">
-          <Handle>{
+        <prop name="ref">{
+  "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
   "target": [
     "Group",
     "MakeEmpty-Empty"
-  ]
-}</Handle>
-        </prop>
+  ],
+  "urn": "urn:Adapt:@usys/adapt:0.0.1:$adaptExports:handle.js:HandleImpl"
+}</prop>
       </__props__>
     </Anything>
   </Group>
@@ -226,7 +226,7 @@ describe("Element Handle", () => {
         const orig =
             <Group>
                 <MakeEmpty handle={hand} id={1} />
-                <Anything ref={hand} />
+                <Anything ref={{ foo: [{hand}] }} />
             </Group>;
         const dom = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
@@ -249,14 +249,20 @@ describe("Element Handle", () => {
     <Anything xmlns="urn:Adapt:@usys/adapt:0.0.1:$adaptExports:../test/handle.spec.js:Anything">
       <__props__>
         <prop name="key">"Anything"</prop>
-        <prop name="ref">
-          <Handle xmlns="urn:Adapt:@usys/adapt:0.0.1:$adaptExports:handle.js:HandleImpl">{
-  "target": [
-    "Group",
-    "MakeEmpty-Empty"
+        <prop name="ref">{
+  "foo": [
+    {
+      "hand": {
+        "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
+        "target": [
+          "Group",
+          "MakeEmpty-Empty"
+        ],
+        "urn": "urn:Adapt:@usys/adapt:0.0.1:$adaptExports:handle.js:HandleImpl"
+      }
+    }
   ]
-}</Handle>
-        </prop>
+}</prop>
       </__props__>
       <__lifecycle__>
         <field name="stateNamespace">["Group","Anything"]</field>
