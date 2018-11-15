@@ -1,11 +1,12 @@
+import {
+    Logger,
+    mapMap,
+    MessageLogger,
+} from "@usys/utils";
 import * as fs from "fs-extra";
 import * as ld from "lodash";
 import * as path from "path";
-import {
-    AdaptElementOrNull,
-    Logger,
-    MessageLogger,
-} from ".";
+import { AdaptElementOrNull } from "./jsx";
 import { findPackageInfo } from "./packageinfo";
 import { getAdaptContext } from "./ts";
 
@@ -122,14 +123,6 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
         case PluginManagerState.Finishing:
             return next === PluginManagerState.Initial;
     }
-}
-
-function mapMap<K, V, T>(map: Map<K, V>, f: (key: K, val: V) => T): T[] {
-    const ret: T[] = [];
-    for (const [k, v] of map.entries()) {
-        ret.push(f(k, v));
-    }
-    return ret;
 }
 
 interface AnyObservation {
@@ -275,8 +268,7 @@ function pluginKey(pMod: PluginModule): PluginKey {
 }
 
 function pluginDataDir(dataDirRoot: string, pMod: PluginModule): string {
-    return path.join(dataDirRoot, "plugins",
-        `${pMod.packageName}@${pMod.version}`, pMod.name);
+    return path.join(dataDirRoot, `${pMod.packageName}@${pMod.version}`, pMod.name);
 }
 
 export function registerPlugin(plugin: PluginRegistration) {

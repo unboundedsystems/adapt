@@ -1,3 +1,4 @@
+import { inDebugger } from "@usys/utils";
 import * as fs from "fs-extra";
 import { padStart } from "lodash";
 import * as moment from "moment";
@@ -17,6 +18,9 @@ export const infoFilename = "adapt_deploy.json";
 interface DirInfo {
     stateDirs: string[];
 }
+
+// 1 day if in the debugger, otherwise 10 sec
+const lockStaleTime = inDebugger() ? 24 * 60 * 60 * 1000 : 10 * 1000;
 
 class LocalHistoryStore implements HistoryStore {
     dataDir: string;
@@ -120,7 +124,10 @@ class LocalHistoryStore implements HistoryStore {
         // dataDir must exist in order to lock it.
         await fs.ensureDir(this.dataDir);
         try {
-            this.dataDirRelease = await lockfile.lock(this.dataDir, { retries: 2 });
+            this.dataDirRelease = await lockfile.lock(this.dataDir, {
+                retries: 2,
+                stale: lockStaleTime,
+            });
         } catch (e) {
             throw new Error(`Unable to get exclusive access to deployment ` +
                 `directory '${this.dataDir}'. Please retry in a moment. ` +

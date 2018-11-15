@@ -11,6 +11,7 @@ export interface AnyProperties {
 export interface CFResourceProps {
     Type: string;
     Properties: AnyProperties;
+    children?: any;
 }
 
 export class CFResource extends PrimitiveComponent<CFResourceProps> {
