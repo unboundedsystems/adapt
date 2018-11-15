@@ -336,7 +336,6 @@ describe("createDeployment Tests", async function () {
             deployID: ds.deployID,
             fileName: "index.tsx",
             logger,
-            prevStateJson: "{}",
             stackName: "default",
         });
 

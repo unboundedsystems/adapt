@@ -151,5 +151,4 @@ export interface UpdateOptions extends DeployCommonOptions {
  */
 export interface StatusOptions extends DeployCommonOptions {
     deployID: string;
-    prevStateJson?: string;
 }

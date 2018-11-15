@@ -13,7 +13,6 @@ import { forkExports } from "./fork";
 
 export interface StatusOptions extends DeployCommonOptions {
     deployID: string;
-    prevStateJson?: string;
 }
 
 const defaultOptions = {
