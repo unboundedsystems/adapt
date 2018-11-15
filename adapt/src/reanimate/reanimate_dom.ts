@@ -65,16 +65,16 @@ async function makeHandle(val: HandleObj, handleReg: HandleReg): Promise<unknown
 async function convertHandles(val: any, handleReg: HandleReg): Promise<unknown> {
     if (!(ld.isObject(val) || ld.isArray(val))) return val;
     if (ld.isObject(val) && isHandleObj(val)) return makeHandle(val, handleReg);
+    if (ld.isArray(val)) {
+        const retP = val.map(async (v) => convertHandles(v, handleReg));
+        const ret = Promise.all(retP);
+        return ret;
+    }
     if (ld.isObject(val)) {
         const ret: any = {};
         for (const key of Object.keys(val)) {
             ret[key] = await convertHandles(val[key], handleReg);
         }
-        return ret;
-    }
-    if (ld.isArray(val)) {
-        const retP = val.map(async (v) => convertHandles(v, handleReg));
-        const ret = Promise.all(retP);
         return ret;
     }
     throw new InternalError(`should be unreachable: ${util.inspect(val)}`);

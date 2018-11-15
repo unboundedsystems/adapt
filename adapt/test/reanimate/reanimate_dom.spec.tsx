@@ -42,12 +42,17 @@ describe("Reanimate DOM basic tests", () => {
     });
 
     it("Should reanimate DOM with non-Element children", async () => {
-        const someObj = { a: { b: "c" } };
+        const someObj = { a: { b: ["c"] } };
         const origDom =
             <Adapt.Group key="a">
                 <Flex id={1} key="a">{someObj}{someObj}</Flex>
                 <Flex id={2} key="b"/>
             </Adapt.Group>;
+        await roundTrip(origDom);
+    });
+
+    it("Should reanimate DOM with complex props", async () => {
+        const origDom = <Flex id={1} key="a" obj={{ x: 3, y: { z: [4, 5] } }} />;
         await roundTrip(origDom);
     });
 
