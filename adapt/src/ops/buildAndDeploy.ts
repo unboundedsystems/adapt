@@ -89,7 +89,7 @@ interface ExecutedQueries {
     [name: string]: ExecutedQuery[];
 }
 
-interface BuildResults extends FullBuildOptions {
+export interface BuildResults extends FullBuildOptions {
     domXml: string;
     mountedOrigStatus: Status;
     executedQueries: ExecutedQueries;
