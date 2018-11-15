@@ -82,15 +82,9 @@ function defaultDomXmlOutput(namespace: string[]) {
     return `<Adapt>
   <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple">
     <__lifecycle__>
-      <field name="stateNamespace">
-        <![CDATA[${JSON.stringify(namespace)}]]>
-      </field>
-      <field name="keyPath">
-        <![CDATA[["Simple"]]]>
-      </field>
-      <field name="path">
-        <![CDATA["/Simple"]]>
-      </field>
+      <field name="stateNamespace">${JSON.stringify(namespace)}</field>
+      <field name="keyPath">["Simple"]</field>
+      <field name="path">"/Simple"</field>
     </__lifecycle__>
   </Simple>
 </Adapt>

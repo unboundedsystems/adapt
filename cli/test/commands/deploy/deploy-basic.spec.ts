@@ -199,15 +199,9 @@ async function checkBasicIndexTsxState(
 `<Adapt>
   <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root">
     <__lifecycle__>
-      <field name="stateNamespace">
-        <![CDATA[${JSON.stringify(namespaces[stackName])}]]>
-      </field>
-      <field name="keyPath">
-        <![CDATA[["Root"]]]>
-      </field>
-      <field name="path">
-        <![CDATA["/Root"]]>
-      </field>
+      <field name="stateNamespace">${JSON.stringify(namespaces[stackName])}</field>
+      <field name="keyPath">["Root"]</field>
+      <field name="path">"/Root"</field>
     </__lifecycle__>
   </Root>
 </Adapt>
@@ -468,15 +462,9 @@ async function checkStateUpdateState(count: number): Promise<void> {
       <prop name="key">"StateUpdater-Empty"</prop>
     </__props__>
     <__lifecycle__>
-      <field name="stateNamespace">
-        <![CDATA[["StateUpdater","StateUpdater-Empty"]]]>
-      </field>
-      <field name="keyPath">
-        <![CDATA[["StateUpdater-Empty"]]]>
-      </field>
-      <field name="path">
-        <![CDATA["/Empty"]]>
-      </field>
+      <field name="stateNamespace">["StateUpdater","StateUpdater-Empty"]</field>
+      <field name="keyPath">["StateUpdater-Empty"]</field>
+      <field name="path">"/Empty"</field>
     </__lifecycle__>
   </Empty>
 </Adapt>

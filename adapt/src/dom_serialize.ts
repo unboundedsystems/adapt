@@ -171,9 +171,9 @@ function addLifecycleNode(
 ): void {
     if (!isElementImpl(elem)) throw new Error(`Element not an ElementImpl: ${util.inspect(elem)}`);
     const lcNode = parent.ele("__lifecycle__", {});
-    lcNode.ele("field", { name: "stateNamespace" }).cdata(JSON.stringify(elem.stateNamespace));
-    lcNode.ele("field", { name: "keyPath" }).cdata(JSON.stringify(elem.keyPath));
-    lcNode.ele("field", { name: "path" }).cdata(JSON.stringify(elem.path));
+    lcNode.ele("field", { name: "stateNamespace" }, JSON.stringify(elem.stateNamespace));
+    lcNode.ele("field", { name: "keyPath" }, JSON.stringify(elem.keyPath));
+    lcNode.ele("field", { name: "path" }, JSON.stringify(elem.path));
     if ("Enable this when we figure out how to serialize and reanimate SFCs".length === 0) {
         serializeBuildData(context, lcNode, elem);
     }
