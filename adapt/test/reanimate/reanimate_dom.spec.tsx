@@ -84,7 +84,7 @@ describe("Reanimate DOM basic tests", () => {
         const builtZombie = await roundTrip(built, false);
         if (zombie == null) throw should(zombie).not.Null();
         if (!isMountedElement(builtZombie)) throw should(isMountedElement(builtZombie)).True();
-        should(builtZombie.status()).rejectedWith(/not supported yet/);
+        return should(builtZombie.status()).rejectedWith(/not supported yet/);
     });
 
 });

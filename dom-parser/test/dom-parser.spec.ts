@@ -225,9 +225,9 @@ describe("DOM Parse Tests", () => {
                 </foo>
             </Adapt>`;
         }
-        should(back.domFromString(makeXmlStr(3, ["foo"], "/foo"))).rejectedWith(/stateNamespace/);
-        should(back.domFromString(makeXmlStr(["foo"], 3, "/foo"))).rejectedWith(/keyPath/);
-        should(back.domFromString(makeXmlStr(["foo"], ["foo"], 3))).rejectedWith(/path/);
+        await should(back.domFromString(makeXmlStr(3, ["foo"], "/foo"))).rejectedWith(/stateNamespace/);
+        await should(back.domFromString(makeXmlStr(["foo"], 3, "/foo"))).rejectedWith(/keyPath/);
+        return should(back.domFromString(makeXmlStr(["foo"], ["foo"], 3))).rejectedWith(/path/);
     });
 
     it("Should report missing stateNamespace field", async () => {
