@@ -20,6 +20,7 @@ export interface AdaptModule {
 
     createDeployment(options: CreateOptions): Promise<DeployState>;
     updateDeployment(options: UpdateOptions): Promise<DeployState>;
+    fetchStatus(options: StatusOptions): Promise<DeployState>;
 }
 
 export function verifyAdaptModule(val: unknown): AdaptModule {
@@ -143,4 +144,11 @@ export interface CreateOptions extends DeployCommonOptions {
 export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
     prevStateJson?: string;
+}
+
+/*
+ * Types related to adapt.fetchStatus
+ */
+export interface StatusOptions extends DeployCommonOptions {
+    deployID: string;
 }

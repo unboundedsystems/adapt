@@ -14,7 +14,7 @@ import * as path from "path";
 import * as should from "should";
 import { stdout } from "stdout-stderr";
 
-import { createDeployment, updateDeployment } from "../../src/ops";
+import { createDeployment, fetchStatus, updateDeployment } from "../../src/ops";
 import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";
 import { destroyDeployment, listDeployments } from "../../src/server/deployment";
 import { LocalServer } from "../../src/server/local_server";
@@ -36,7 +36,9 @@ import Adapt, { Component, gql, Observer, PrimitiveComponent, registerObserver }
 import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
-class Simple extends PrimitiveComponent<{}> {}
+class Simple extends PrimitiveComponent<{}> {
+    async status() { return { status: "Here I am!" }; }
+}
 class ActError extends PrimitiveComponent<{}> {}
 class AnalyzeError extends PrimitiveComponent<{}> {}
 
@@ -280,7 +282,7 @@ describe("createDeployment Tests", async function () {
         should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
         should(ds.deployID).equal("myproject::default");
-        should(ds.mountedOrigStatus).eql({ noStatus: true });
+        should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
 
         const lstdout = logger.stdout;
         should(lstdout).match(/EchoPlugin: start/);
@@ -319,6 +321,32 @@ describe("createDeployment Tests", async function () {
             /Error: ActError2/,
             /Error creating deployment: Error: Errors encountered during plugin action phase/
         ]);
+    });
+
+    it("Should report status", async () => {
+        const ds = await createSuccess("default");
+
+        should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
+        should(ds.stateJson).equal("{}");
+        should(ds.deployID).equal("myproject::default");
+        should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
+
+        const dsStatus = await fetchStatus({
+            adaptUrl,
+            deployID: ds.deployID,
+            fileName: "index.tsx",
+            logger,
+            stackName: "default",
+        });
+
+        if (!isDeploySuccess(dsStatus)) {
+            throw new Error("Failure: " + messagesToString(dsStatus.messages));
+        }
+
+        should(dsStatus.domXml).equal(defaultDomXmlOutput(["Simple"]));
+        should(dsStatus.stateJson).equal("{}");
+        should(dsStatus.deployID).equal("myproject::default");
+        should(dsStatus.mountedOrigStatus).eql({ status: "Here I am!" });
     });
 
     it("Should deploy and update a stack with null root", async () => {
