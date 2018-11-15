@@ -369,7 +369,9 @@ export function findMummyUrn(obj: any): MummyUrn {
 }
 
 export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
-    const { domain, protocol, ...mummy } = encoder.parse(mummyUrn);
+    const parsedUrn = encoder.parse(mummyUrn);
+    if (parsedUrn == null) throw new Error(`Cannot reanimate urn: "${mummyUrn}"`);
+    const { domain, protocol, ...mummy } = parsedUrn;
     if (protocol !== "urn") {
         throw new Error(`Invalid protocol in URN '${mummyUrn}'`);
     }

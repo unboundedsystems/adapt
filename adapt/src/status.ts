@@ -12,6 +12,7 @@ export type ObserveForStatus<T = unknown> = (
 export interface Status {
     noStatus?: true;
     childStatus?: Status[];
+    [key: string]: any;
 }
 
 export class NoStatusAvailable extends CustomError {

@@ -40,6 +40,8 @@ export {
 export function patchInNewQueries(observations: Observations, queries: { [name: string]: ExecutedQuery[] }): void {
     for (const name in observations) {
         if (!Object.hasOwnProperty.call(observations, name)) continue;
-        observations[name].queries = queries[name];
+        if (queries[name] !== undefined) {
+            observations[name].queries = queries[name];
+        }
     }
 }

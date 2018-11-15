@@ -27,7 +27,7 @@ describe("DOM Parse Tests", () => {
             should(dom).not.Null();
             return;
         }
-        should(dom).eql(new DOMNode("foo", {}, ""));
+        should(dom).eql(new DOMNode("foo", {}, undefined, ""));
     });
 
     it("Should parse node with single child", async () => {
@@ -38,8 +38,8 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const bar = new DOMNode("bar", {}, "");
-        const expectedRoot = new DOMNode("foo", {}, "", [bar]);
+        const bar = new DOMNode("bar", {}, undefined, "");
+        const expectedRoot = new DOMNode("foo", {}, undefined, "", [bar]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql(bar); //Needed in case DOMNode has bug
@@ -53,8 +53,8 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const bar = new DOMNode("bar", {}, "");
-        const expectedRoot = new DOMNode("foo", {}, "", [bar, bar]);
+        const bar = new DOMNode("bar", {}, undefined, "");
+        const expectedRoot = new DOMNode("foo", {}, undefined, "", [bar, bar]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql([bar, bar]); //Needed in case DOMNode has bug
@@ -70,7 +70,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", {}, "", [obj]);
+        const expectedRoot = new DOMNode("foo", {}, undefined, "", [obj]);
 
         should(dom).deepEqual(expectedRoot);
         should(dom.props.children).eql(obj); //Needed in case DOMNode has bug
@@ -84,7 +84,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", { x: 12, y: "foo" }, "");
+        const expectedRoot = new DOMNode("foo", { x: 12, y: "foo" }, undefined, "");
         should(dom).deepEqual(expectedRoot);
     });
 
@@ -108,7 +108,7 @@ describe("DOM Parse Tests", () => {
             return;
         }
 
-        const expectedRoot = new DOMNode("foo", { x: { z: 3 } }, "");
+        const expectedRoot = new DOMNode("foo", { x: { z: 3 } }, undefined, "");
         should(dom).deepEqual(expectedRoot);
     });
 
@@ -150,16 +150,19 @@ describe("DOM Parse Tests", () => {
         const foo2 = new DOMNode(
             "Foo",
             { a: { b: 3 } },
+            undefined,
             "urn:Adapt:%40usys%2Fadapt/0.0.1/builtin_components.js"
         );
         const foo3 = new DOMNode(
             "Foo",
-            { baz: "avalue"},
+            { baz: "avalue" },
+            undefined,
             "urn:bar"
         );
         const fooRoot = new DOMNode(
             "Foo",
             { id: 3235329, x: { z: 3 } },
+            undefined,
             "http://www.example.com/stuff",
             [foo2, foo3]
         );
@@ -185,9 +188,85 @@ describe("DOM Parse Tests", () => {
         const foo = new DOMNode(
             "Foo",
             { "xmlns": "bar", "xmlns:foo": "qaz" },
+            undefined,
             ""
         );
         should(dom).deepEqual(foo);
+    });
+
+    it("Should parse lifecycle data", async () => {
+        const xmlStr =
+            `<Adapt>
+                <foo>
+                    <__lifecycle__>
+                      <field name="stateNamespace"><![CDATA[["foo"]]]></field>
+                      <field name="keyPath">["bar"]</field>
+                      <field name="path">"/foo"</field>
+                    </__lifecycle__>
+                </foo>
+            </Adapt>`;
+        const dom = await back.domFromString(xmlStr);
+        should(dom).eql(new DOMNode("foo", {}, {
+            stateNamespace: ["foo"],
+            keyPath: ["bar"],
+            path: "/foo"
+        }, ""));
+    });
+
+    it("Should report incorrect type for lifecycle data", async () => {
+        function makeXmlStr(sns: any, kp: any, path: any) {
+            return `<Adapt>
+                <foo>
+                    <__lifecycle__>
+                      <field name="stateNamespace"><![CDATA[${JSON.stringify(sns)}]]></field>
+                      <field name="keyPath">${JSON.stringify(kp)}</field>
+                      <field name="path">${JSON.stringify(path)}</field>
+                    </__lifecycle__>
+                </foo>
+            </Adapt>`;
+        }
+        await should(back.domFromString(makeXmlStr(3, ["foo"], "/foo"))).rejectedWith(/stateNamespace/);
+        await should(back.domFromString(makeXmlStr(["foo"], 3, "/foo"))).rejectedWith(/keyPath/);
+        return should(back.domFromString(makeXmlStr(["foo"], ["foo"], 3))).rejectedWith(/path/);
+    });
+
+    it("Should report missing stateNamespace field", async () => {
+        const xmlStr =
+            `<Adapt>
+                <foo>
+                    <__lifecycle__>
+                        <field name="keyPath">["bar"]</field>
+                        <field name="path">"/foo"</field>
+                    </__lifecycle__>
+                </foo>
+            </Adapt>`;
+        return should(back.domFromString(xmlStr)).rejectedWith(/stateNamespace/);
+    });
+
+    it("Should report missing keyPath field", async () => {
+        const xmlStr =
+            `<Adapt>
+                <foo>
+                    <__lifecycle__>
+                        <field name="stateNamespace"><![CDATA[["foo"]]]></field>
+                        <field name="path">"/foo"</field>
+                    </__lifecycle__>
+                </foo>
+            </Adapt>`;
+        return should(back.domFromString(xmlStr)).rejectedWith(/keyPath/);
+    });
+
+    it("Should report missing path field", async () => {
+        const xmlStr =
+            `<Adapt>
+                <foo>
+                    <__lifecycle__>
+                        <field name="stateNamespace"><![CDATA[["foo"]]]></field>
+                        <field name="keyPath">["bar"]</field>
+                    </__lifecycle__>
+                </foo>
+            </Adapt>`;
+        return should(back.domFromString(xmlStr)).rejectedWith(/path/);
     });
 
     it("Should error on empty XML", async () => {

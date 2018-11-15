@@ -1,4 +1,5 @@
 import * as ld from "lodash";
+import { LifecycleInfo } from "./dom-parser";
 
 export interface AnyProps {
     [key: string]: any;
@@ -19,6 +20,7 @@ export class DOMNode {
     constructor(
         readonly componentType: string,
         props: AnyProps,
+        readonly lifecycleInfo: LifecycleInfo | undefined,
         readonly uri: string,
         children?: any[]
     ) {

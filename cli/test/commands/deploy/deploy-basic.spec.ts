@@ -181,7 +181,8 @@ async function findHistoryDir(): Promise<string> {
 async function checkBasicIndexTsxState(
     fileName: string,
     projectRoot: string,
-    stackName: string
+    stackName: string,
+    namespaces: { [stackName: string]: string[] }
 ): Promise<void> {
 
     const historyDir = await findHistoryDir();
@@ -196,7 +197,13 @@ async function checkBasicIndexTsxState(
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
 `<Adapt>
-  <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root"/>
+  <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root">
+    <__lifecycle__>
+      <field name="stateNamespace">${JSON.stringify(namespaces[stackName])}</field>
+      <field name="keyPath">["Root"]</field>
+      <field name="path">"/Root"</field>
+    </__lifecycle__>
+  </Root>
 </Adapt>
 `);
     const state = await fs.readJson(path.join(historyDir, stateFilename));
@@ -239,6 +246,8 @@ describe("Deploy create basic tests", function () {
     this.timeout(60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
+    const namespaces = { dev: ["Root"] };
+
     basicTestChain
     .command(["deploy:create", "--init", "dev"])
 
@@ -252,7 +261,8 @@ describe("Deploy create basic tests", function () {
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
-            "dev"
+            "dev",
+            namespaces
         );
 
     });
@@ -273,7 +283,8 @@ describe("Deploy create basic tests", function () {
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
-            "dev"
+            "dev",
+            namespaces
         );
     });
 
@@ -302,6 +313,11 @@ describe("Observer Needs Data Reporting", function () {
     this.timeout(50 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
+    const namespaces = {
+        dev: ["Observer", "Root"],
+        devNeedsData: ["Observer", "Observer-Observer", "Root"],
+    };
+
     observerTest
     .command(["deploy:create", "--init", "dev"])
     .it("Should deploy and not have any observers that need data", async (ctx) => {
@@ -315,7 +331,8 @@ describe("Observer Needs Data Reporting", function () {
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
-            "dev"
+            "dev",
+            namespaces
         );
     });
 
@@ -332,7 +349,8 @@ describe("Observer Needs Data Reporting", function () {
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
-            "devNeedsData"
+            "devNeedsData",
+            namespaces
         );
     });
 
@@ -352,7 +370,8 @@ describe("Observer Needs Data Reporting", function () {
             await checkBasicIndexTsxState(
                 path.join(process.cwd(), "index.tsx"),
                 process.cwd(),
-                "dev"
+                "dev",
+                namespaces
             );
 
             const matches = ctx.stdout.match(newDeployRegex);
@@ -374,7 +393,8 @@ describe("Observer Needs Data Reporting", function () {
             await checkBasicIndexTsxState(
                 path.join(process.cwd(), "index.tsx"),
                 process.cwd(),
-                newStack
+                newStack,
+                namespaces
             );
         });
     }
@@ -441,6 +461,11 @@ async function checkStateUpdateState(count: number): Promise<void> {
     <__props__>
       <prop name="key">"StateUpdater-Empty"</prop>
     </__props__>
+    <__lifecycle__>
+      <field name="stateNamespace">["StateUpdater","StateUpdater-Empty"]</field>
+      <field name="keyPath">["StateUpdater-Empty"]</field>
+      <field name="path">"/Empty"</field>
+    </__lifecycle__>
   </Empty>
 </Adapt>
 `);

@@ -16,11 +16,11 @@ export class Flex extends PrimitiveComponent<AnyProps> { }
 describe("Reanimate DOM basic tests", () => {
     componentConstructorDataFixture();
 
-    async function roundTrip(origDom: AdaptElement) {
+    async function roundTrip(origDom: AdaptElement, eql = true) {
         const xmlString = serializeDom(origDom, true);
         const newDom = await reanimateDom(xmlString);
 
-        should(newDom).eql(origDom);
+        if (eql) should(newDom).eql(origDom);
         return newDom;
     }
 
@@ -42,12 +42,17 @@ describe("Reanimate DOM basic tests", () => {
     });
 
     it("Should reanimate DOM with non-Element children", async () => {
-        const someObj = { a: { b: "c" } };
+        const someObj = { a: { b: ["c"] } };
         const origDom =
             <Adapt.Group key="a">
                 <Flex id={1} key="a">{someObj}{someObj}</Flex>
                 <Flex id={2} key="b"/>
             </Adapt.Group>;
+        await roundTrip(origDom);
+    });
+
+    it("Should reanimate DOM with complex props", async () => {
+        const origDom = <Flex id={1} key="a" obj={{ x: 3, y: { z: [4, 5] } }} />;
         await roundTrip(origDom);
     });
 
@@ -75,6 +80,11 @@ describe("Reanimate DOM basic tests", () => {
         }
         should(isMountedElement(built)).be.True();
         should(built.props.key).equal("Group");
+
+        const builtZombie = await roundTrip(built, false);
+        if (zombie == null) throw should(zombie).not.Null();
+        if (!isMountedElement(builtZombie)) throw should(isMountedElement(builtZombie)).True();
+        return should(builtZombie.status()).rejectedWith(/not supported yet/);
     });
 
 });

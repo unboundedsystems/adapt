@@ -272,6 +272,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     path?: string;
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
+    reanimated: boolean = false;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -325,7 +326,8 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         };
     }
 
-    status = () => {
+    status = async () => {
+        if (this.reanimated) throw new NoStatusAvailable("status for reanimated elements not supported yet");
         if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
         const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
             //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
