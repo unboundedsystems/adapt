@@ -1,5 +1,5 @@
 import { ChildProcess } from "child_process";
-import * as db from "debug";
+import db from "debug";
 import * as ev2 from "eventemitter2";  // Only needed for type
 import { LocalStore, Message, MessageLogger } from "./common";
 import { MessageStreamer } from "./message_streamer";

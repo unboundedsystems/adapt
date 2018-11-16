@@ -7,7 +7,7 @@ import * as http from "http";
 import * as https from "https";
 import * as ld from "lodash";
 import fetch from "node-fetch";
-import * as should from "should";
+import should from "should";
 import { getK8sConnectInfo, Kubeconfig } from "../../src/k8s/k8s_observer";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";

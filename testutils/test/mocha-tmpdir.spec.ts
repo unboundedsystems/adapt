@@ -1,6 +1,6 @@
 import * as fs from "fs-extra";
 import * as os from "os";
-import * as expect from "should";
+import expect from "should";
 
 import * as mochaTmpdir from "../src/mocha-tmpdir";
 

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "alwaysStrict": true,
+    "declaration": true,  
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "jsx": "react",
+    "jsxFactory": "Adapt.createElement",
+    "lib": [
+      "es6",
+      "esnext.asynciterable" //For @types/graphql
+    ],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitOnError": true,
+    "noErrorTruncation": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es2017",
+  }
+}

@@ -1,6 +1,6 @@
 import { Action, AdaptElement, build, buildPrinter, StateStore } from "@usys/adapt";
 import * as randomstring from "randomstring";
-import * as should from "should";
+import should from "should";
 import * as util from "util";
 
 const debugBuild = false;

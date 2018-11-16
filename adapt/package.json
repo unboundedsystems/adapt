@@ -87,6 +87,7 @@
     "randomstring": "^1.1.5",
     "read-pkg-up": "^4.0.0",
     "ts-custom-error": "^2.2.1",
+    "tslib": "^1.9.3",
     "type-name": "^2.0.2",
     "urn-lib": "^1.1.2",
     "xmlbuilder": "^10.0.0"

@@ -1,7 +1,7 @@
 import { sleep } from "@usys/utils";
-import * as AWS from "aws-sdk";
+import AWS = require("aws-sdk");
 import { xor } from "lodash";
-import * as should from "should";
+import should from "should";
 
 interface AwsCredentials {
     awsAccessKeyId: string;

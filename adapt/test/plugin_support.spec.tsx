@@ -1,7 +1,7 @@
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";

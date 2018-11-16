@@ -4,7 +4,7 @@ import {
     GraphQLString,
     GraphQLType
 } from "graphql";
-import * as should from "should";
+import should from "should";
 import { TypeResolver } from "../../src/swagger2gql/type_resolver";
 
 describe("TypeResolver Tests", () => {

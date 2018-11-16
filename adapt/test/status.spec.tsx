@@ -1,5 +1,5 @@
 import * as ld from "lodash";
-import * as should from "should";
+import should from "should";
 import Adapt, { BuildData, Component, gql, ObserveForStatus, PrimitiveComponent } from "../src";
 import MockObserver from "../src/observers/MockObserver";
 import { deepFilterElemsToPublic } from "./testlib";

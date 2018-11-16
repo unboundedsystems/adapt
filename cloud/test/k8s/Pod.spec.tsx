@@ -9,7 +9,7 @@ import Adapt, {
     Style,
 } from "@usys/adapt";
 import * as ld from "lodash";
-import * as should from "should";
+import should from "should";
 
 import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";

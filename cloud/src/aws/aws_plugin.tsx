@@ -13,7 +13,7 @@ import Adapt, {
     WidgetPlugin,
 } from "@usys/adapt";
 import { isEqualUnorderedArrays, sha256hex } from "@usys/utils";
-import * as AWS from "aws-sdk";
+import AWS = require("aws-sdk");
 import { compact, pick } from "lodash";
 
 import {

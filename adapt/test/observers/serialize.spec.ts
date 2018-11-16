@@ -3,7 +3,7 @@ import {
     reconstituteAllObservations
 } from "../../src/observers/serialize";
 
-import * as should from "should";
+import should from "should";
 
 describe("Observation Reconstitution Tests", () => {
     it("Should reconstitute empty observations", () => {

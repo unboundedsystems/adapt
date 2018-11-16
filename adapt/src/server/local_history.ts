@@ -1,7 +1,7 @@
 import { inDebugger } from "@usys/utils";
 import * as fs from "fs-extra";
 import { padStart } from "lodash";
-import * as moment from "moment";
+import moment from "moment";
 import JsonDB = require("node-json-db");
 import * as path from "path";
 import * as lockfile from "proper-lockfile";

@@ -1,6 +1,6 @@
 import { npm } from "@usys/utils";
 import callsites = require("callsites");
-import * as stringify from "json-stable-stringify";
+import stringify from "json-stable-stringify";
 import * as path from "path";
 import URN = require("urn-lib");
 import { inspect } from "util";

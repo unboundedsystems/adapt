@@ -1,6 +1,6 @@
 import * as Adapt from "../src";
 
-import * as should from "should";
+import should from "should";
 
 export class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 

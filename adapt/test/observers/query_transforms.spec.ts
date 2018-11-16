@@ -4,7 +4,7 @@ import {
     print
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
-import * as should from "should";
+import should from "should";
 import { gql } from "../../src/observers";
 import { applyAdaptTransforms } from "../../src/observers/query_transforms";
 

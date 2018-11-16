@@ -1,5 +1,5 @@
 import * as path from "path";
-import * as expect from "should";
+import expect from "should";
 
 import * as paths from "../src/paths";
 

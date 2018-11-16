@@ -1,5 +1,5 @@
 import Adapt, { build, Group, serializeDom } from "@usys/adapt";
-import * as should from "should";
+import should from "should";
 
 import { CFStack } from "../../src/aws";
 import { ResourceIdPolicy } from "../../src/resource_id";
