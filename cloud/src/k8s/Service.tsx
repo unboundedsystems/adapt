@@ -1,5 +1,5 @@
 import Adapt, { BuildData, BuiltinProps, Component, gql, ObserveForStatus } from "@usys/adapt";
-import * as stringify from "json-stable-stringify";
+import stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
 import { computeNamespaceFromMetadata, Kind, ResourceService } from "./common";

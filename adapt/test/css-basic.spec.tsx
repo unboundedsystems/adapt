@@ -1,7 +1,7 @@
 import * as Adapt from "../src";
 import * as css from "../src/css";
 
-import * as should from "should";
+import should from "should";
 
 class Dummy extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 class Foo extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }

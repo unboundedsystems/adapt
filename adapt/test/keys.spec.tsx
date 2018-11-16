@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 
 import Adapt, { Group, } from "../src";
 import {

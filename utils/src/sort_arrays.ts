@@ -1,4 +1,4 @@
-import * as stringify from "json-stable-stringify";
+import stringify from "json-stable-stringify";
 
 export type ArrayKeys<T> = { [K in keyof T]: Required<T>[K] extends any[] ? K : never }[keyof T];
 

@@ -1,4 +1,4 @@
-import * as aws from "aws-sdk";
+import aws = require("aws-sdk");
 
 import Adapt, {
     AdaptPrimitiveElement,

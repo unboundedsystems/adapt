@@ -11,7 +11,7 @@ import {
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 import { stdout } from "stdout-stderr";
 
 import { createDeployment, fetchStatus, updateDeployment } from "../../src/ops";

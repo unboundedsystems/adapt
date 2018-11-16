@@ -2,7 +2,7 @@ import Docker = require("dockerode");
 import * as fs from "fs";
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
-import * as moment from "moment";
+import moment from "moment";
 import * as util from "util";
 import {
     addToNetwork,

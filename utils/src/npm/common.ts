@@ -1,5 +1,5 @@
-import * as decamelize from "decamelize";
-import * as execa from "execa";
+import decamelize from "decamelize";
+import execa from "execa";
 
 export type LogLevel = "silent" | "error" | "warn" | "notice" | "http" |
     "timing" | "info" | "verbose" | "silly";

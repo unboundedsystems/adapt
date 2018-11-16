@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 import { getEnvAsBoolean } from "../src/env";
 // tslint:disable-next-line:no-var-requires
 const mockedEnv = require("mocked-env");

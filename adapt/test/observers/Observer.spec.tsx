@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 import Adapt from "../../src";
 import { createObserverManagerDeployment, gql } from "../../src/observers";
 import MockObserver from "../../src/observers/MockObserver";

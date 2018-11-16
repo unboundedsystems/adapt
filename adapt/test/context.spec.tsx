@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 import Adapt, { buildOnce, createContext, Group } from "../src";
 
 import { DomError } from "../src/builtin_components";

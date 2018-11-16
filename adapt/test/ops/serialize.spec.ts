@@ -1,5 +1,5 @@
 import { print as gqlPrint } from "graphql";
-import * as should from "should";
+import should from "should";
 import { gql } from "../../src/observers";
 import {
     parseFullObservationsJson,

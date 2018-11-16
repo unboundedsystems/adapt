@@ -1,8 +1,8 @@
 import { getEnvAsBoolean } from "@usys/utils";
 import * as heapdumpType from "heapdump";
 import { padStart } from "lodash";
-import * as moment from "moment";
-import * as numeral from "numeral";
+import moment from "moment";
+import numeral from "numeral";
 import * as path from "path";
 
 let hd: typeof heapdumpType | undefined;

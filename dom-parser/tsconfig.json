@@ -1,40 +1,16 @@
 {
+  "extends": "../tsconfig.json",
   "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "ulib/**/*.ts",
-    "ulib/**/*.tsx",
-    "test/**/*.ts",
-    "test/**/*.tsx",
+    "src/**/*",
+    "ulib/**/*",
+    "test/**/*",
   ],
   "exclude": [
     "dist",
     "node_modules"
   ],
   "compilerOptions": {
-    "alwaysStrict": true,
-    "declaration": true,  
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "forceConsistentCasingInFileNames": true,
-    "jsx": "react",
-    "jsxFactory": "Adapt.createElement",
-    "lib": [
-      "es6",
-      "esnext.asynciterable" //For @types/graphql
-    ],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "noEmitOnError": true,
-    "noImplicitAny": true,
-    "noImplicitReturns": true,
-    "noImplicitThis": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "outDir": "dist",
-    "sourceMap": true,
-    "strictNullChecks": true,
-    "target": "es2017",
     "typeRoots": [ // Only allow types to be pulled from specific directories
       "./types",
       "./node_modules/@types",

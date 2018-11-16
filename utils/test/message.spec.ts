@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 import { WritableStreamBuffer } from "stream-buffers";
 import { MessageStreamer } from "../src/message";
 

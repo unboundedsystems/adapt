@@ -1,6 +1,6 @@
 import * as uutils from "@usys/utils";
 import * as ld from "lodash";
-import * as should from "should";
+import should from "should";
 import { createObserverManagerDeployment, gql, ObserverManagerDeployment, ObserverPlugin } from "../../src/observers";
 import MockObserver from "../../src/observers/MockObserver";
 import { modelData, TestObserver } from "./test_observer";

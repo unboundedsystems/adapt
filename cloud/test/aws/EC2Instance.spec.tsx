@@ -1,5 +1,5 @@
 import Adapt, { PluginOptions, PrimitiveComponent, serializeDom } from "@usys/adapt";
-import * as should from "should";
+import should from "should";
 
 import { awsutils, createMockLogger, MockLogger } from "@usys/testutils";
 import { AwsCredentialsProps, awsDefaultCredentialsContext, CFStack, EC2Instance } from "../../src/aws";

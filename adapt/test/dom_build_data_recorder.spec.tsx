@@ -1,4 +1,4 @@
-import * as should from "should";
+import should from "should";
 import * as Adapt from "../src";
 
 // tslint:disable-next-line:no-duplicate-imports

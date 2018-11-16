@@ -1,4 +1,4 @@
-import * as should from 'should';
+import should from 'should';
 
 import * as util from 'util';
 import * as cp from 'child_process';

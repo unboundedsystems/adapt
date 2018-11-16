@@ -2,7 +2,7 @@ import { mochaTmpdir } from "@usys/testutils";
 import * as fs from "fs-extra";
 import JsonDB = require("node-json-db");
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 
 import { HistoryEntry } from "../../src/server/history";
 import {

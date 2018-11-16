@@ -12,7 +12,7 @@ import Adapt, {
 } from "@usys/adapt";
 import { compact } from "lodash";
 import * as randomstring from "randomstring";
-import * as should from "should";
+import should from "should";
 
 import {
     awsutils,
@@ -50,7 +50,7 @@ const {
 
 // tslint:disable-next-line:no-var-requires
 const awsMock = require("aws-sdk-mock");
-import * as AWS from "aws-sdk";
+import AWS = require("aws-sdk");
 
 function getStackNames(dom: AdaptElement): string[] {
     return findStackElems(dom).map((s) => s.props.StackName).sort();

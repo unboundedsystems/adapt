@@ -4,11 +4,11 @@ import {
     npm,
     repoDirs,
 } from "@usys/utils";
-import * as execa from "execa";
+import execa from "execa";
 import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 import { Package, writePackage } from "../package_maker";
 import { packageDirs } from "../testlib";
 

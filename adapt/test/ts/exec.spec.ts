@@ -1,6 +1,6 @@
 import { mochaTmpdir as tmpdir } from "@usys/testutils";
 import { npm } from "@usys/utils";
-import * as should from "should";
+import should from "should";
 
 import * as path from "path";
 import { pkgRootDir } from "../testlib";

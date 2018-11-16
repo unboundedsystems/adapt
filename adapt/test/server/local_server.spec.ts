@@ -1,6 +1,6 @@
 import { mochaTmpdir } from "@usys/testutils";
 import * as fs from "fs-extra";
-import * as should from "should";
+import should from "should";
 
 import {
     dbFilename,

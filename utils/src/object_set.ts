@@ -2,7 +2,7 @@
 
 import { ConstructorValues, ForEachCallback } from "collections-ts/common";
 import Set = require("collections-ts/set");
-import * as stringify from "json-stable-stringify";
+import stringify from "json-stable-stringify";
 
 function equals<T>(a: T, b: T): boolean {
     return stringify(a) === stringify(b);

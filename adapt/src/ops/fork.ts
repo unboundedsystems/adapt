@@ -1,5 +1,5 @@
 import { logFromChildProcess, MessageStreamer } from "@usys/utils";
-import * as db from "debug";
+import db from "debug";
 // tslint:disable-next-line:no-var-requires
 const forkRequire = require("fork-require");
 import { InternalError } from "../error";

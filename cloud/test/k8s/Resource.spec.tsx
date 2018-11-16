@@ -1,5 +1,5 @@
 import Adapt, { AdaptElementOrNull, Group, isMountedElement, PluginOptions } from "@usys/adapt";
-import * as should from "should";
+import should from "should";
 
 import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";

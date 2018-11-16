@@ -2,7 +2,7 @@ import Adapt, { AnyProps, PrimitiveComponent } from "@usys/adapt";
 import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
-import * as should from "should";
+import should from "should";
 import { awsCredentialsContext, loadAwsCreds, withCredentials} from "../../src/aws";
 import { doBuild } from "../testlib";
 // tslint:disable-next-line:no-var-requires

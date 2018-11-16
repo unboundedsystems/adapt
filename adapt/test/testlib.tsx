@@ -1,6 +1,6 @@
 import { findPackageDirs } from "@usys/utils";
 import * as ld from "lodash";
-import * as should from "should";
+import should from "should";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
 

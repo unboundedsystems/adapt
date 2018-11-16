@@ -1,7 +1,7 @@
 import { ExecutedQuery, gql, ObserverResponse } from "@usys/adapt";
 import { execute } from "graphql";
 import * as ld from "lodash";
-import * as should from "should";
+import should from "should";
 import { K8sObserver } from "../../src/k8s/k8s_observer";
 import { mkInstance } from "../run_minikube";
 
