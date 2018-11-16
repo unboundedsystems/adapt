@@ -43,6 +43,7 @@
     "postinstall-build": "^5.0.1",
     "randomstring": "^1.1.5",
     "swagger-client": "^3.8.21",
+    "tslib": "^1.9.3",
     "type-ops": "^3.0.1"
   },
   "devDependencies": {

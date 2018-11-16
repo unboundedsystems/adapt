@@ -23,6 +23,7 @@
     "numeral": "^2.0.6",
     "stream-buffers": "^3.0.2",
     "strip-ansi": "^4.0.0",
+    "tslib": "^1.9.3",
     "verdaccio": "^3.2.0"
   },
   "devDependencies": {
