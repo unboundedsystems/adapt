@@ -214,6 +214,7 @@ async function checkBasicIndexTsxState(
         fileName,
         projectRoot,
         stackName,
+        status: "success",
         dataDir: path.join(historyDir, dataDirFilename),
     });
 }
@@ -468,16 +469,16 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
 async function checkStateUpdateState(count: number): Promise<void> {
     const deploymentDir = await findDeploymentDir();
     const historyList = await fs.readdir(deploymentDir);
-    expect(historyList.length).equals(count);
+    expect(historyList.length).equals(count * 2);
 
     historyList.sort();
-    for (let i = 0; i < count; i++) {
-        const dirName = historyList[i];
+    let deployNum = 0;
 
-        const matches = dirName.match(/^(\d{5})-/);
-        expect(matches).to.be.an("array").with.lengthOf(2);
-        if (matches == null) return;
-        expect(parseInt(matches[1], 10)).to.equal(i);
+    for (const dirName of historyList) {
+        const matches = dirName.match(/^(\d{5})-([^-]+)/);
+        expect(matches).to.be.an("array").with.lengthOf(3);
+        if (matches == null) throw expect(matches).is.not.null;
+        expect(parseInt(matches[1], 10)).to.equal(deployNum);
 
         const dir = path.join(deploymentDir, dirName);
 
@@ -498,8 +499,9 @@ async function checkStateUpdateState(count: number): Promise<void> {
 `);
         const state = await fs.readJson(path.join(dir, stateFilename));
         expect(state).eqls({
-            '["StateUpdater"]': { count: i + 1 }
+            '["StateUpdater"]': { count: deployNum + 1 }
         });
+        if (matches[2] === "success" || matches[2] === "failed") deployNum++;
     }
 }
 

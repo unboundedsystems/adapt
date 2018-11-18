@@ -158,7 +158,7 @@ describeLong("Nodecellar system tests", function () {
         // so rummage around in the deployment history to get it. Yuck.
         const deployDir = findDeploymentDir(aDeployID);
         const historyDirs = await findHistoryDirs(deployDir);
-        expect(historyDirs).to.have.length(1);
+        expect(historyDirs).to.have.length(2);
         const store = await fs.readJson(path.join(historyDirs[0], "adapt_state.json"));
         const stackName = getStackName(store);
 

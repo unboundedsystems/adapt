@@ -10,6 +10,7 @@ export async function findDeploymentDirs(localServerDir?: string): Promise<strin
 
 export function findDeploymentDir(deployID: string, localServerDir?: string): string {
     if (!localServerDir) localServerDir = path.resolve("local_server");
+    deployID = deployID.replace(/[:/]/g, "_");
     return path.join(localServerDir, "deployments", deployID);
 }
 

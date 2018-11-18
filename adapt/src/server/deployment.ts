@@ -1,21 +1,23 @@
 import * as randomstring from "randomstring";
 import { InternalError } from "../error";
-import { HistoryEntry, HistoryName, HistoryStore } from "./history";
+import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "./history";
 import { AdaptServer } from "./server";
 
 export interface Deployment {
     readonly deployID: string;
-    getDataDir(): Promise<string>;
+    getDataDir(withStatus: HistoryStatus): Promise<string>;
     releaseDataDir(): Promise<void>;
     commitEntry(toStore: HistoryEntry): Promise<void>;
     historyEntry(historyName: HistoryName): Promise<HistoryEntry>;
-    lastEntry(): Promise<HistoryEntry | undefined>;
+    lastEntry(withStatus: HistoryStatus): Promise<HistoryEntry | undefined>;
 }
 
 const deploymentPath = "/deployments";
 const maxTries = 100;
+const invalidChars = RegExp("[:/]", "g");
 
 function dpath(deployID: string) {
+    deployID = deployID.replace(invalidChars, "_");
     return `${deploymentPath}/${deployID}`;
 }
 
@@ -34,11 +36,11 @@ export async function createDeployment(server: AdaptServer, projectName: string,
     const baseName = `${projectName}::${stackName}`;
     let deployID = baseName;
 
-    const deployData = {
-        state: "new",
-    };
-
     for (let i = 0; i < maxTries; i++) {
+        const deployData = {
+            state: "new",
+            deployID,
+        };
         try {
             await server.set(dpath(deployID), deployData, { mustCreate: true });
             break;
@@ -99,7 +101,8 @@ export async function destroyDeployment(server: AdaptServer, deployID: string):
 
 export async function listDeployments(server: AdaptServer): Promise<string[]> {
     try {
-        return Object.keys(await server.get(deploymentPath));
+        const deps = await server.get(deploymentPath);
+        return Object.keys(deps).map((key) => deps[key].deployID);
     } catch (err) {
         throw new Error(`Error listing deployments: ${err}`);
     }
@@ -114,11 +117,11 @@ class DeploymentImpl implements Deployment {
         this.historyStore_ = await this.server.historyStore(dpath(this.deployID), true);
     }
 
-    getDataDir = () => this.historyStore.getDataDir();
+    getDataDir = (withStatus: HistoryStatus) => this.historyStore.getDataDir(withStatus);
     releaseDataDir = () => this.historyStore.releaseDataDir();
     commitEntry = (toStore: HistoryEntry) => this.historyStore.commitEntry(toStore);
     historyEntry = (name: string) => this.historyStore.historyEntry(name);
-    lastEntry = () => this.historyStore.last();
+    lastEntry = (withStatus: HistoryStatus) => this.historyStore.last(withStatus);
 
     private get historyStore() {
         if (this.historyStore_ == null) throw new InternalError(`null historyStore`);
