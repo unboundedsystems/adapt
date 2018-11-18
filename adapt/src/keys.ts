@@ -41,7 +41,7 @@ export function computeMountKey(
     let newKey: string | undefined = elem.props.key;
     if (newKey == null) {
         const lastKey = ld.last(parentStateNamespace);
-        const name = (elem.componentType.name === "") ? "anonymous" : elem.componentType.name;
+        const name = elem.componentName;
         newKey = (lastKey == null) ? name : `${lastKey}-${name}`;
     }
     return {
@@ -69,7 +69,7 @@ export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined
                     }
                 } else {
                     throw new Error(
-                        `children have non-string keys: ${node.componentType.name}: ${util.inspect(node.props.key)}`);
+                        `children have non-string keys: ${node.componentName}: ${util.inspect(node.props.key)}`);
                 }
             } else {
                 needsKeys.push(node);
@@ -82,8 +82,7 @@ export function assignKeysAtPlacement(siblingsIn: any | any[] | null | undefined
     }
 
     for (const elem of needsKeys) {
-        const elemName = elem.componentType.name;
-        const key = existingKeys.getUnique(elemName);
+        const key = existingKeys.getUnique(elem.componentName);
         setKey(elem, { key, [defaultKeySym]: true });
     }
 }

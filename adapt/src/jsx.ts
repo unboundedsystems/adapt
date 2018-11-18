@@ -23,6 +23,7 @@ import * as tySup from "./type_support";
 export interface AdaptElement<P extends object = AnyProps> {
     readonly props: P & BuiltinProps;
     readonly componentType: ComponentType<P>;
+    readonly componentName: string;
 }
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
     return val instanceof AdaptElementImpl;
@@ -395,6 +396,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return this.statusCommon(observeForStatus);
     }
 
+    get componentName() { return this.componentType.name || "anonymous"; }
     get id() { return JSON.stringify(this.stateNamespace); }
 }
 

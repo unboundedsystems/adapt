@@ -196,7 +196,7 @@ function recordDomError(
     let message: string;
 
     if (ld.isError(err)) {
-        message = `Component ${element.componentType.name} cannot be built ` +
+        message = `Component ${element.componentName} cannot be built ` +
             `with current props` + (err.message ? ": " + err.message : "");
         cc.error(message);
     } else {
@@ -459,8 +459,8 @@ async function buildElement(
 
     if (out.contents != null) {
         if (Array.isArray(out.contents)) {
-            const comp = elem.componentType;
-            throw new Error(`Component build for ${comp.name} returned an ` +
+            const name = elem.componentName;
+            throw new Error(`Component build for ${name} returned an ` +
                 `array. Components must return a single root element when ` +
                 `built.`);
         }
