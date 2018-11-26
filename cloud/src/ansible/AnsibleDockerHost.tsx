@@ -7,10 +7,11 @@ export interface AnsibleDockerHostProps extends Partial<BuiltinProps> {
 }
 
 // tslint:disable-next-line:variable-name
-export const AnsibleDockerHost = (props: AnsibleDockerHostProps) => (
-    <AnsibleRole
-        key={props.key}
+export const AnsibleDockerHost = (props: AnsibleDockerHostProps) => {
+    const { handle, ...newProps } = props;
+    return <AnsibleRole
+        {...newProps}
         ansibleHost={props.ansibleHost}
-        galaxy="nickjj.docker"
-    />
-);
+        galaxy="geerlingguy.docker"
+    />;
+};
