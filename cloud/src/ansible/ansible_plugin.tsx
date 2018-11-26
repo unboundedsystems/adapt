@@ -3,6 +3,7 @@ import Adapt, {
     AdaptElementOrNull,
     build,
     findElementsInDom,
+    isMountedElement,
     QueryDomain,
     registerPlugin,
     Style,
@@ -10,7 +11,7 @@ import Adapt, {
     WidgetPair,
     WidgetPlugin,
 } from "@usys/adapt";
-import { Logger, mapMap, mkdtmp, ObjectSet, removeUndef } from "@usys/utils";
+import { Logger, mapMap, mkdtmp, ObjectSet, removeUndef, sha256hex } from "@usys/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import { safeDump } from "js-yaml";
@@ -151,7 +152,7 @@ async function execPlaybook(el: PlaybookElement, pluginDir: string, log: Logger)
             args.push("-e", "@" + varsFile);
         }
 
-        args.push("-i", inventoryFile(pluginDir), el.props.playbookFile);
+        args.push("-i", inventoryFile(pluginDir), playbookFile(el, pluginDir));
 
         const child = execa("ansible-playbook", args, {
             env: {
@@ -211,6 +212,15 @@ function implicitPlaybookFile(pluginDir: string) {
     return path.join(pluginDir, "implicit_playbook.yaml");
 }
 
+function playbookFile(el: PlaybookElement, pluginDir: string) {
+    if (el.props.playbookFile) return el.props.playbookFile;
+
+    if (!isMountedElement(el)) {
+        throw new Error(`Internal error: can only compute name of mounted elements`);
+    }
+    return path.join(pluginDir, `playbook_${sha256hex(el.id).slice(0, 16)}.yaml`);
+}
+
 function inventoryFile(pluginDir: string) {
     return path.join(pluginDir, "inventory");
 }
@@ -253,6 +263,19 @@ async function writeImplicitPlaybook(roleEls: RoleElement[], pluginDir: string) 
     }
 }
 
+async function writePlaybooks(playbookEls: PlaybookElement[], pluginDir: string) {
+    playbookEls = playbookEls.filter((p) => p.props.playbookPlays != null);
+
+    for (const el of playbookEls) {
+        if (el.props.playbookFile != null) {
+            throw new Error(`Cannot specify both playbookFile and ` +
+                `playbookPlays on an AnsiblePlaybook`);
+        }
+
+        await fs.writeFile(playbookFile(el, pluginDir), safeDump(el.props.playbookPlays));
+    }
+}
+
 async function implicitPlaybook(pluginDir: string): Promise<PlaybookElement> {
     const el =
         <AnsibleImplicitPlaybook
@@ -289,6 +312,7 @@ export class AnsiblePluginImpl
         this.hosts = hosts;
 
         this.playbooks = findPlaybookElems(dom);
+        await writePlaybooks(this.playbooks, this.dataDir);
         if (this.roles.length > 0) this.playbooks.push(await implicitPlaybook(this.dataDir));
 
         if (hosts.length > 0) {

@@ -4,9 +4,41 @@ import {
     PrimitiveComponent,
 } from "@usys/adapt";
 
+export interface Vars {
+    [ key: string ]: any;
+}
+
+export interface Common {
+    remote_user?: string;
+    become?: string;
+    become_method?: string;
+    [ key: string ]: any;
+}
+
+export interface Play extends Common {
+    hosts: string;
+    tasks: Task[];
+    vars?: Vars;
+    handlers?: Handler[];
+    order?: string;
+}
+
+export interface Task extends Common {
+    name: string;
+    notify?: string[];
+}
+
+export interface Handler {
+    name: string;
+    [ key: string ]: any;
+}
+
 export interface AnsiblePlaybookProps {
-    playbookFile: string;
-    vars?: { [ key: string ]: any };
+    // One of playbookFile or playbookPlays must be specified
+    playbookFile?: string;
+    playbookPlays?: Play[];
+
+    vars?: Vars;
     /*
     name?: string;
     roles?: string[];

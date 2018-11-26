@@ -24,6 +24,7 @@ import {
     ansibleHostLocal,
     AnsiblePlaybook,
     AnsibleRole,
+    Play,
 } from "../../src/ansible";
 import {
     AnsiblePluginImpl,
@@ -40,6 +41,21 @@ const echoPlaybook = (hosts: string) => `
   - name: Echo to a file
     shell: echo Test {{ test_val }} > {{ output_file }}
 `;
+
+const echoPlay = (hosts: string): Play => ({
+    name: "Echo playbook object",
+    hosts,
+    vars: {
+        test_val: "success",
+        output_file: "test.output",
+    },
+    tasks: [
+        {
+            name: "Echo to a file",
+            shell: "echo Test {{ test_val }} > {{ output_file }}",
+        }
+    ]
+});
 
 const sshPubKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC1zw0/3r31bW/VrAhS" +
     "n4dAYsUZj5AZpj90b4zhAURzJjt60bucrTOFJ9kjVYU0zydEHMYLGlo8ZosfVwkazOy0lD" +
@@ -135,7 +151,7 @@ describe("Ansible plugin", async function () {
         };
     });
 
-    async function simplePlaybook(
+    async function simplePlaybookFile(
         host: AnsibleHost,
         playbookFile: string,
         groups: string | string[],
@@ -145,6 +161,23 @@ describe("Ansible plugin", async function () {
             <Group>
                 <AnsiblePlaybook
                     playbookFile={playbookFile}
+                    vars={vars}
+                />
+                <AnsibleGroup ansibleHost={host} groups={groups} />
+            </Group>;
+        await buildAndRun(orig);
+    }
+
+    async function simplePlaybookObj(
+        host: AnsibleHost,
+        playbookHosts: string,
+        groups: string | string[],
+        vars: any) {
+
+        const orig =
+            <Group>
+                <AnsiblePlaybook
+                    playbookPlays={[echoPlay(playbookHosts)]}
                     vars={vars}
                 />
                 <AnsibleGroup ansibleHost={host} groups={groups} />
@@ -174,18 +207,35 @@ describe("Ansible plugin", async function () {
         await plugin.finish();
     }
 
-    it("Should run a local playbook", async () => {
-        await simplePlaybook(ansibleHostLocal, "echo_all.yaml", "somegroup", {});
+    it("Should run a local playbook [file]", async () => {
+        await simplePlaybookFile(ansibleHostLocal, "echo_all.yaml", "somegroup", {});
 
         const output = await fs.readFile("test.output");
         should(output.toString()).equal("Test success\n");
     });
 
-    it("Should apply vars from props", async () => {
+    it("Should run a local playbook [object]", async () => {
+        await simplePlaybookObj(ansibleHostLocal, "all", "somegroup", {});
+
+        const output = await fs.readFile("test.output");
+        should(output.toString()).equal("Test success\n");
+    });
+
+    it("Should apply vars from props [file]", async () => {
         const vars = {
             test_val: "a different success"
         };
-        await simplePlaybook(ansibleHostLocal, "echo_all.yaml", "somegroup", vars);
+        await simplePlaybookFile(ansibleHostLocal, "echo_all.yaml", "somegroup", vars);
+
+        const output = await fs.readFile("test.output");
+        should(output.toString()).equal("Test a different success\n");
+    });
+
+    it("Should apply vars from props [object]", async () => {
+        const vars = {
+            test_val: "a different success"
+        };
+        await simplePlaybookObj(ansibleHostLocal, "all", "somegroup", vars);
 
         const output = await fs.readFile("test.output");
         should(output.toString()).equal("Test a different success\n");
@@ -203,7 +253,7 @@ describe("Ansible plugin", async function () {
             ansible_user: "root",
             ansible_ssh_pass: "root",
         };
-        await simplePlaybook(host, "echo_all.yaml", "somegroup", vars);
+        await simplePlaybookFile(host, "echo_all.yaml", "somegroup", vars);
 
         const output = await dockerExec(sshd.container, [
             "cat", "/tmp/ansible.test.out"
@@ -223,7 +273,7 @@ describe("Ansible plugin", async function () {
             ansible_user: "root",
             ansible_ssh_private_key: sshPrivKey,
         };
-        await simplePlaybook(host, "echo_all.yaml", "somegroup", vars);
+        await simplePlaybookFile(host, "echo_all.yaml", "somegroup", vars);
 
         const output = await dockerExec(sshd.container, [
             "cat", "/tmp/ansible.test.out"
@@ -244,16 +294,27 @@ describe("Ansible plugin", async function () {
             ansible_ssh_pass: "badpassword",
         };
 
-        await should(simplePlaybook(host, "echo_all.yaml", "somegroup", vars))
+        await should(simplePlaybookFile(host, "echo_all.yaml", "somegroup", vars))
             .be.rejectedWith(/Error executing ansible-playbook/m);
     });
 
     it("Should reject a playbook file outside the project directory");
 
-    it("Should match host with group name", async () => {
+    it("Should match host with group name [file]", async () => {
         // tslint:disable-next-line:variable-name
         const output_file = "match_group.output";
-        await simplePlaybook(ansibleHostLocal, "echo_group1.yaml", "group1", {
+        await simplePlaybookFile(ansibleHostLocal, "echo_group1.yaml", "group1", {
+            output_file,
+        });
+
+        const output = (await fs.readFile(output_file)).toString();
+        should(output).equal("Test success\n");
+    });
+
+    it("Should match host with group name [object]", async () => {
+        // tslint:disable-next-line:variable-name
+        const output_file = "match_group.output";
+        await simplePlaybookObj(ansibleHostLocal, "group1", "group1", {
             output_file,
         });
 
@@ -264,7 +325,7 @@ describe("Ansible plugin", async function () {
     it("Should not match host with group name", async () => {
         // tslint:disable-next-line:variable-name
         const output_file = "no_match_group.output";
-        await simplePlaybook(ansibleHostLocal, "echo_group1.yaml", "group2", {
+        await simplePlaybookFile(ansibleHostLocal, "echo_group1.yaml", "group2", {
             output_file,
         });
 
@@ -274,7 +335,7 @@ describe("Ansible plugin", async function () {
     it("Should match host with hostname", async () => {
         // tslint:disable-next-line:variable-name
         const output_file = "match_host.output";
-        await simplePlaybook(ansibleHostLocal, "echo_localhost.yaml", "group2", {
+        await simplePlaybookFile(ansibleHostLocal, "echo_localhost.yaml", "group2", {
             output_file,
         });
 
