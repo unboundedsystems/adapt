@@ -3,6 +3,8 @@ import { HistoryStore } from "./history";
 
 export interface AdaptServer {
     init(): Promise<void>;
+    destroy(): Promise<void>;
+
     set(dataPath: string, val: any, options?: SetOptions): Promise<void>;
     get(dataPath: string): Promise<any>;
     delete(dataPath: string): Promise<void>;

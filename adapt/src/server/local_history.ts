@@ -71,12 +71,13 @@ class LocalHistoryStore implements HistoryStore {
     }
 
     async destroy() {
+        await this.releaseDataDir();
         try {
             this.db.delete(this.dbPath);
-        } catch (err) {
-            // ignore
-        }
-        await fs.remove(this.rootDir);
+        } catch (err) { /**/ }
+        try {
+            await fs.remove(this.rootDir);
+        } catch (err) { /**/ }
     }
 
     async commitEntry(toStore: HistoryEntry): Promise<void> {

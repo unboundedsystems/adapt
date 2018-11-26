@@ -1,3 +1,4 @@
+import { mapMap } from "@usys/utils";
 import * as fs from "fs-extra";
 import JsonDB from "node-json-db";
 import * as path from "path";
@@ -28,6 +29,7 @@ export class LocalServer implements AdaptServer {
     private rootDir: string;
     private filename: string;
     private options: LocalServerOptions;
+    private historyStores = new Map<string, HistoryStore>();
 
     constructor(url: URL, options: Partial<LocalServerOptions>) {
         this.rootDir = path.resolve(url.pathname);
@@ -82,6 +84,11 @@ export class LocalServer implements AdaptServer {
         openDbs.set(this.filename, this.db);
     }
 
+    async destroy(): Promise<void> {
+        const promises = mapMap(this.historyStores, (_, s) => s.destroy());
+        await Promise.all(promises);
+    }
+
     async set(dataPath: string, val: any, options?: SetOptions): Promise<void> {
         if (options != null && options.mustCreate === true) {
             try {
@@ -105,7 +112,19 @@ export class LocalServer implements AdaptServer {
     }
 
     async historyStore(dataPath: string, init: boolean): Promise<HistoryStore> {
-        return createLocalHistoryStore(
+        let store = this.historyStores.get(dataPath);
+        if (store) return store;
+
+        store = await createLocalHistoryStore(
             this.db, dataPath, path.join(this.rootDir, dataPath), init);
+
+        const origDestroy = store.destroy;
+        store.destroy = async () => {
+            this.historyStores.delete(dataPath);
+            await origDestroy.call(store);
+        };
+
+        this.historyStores.set(dataPath, store);
+        return store;
     }
 }

@@ -1,5 +1,6 @@
 import { mochaTmpdir } from "@usys/testutils";
 import * as fs from "fs-extra";
+import * as path from "path";
 import should from "should";
 
 import {
@@ -108,5 +109,40 @@ describe("LocalServer tests", () => {
         await server.set("/foo/bar", 1, { mustCreate: true });
         return should(server.set("/foo/bar", 2, { mustCreate: true }))
             .be.rejectedWith(/path '\/foo\/bar' already exists/);
+    });
+
+    it("Should destroy history dirs", async () => {
+        mockServerTypes_([]);
+        register(LocalServer);
+        const server = await initLocalServer(true);
+        await server.historyStore("/deploy/1", true);
+        await server.historyStore("/deploy/2", true);
+        should((server as any).historyStores.size).equal(2);
+
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "1"))).be.True();
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "2"))).be.True();
+
+        await server.destroy();
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "1"))).be.False();
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "2"))).be.False();
+    });
+
+    it("Should destroy remaining history dirs", async () => {
+        mockServerTypes_([]);
+        register(LocalServer);
+        const server = await initLocalServer(true);
+        const hist1 = await server.historyStore("/deploy/1", true);
+        await server.historyStore("/deploy/2", true);
+        should((server as any).historyStores.size).equal(2);
+
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "1"))).be.True();
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "2"))).be.True();
+
+        await hist1.destroy();
+        should((server as any).historyStores.size).equal(1);
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "1"))).be.False();
+
+        await server.destroy();
+        should(await fs.pathExists(path.join(process.cwd(), "deploy", "2"))).be.False();
     });
 });

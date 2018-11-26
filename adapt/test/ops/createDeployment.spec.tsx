@@ -200,8 +200,9 @@ describe("createDeployment Tests", async function () {
         adaptUrl = `file://${process.cwd()}/`;
         await createProject();
     });
-    after(() => {
+    after("cleanup server", async () => {
         mockServerTypes_(origServerTypes);
+        if (server_) await server_.destroy();
     });
     beforeEach(() => {
         logger = createMockLogger();
