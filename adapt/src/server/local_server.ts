@@ -1,5 +1,5 @@
 import * as fs from "fs-extra";
-import JsonDB = require("node-json-db");
+import JsonDB from "node-json-db";
 import * as path from "path";
 import { URL } from "url";
 

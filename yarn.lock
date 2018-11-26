@@ -482,10 +482,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/node-json-db@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@types/node-json-db/-/node-json-db-0.0.1.tgz#f5e60b36e8b3592ac047f427595de3f2d6592b86"
-
 "@types/node@*":
   version "10.5.2"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.2.tgz#f19f05314d5421fe37e74153254201a7bf00a707"
@@ -3889,9 +3885,9 @@ node-jose@^1.0.0:
     node-forge "^0.7.1"
     uuid "^3.0.1"
 
-node-json-db@^0.7.5:
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.7.5.tgz#9906eb6c0df504bd667ae829550c9823ea4cce4e"
+node-json-db@0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.9.2.tgz#b79eb61d6398476a39339a7a6d67df780f64bf15"
   dependencies:
     mkdirp "0.5.x"
 
