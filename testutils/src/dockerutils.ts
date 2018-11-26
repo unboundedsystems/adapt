@@ -44,10 +44,15 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
             return;
         }
         if (msg.id) s += ` id=${msg.id}`;
+        const prog = msg.progressDetail;
+        if (prog && prog.current != null) s += ` Progress: ${prog.current}/${prog.total}`;
         console.log(`${indent}  ${s}`);
     }
 
-    // tslint:disable-next-line:no-console
+    if (!imageName.includes(":")) {
+        throw new Error(`dockerPull: imageName must include tag or be an ID`);
+    }
+
     console.log(`${indent}Pulling docker image ${imageName}`);
 
     return new Promise<void>((res, rej) => {
