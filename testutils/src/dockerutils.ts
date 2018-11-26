@@ -96,7 +96,14 @@ export async function createNetwork(docker: Docker, name: string): Promise<Docke
 }
 
 export async function addToNetwork(container: Docker.Container, network: Docker.Network) {
-    await network.connect({ Container: container.id });
+    try {
+        await network.connect({ Container: container.id });
+    } catch (e) {
+        if (!(typeof e.message === "string" &&
+            e.message.includes("already exists in network"))) {
+            throw e;
+        }
+    }
 }
 
 export async function removeFromNetwork(container: Docker.Container, network: Docker.Network) {
