@@ -2,16 +2,14 @@ import {
     DocumentNode as GraphQLDocument,
 } from "graphql";
 import gqlTag from "graphql-tag";
-import { CustomError } from "ts-custom-error";
+import { ObserverNeedsData } from "./errors";
 import { ExecutedQuery, Observations } from "./obs_manager_deployment";
 
 export const gql: (literals: TemplateStringsArray, ...placeholders: any[]) => GraphQLDocument = gqlTag;
 
-export class ObserverNeedsData extends CustomError {
-    public constructor(message?: string) {
-        super("Adapt Observer Needs Data: " + (message ? message : "<no message>"));
-    }
-}
+export {
+    ObserverNeedsData
+} from "./errors";
 
 export {
     createObserverManagerDeployment,
@@ -44,4 +42,8 @@ export function patchInNewQueries(observations: Observations, queries: { [name: 
             observations[name].queries = queries[name];
         }
     }
+}
+
+export function isObserverNeedsData(e: any): e is ObserverNeedsData {
+    return e instanceof ObserverNeedsData;
 }

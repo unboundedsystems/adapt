@@ -11,6 +11,7 @@ import {
     AdaptElementOrNull,
     AdaptMountedElement,
     AnyProps,
+    BuildHelpers,
     childrenToArray,
     cloneElement,
     Component,
@@ -35,7 +36,7 @@ import {
 } from "./state";
 
 import {
-    createObserverManagerDeployment, ObserverManagerDeployment
+    createObserverManagerDeployment, isObserverNeedsData, ObserverManagerDeployment
 } from "./observers";
 
 import { Message, MessageType, removeUndef } from "@usys/utils";
@@ -46,8 +47,9 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
-import { getInternalHandle } from "./handle";
+import { getInternalHandle, Handle } from "./handle";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
+import { Status } from "./status";
 
 export type DomPath = AdaptElement[];
 
@@ -210,6 +212,22 @@ function recordDomError(
     return { domError, message };
 }
 
+function buildHelpers(options: BuildOptionsReq): BuildHelpers {
+    return {
+        async elementStatus(handle: Handle): Promise<Status | undefined> {
+            const elem = handle.mountedOrig;
+            if (elem == null) return { noStatus: true };
+            if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
+            try {
+                return await elem.statusWithMgr(options.observerManager);
+            } catch (e) {
+                if (!isObserverNeedsData(e)) throw e;
+                return undefined;
+            }
+        }
+    };
+}
+
 async function computeContentsFromElement<P extends object>(
     element: AdaptMountedElement<P & WithChildren>,
     options: BuildOptionsReq): Promise<BuildResults> {
@@ -244,7 +262,7 @@ async function computeContentsFromElement<P extends object>(
         if (!ld.isFunction(component.build)) {
             throw new BuildNotImplemented(`build is not a function, build = ${util.inspect(component.build)}`);
         }
-        ret.contents = await component.build();
+        ret.contents = await component.build(buildHelpers(options));
         if (component.cleanup) {
             ret.cleanups.push(component.cleanup.bind(component));
         }
@@ -608,14 +626,15 @@ async function pathBuildOnceGuts(
     if (results.buildErr) return;
 
     options.recorder({ type: "done", root: results.contents });
-    results.builtElements.map((elem) => {
+    const updates = results.builtElements.map(async (elem) => {
         if (isElementImpl(elem)) {
-            const { stateChanged } = elem.postBuild(options.stateStore);
+            const { stateChanged } = await elem.postBuild(options.stateStore);
             if (stateChanged) {
                 results.stateChanged = true;
             }
         }
     });
+    await Promise.all(updates);
 }
 
 function setOrigChildren(predecessor: AdaptElementImpl<AnyProps>, origChildren: any[]) {
