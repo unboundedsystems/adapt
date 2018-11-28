@@ -502,6 +502,10 @@
   version "0.0.25"
   resolved "https://registry.yarnpkg.com/@types/numeral/-/numeral-0.0.25.tgz#b6f55062827a4787fe4ab151cf3412a468e65271"
 
+"@types/p-map-series@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@types/p-map-series/-/p-map-series-1.0.1.tgz#2fbd18ac08db2528b57f944e0dee4ba4f2027e4e"
+
 "@types/prettier@1.13.2":
   version "1.13.2"
   resolved "https://registry.yarnpkg.com/@types/prettier/-/prettier-1.13.2.tgz#ffe96278e712a8d4e467e367a338b05e22872646"
@@ -4167,9 +4171,19 @@ p-locate@^3.0.0:
   dependencies:
     p-limit "^2.0.0"
 
+p-map-series@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/p-map-series/-/p-map-series-1.0.0.tgz#bf98fe575705658a9e1351befb85ae4c1f07bdca"
+  dependencies:
+    p-reduce "^1.0.0"
+
 p-map@^1.1.1:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/p-map/-/p-map-1.2.0.tgz#e4e94f311eabbc8633a1e79908165fca26241b6b"
+
+p-reduce@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/p-reduce/-/p-reduce-1.0.0.tgz#18c2b0dd936a4690a529f8231f58a0fdb6a47dfa"
 
 p-some@^2.0.0:
   version "2.0.1"

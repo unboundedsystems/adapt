@@ -5,6 +5,7 @@ import {
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as ld from "lodash";
+import pMapSeries from "p-map-series";
 import * as path from "path";
 import { AdaptElementOrNull } from "./jsx";
 import { findPackageInfo } from "./packageinfo";
@@ -46,6 +47,7 @@ export interface PluginObservations {
 }
 
 export interface Plugin<Observations extends object = object> {
+    seriesActions?: boolean;
     start(options: PluginOptions): Promise<void>;
     observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
     analyze(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Action[];
@@ -134,7 +136,8 @@ class PluginManagerImpl implements PluginManager {
     modules: PluginModules;
     dom?: AdaptElementOrNull;
     prevDom?: AdaptElementOrNull;
-    actions?: Action[];
+    parallelActions: Action[] = [];
+    seriesActions: Action[][] = [];
     logger?: MessageLogger;
     state: PluginManagerState;
     observations: AnyObservation;
@@ -207,43 +210,64 @@ class PluginManagerImpl implements PluginManager {
         if (dom === undefined || prevDom === undefined) {
             throw new Error("Must call start before analyze");
         }
-        const actionsTmp = mapMap(
-            this.plugins,
-            (name, plugin) => {
-                const obs = JSON.parse(this.observations[name]);
-                return plugin.analyze(prevDom, dom, obs);
-            });
 
-        this.actions = ld.flatten(actionsTmp);
+        this.parallelActions = [];
+        this.seriesActions = [];
+
+        for (const [name, plugin] of this.plugins) {
+            const obs = JSON.parse(this.observations[name]);
+            this.addActions(plugin.analyze(prevDom, dom, obs), plugin);
+        }
+
         this.transitionTo(PluginManagerState.PreAct);
-        return this.actions;
+        return this.parallelActions.concat(ld.flatten(this.seriesActions));
+    }
+
+    addActions(actions: Action[], plugin: Plugin) {
+        if (plugin.seriesActions) {
+            this.seriesActions.push(actions);
+        } else {
+            this.parallelActions = this.parallelActions.concat(actions);
+        }
     }
 
     async act(dryRun: boolean) {
         let errored = false;
         this.transitionTo(PluginManagerState.Acting);
-        const actions = this.actions;
         const log = this.logger;
-        if (actions == undefined) throw new Error("Must call analyze before act");
         if (log == undefined) throw new Error("Must call start before act");
 
-        actions.map((action) => log.info(`Doing ${action.description}...`));
+        const doing = (action: Action) => log.info(`Doing ${action.description}...`);
+        const doAction = async (action: Action) => {
+            try {
+                doing(action);
+                await action.act();
+                return { action };
+            } catch (err) {
+                errored = true;
+                logError(action, err, (m) => log.error(m));
+                return { action, err };
+            }
+        };
+
         if (dryRun) {
+            const actions = this.parallelActions.concat(ld.flatten(this.seriesActions));
+            actions.forEach(doing);
             this.transitionTo(PluginManagerState.PreAct);
             return actions.map((action) => ({ action }));
         } else {
-            const wrappedActions: Promise<ActionResult>[] = actions.map(async (action) => {
-                try {
-                    await action.act();
-                    return { action };
-                } catch (err) {
-                    errored = true;
-                    logError(action, err, (m) => log.error(m));
-                    return { action, err };
-                }
-            });
+            // Kick off ALL of these in parallel.
+            // TODO(mark): At some point, this may be so much stuff that we
+            // need to limit concurrency.
+            const pParallel: Promise<ActionResult>[] =
+                this.parallelActions.map(doAction);
 
-            const results = await Promise.all(wrappedActions);
+            // The actions within each group must run in series, but kick off all
+            // the groups in parallel.
+            const pSeries = this.seriesActions.map((group) => pMapSeries(group, doAction));
+
+            let results = await Promise.all(pParallel);
+            results = results.concat(ld.flatten(await Promise.all(pSeries)));
             if (errored) throw new Error(`Errors encountered during plugin action phase`);
             this.transitionTo(PluginManagerState.PreFinish);
             return results;
@@ -256,7 +280,8 @@ class PluginManagerImpl implements PluginManager {
         await Promise.all(waitingFor);
         this.dom = undefined;
         this.prevDom = undefined;
-        this.actions = undefined;
+        this.seriesActions = [];
+        this.parallelActions = [];
         this.logger = undefined;
         this.observations = {};
         this.transitionTo(PluginManagerState.Initial);
