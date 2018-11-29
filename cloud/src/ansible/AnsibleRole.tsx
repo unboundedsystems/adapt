@@ -6,7 +6,7 @@ import {
 import { AnsibleHost } from "./ansible_host";
 
 export interface AnsibleRoleProps {
-    ansibleHost: AnsibleHost;
+    ansibleHost?: AnsibleHost;
     galaxy?: string;
     vars?: { [ key: string ]: any };
     /*

@@ -233,7 +233,9 @@ function collectRolesByHost(roleEls: RoleElement[]) {
     const rolesByHost = new Map<string, RoleElement[]>();
 
     for (const roleEl of roleEls) {
-        const hostname = getHostname(roleEl.props.ansibleHost);
+        const host = roleEl.props.ansibleHost;
+        if (!host) continue;
+        const hostname = getHostname(host);
         let list = rolesByHost.get(hostname);
         if (!list) {
             list = [];
@@ -246,6 +248,7 @@ function collectRolesByHost(roleEls: RoleElement[]) {
 
 async function writeImplicitPlaybook(roleEls: RoleElement[], pluginDir: string) {
     const rolesByHost = collectRolesByHost(roleEls);
+    if (rolesByHost.size === 0) return;
 
     const playbookObj = mapMap(rolesByHost, (host, roles) => ({
         hosts: host,
@@ -306,14 +309,19 @@ export class AnsiblePluginImpl
         const hosts = new ObjectSet<AnsibleHost>(undefined,
             { ansible_port: 22, ansible_user: "root" }
         );
+
         // Add all hosts from all roles and all groups
-        this.roles.map((r) => hosts.add(r.props.ansibleHost));
+        const rolesWithHost = this.roles.filter((r) => {
+            const host = r.props.ansibleHost;
+            if (host) hosts.add(host);
+            return host != null;
+        });
         this.groups.map((r) => hosts.add(r.props.ansibleHost));
         this.hosts = hosts;
 
         this.playbooks = findPlaybookElems(dom);
         await writePlaybooks(this.playbooks, this.dataDir);
-        if (this.roles.length > 0) this.playbooks.push(await implicitPlaybook(this.dataDir));
+        if (rolesWithHost.length > 0) this.playbooks.push(await implicitPlaybook(this.dataDir));
 
         if (hosts.length > 0) {
             await writeInventory(this.hosts, this.groups, this.dataDir);
