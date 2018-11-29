@@ -297,6 +297,7 @@ async function implicitPlaybook(pluginDir: string): Promise<PlaybookElement> {
 export class AnsiblePluginImpl
     extends WidgetPlugin<PlaybookElement, PlaybookObs, AnsibleQueryDomain> {
 
+    seriesActions = true; // Don't run playbooks in parallel
     hosts?: ObjectSet<AnsibleHost>;
     groups?: GroupElement[];
     roles?: RoleElement[];
