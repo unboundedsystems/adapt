@@ -3,6 +3,7 @@ export {
     ansibleHostLocal,
 } from "./ansible_host";
 
+export * from "./AnsibleContainer";
 export * from "./AnsibleDockerHost";
 export * from "./AnsibleGroup";
 export * from "./AnsiblePlaybook";
