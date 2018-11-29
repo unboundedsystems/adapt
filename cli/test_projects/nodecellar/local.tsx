@@ -7,23 +7,30 @@ import {
     DockerHost,
     DockerHostProps,
     LocalCompute,
-    LocalContainer,
-    LocalDockerHost,
+    NetworkService,
+    NetworkServiceProps,
 } from "@usys/cloud";
+// tslint:disable:no-submodule-imports
+import { AnsibleContainer, AnsibleDockerHost } from "@usys/cloud/ansible";
 
 export const localStyle =
     <Style>
-        {Compute} {rule<ComputeProps>((props) => {
+        {Compute} {rule<ComputeProps>(({handle, ...props}) => {
             return <LocalCompute {...props}/>;
         })}
 
-        {DockerHost} {rule<DockerHostProps>((props, info) => {
-            if (props.dockerHost) return info.origBuild(props);
-            return <LocalDockerHost />;
+        {DockerHost} {rule<DockerHostProps>(({handle, ...props}, info) => {
+            return <AnsibleDockerHost ansibleHost={{
+                ansible_connection: "local"
+            }} {...props} />;
         })}
 
-        {Container} {rule<ContainerProps>((props) => {
-            return <LocalContainer {...props} />;
+        {Container} {rule<ContainerProps>(({handle, ...props}) => {
+            return <AnsibleContainer {...props} />;
         })}
+
+        {NetworkService} {rule<NetworkServiceProps>((props) => (
+            null
+        ))}
     </Style>;
 export default localStyle;

@@ -4,6 +4,7 @@ import {
     ComputeProps,
     Container,
     ContainerProps,
+    DockerHost,
     k8s,
     NetworkService,
     NetworkServiceProps,
@@ -25,6 +26,8 @@ export const k8sStyle =
                 {props.children}
             </k8s.Pod>
         ))}
+
+        {DockerHost} {rule(() => null)}
 
         {NetworkService} {rule<NetworkServiceProps>((props) => (
             <k8s.Service config={kubeconfig()} {...k8s.k8sServiceProps(props)} />
