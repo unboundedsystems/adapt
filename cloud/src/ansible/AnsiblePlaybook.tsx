@@ -3,28 +3,34 @@ import {
     isPrimitiveElement,
     PrimitiveComponent,
 } from "@usys/adapt";
+import { Env, Vars } from "./common";
 
-export interface Vars {
+export interface Common {
+    become?: string;
+    become_method?: string;
+    name?: string;
+    vars?: Vars;
+
     [ key: string ]: any;
 }
 
-export interface Common {
-    remote_user?: string;
-    become?: string;
-    become_method?: string;
-    [ key: string ]: any;
+export interface Role extends Common {
 }
 
 export interface Play extends Common {
     hosts: string;
-    tasks: Task[];
-    vars?: Vars;
+
+    environment?: Env;
     handlers?: Handler[];
+    ignore_errors?: boolean;
+    ignore_unreachable?: boolean;
     order?: string;
+    remote_user?: string;
+    roles?: Role[] | string[];
+    tasks?: Task[];
 }
 
 export interface Task extends Common {
-    name: string;
     notify?: string[];
 }
 
@@ -39,13 +45,6 @@ export interface AnsiblePlaybookProps {
     playbookPlays?: Play[];
 
     vars?: Vars;
-    /*
-    name?: string;
-    roles?: string[];
-    environment?: { [ key: string ]: string };
-    tasks?: any;
-    timeout?: number; // seconds
-    */
 }
 
 export class AnsiblePlaybook extends PrimitiveComponent<AnsiblePlaybookProps> { }
