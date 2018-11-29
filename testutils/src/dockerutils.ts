@@ -1,5 +1,7 @@
 import * as uutils from "@usys/utils";
 import Docker = require("dockerode");
+import * as fs from "fs";
+import ld from "lodash";
 import * as sb from "stream-buffers";
 import * as util from "util";
 
@@ -113,6 +115,17 @@ export async function addToNetwork(container: Docker.Container, network: Docker.
 
 export async function removeFromNetwork(container: Docker.Container, network: Docker.Network) {
     await network.disconnect({ Container: container.id });
+}
+
+export async function getSelfContainer(docker: Docker): Promise<Docker.Container> {
+    const entries = fs.readFileSync("/proc/self/cgroup").toString().split(/\r?\n/);
+    if (entries.length === 0) throw new Error("Cannot get own container id!");
+    const entry = entries[0];
+    const [, , path] = entry.split(":");
+    const psplit = path.split("/");
+    const id = ld.last(psplit);
+    if (id === undefined) throw new Error("Cannot get own container id!");
+    return docker.getContainer(id);
 }
 
 export async function waitFor(
