@@ -12,6 +12,7 @@ export {
     AdaptPrimitiveElement,
     AnyProps,
     AnyState,
+    BuildHelpers,
     BuiltinProps,
     isElement,
     isMountedElement,

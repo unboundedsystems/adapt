@@ -8,6 +8,7 @@ import Adapt, {
     Group,
     handle,
     isHandle,
+    isMountedElement,
     PrimitiveComponent,
     rule,
     serializeDom,
@@ -42,9 +43,9 @@ class CallReplace extends Component<{}> {
 }
 
 async function doBuild(orig: AdaptElement, style: AdaptElementOrNull = null) {
-    const { contents: dom, messages } = await build(orig, style);
+    const { contents: dom, mountedOrig, messages } = await build(orig, style);
     should(messages).have.length(0);
-    return dom;
+    return { dom, mountedOrig };
 }
 
 describe("Element Handle", () => {
@@ -70,19 +71,27 @@ describe("Element Handle", () => {
             .throwError(/Cannot associate a Handle with more than one AdaptElement. Original element type Empty/);
     });
 
-    it("Should reference final built element", async () => {
+    it("Should reference the correct built elements", async () => {
         const hand = handle();
         const orig =
             <Group>
                 <MakeEmpty handle={hand} id={5} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom, mountedOrig } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
         should(dom.props.children[0].componentType).equal(Empty);
         should(dom.props.children[1].props.ref).equal(hand);
         should(dom.props.children[1].props.ref.target).equal(dom.props.children[0]);
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const origChildren = mountedOrig.buildData.origChildren;
+        if (origChildren === undefined) throw should(origChildren).not.Undefined();
+        const anything = origChildren[1];
+        const makeEmpty = origChildren[0];
+        if (!isMountedElement(anything)) throw should(isMountedElement(anything)).True();
+        should(anything.props.ref.mountedOrig).equal(makeEmpty);
     });
 
     it("Should reference final built element if replaced with style", async () => {
@@ -96,7 +105,7 @@ describe("Element Handle", () => {
             <Style>
                 {Empty} {rule((props) => <Anything final="yes" />)}
             </Style>;
-        const dom = await doBuild(orig, style);
+        const { dom, mountedOrig } = await doBuild(orig, style);
         if (dom == null) throw should(dom).not.be.Null();
 
         should(dom.props.children).have.length(2);
@@ -104,6 +113,14 @@ describe("Element Handle", () => {
         should(dom.props.children[0].props.final).equal("yes");
         should(dom.props.children[1].props.ref).equal(hand);
         should(dom.props.children[1].props.ref.target).equal(dom.props.children[0]);
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const origChildren = mountedOrig.buildData.origChildren;
+        if (origChildren === undefined) throw should(origChildren).not.Undefined();
+        const anything = origChildren[1];
+        const replaced = origChildren[0];
+        if (!isMountedElement(anything)) throw should(isMountedElement(anything)).True();
+        should(anything.props.ref.mountedOrig).equal(replaced);
     });
 
     it("Should reference null if no final element present", async () => {
@@ -113,7 +130,7 @@ describe("Element Handle", () => {
                 <BuildNull handle={hand} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children.componentType).equal(Anything);
         should(dom.props.children.props.ref).equal(hand);
@@ -127,7 +144,7 @@ describe("Element Handle", () => {
                 <CallReplace handle={hand} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom, mountedOrig } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
@@ -143,6 +160,14 @@ describe("Element Handle", () => {
         should(child1.props.ref).equal(hand);
         should(child1.props.ref.target).equal(expectedTarget);
         should(child1.props.ref.target.props.id).equal(2);
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const origChildren = mountedOrig.buildData.origChildren;
+        if (origChildren === undefined) throw should(origChildren).not.Undefined();
+        const anything = origChildren[1];
+        const callReplace = origChildren[0];
+        if (!isMountedElement(anything)) throw should(isMountedElement(anything)).True();
+        should(anything.props.ref.mountedOrig).equal(callReplace);
     });
 
     it("Should reference other element if style calls replace", async () => {
@@ -165,7 +190,7 @@ describe("Element Handle", () => {
                     );
                 })}
             </Style>;
-        const dom = await doBuild(orig, style);
+        const { dom } = await doBuild(orig, style);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
@@ -190,13 +215,13 @@ describe("Element Handle", () => {
                 <MakeEmpty handle={hand} id={1} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
         const domXml = serializeDom(dom);
         should(domXml).equal(
-`<Adapt>
+            `<Adapt>
   <Group key="Group">
     <Empty id="1">
       <__props__>
@@ -226,15 +251,15 @@ describe("Element Handle", () => {
         const orig =
             <Group>
                 <MakeEmpty handle={hand} id={1} />
-                <Anything ref={{ foo: [{hand}] }} />
+                <Anything ref={{ foo: [{ hand }] }} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
         const domXml = serializeDom(dom, true);
         should(domXml).equal(
-`<Adapt>
+            `<Adapt>
   <Group key="Group" xmlns="urn:Adapt:@usys/adapt:0.0.1::builtin_components.js:Group">
     <Empty id="1" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/testlib.js:Empty">
       <__props__>
@@ -287,7 +312,7 @@ describe("Element Handle", () => {
                 <MakeEmpty handle={hand} id={1} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
@@ -306,7 +331,7 @@ describe("Element Handle", () => {
                 <BuildNull handle={hand} />
                 <Anything ref={hand} />
             </Group>;
-        const dom = await doBuild(orig);
+        const { dom } = await doBuild(orig);
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children.componentType).equal(Anything);
 

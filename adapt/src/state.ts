@@ -78,9 +78,9 @@ class StateStoreImpl implements StateStore {
 }
 
 export type StateUpdater<P = AnyProps, S = AnyState> =
-    (prev: S, props: P) => Partial<S>;
+    (prev: S, props: P) => Partial<S> | Promise<Partial<S>>;
 
-export function applyStateUpdates<
+export async function applyStateUpdates<
     P extends object = AnyProps,
     S extends object = AnyState>(
         path: StateNamespace,
@@ -99,7 +99,7 @@ export function applyStateUpdates<
     for (const updater of updaters) {
         // Copy current state so updater can't modify newState
         // https://github.com/Microsoft/TypeScript/pull/13288
-        const u = updater({ ...newState as any }, props);
+        const u = await updater({ ...newState as any }, props);
 
         newState = { ...newState as any, ...u as any };
     }

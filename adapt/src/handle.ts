@@ -4,7 +4,8 @@ import { AdaptElement, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
-    readonly target: AdaptElement | null;
+    readonly target: AdaptElement | null | undefined;
+    readonly mountedOrig: AdaptElement | null | undefined;
     readonly name?: string;
     replaceTarget(child: AdaptElement | null): void;
 }
@@ -50,6 +51,32 @@ export interface HandleObj {
 
 export function isHandleObj(val: object): val is HandleObj {
     return (val as any).__adaptIsHandle === handleSignature;
+}
+
+function traverseUntil(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
+    while (!pred(hand)) {
+        const orig = hand.origTarget;
+        if (orig === undefined) {
+            throw new InternalError(`Handle chain has undefined origTarget`);
+        }
+        if (hand.childElement === undefined) break;
+
+        // Null child means no Element is present for this handle in
+        // the final DOM.
+        if (hand.childElement === null) return null;
+
+        const childHand = hand.childElement.props.handle;
+        if (childHand == null) {
+            throw new InternalError(`no Handle present on Element in child chain`);
+        }
+        if (!(childHand instanceof HandleImpl)) {
+            throw new InternalError(`Handle present on Element is not a HandleImpl`);
+        }
+
+        hand = childHand;
+    }
+
+    return hand.origTarget;
 }
 
 class HandleImpl implements HandleInternal {
@@ -109,30 +136,18 @@ class HandleImpl implements HandleInternal {
         return this[id];
     }
 
-    get target(): AdaptElement | null {
-        // tslint:disable-next-line:no-this-assignment
-        let hand: HandleImpl = this;
-        while (true) {
-            const orig = hand[origElement];
-            if (orig === undefined) {
-                throw new Error(`This handle was never associated with an AdaptElement`);
-            }
-            if (hand.childElement === undefined) return orig;
+    get origTarget(): AdaptElement | null | undefined {
+        const orig = this[origElement];
+        return orig;
+    }
 
-            // Null child means no Element is present for this handle in
-            // the final DOM.
-            if (hand.childElement === null) return null;
+    get mountedOrig(): AdaptElement | null | undefined {
+        return traverseUntil(this, (hand) => isMountedElement(hand.origTarget));
+    }
 
-            const childHand = hand.childElement.props.handle;
-            if (childHand == null) {
-                throw new InternalError(`no Handle present on Element in child chain`);
-            }
-            if (!(childHand instanceof HandleImpl)) {
-                throw new InternalError(`Handle present on Element is not a HandleImpl`);
-            }
-
-            hand = childHand;
-        }
+    get target(): AdaptElement | null | undefined {
+        if (this.origTarget === undefined) return undefined;
+        return traverseUntil(this, () => false);
     }
 
     toString() {

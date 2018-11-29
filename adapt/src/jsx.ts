@@ -8,6 +8,7 @@ import { StyleRule } from "./css";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
+import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
 import { adaptGqlExecute } from "./observers/query_transforms";
 import { findObserver } from "./observers/registry";
@@ -101,6 +102,10 @@ export function componentStateNow<
     }
 }
 
+export interface BuildHelpers {
+    elementStatus<T = unknown>(handle: Handle): Promise<Status | undefined>;
+}
+
 export abstract class Component<Props extends object = {}, State extends object = {}> {
 
     // cleanup gets called after build of this component's
@@ -163,7 +168,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     // If a component uses state, it MUST define initialState
     initialState?(): State;
 
-    abstract build(): AdaptElementOrNull | Promise<AdaptElementOrNull>;
+    abstract build(helpers: BuildHelpers): AdaptElementOrNull | Promise<AdaptElementOrNull>;
     status(observeForStatus: ObserveForStatus, buildData: BuildData): Promise<unknown> {
         return defaultStatus(this.props, componentStateNow(this));
     }
@@ -317,18 +322,58 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.buildData.id = this.id;
     }
 
-    postBuild(stateStore: StateStore): { stateChanged: boolean } {
+    async postBuild(stateStore: StateStore): Promise<{ stateChanged: boolean }> {
         if (this.component == null) return { stateChanged: false };
         const updates: StateUpdater[] = (this.component as any).stateUpdates;
         return {
-            stateChanged: applyStateUpdates(this.stateNamespace, stateStore,
+            stateChanged: await applyStateUpdates(this.stateNamespace, stateStore,
                 this.props, updates)
         };
     }
 
-    status = async () => {
+    getStatusMethod = (): ((o: ObserveForStatus, b: BuildData) => Promise<any>) => {
+        if (isSFCElement(this)) {
+            const customStatus = this.componentType.status;
+            if (customStatus) {
+                return (observeForStatus, buildData) => customStatus(this.props, observeForStatus, buildData);
+            }
+            return defaultStatus;
+        }
+        return (o, b) => {
+            if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
+            return this.component.status(o, b);
+        };
+    }
+
+    statusCommon = async (observeForStatus: ObserveForStatus) => {
         if (this.reanimated) throw new NoStatusAvailable("status for reanimated elements not supported yet");
         if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
+
+        const buildData = this.buildData as BuildData; //After build, this type assertion should hold
+        if (buildData === undefined) throw new Error(`Status requested but no buildData: ${this}`);
+
+        const statusMethod = this.getStatusMethod();
+        return statusMethod(observeForStatus, buildData);
+    }
+
+    statusWithMgr = async (mgr: ObserverManagerDeployment) => {
+        const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
+            const result = await mgr.executeQuery(observer, query, variables);
+            if (result.errors) {
+                const badErrors = result.errors.filter((e) => !e.message.startsWith("Adapt Observer Needs Data:"));
+                if (badErrors.length !== 0) {
+                    const msgs = badErrors.map((e) => e.originalError ? e.stack : gqlPrintError(e)).join("\n");
+                    throw new Error(msgs);
+                }
+                const needMsgs = result.errors.map((e) => e.originalError ? e.stack : gqlPrintError(e)).join("\n");
+                throw new ObserverNeedsData(needMsgs);
+            }
+            return result.data;
+        };
+        return this.statusCommon(observeForStatus);
+    }
+
+    status = async () => {
         const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
             //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
             const plugin = findObserver(observer);
@@ -347,15 +392,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             }
             return result.data;
         };
-        const buildData = this.buildData as BuildData; //After build, this type assertion should hold
-        if (buildData === undefined) throw new Error(`Status requested but no buildData: ${this}`);
-        if (isSFCElement(this)) {
-            const customStatus = this.componentType.status;
-            if (customStatus) return customStatus(this.props, observeForStatus, buildData);
-            return defaultStatus(this.props);
-        }
-        if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
-        return this.component.status(observeForStatus, buildData);
+        return this.statusCommon(observeForStatus);
     }
 
     get id() { return JSON.stringify(this.stateNamespace); }
