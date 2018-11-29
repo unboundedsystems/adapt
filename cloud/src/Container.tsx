@@ -27,6 +27,7 @@ export interface ContainerProps {
     dockerHost: string;
     image: ImageId;
 
+    autoRemove?: boolean;
     ports?: PortDescription[];
     stdinOpen?: boolean;
     tty?: boolean;
@@ -40,6 +41,7 @@ export interface ContainerProps {
 
 export abstract class Container extends Component<ContainerProps, {}> {
     static defaultProps = {
+        autoRemove: true,
         ports: [],
         stdinOpen: false,
         tty: false,
