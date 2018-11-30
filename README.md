@@ -19,6 +19,22 @@ require additional information, such as cloud credentials to be set.
 ADAPT_RUN_LONG_TESTS=1 make
 ```
 
+### Local AWS credentials
+To run tests against the real AWS API, you'll need to set up credentials. Although
+you can set the standard AWS environment variables (`AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`), the recommended way to set
+credentials specific to the Adapt unit tests is to create the file
+`.adaptAwsCreds` in your home directory where the contents are JSON like this:
+```
+{
+    "awsAccessKeyId": "your key ID",
+    "awsSecretAccessKey": "your secret key",
+    "awsRegion": "us-west-2"
+}
+```
+Note that your `awsRegion` **MUST** be `us-west-2`.
+
+
 ## Parallel make
 The environment variable `ADAPT_PARALLEL_MAKE` controls the running of
 parallel jobs in the build & test process. By default, the number of parallel
