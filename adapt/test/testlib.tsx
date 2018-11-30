@@ -1,5 +1,4 @@
 import { findPackageDirs } from "@usys/utils";
-import * as ld from "lodash";
 import should from "should";
 import * as Adapt from "../src";
 import * as jsx from "../src/jsx";
@@ -60,38 +59,7 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
     }
 }
 
-export const publicElementFields = {
-    props: null,
-    componentType: null
-};
-
-export function deepFilterElemsToPublic(o: any): any {
-    if (!ld.isObject(o)) return o;
-
-    if (ld.isArray(o)) {
-        return o.map((item) => deepFilterElemsToPublic(item));
-    }
-
-    if (Adapt.isElement(o)) {
-        const filtered = ld.pickBy(o, (value: any, key: string) => {
-            return key in publicElementFields;
-        });
-
-        if (filtered.props != null) {
-            // Don't include props.handle
-            const { handle, ...fProps } = filtered.props;
-            (filtered as any).props = deepFilterElemsToPublic(fProps);
-        }
-        return filtered;
-    }
-
-    const ret: { [key: string]: any } = {};
-    // tslint:disable-next-line:forin
-    for (const key in o) {
-        ret[key] = deepFilterElemsToPublic(o[key]);
-    }
-    return ret;
-}
+export { deepFilterElemsToPublic } from "../src";
 
 // Constructor data that doesn't actually keep track of state
 const noStoreConstructorData: jsx.ComponentConstructorData = {

@@ -113,6 +113,10 @@ export {
     MessageLogger,
 } from "@usys/utils";
 
+export {
+    deepFilterElemsToPublic
+} from "./utils/dom-filter";
+
 import * as internal from "./internal";
 export {
     internal,
