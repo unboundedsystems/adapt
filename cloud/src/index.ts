@@ -6,10 +6,12 @@ export * from "./LocalContainer";
 export * from "./LocalDockerHost";
 export * from "./NetworkService";
 
+import * as ansible from "./ansible";
 import * as aws from "./aws";
 import * as cloudify from "./cloudify";
 import * as k8s from "./k8s";
 export {
+    ansible,
     aws,
     cloudify,
     k8s,
