@@ -101,3 +101,5 @@ export const tuple = <T extends Literal[]>(...args: T) => args;
  * Given a tuple, returns a union of all the tuple element types.
  */
 export type TupleToUnion<T extends Literal[]> = T[number];
+
+export type FIXME_NeedsProperType = unknown;
