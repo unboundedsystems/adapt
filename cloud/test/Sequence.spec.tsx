@@ -1,4 +1,13 @@
-import Adapt, { AdaptElement, build, createStateStore, deepFilterElemsToPublic, Group, StateStore } from "@usys/adapt";
+import Adapt, {
+    AdaptElement,
+    build,
+    createStateStore,
+    deepFilterElemsToPublic,
+    Group,
+    handle,
+    isElement,
+    StateStore
+} from "@usys/adapt";
 import should from "should";
 
 export class Prim extends Adapt.PrimitiveComponent<{ id: any, ready: () => boolean }> {
@@ -43,37 +52,33 @@ describe("Sequence Component Tests", () => {
     }
 
     it("Should instantiate full sequence", async () => {
-        let ready1 = false;
-        let ready2 = false;
-        const ready3 = false;
+        const ready = [false, false, false, false];
+        const hand = handle();
         const stages = [
-            <Prim key="1" id={1} ready={() => ready1} />,
-            <Prim key="2" id={2} ready={() => ready2} />,
-            <Prim key="3" id={3} ready={() => ready3} />
+            <Prim key="1" id={1} ready={() => ready[0]} />,
+            <Prim key="2" id={2} ready={() => ready[1]} />,
+            hand,
+            <Prim key="3" id={3} ready={() => ready[3]} />
         ];
-        const root = <Sequence key="foo">
-            {...stages}
-        </Sequence>;
+        const root = <Group key="outer">
+            <Prim key="outside" id="out" ready={() => ready[2]} handle={hand} />
+            <Sequence key="foo">
+                {...stages}
+            </Sequence>
+        </Group>;
 
-        const ref1 = deepFilterElemsToPublic(<Group key="foo">
-            {...stages.slice(0, 1)}
-        </Group>);
-        let state = await buildAndCheck(root, ref1);
-        state = await buildAndCheck(root, ref1, state);
-
-        ready1 = true;
-        const ref2 = deepFilterElemsToPublic(<Group key="foo">
-            {...stages.slice(0, 2)}
-        </Group>);
-        state = await buildAndCheck(root, ref2, state);
-        state = await buildAndCheck(root, ref2, state);
-
-        ready2 = true;
-        const ref3 = deepFilterElemsToPublic(<Group key="foo">
-            {...stages}
-        </Group>);
-        state = await buildAndCheck(root, ref3, state);
-        state = await buildAndCheck(root, ref3, state);
+        // tslint:disable-next-line:prefer-for-of
+        for (let stage = 0; stage < stages.length; stage++) {
+            const ref = deepFilterElemsToPublic(<Group key="outer">
+                <Prim key="outside" id={"out"} ready={() => ready[2]} />
+                <Group key="foo">
+                    {...stages.slice(0, stage + 1).filter(isElement)}
+                </Group>
+            </Group>);
+            let state = await buildAndCheck(root, ref);
+            state = await buildAndCheck(root, ref, state);
+            ready[stage] = true;
+        }
     });
 
     it("Should instantiate full sequence, even if intermediate becomes unready", async () => {
