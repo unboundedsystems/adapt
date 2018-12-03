@@ -10,7 +10,7 @@ import Adapt, {
     handle,
     Handle,
     ObserveForStatus,
-    PrimitiveComponent
+    PrimitiveComponent,
 } from "../src";
 import MockObserver from "../src/observers/MockObserver";
 import { deepFilterElemsToPublic, Empty } from "./testlib";
