@@ -68,6 +68,7 @@ describe("Sequence Component Tests", () => {
         </Group>;
 
         // tslint:disable-next-line:prefer-for-of
+        let state = createStateStore();
         for (let stage = 0; stage < stages.length; stage++) {
             const ref = deepFilterElemsToPublic(<Group key="outer">
                 <Prim key="outside" id={"out"} ready={() => ready[2]} />
@@ -75,7 +76,7 @@ describe("Sequence Component Tests", () => {
                     {...stages.slice(0, stage + 1).filter(isElement)}
                 </Group>
             </Group>);
-            let state = await buildAndCheck(root, ref);
+            state = await buildAndCheck(root, ref, state);
             state = await buildAndCheck(root, ref, state);
             ready[stage] = true;
         }
