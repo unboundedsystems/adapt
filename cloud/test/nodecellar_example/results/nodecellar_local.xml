@@ -11,6 +11,7 @@
     </LocalDockerHost>
     <LocalContainer name="mongo">
       <__props__>
+        <prop name="autoRemove">true</prop>
         <prop name="command">"mongod --rest --httpinterface --smallfiles"</prop>
         <prop name="environment">{}</prop>
         <prop name="image">{
@@ -33,6 +34,7 @@
     </LocalContainer>
     <LocalContainer>
       <__props__>
+        <prop name="autoRemove">true</prop>
         <prop name="command">"nodejs server.js"</prop>
         <prop name="environment">{
   "NODECELLAR_PORT": "8080",

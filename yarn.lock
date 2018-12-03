@@ -482,10 +482,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/node-json-db@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@types/node-json-db/-/node-json-db-0.0.1.tgz#f5e60b36e8b3592ac047f427595de3f2d6592b86"
-
 "@types/node@*":
   version "10.5.2"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.2.tgz#f19f05314d5421fe37e74153254201a7bf00a707"
@@ -505,6 +501,10 @@
 "@types/numeral@^0.0.25":
   version "0.0.25"
   resolved "https://registry.yarnpkg.com/@types/numeral/-/numeral-0.0.25.tgz#b6f55062827a4787fe4ab151cf3412a468e65271"
+
+"@types/p-map-series@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@types/p-map-series/-/p-map-series-1.0.1.tgz#2fbd18ac08db2528b57f944e0dee4ba4f2027e4e"
 
 "@types/prettier@1.13.2":
   version "1.13.2"
@@ -3889,9 +3889,9 @@ node-jose@^1.0.0:
     node-forge "^0.7.1"
     uuid "^3.0.1"
 
-node-json-db@^0.7.5:
-  version "0.7.5"
-  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.7.5.tgz#9906eb6c0df504bd667ae829550c9823ea4cce4e"
+node-json-db@0.9.2:
+  version "0.9.2"
+  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.9.2.tgz#b79eb61d6398476a39339a7a6d67df780f64bf15"
   dependencies:
     mkdirp "0.5.x"
 
@@ -4171,9 +4171,19 @@ p-locate@^3.0.0:
   dependencies:
     p-limit "^2.0.0"
 
+p-map-series@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/p-map-series/-/p-map-series-1.0.0.tgz#bf98fe575705658a9e1351befb85ae4c1f07bdca"
+  dependencies:
+    p-reduce "^1.0.0"
+
 p-map@^1.1.1:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/p-map/-/p-map-1.2.0.tgz#e4e94f311eabbc8633a1e79908165fca26241b6b"
+
+p-reduce@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/p-reduce/-/p-reduce-1.0.0.tgz#18c2b0dd936a4690a529f8231f58a0fdb6a47dfa"
 
 p-some@^2.0.0:
   version "2.0.1"

@@ -1,5 +1,4 @@
 import Docker = require("dockerode");
-import * as fs from "fs";
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
 import moment from "moment";
@@ -10,6 +9,7 @@ import {
     dockerExec,
     dockerPull,
     getNetwork,
+    getSelfContainer,
     removeFromNetwork,
     waitFor,
 } from "./dockerutils";
@@ -46,17 +46,6 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container,
     }
 
     return kubeconfig;
-}
-
-async function getSelfContainer(docker: Docker): Promise<Docker.Container> {
-    const entries = fs.readFileSync("/proc/self/cgroup").toString().split(/\r?\n/);
-    if (entries.length === 0) throw new Error("Cannot get own container id!");
-    const entry = entries[0];
-    const [, , path] = entry.split(":");
-    const psplit = path.split("/");
-    const id = ld.last(psplit);
-    if (id === undefined) throw new Error("Cannot get own container id!");
-    return docker.getContainer(id);
 }
 
 async function runMinikubeContainer(

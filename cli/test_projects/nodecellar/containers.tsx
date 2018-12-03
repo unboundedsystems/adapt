@@ -26,6 +26,7 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
         return (
             <cloud.Container
                 name={props.name!}
+                autoRemove={true}
                 dockerHost={props.dockerHost!}
                 image={props.image!}
                 ports={[ props.ctrPort! ]}
@@ -75,6 +76,7 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
         return (
             <cloud.Container
                 name={props.name!}
+                autoRemove={true}
                 dockerHost={props.dockerHost}
                 image={props.image!}
                 ports={[props.mongoCtrPort!, props.webStatusCtrPort!]}

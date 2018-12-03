@@ -4,18 +4,12 @@ import {
     PrimitiveComponent,
 } from "@usys/adapt";
 import { AnsibleHost } from "./ansible_host";
+import { Vars } from "./common";
 
 export interface AnsibleRoleProps {
-    ansibleHost: AnsibleHost;
+    ansibleHost?: AnsibleHost;
     galaxy?: string;
-    vars?: { [ key: string ]: any };
-    /*
-    file?: string;
-    name?: string;
-    environment?: { [ key: string ]: string };
-    tasks?: any;
-    timeout?: number; // seconds
-    */
+    vars?: Vars;
 }
 
 export function roleName(props: AnsibleRoleProps): string | undefined {

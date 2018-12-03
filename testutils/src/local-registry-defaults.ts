@@ -1,4 +1,5 @@
-import { npm, repoDirs } from "@usys/utils";
+import { npm, repoDirs, repoRootDir } from "@usys/utils";
+import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
 
@@ -15,14 +16,21 @@ export const npmLocalProxyOpts = {
     userconfig: path.join(repoDirs.verdaccio, "npmrc_test"),
 };
 
-export const defaultPublishList = [
-    repoDirs.adapt,
-    repoDirs.cloud,
-    repoDirs["collections-ts"],
-    repoDirs["dom-parser"],
-    repoDirs.utils,
-    path.join(path.dirname(repoDirs.adapt), "fork-require"),
-];
+const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
+
+export const defaultPublishList =
+    topLevelPackageJson.workspaces.packages
+        .filter((p: string) => {
+            switch (path.basename(p)) {
+                case "cli":
+                case "testutils":
+                case "mocha-slow-options":
+                    return false;
+                default:
+                    return true;
+            }
+        })
+        .map((p: string) => path.join(repoRootDir, p));
 
 export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOpts = {}): Promise<void> {
     opts = { ...npmLocalProxyOpts, ...opts };

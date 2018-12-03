@@ -132,7 +132,7 @@ function getUrn(elem: AdaptElement) {
     if (!isComponentElement(elem)) {
         throw new Error(
             `Unable to create reanimateable representation of ` +
-            `'${elem.componentType.name}' because it doesn't extend ` +
+            `'${elem.componentName}' because it doesn't extend ` +
             `Adapt.Component`);
     }
 
@@ -197,9 +197,9 @@ function serializeElement(
 
     if (reanimateable) {
         const urn = getUrn(elem);
-        node = parent.ele(elem.componentType.name, { ...shortProps, xmlns: urn });
+        node = parent.ele(elem.componentName, { ...shortProps, xmlns: urn });
     } else {
-        node = parent.ele(elem.componentType.name, shortProps);
+        node = parent.ele(elem.componentName, shortProps);
     }
     if (longProps != null) {
         addPropsNode(node, longProps, reanimateable);

@@ -6,6 +6,8 @@ import {
     mochaTmpdir,
 } from "@usys/testutils";
 import { filePathToUrl, sleep } from "@usys/utils";
+import Docker = require("dockerode");
+import execa from "execa";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { clitest, expect } from "../common/fancy";
@@ -53,41 +55,100 @@ const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
+async function bootstrapLocalSystem() {
+    await fs.writeFile("/etc/apt/sources.list.d/ansible.list",
+        "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main\n");
+    await execa("apt-key", [ "adv", "--keyserver", "keyserver.ubuntu.com",
+        "--recv-keys", "93C4A3FD7BB9C367" ]);
+    await execa("apt-get", [ "update" ]);
+    await execa("apt-get", [ "install", "-y", "--no-install-recommends", "ansible" ]);
+}
+
+async function deleteContainer(docker: Docker, name: string) {
+    try {
+        const ctr = docker.getContainer(name);
+        await ctr.stop();
+        await ctr.remove();
+    } catch (e) {/**/}
+}
+
 // NOTE(mark): These tests use the same project directory to deploy multiple
 // times, both to test that functionality and to reduce setup runtime (mostly
 // from NPM).
 describeLong("Nodecellar system tests", function () {
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" });
     let kClient: k8sutils.KubeClient;
     let aClient: AWS.CloudFormation;
     let kDeployID: string | undefined;
     let aDeployID: string | undefined;
 
-    this.timeout(2 * 60 * 1000);
+    this.timeout(6 * 60 * 1000);
 
     const minikube = minikubeMocha.all();
 
     const copyDir = path.join(projectsRoot, "nodecellar");
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
-    before(async () => {
-        kClient = await minikube.client;
-        await fs.outputJson("kubeconfig.json", minikube.kubeconfig);
+    before(async function () {
+        this.timeout(60 * 1000);
+        const results = await Promise.all([
+            minikube.client,
+            loadAwsCreds(),
+            // Bootstrap our CLI system with ansible
+            bootstrapLocalSystem(),
+            deleteContainer(docker, "mongo"),
+            deleteContainer(docker, "nodecellar"),
+            fs.outputJson("kubeconfig.json", minikube.kubeconfig),
+        ]);
 
-        const creds = await loadAwsCreds();
-        aClient = getAwsClient(creds);
+        kClient = results[0];
+        aClient = getAwsClient(results[1]);
+    });
+
+    after(async function () {
+        this.timeout(30 * 1000);
+        await Promise.all([
+            deleteContainer(docker, "mongo"),
+            deleteContainer(docker, "nodecellar"),
+        ]);
     });
 
     afterEach(async function () {
         this.timeout(65 * 1000);
         if (kDeployID && kClient) {
-            await deleteAll("pods", { client: kClient, deployID: kDeployID });
-            await deleteAll("services", { client: kClient, deployID: kDeployID });
+            await Promise.all([
+                deleteAll("pods", { client: kClient, deployID: kDeployID }),
+                deleteAll("services", { client: kClient, deployID: kDeployID }),
+            ]);
             kDeployID = undefined;
         }
         if (aDeployID && aClient) {
             await deleteAllStacks(aClient, aDeployID, 60 * 1000, false);
             aDeployID = undefined;
         }
+    });
+
+    ncTestChain
+    .command(["deploy:create", "--init", "dev"])
+
+    .it("Should deploy local style", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+
+        const matches = ctx.stdout.match(newDeployRegex);
+        expect(matches).to.be.an("array").with.length(2);
+        if (matches && matches[1]) kDeployID = matches[1];
+        expect(kDeployID).to.be.a("string").with.length.greaterThan(0);
+
+        const nc = docker.getContainer("nodecellar");
+        const ncIP = (await nc.inspect()).NetworkSettings.IPAddress;
+
+        let ret = await execa("curl", [ `http://${ncIP}:8080/` ]);
+        expect(ret.stdout).contains("<title>Node Cellar</title>");
+
+        ret = await execa("curl", [ `http://${ncIP}:8080/wines` ]);
+        expect(ret.stdout).contains("Though dense and chewy, this wine does not overpower");
     });
 
     ncTestChain
@@ -158,7 +219,7 @@ describeLong("Nodecellar system tests", function () {
         // so rummage around in the deployment history to get it. Yuck.
         const deployDir = findDeploymentDir(aDeployID);
         const historyDirs = await findHistoryDirs(deployDir);
-        expect(historyDirs).to.have.length(1);
+        expect(historyDirs).to.have.length(2);
         const store = await fs.readJson(path.join(historyDirs[0], "adapt_state.json"));
         const stackName = getStackName(store);
 

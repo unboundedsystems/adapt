@@ -1,3 +1,4 @@
+import { sleep } from "@usys/utils";
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";
@@ -173,6 +174,164 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.observe();
         mgr.analyze();
         await mgr.finish();
+    });
+
+});
+
+class Concurrent {
+    concurrent = 0;
+    maxConcurrent = 0;
+
+    inc() {
+        if (++this.concurrent > this.maxConcurrent) this.maxConcurrent = this.concurrent;
+    }
+    dec() {
+        --this.concurrent;
+    }
+}
+
+class SlowPlugin implements pluginSupport.Plugin<{}> {
+    local = new Concurrent();
+
+    constructor(
+        public seriesActions: boolean,
+        readonly spy: sinon.SinonSpy,
+        public shared: Concurrent,
+        ) { }
+
+    async start(options: pluginSupport.PluginOptions) {/**/}
+    async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
+        return {};
+    }
+    act = async () => {
+        this.local.inc();
+        this.shared.inc();
+
+        await sleep(20);
+
+        this.local.dec();
+        this.shared.dec();
+    }
+    analyze(_oldDom: AdaptElementOrNull, _dom: AdaptElementOrNull, _obs: {}): pluginSupport.Action[] {
+        return [
+            { description: "action1", act: this.act },
+            { description: "action2", act: this.act },
+            { description: "action3", act: this.act },
+        ];
+    }
+    async finish() {
+        this.spy("max", this.local.maxConcurrent);
+    }
+}
+
+describe("Plugin concurrency", () => {
+    let mgr: pluginSupport.PluginManager;
+    let logger: MockLogger;
+    let options: pluginSupport.PluginManagerStartOptions;
+    let dataDir: string;
+    let registered: Map<string, pluginSupport.PluginModule>;
+    let shared: Concurrent;
+    const dom = <Group />;
+
+    mochaTmpdir.all("adapt-plugin-tests");
+
+    beforeEach(() => {
+        logger = createMockLogger();
+        registered = new Map<string, pluginSupport.PluginModule>();
+        shared = new Concurrent();
+
+        dataDir = path.join(process.cwd(), "pluginData");
+        options = {
+            logger,
+            deployID: "deploy123",
+            dataDir,
+        };
+    });
+
+    it("Should act in parallel", async () => {
+        const spy = sinon.spy();
+        registered.set("SlowPlugin", {
+            name: "SlowPlugin",
+            module,
+            create: () => new SlowPlugin(false, spy, shared),
+            packageName: "slow_plugin",
+            version: "1.0.0",
+        });
+        mgr = pluginSupport.createPluginManager(registered);
+
+        await mgr.start(null, dom, options);
+        await mgr.observe();
+        mgr.analyze();
+        await mgr.act(false);
+        await mgr.finish();
+        should(spy.callCount).equal(1);
+        should(spy.getCall(0).args[0]).eql("max");
+        should(spy.getCall(0).args[1]).eql(3);
+    });
+
+    it("Should act in series", async () => {
+        const spy = sinon.spy();
+        registered.set("SlowPlugin", {
+            name: "SlowPlugin",
+            module,
+            create: () => new SlowPlugin(true, spy, shared),
+            packageName: "slow_plugin",
+            version: "1.0.0",
+        });
+        mgr = pluginSupport.createPluginManager(registered);
+
+        await mgr.start(null, dom, options);
+        await mgr.observe();
+        mgr.analyze();
+        await mgr.act(false);
+        await mgr.finish();
+        should(spy.callCount).equal(1);
+        should(spy.getCall(0).args[0]).eql("max");
+        should(spy.getCall(0).args[1]).eql(1);
+    });
+
+    it("Should act in series and parallel", async () => {
+        const spies = [
+            sinon.spy(),
+            sinon.spy(),
+            sinon.spy(),
+        ];
+        registered.set("Series1", {
+            name: "Series1",
+            module,
+            create: () => new SlowPlugin(true, spies[0], shared),
+            packageName: "slow_plugin",
+            version: "1.0.0",
+        });
+        registered.set("Series2", {
+            name: "Series2",
+            module,
+            create: () => new SlowPlugin(true, spies[1], shared),
+            packageName: "slow_plugin",
+            version: "1.0.0",
+        });
+        registered.set("Parallel", {
+            name: "Parallel",
+            module,
+            create: () => new SlowPlugin(false, spies[2], shared),
+            packageName: "slow_plugin",
+            version: "1.0.0",
+        });
+        mgr = pluginSupport.createPluginManager(registered);
+
+        await mgr.start(null, dom, options);
+        await mgr.observe();
+        mgr.analyze();
+        await mgr.act(false);
+        await mgr.finish();
+        spies.forEach((spy) => {
+            should(spy.callCount).equal(1);
+            should(spy.getCall(0).args[0]).eql("max");
+        });
+        should(spies[0].getCall(0).args[1]).eql(1);
+        should(spies[1].getCall(0).args[1]).eql(1);
+        should(spies[2].getCall(0).args[1]).eql(3);
+        should(shared.maxConcurrent).eql(5);
     });
 });
 

@@ -110,9 +110,9 @@ class HandleImpl implements HandleInternal {
             const path = isMountedElement(orig) ? orig.path : "<not mounted>";
             throw new Error(
                 `Cannot associate a Handle with more than one AdaptElement. ` +
-                `Original element type ${orig && orig.componentType.name}, ` +
+                `Original element type ${orig && orig.componentName}, ` +
                 `path: ${path}, ` +
-                `second association element type ${el && el.componentType.name}`);
+                `second association element type ${el && el.componentName}`);
         }
         this[origElement] = el;
     }

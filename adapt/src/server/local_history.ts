@@ -2,11 +2,11 @@ import { inDebugger } from "@usys/utils";
 import * as fs from "fs-extra";
 import { padStart } from "lodash";
 import moment from "moment";
-import JsonDB = require("node-json-db");
+import JsonDB from "node-json-db";
 import * as path from "path";
 import * as lockfile from "proper-lockfile";
 
-import { HistoryEntry, HistoryName, HistoryStore } from "./history";
+import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore, isHistoryStatus, isStatusComplete } from "./history";
 
 // These are exported only for testing
 export const dataDirName = "dataDir";
@@ -21,6 +21,24 @@ interface DirInfo {
 
 // 1 day if in the debugger, otherwise 10 sec
 const lockStaleTime = inDebugger() ? 24 * 60 * 60 * 1000 : 10 * 1000;
+
+function dirStatus(dirName: string): HistoryStatus {
+    // Example dirName: 00000-preAct-2018-11-15T22:20:46+00:00
+    const fields = dirName.split("-");
+    const status = fields[1];
+    if (fields.length !== 5 || !isHistoryStatus(status)) {
+        throw new Error(`History directory '${dirName}' unrecognized format`);
+    }
+    return status;
+}
+
+function dirStatusMatches(dirName: string, expected: HistoryStatus | undefined) {
+    if (expected === undefined) return true;
+    const status = dirStatus(dirName);
+
+    if (expected === HistoryStatus.complete) return isStatusComplete(status);
+    else return dirStatus(dirName) === expected;
+}
 
 class LocalHistoryStore implements HistoryStore {
     dataDir: string;
@@ -53,12 +71,13 @@ class LocalHistoryStore implements HistoryStore {
     }
 
     async destroy() {
+        await this.releaseDataDir();
         try {
             this.db.delete(this.dbPath);
-        } catch (err) {
-            // ignore
-        }
-        await fs.remove(this.rootDir);
+        } catch (err) { /**/ }
+        try {
+            await fs.remove(this.rootDir);
+        } catch (err) { /**/ }
     }
 
     async commitEntry(toStore: HistoryEntry): Promise<void> {
@@ -69,7 +88,7 @@ class LocalHistoryStore implements HistoryStore {
                 `'${toStore.dataDir}'. Should be '${this.dataDir}'`);
         }
 
-        const dirName = await this.nextDirName();
+        const dirName = await this.nextDirName(toStore.status);
         const dirPath = path.join(this.rootDir, dirName);
 
         info.dataDir = path.join(dirPath, dataDirName);
@@ -78,14 +97,26 @@ class LocalHistoryStore implements HistoryStore {
         await fs.outputFile(path.join(dirPath, stateFilename), stateJson);
         await fs.outputFile(path.join(dirPath, observationsFilename), observationsJson);
         await fs.outputJson(path.join(dirPath, infoFilename), info);
-        await fs.move(this.dataDir, path.join(dirPath, dataDirName));
-        await this.releaseDataDir();
 
-        this.db.push(this.dbPath + "/stateDirs[]", dirName);
+        // If we're committing preAct, the directory remains in place and
+        // locked; just snapshot it with a copy. Otherwise, we're done with it
+        // and we can move it and unlock it.
+        if (toStore.status === HistoryStatus.preAct) {
+            await fs.copy(this.dataDir, info.dataDir, {
+                overwrite: false,
+                errorOnExist: true,
+                preserveTimestamps: true,
+            });
+        } else {
+            await fs.move(this.dataDir, info.dataDir);
+            await this.releaseDataDir();
+        }
+
+        this.db.push(this.dbPath + "/stateDirs[]", dirName, false /*override*/);
     }
 
-    async last(): Promise<HistoryEntry | undefined> {
-        const lastDir = this.lastDir();
+    async last(withStatus: HistoryStatus): Promise<HistoryEntry | undefined> {
+        const lastDir = this.lastDir(withStatus);
         if (lastDir === undefined) return undefined;
         return this.historyEntry(lastDir);
     }
@@ -113,10 +144,11 @@ class LocalHistoryStore implements HistoryStore {
             projectRoot: info.projectRoot,
             stackName: info.stackName,
             dataDir: info.dataDir,
+            status: info.status,
         };
     }
 
-    async getDataDir(): Promise<string> {
+    async getDataDir(withStatus: HistoryStatus): Promise<string> {
         if (this.dataDirRelease) {
             throw new Error(`Internal error: attempting to lock dataDir ` +
                 `'${this.dataDir}' twice`);
@@ -137,9 +169,11 @@ class LocalHistoryStore implements HistoryStore {
         // Ensure we start from the last committed state
         await fs.remove(this.dataDir);
         await fs.ensureDir(this.dataDir);
-        const last = this.lastDir();
+        const last = this.lastDir(withStatus);
         if (last) {
-            await fs.copy(path.join(this.rootDir, last, dataDirName), this.dataDir);
+            await fs.copy(path.join(this.rootDir, last, dataDirName), this.dataDir, {
+                preserveTimestamps: true,
+            });
         }
         return this.dataDir;
     }
@@ -151,7 +185,7 @@ class LocalHistoryStore implements HistoryStore {
         this.dataDirRelease = undefined;
     }
 
-    private async nextDirName(): Promise<string> {
+    private async nextDirName(status: HistoryStatus): Promise<string> {
         const lastDir = this.lastDir();
         let nextSeq: number;
 
@@ -160,22 +194,40 @@ class LocalHistoryStore implements HistoryStore {
         } else {
             const matches = lastDir.match(/^\d+/);
             if (matches == null) throw new Error(`stateDir entry '${lastDir}' is invalid`);
-            nextSeq = parseInt(matches[0], 10) + 1;
+            const lastSeq = parseInt(matches[0], 10);
+
+            if (status === HistoryStatus.preAct) {
+                // Completely new entry
+                nextSeq = lastSeq + 1;
+            } else {
+                if (dirStatus(lastDir) !== HistoryStatus.preAct) {
+                    throw new Error(
+                        `Unexpected status for last history entry. ` +
+                        `(lastDir: ${lastDir}, status: ${status})`);
+                }
+                // Completion of the current entry
+                nextSeq = lastSeq;
+            }
         }
         const seqStr = padStart(nextSeq.toString(10), 5, "0");
         const timestamp = moment().format();
 
-        return `${seqStr}-${timestamp}`;
+        return `${seqStr}-${status}-${timestamp}`;
     }
 
-    private lastDir(): string | undefined {
-        let lastDir: string | undefined;
+    private lastDir(withStatus?: HistoryStatus): string | undefined {
         try {
-            lastDir = this.db.getData(this.dbPath + "/stateDirs[-1]");
+            // The array returned by getData is the actual object stored in the
+            // DB. Make a copy.
+            const dirList: string[] = this.db.getData(this.dbPath + "/stateDirs").slice();
+            while (true) {
+                const dir = dirList.pop();
+                if (dir === undefined || dirStatusMatches(dir, withStatus)) return dir;
+            }
         } catch (err) {
             if (err.name !== "DataError") throw err;
+            return undefined;
         }
-        return lastDir;
     }
 
     private async getInfo(): Promise<DirInfo> {

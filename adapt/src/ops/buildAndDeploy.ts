@@ -32,6 +32,7 @@ import {
 } from "../observers";
 import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
+import { HistoryStatus } from "../server/history";
 import { createStateStore, StateStore } from "../state";
 import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
@@ -75,7 +76,7 @@ export function initialState(options: BuildOptions): FullBuildOptions {
 
 export async function currentState(options: BuildOptions): Promise<FullBuildOptions> {
     const { deployment } = options;
-    const prev = await deployment.lastEntry();
+    const prev = await deployment.lastEntry(HistoryStatus.complete);
     if (!prev) return initialState(options);
     const paths = computePaths(options);
     return {
@@ -219,13 +220,13 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
         try {
             // This is the inner context's copy of Adapt
             const inAdapt = ctx.Adapt;
-            const prev = await deployment.lastEntry();
+            const prev = await deployment.lastEntry(HistoryStatus.complete);
 
             const mgr = createPluginManager(ctx.pluginModules);
             const prevDom = prev ? await inAdapt.internal.reanimateDom(prev.domXml) : null;
 
             // This grabs a lock on the deployment's uncommitted data dir
-            const dataDir = await deployment.getDataDir();
+            const dataDir = await deployment.getDataDir(HistoryStatus.complete);
 
             const newDom = await inAdapt.internal.reanimateDom(options.domXml);
             await mgr.start(prevDom, newDom, {
@@ -245,32 +246,47 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
                 observer: parseFullObservationsJson(options.observationsJson).observer
             });
 
-            if (!options.dryRun) {
-                await deployment.commitEntry({
-                    dataDir,
+            let status = HistoryStatus.preAct;
+            await commit();
+
+            // Status is failed until we've completed everything
+            status = HistoryStatus.failed;
+
+            try {
+                await mgr.act(options.dryRun);
+                await mgr.finish();
+                status = HistoryStatus.success;
+
+                return {
+                    type: "success",
+                    deployID: deployment.deployID,
                     domXml: options.domXml,
                     stateJson: options.prevStateJson,
-                    stackName,
-                    projectRoot,
-                    fileName,
-                    observationsJson
-                });
+                    //Move data from inner adapt to outer adapt via JSON
+                    needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(options.needsData)))),
+                    messages: logger.messages,
+                    summary: logger.summary,
+                    mountedOrigStatus: options.mountedOrigStatus,
+                };
+            } finally {
+                await commit();
             }
 
-            await mgr.act(options.dryRun);
-            await mgr.finish();
+            async function commit() {
+                if (!options.dryRun) {
+                    await deployment.commitEntry({
+                        dataDir,
+                        domXml: options.domXml,
+                        fileName,
+                        observationsJson,
+                        projectRoot,
+                        stackName,
+                        stateJson: options.prevStateJson,
+                        status,
+                    });
+                }
+            }
 
-            return {
-                type: "success",
-                deployID: deployment.deployID,
-                domXml: options.domXml,
-                stateJson: options.prevStateJson,
-                //Move data from inner adapt to outer adapt via JSON
-                needsData: JSON.parse(JSON.stringify((inAdapt.internal.simplifyNeedsData(options.needsData)))),
-                messages: logger.messages,
-                summary: logger.summary,
-                mountedOrigStatus: options.mountedOrigStatus,
-            };
         } finally {
             await deployment.releaseDataDir();
         }
