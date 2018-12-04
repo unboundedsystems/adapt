@@ -30,6 +30,7 @@ function hasChildren(x: any): x is { children: unknown } {
 
 export async function noStatusOnError(f: () => unknown | Promise<unknown>): Promise<Status> {
     try {
+        // tslint:disable-next-line:await-promise
         return (await f()) as Status; //FIXME(manishv) update when we fix status types
     } catch (e) {
         if (ld.isError(e)) return { noStatus: e.message };
