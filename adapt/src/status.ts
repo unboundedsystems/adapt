@@ -1,5 +1,7 @@
 import { DocumentNode as Query } from "graphql";
+import ld from "lodash";
 import { CustomError } from "ts-custom-error";
+import util from "util";
 import { childrenToArray, isMountedElement } from "../src/jsx";
 import { BuildData } from "./dom";
 import { Variables } from "./observers/obs_manager_deployment";
@@ -30,7 +32,8 @@ export async function noStatusOnError(f: () => unknown | Promise<unknown>): Prom
     try {
         return (await f()) as Status; //FIXME(manishv) update when we fix status types
     } catch (e) {
-        return { noStatus: e.message };
+        if (ld.isError(e)) return { noStatus: e.message };
+        return { noStatus: util.inspect(e) };
     }
 }
 
