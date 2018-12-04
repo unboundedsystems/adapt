@@ -1,6 +1,7 @@
-import Adapt, { Component } from "@usys/adapt";
+import Adapt, { Component, ObserveForStatus } from "@usys/adapt";
 import { FIXME_NeedsProperType, removeUndef } from "@usys/utils";
 import { ContainerProps, Links, PortBinding, PortBindingString } from "../Container";
+import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
 export type AnsibleContainerProps = ContainerProps;
@@ -136,6 +137,10 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
             }
         ];
         return <AnsiblePlaybook playbookPlays={plays} />;
+    }
+
+    async status(observe: ObserveForStatus) {
+        return containerStatus(observe, this.props.name, this.props.dockerHost);
     }
 }
 export default AnsibleContainer;

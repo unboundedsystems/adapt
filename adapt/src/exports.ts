@@ -96,8 +96,9 @@ export {
 } from "./plugin_support";
 
 export {
+    NoStatus,
+    noStatusOnError,
     ObserveForStatus,
-    noStatusOnError
 } from "./status";
 
 export {
