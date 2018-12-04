@@ -56,7 +56,7 @@ lint: $(lint_submakes)
 $(lint_submakes): build
 
 prepush: $(prepush_submakes)
-$(prepush_submakes): lint test
+$(prepush_submakes): lint
 
 # This top-level target is purposefully different. It's NOT just making the
 # target in the submakes.
