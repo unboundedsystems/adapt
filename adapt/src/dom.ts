@@ -711,7 +711,7 @@ export interface BuildData {
     origChildren?: (AdaptMountedElement | null | unknown)[];
 }
 
-function setSuccessor(predecessor: AdaptMountedElement | null, succ: AdaptMountedElement): void {
+function setSuccessor(predecessor: AdaptMountedElement | null, succ: AdaptMountedElement | null): void {
     if (predecessor === null) return;
     if (!isElementImpl(predecessor)) throw new InternalError(`Element is not ElementImpl: ${predecessor}`);
     predecessor.buildData.successor = succ;
@@ -803,6 +803,7 @@ async function realBuildOnce(
         return out;
     }
     if (newRoot === null) {
+        setSuccessor(mountedElem, newRoot);
         options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: null });
         return out;
     }

@@ -1,4 +1,11 @@
-import Adapt, { AdaptElement, BuildData, childrenToArray, ObserveForStatus, PrimitiveComponent } from "@usys/adapt";
+import Adapt, {
+    AdaptElement,
+    BuildData,
+    childrenToArray,
+    noStatusOnError,
+    ObserveForStatus,
+    PrimitiveComponent
+} from "@usys/adapt";
 import * as ld from "lodash";
 
 /*
@@ -39,8 +46,7 @@ export class Resource extends PrimitiveComponent<ResourceProps> {
         if (!info) return undefined;
 
         const statusQuery = info.statusQuery;
-        if (!statusQuery) throw new Error(`statusQuery not defined for ${this.props.kind}: ${info}`);
-
-        return statusQuery(this.props, observe, buildData);
+        if (!statusQuery) return { noStatus: "no status query defined for this kind" };
+        return noStatusOnError(() => statusQuery(this.props, observe, buildData));
     }
 }

@@ -1,6 +1,9 @@
 import { DocumentNode as Query } from "graphql";
+import ld from "lodash";
 import { CustomError } from "ts-custom-error";
-import { childrenToArray } from "../src/jsx";
+import util from "util";
+import { childrenToArray, isMountedElement } from "../src/jsx";
+import { BuildData } from "./dom";
 import { Variables } from "./observers/obs_manager_deployment";
 import { ObserverNameHolder } from "./observers/registry";
 
@@ -10,7 +13,7 @@ export type ObserveForStatus<T = unknown> = (
     vars?: Variables) => Promise<T | undefined>;
 
 export interface Status {
-    noStatus?: true;
+    noStatus?: string | boolean;
     childStatus?: Status[];
     [key: string]: any;
 }
@@ -25,13 +28,42 @@ function hasChildren(x: any): x is { children: unknown } {
     return "children" in x;
 }
 
-export async function defaultStatus<P extends object, S = unknown>(props: P, _state?: S): Promise<Status> {
-    if (hasChildren(props)) {
-        const childStatusP = childrenToArray(props.children).map((c) => c.status());
+export async function noStatusOnError(f: () => unknown | Promise<unknown>): Promise<Status> {
+    try {
+        // tslint:disable-next-line:await-promise
+        return (await f()) as Status; //FIXME(manishv) update when we fix status types
+    } catch (e) {
+        if (ld.isError(e)) return { noStatus: e.message };
+        return { noStatus: util.inspect(e) };
+    }
+}
+
+export async function defaultChildStatus<P extends object, S = unknown>(
+    props: P, mgr: ObserveForStatus, data: BuildData): Promise<Status> {
+    let childArray = data.origChildren;
+    if (childArray === undefined && hasChildren(props)) {
+        childArray = childrenToArray(props.children);
+    }
+
+    if (childArray !== undefined) {
+        const children = childArray.filter(isMountedElement);
+        const childStatusP = children.map((c) => noStatusOnError(() => c.status(mgr)));
         const childStatus = await Promise.all(childStatusP);
         return {
             childStatus
         };
     }
-    return { noStatus: true };
+    return { noStatus: "element has no children" };
+}
+
+export async function defaultStatus<P extends object, S = unknown>(
+    props: P,
+    mgr: ObserveForStatus,
+    data: BuildData): Promise<Status> {
+
+    const succ = data.successor;
+
+    if (succ === undefined) return defaultChildStatus(props, mgr, data);
+    if (succ === null) return { noStatus: "successor was null" };
+    return noStatusOnError(() => succ.status());
 }
