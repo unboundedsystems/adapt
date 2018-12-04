@@ -101,6 +101,43 @@ class StatusGetter extends Component<{ ref: Handle }, { data?: any }> {
     }
 }
 
+function MakePrimitiveMockStatus() {
+    return <PrimitiveMockStatus />;
+}
+
+function MakeNull() { return null; }
+
+describe("Default status calculation", () => {
+    it("Should return noStatus for childless primitives", async () => {
+        const root = <Group />;
+        const { mountedOrig } = await Adapt.build(root, null);
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(await mountedOrig.status()).eql({ noStatus: "element has no children" });
+    });
+
+    it("Should return child status for primitives with children", async () => {
+        const root = <Group><PrimitiveMockStatus /></Group>;
+        const { mountedOrig } = await Adapt.build(root, null);
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(ld.cloneDeep(await mountedOrig.status())).eql({ childStatus: [{ idSquared: 100 }] });
+    });
+
+    it("Should return successor status for elements with successors", async () => {
+        const root = <MakePrimitiveMockStatus />;
+        const { mountedOrig } = await Adapt.build(root, null);
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(ld.cloneDeep(await mountedOrig.status())).eql({ idSquared: 100 });
+    });
+
+    it("Should return successor status for elements that build to null", async () => {
+        const root = <MakeNull />;
+        const { mountedOrig } = await Adapt.build(root, null);
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(await mountedOrig.status()).eql({ noStatus: "successor was null" });
+    });
+
+});
+
 describe("Build Helper elementStatus", () => {
     it("Should return undefined with no observations", async () => {
         const observerPlugin = new MockObserver();
@@ -146,6 +183,6 @@ describe("Build Helper elementStatus", () => {
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         const statusGetter = mountedOrig.buildData.origChildren![1];
         if (!isElementImpl(statusGetter)) throw should(isElementImpl(statusGetter)).True();
-        should(ld.cloneDeep(stateStore.elementState(statusGetter.stateNamespace))).eql({ data: { idSquared: 100 }});
+        should(ld.cloneDeep(stateStore.elementState(statusGetter.stateNamespace))).eql({ data: { idSquared: 100 } });
     });
 });

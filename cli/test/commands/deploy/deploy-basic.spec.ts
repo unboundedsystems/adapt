@@ -583,7 +583,7 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains(`Deployment ${deployID} status:`);
         expect(ctx.stdout).contains(`{
-  "noStatus": true
+  "noStatus": "element has no children"
 }`);
     });
 });

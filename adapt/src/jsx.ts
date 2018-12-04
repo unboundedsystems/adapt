@@ -40,7 +40,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly keyPath: KeyPath;
     readonly buildData: BuildData;
 
-    status<T extends Status>(): Promise<T>;
+    status<T extends Status>(o?: ObserveForStatus): Promise<T>;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -171,7 +171,7 @@ export abstract class Component<Props extends object = {}, State extends object 
 
     abstract build(helpers: BuildHelpers): AdaptElementOrNull | Promise<AdaptElementOrNull>;
     status(observeForStatus: ObserveForStatus, buildData: BuildData): Promise<unknown> {
-        return defaultStatus(this.props, componentStateNow(this));
+        return defaultStatus(this.props, observeForStatus, buildData);
     }
 }
 
@@ -338,7 +338,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             if (customStatus) {
                 return (observeForStatus, buildData) => customStatus(this.props, observeForStatus, buildData);
             }
-            return defaultStatus;
+            return (observeForStatus, buildData) => defaultStatus(this.props, observeForStatus, buildData);
         }
         return (o, b) => {
             if (!this.component) throw new NoStatusAvailable(`element.component === ${this.component}`);
@@ -374,7 +374,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return this.statusCommon(observeForStatus);
     }
 
-    status = async () => {
+    status = async (o?: ObserveForStatus) => {
         const observeForStatus: ObserveForStatus = async (observer, query, variables) => {
             //FIXME(manishv) Make this collect all queries and then observe only once - may require interface change
             const plugin = findObserver(observer);
@@ -393,7 +393,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             }
             return result.data;
         };
-        return this.statusCommon(observeForStatus);
+        return this.statusCommon(o || observeForStatus);
     }
 
     get componentName() { return this.componentType.name || "anonymous"; }
