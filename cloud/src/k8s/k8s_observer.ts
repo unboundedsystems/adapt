@@ -5,6 +5,7 @@ import {
     ObserverResponse,
     registerObserver
 } from "@usys/adapt";
+import getStream from "get-stream";
 import { execute, ExecutionResult, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";
@@ -134,7 +135,8 @@ const k8sObserveResolverFactory: ResolverFactory = {
             const url = obj[infoSym].host + req.url;
             const resp = await fetch(url, { ...req, agent: obj[infoSym].agent });
             if (resp.status !== 200) {
-                throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
+                throw new Error(`Error fetching ${url}: status ${resp.statusText}(${resp.status}):`
+                    + `${await getStream(resp.body)}`);
             }
 
             const ret = await resp.json();
@@ -225,7 +227,7 @@ function reportErrors(results: ExecutionResult[]) {
     const errors = results.map((r) => r.errors).filter(notNull);
     if (errors.length === 0) return;
     const msgs = errors.map((e) => e.toString()).join("\n");
-    throw new Error("Errors during observation:\n" + msgs);
+    throw new Error("Errors during k8s observation:\n" + msgs);
 }
 
 export class K8sObserver implements ObserverPlugin {
