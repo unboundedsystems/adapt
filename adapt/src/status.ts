@@ -26,6 +26,14 @@ function hasChildren(x: any): x is { children: unknown } {
     return "children" in x;
 }
 
+export async function noStatusOnError(f: () => unknown | Promise<unknown>): Promise<Status> {
+    try {
+        return (await f()) as Status; //FIXME(manishv) update when we fix status types
+    } catch (e) {
+        return { noStatus: e.message };
+    }
+}
+
 export async function defaultChildStatus<P extends object, S = unknown>(
     props: P, mgr: ObserveForStatus, data: BuildData): Promise<Status> {
     let childArray = data.origChildren;
@@ -35,7 +43,7 @@ export async function defaultChildStatus<P extends object, S = unknown>(
 
     if (childArray !== undefined) {
         const children = childArray.filter(isMountedElement);
-        const childStatusP = children.map((c) => c.status(mgr));
+        const childStatusP = children.map((c) => noStatusOnError(() => c.status(mgr)));
         const childStatus = await Promise.all(childStatusP);
         return {
             childStatus
@@ -53,5 +61,5 @@ export async function defaultStatus<P extends object, S = unknown>(
 
     if (succ === undefined) return defaultChildStatus(props, mgr, data);
     if (succ === null) return { noStatus: "successor was null" };
-    return succ.status();
+    return noStatusOnError(() => succ.status());
 }

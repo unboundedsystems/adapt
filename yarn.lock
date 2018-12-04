@@ -392,12 +392,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/get-stream@^3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@types/get-stream/-/get-stream-3.0.1.tgz#ee41cb3da49936124a4be4d301c52d11b692ead6"
-  dependencies:
-    "@types/node" "*"
-
 "@types/graphql-type-json@^0.1.2":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@types/graphql-type-json/-/graphql-type-json-0.1.2.tgz#c2821b203019c42a7f6f1377afc8b1976c5fd541"
@@ -2296,12 +2290,6 @@ get-func-name@^2.0.0:
 get-stream@3.0.0, get-stream@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/get-stream/-/get-stream-3.0.0.tgz#8e943d1358dc37555054ecbe2edb05aa174ede14"
-
-get-stream@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/get-stream/-/get-stream-4.1.0.tgz#c1b255575f3dc21d59bfc79cd3d2b46b1c3a54b5"
-  dependencies:
-    pump "^3.0.0"
 
 get-value@^2.0.3, get-value@^2.0.6:
   version "2.0.6"

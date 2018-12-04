@@ -68,7 +68,7 @@ export function createK8sPlugin() {
 export interface ResourceInfo {
     kind: Kind;
     apiName: string;
-    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown;
+    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown | Promise<unknown>;
     specsEqual(spec1: Spec, spec2: Spec): boolean;
 }
 

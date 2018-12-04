@@ -5,7 +5,6 @@ import {
     ObserverResponse,
     registerObserver
 } from "@usys/adapt";
-import getStream from "get-stream";
 import { execute, ExecutionResult, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";
@@ -136,7 +135,7 @@ const k8sObserveResolverFactory: ResolverFactory = {
             const resp = await fetch(url, { ...req, agent: obj[infoSym].agent });
             if (resp.status !== 200) {
                 throw new Error(`Error fetching ${url}: status ${resp.statusText}(${resp.status}):`
-                    + `${await getStream(resp.body)}`);
+                    + `${JSON.stringify(await resp.json(), undefined, 2)}`);
             }
 
             const ret = await resp.json();
