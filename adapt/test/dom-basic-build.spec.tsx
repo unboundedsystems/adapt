@@ -87,7 +87,7 @@ describe("DOM Basic Build Tests", () => {
         }
 
         should(dom.id).eql(JSON.stringify(["root"]));
-        should(await dom.status()).eql({ noStatus: true });
+        should(await dom.status()).eql({ noStatus: "element has no children" });
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         should(mountedOrig.buildData.successor).Undefined();
     });
@@ -132,7 +132,7 @@ describe("DOM Basic Build Tests", () => {
         const ref = deepFilterElemsToPublic(<Empty key="a" id={1} />);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
-        should(await dom.status()).eql({ childStatus: [{ noStatus: true }] });
+        should(await dom.status()).eql({ childStatus: [{ noStatus: "element has no children" }] });
 
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         const succRef = deepFilterElemsToPublic(<Adapt.Group key="root-Group"><Empty key="a" id={1} /></Adapt.Group>);
@@ -154,7 +154,12 @@ describe("DOM Basic Build Tests", () => {
         const ref = deepFilterElemsToPublic([<Empty key="a" id={1} />, <Empty key="b" id={2} />]);
         should(dom.componentType).equal(Adapt.Group);
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
-        should(await dom.status()).eql({ childStatus: [{ noStatus: true }, { noStatus: true }] });
+        should(await dom.status()).eql({
+            childStatus: [
+                { noStatus: "element has no children" },
+                { noStatus: "element has no children" }
+            ]
+        });
     });
 
     it("Should build recursively (outer primitive)", async () => {
