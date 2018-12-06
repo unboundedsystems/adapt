@@ -1,3 +1,4 @@
+export * from "./install";
 export * from "./long_tests";
 export * from "./mocklogger";
 

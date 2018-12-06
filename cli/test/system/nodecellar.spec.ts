@@ -1,6 +1,7 @@
 import {
     awsutils,
     describeLong,
+    installAnsible,
     k8sutils,
     minikubeMocha,
     mochaTmpdir,
@@ -55,15 +56,6 @@ const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-async function bootstrapLocalSystem() {
-    await fs.writeFile("/etc/apt/sources.list.d/ansible.list",
-        "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main\n");
-    await execa("apt-key", [ "adv", "--keyserver", "keyserver.ubuntu.com",
-        "--recv-keys", "93C4A3FD7BB9C367" ]);
-    await execa("apt-get", [ "update" ]);
-    await execa("apt-get", [ "install", "-y", "--no-install-recommends", "ansible" ]);
-}
-
 async function deleteContainer(docker: Docker, name: string) {
     try {
         const ctr = docker.getContainer(name);
@@ -95,7 +87,7 @@ describeLong("Nodecellar system tests", function () {
             minikube.client,
             loadAwsCreds(),
             // Bootstrap our CLI system with ansible
-            bootstrapLocalSystem(),
+            installAnsible(),
             deleteContainer(docker, "mongo"),
             deleteContainer(docker, "nodecellar"),
             fs.outputJson("kubeconfig.json", minikube.kubeconfig),

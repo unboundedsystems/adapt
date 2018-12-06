@@ -3,7 +3,6 @@ import Adapt, {
     Group,
     PluginOptions,
 } from "@usys/adapt";
-import execa from "execa";
 import * as fs from "fs-extra";
 import * as path from "path";
 import should from "should";
@@ -11,6 +10,7 @@ import should from "should";
 import {
     createMockLogger,
     dockerMocha,
+    installAnsible,
     mochaTmpdir,
     MockLogger,
 } from "@usys/testutils";
@@ -79,17 +79,6 @@ JKRD4+pnZ0oPVmtLwHd7UCc7zQclJ6Uc8Ao95nrcVq+a
 -----END RSA PRIVATE KEY-----
 `;
 
-async function bootstrapLocalSystem(verbose = false) {
-    const opts: execa.Options = verbose ? { stdio: "inherit" } : {};
-    await fs.writeFile("/etc/apt/sources.list.d/ansible.list",
-        "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main\n");
-    await execa("apt-key", ["adv", "--keyserver", "keyserver.ubuntu.com",
-        "--recv-keys", "93C4A3FD7BB9C367"], opts);
-    await execa("apt-get", ["update"], opts);
-    await execa("apt-get", ["install", "-y", "--no-install-recommends", "ansible"], opts);
-    //await execa("ansible-galaxy", [ "install", "nickjj.docker" ], opts);
-}
-
 async function setupDir() {
     await fs.writeFile("echo_all.yaml", echoPlaybook("all"));
     await fs.writeFile("echo_group1.yaml", echoPlaybook("group1"));
@@ -124,7 +113,7 @@ describe("Ansible plugin", async function () {
         this.timeout(60 * 1000);
 
         dataDir = path.join(process.cwd(), "pluginData");
-        await bootstrapLocalSystem();
+        await installAnsible();
         await setupDir();
         await fs.ensureDir(dataDir);
 
