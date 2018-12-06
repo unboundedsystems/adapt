@@ -1,4 +1,3 @@
-import * as uutils from "@usys/utils";
 import Docker = require("dockerode");
 import * as fs from "fs";
 import ld from "lodash";
@@ -126,19 +125,6 @@ export async function getSelfContainer(docker: Docker): Promise<Docker.Container
     const id = ld.last(psplit);
     if (id === undefined) throw new Error("Cannot get own container id!");
     return docker.getContainer(id);
-}
-
-export async function waitFor(
-    iterations: number,
-    pollSec: number,
-    timeoutMsg: string,
-    action: () => Promise<boolean>): Promise<void> {
-
-    for (let i = 0; i < iterations; i++) {
-        if (await action()) return;
-        await uutils.sleep(pollSec * 1000);
-    }
-    throw new Error(timeoutMsg);
 }
 
 export function secondsSince(start: number): number {
