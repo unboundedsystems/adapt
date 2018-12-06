@@ -26,7 +26,7 @@ export const localStyle =
         })}
 
         {Container} {rule<ContainerProps>(({handle, ...props}) => {
-            return <AnsibleContainer {...props} />;
+            return <AnsibleContainer {...props} dockerHost="unix:///var/run/docker.sock" />;
         })}
 
         {NetworkService} {rule<NetworkServiceProps>((props) => (

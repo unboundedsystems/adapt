@@ -102,7 +102,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
 
             auto_remove: this.props.autoRemove,
             command: this.props.command,
-            docker_host: this.props.dockerHost,
+            docker_host: translateDockerHost(this.props.dockerHost),
             env: this.props.environment,
             image: this.props.image,
             interactive: this.props.stdinOpen,
@@ -110,6 +110,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
             published_ports: translatePorts(this.props.portBindings),
             pull: true,
             state: "started",
+            stop_signal: this.props.stopSignal,
             tty: this.props.tty,
             working_dir: this.props.workingDir,
         };
@@ -151,4 +152,9 @@ function translateLinks(links: Links | undefined): string[] | undefined {
     return Object.keys(links).map(
         (internalName) => `${links[internalName]}:${internalName}`
     );
+}
+
+function translateDockerHost(dockerHost: string): string {
+    if (dockerHost.startsWith("file://")) return "unix://" + dockerHost.slice(7);
+    return dockerHost;
 }
