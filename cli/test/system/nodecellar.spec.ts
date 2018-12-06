@@ -1,6 +1,7 @@
 import {
     awsutils,
     describeLong,
+    dockerutils,
     installAnsible,
     k8sutils,
     minikubeMocha,
@@ -23,6 +24,7 @@ const {
     getAwsClient,
     waitForStacks,
 } = awsutils;
+const { deleteContainer } = dockerutils;
 
 // FIXME(mark): The following line needs to be a require because importing
 // the types from adapt currently causes a compile error due to adapt
@@ -55,14 +57,6 @@ const ncTestChain =
 const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
-
-async function deleteContainer(docker: Docker, name: string) {
-    try {
-        const ctr = docker.getContainer(name);
-        await ctr.stop();
-        await ctr.remove();
-    } catch (e) {/**/}
-}
 
 // NOTE(mark): These tests use the same project directory to deploy multiple
 // times, both to test that functionality and to reduce setup runtime (mostly

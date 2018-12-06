@@ -91,6 +91,19 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
     // tslint:enable:no-console
 }
 
+export async function deleteContainer(docker: Docker, name: string) {
+    let ctr: Docker.Container;
+    try {
+        ctr = docker.getContainer(name);
+    } catch (e) { return; }
+    try {
+        await ctr.stop();
+    } catch (e) { /**/ }
+    try {
+        await ctr.remove();
+    } catch (e) { /**/ }
+}
+
 export async function getNetwork(docker: Docker, container: Docker.Container) {
     const info = await container.inspect();
     const networkName = Object.keys(info.NetworkSettings.Networks)[0];
