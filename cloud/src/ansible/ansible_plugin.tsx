@@ -163,8 +163,8 @@ async function execPlaybook(el: PlaybookElement, pluginDir: string, log: Logger)
 
         // FIXME(mark): For debugging. Should probably simply go to MessageLogger,
         // but Plugin doesn't have one of those yet.
-        child.stdout.pipe(process.stdout);
-        child.stderr.pipe(process.stdout);
+        //child.stdout.pipe(process.stdout);
+        //child.stderr.pipe(process.stdout);
 
         try {
             const ret = await child;
