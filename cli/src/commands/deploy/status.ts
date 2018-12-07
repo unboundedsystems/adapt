@@ -73,8 +73,8 @@ an alternate description file, "somefile.tsx":
 
                     const id = deployState.deployID;
 
-                    this.log(`Deployment ${id} status:`);
-                    this.log(JSON.stringify(deployState.mountedOrigStatus, null, 2));
+                    this.appendOutput(`Deployment ${id} status:`);
+                    this.appendOutput(JSON.stringify(deployState.mountedOrigStatus, null, 2));
                 }
             }
         ]);
