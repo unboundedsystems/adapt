@@ -8,7 +8,8 @@ import { ExecutedQuery, Observations } from "./obs_manager_deployment";
 export const gql: (literals: TemplateStringsArray, ...placeholders: any[]) => GraphQLDocument = gqlTag;
 
 export {
-    ObserverNeedsData
+    ObserverNeedsData,
+    throwObserverErrors,
 } from "./errors";
 
 export {

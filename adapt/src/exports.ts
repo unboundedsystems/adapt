@@ -83,7 +83,8 @@ export {
     ObserverPlugin,
     ObserverResponse,
     ObserverNeedsData,
-    ExecutedQuery
+    ExecutedQuery,
+    throwObserverErrors,
 } from "./observers";
 
 export {
