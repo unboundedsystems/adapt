@@ -126,7 +126,15 @@ export async function addToNetwork(container: Docker.Container, network: Docker.
 }
 
 export async function removeFromNetwork(container: Docker.Container, network: Docker.Network) {
-    await network.disconnect({ Container: container.id });
+    try {
+        await network.disconnect({ Container: container.id });
+    } catch (e) {
+        // Ignore error if not connected to this network
+        if (!(typeof e.message === "string" &&
+            e.message.includes("is not connected to network"))) {
+            throw e;
+        }
+    }
 }
 
 export async function getSelfContainer(docker: Docker): Promise<Docker.Container> {
