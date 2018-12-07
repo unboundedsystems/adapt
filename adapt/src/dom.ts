@@ -284,7 +284,10 @@ function findOverride(styles: css.StyleList, path: DomPath) {
     const element = path[path.length - 1];
 
     for (const style of styles.reverse()) {
-        if (!css.ruleHasMatched(element.props, style) && style.match(path)) {
+        if (css.canMatch(element.props) &&
+            !css.ruleHasMatched(element.props, style) &&
+            style.match(path)) {
+
             css.ruleMatches(element.props, style);
             return { style, override: style.sfc };
         }
@@ -349,7 +352,7 @@ function doOverride(
     styles: css.StyleList,
     options: BuildOptionsReq): AdaptElement {
 
-    const element = ld.last(path);
+    let element = ld.last(path);
     if (element == null) {
         throw new Error("Cannot match null element to style rules for empty path");
     }
@@ -357,9 +360,23 @@ function doOverride(
     const overrideFound = findOverride(styles, path);
 
     if (overrideFound != null) {
+        if (isComponentElement(element)) {
+            if (!isMountedElement(element)) throw new InternalError(`Element should be mounted`);
+            if (!isElementImpl(element)) throw new InternalError(`Element should be ElementImpl`);
+            if (element.component == null) {
+                element.component = constructComponent(element,
+                    options.stateStore, options.observerManager);
+            }
+        }
+        const hand = getInternalHandle(element);
+        element = cloneElement(element, key, element.props.children);
+        hand.replaceTarget(element);
         const { style, override } = overrideFound;
         const props = { ...key, override, element };
         const newElem = createElement(ApplyStyle, props);
+        // The ApplyStyle element should never match any CSS rule
+        css.neverMatch(newElem.props);
+
         options.recorder({
             type: "step",
             oldElem: element,
@@ -375,7 +392,6 @@ function doOverride(
 function mountElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
-    styles: css.StyleList,
     options: BuildOptionsReq): BuildResults {
 
     let elem = ld.last(path);
@@ -389,22 +405,10 @@ function mountElement(
         throw new Error("Attempt to remount element: " + util.inspect(elem));
     }
 
-    let hand = getInternalHandle(elem);
-
     const newKey = computeMountKey(elem, parentStateNamespace);
-    elem = doOverride(path, newKey, styles, options);
-
-    // In the case that there is an override, ApplyStyle takes care of
-    // doing the handle replace, so don't do it here.
-    const foundOverride = elem !== ld.last(path);
-
-    // Default behavior if they don't explicitly call
-    // handle.replaceTarget is to do the replace for them.
-    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
-
-    hand = getInternalHandle(elem);
+    const hand = getInternalHandle(elem);
     elem = cloneElement(elem, newKey, elem.props.children);
-    if (!foundOverride && !hand.targetReplaced) hand.replaceTarget(elem);
+    if (!hand.targetReplaced) hand.replaceTarget(elem);
 
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
@@ -441,6 +445,11 @@ async function buildElement(
 
     if (!isMountedElement(elem)) throw new InternalError(`attempt to build unmounted element ${elem}`);
     if (!isElementImpl(elem)) throw new Error(`Elements must derive from ElementImpl ${elem}`);
+
+    const override = doOverride(path, computeMountKey(elem, parentStateNamespace), styles, options);
+    if (override !== elem) {
+        return new BuildResults(options.recorder, elem, override);
+    }
 
     if (isPrimitiveElement(elem)) {
         const res = new BuildResults(options.recorder, elem, elem);
@@ -744,7 +753,7 @@ async function realBuildOnce(
     const out = new BuildResults(options.recorder);
     let mountedElem: AdaptElementOrNull = oldElem;
     if (!isMountedElement(oldElem)) {
-        const mountOut = mountElement(pathIn, parentStateNamespace, styles, options);
+        const mountOut = mountElement(pathIn, parentStateNamespace, options);
         if (mountOut.buildErr) return mountOut;
         out.contents = mountedElem = mountOut.contents;
         out.combine(mountOut);

@@ -310,6 +310,16 @@ export function ruleMatches(props: jsx.WithMatchProps, r: StyleRule) {
     m.matched.add(r);
 }
 
+export function neverMatch(props: jsx.WithMatchProps) {
+    const m = getCssMatched(props);
+    m.neverMatch = true;
+}
+
+export function canMatch(props: jsx.WithMatchProps) {
+    const m = getCssMatched(props);
+    return m.neverMatch !== true;
+}
+
 function copyRuleMatches(fromProps: jsx.WithMatchProps,
     toProps: jsx.WithMatchProps) {
     const from = getCssMatched(fromProps);
