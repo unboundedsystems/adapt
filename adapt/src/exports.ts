@@ -83,7 +83,8 @@ export {
     ObserverPlugin,
     ObserverResponse,
     ObserverNeedsData,
-    ExecutedQuery
+    ExecutedQuery,
+    throwObserverErrors,
 } from "./observers";
 
 export {
@@ -95,8 +96,9 @@ export {
 } from "./plugin_support";
 
 export {
+    NoStatus,
+    noStatusOnError,
     ObserveForStatus,
-    noStatusOnError
 } from "./status";
 
 export {

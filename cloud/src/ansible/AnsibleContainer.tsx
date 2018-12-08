@@ -1,6 +1,7 @@
-import Adapt, { Component } from "@usys/adapt";
+import Adapt, { Component, ObserveForStatus } from "@usys/adapt";
 import { FIXME_NeedsProperType, removeUndef } from "@usys/utils";
 import { ContainerProps, Links, PortBinding, PortBindingString } from "../Container";
+import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
 export type AnsibleContainerProps = ContainerProps;
@@ -102,7 +103,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
 
             auto_remove: this.props.autoRemove,
             command: this.props.command,
-            docker_host: this.props.dockerHost,
+            docker_host: translateDockerHost(this.props.dockerHost),
             env: this.props.environment,
             image: this.props.image,
             interactive: this.props.stdinOpen,
@@ -110,6 +111,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
             published_ports: translatePorts(this.props.portBindings),
             pull: true,
             state: "started",
+            stop_signal: this.props.stopSignal,
             tty: this.props.tty,
             working_dir: this.props.workingDir,
         };
@@ -136,6 +138,10 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
         ];
         return <AnsiblePlaybook playbookPlays={plays} />;
     }
+
+    async status(observe: ObserveForStatus) {
+        return containerStatus(observe, this.props.name, this.props.dockerHost);
+    }
 }
 export default AnsibleContainer;
 
@@ -151,4 +157,9 @@ function translateLinks(links: Links | undefined): string[] | undefined {
     return Object.keys(links).map(
         (internalName) => `${links[internalName]}:${internalName}`
     );
+}
+
+function translateDockerHost(dockerHost: string): string {
+    if (dockerHost.startsWith("file://")) return "unix://" + dockerHost.slice(7);
+    return dockerHost;
 }

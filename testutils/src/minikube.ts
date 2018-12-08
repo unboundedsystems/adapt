@@ -1,3 +1,4 @@
+import { waitFor } from "@usys/utils";
 import Docker = require("dockerode");
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
@@ -11,7 +12,6 @@ import {
     getNetwork,
     getSelfContainer,
     removeFromNetwork,
-    waitFor,
 } from "./dockerutils";
 
 // tslint:disable-next-line:no-var-requires

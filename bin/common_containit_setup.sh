@@ -27,6 +27,8 @@ if [ -f "${CRED_FILE}" ]; then
     DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"
 fi
 
+DOCKER_ARGS+=" -eNODE_NO_WARNINGS=1"
+
 # Propagate these from current environment into the docker container env
 DOCKER_ARGS+=" -eADAPT_PARALLEL_MAKE -eADAPT_TEST_HEAPDUMP"
 DOCKER_ARGS+=" -eADAPT_TEST_MINIKUBE -eADAPT_RUN_LONG_TESTS"

@@ -12,8 +12,11 @@ export type ObserveForStatus<T = unknown> = (
     query: Query,
     vars?: Variables) => Promise<T | undefined>;
 
-export interface Status {
+export interface NoStatus {
     noStatus?: string | boolean;
+}
+
+export interface Status extends NoStatus {
     childStatus?: Status[];
     [key: string]: any;
 }

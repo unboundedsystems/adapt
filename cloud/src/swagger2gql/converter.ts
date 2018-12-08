@@ -224,21 +224,35 @@ function populateBasicSwaggerTypes(tyResolver: LTypeResolver) {
 }
 
 function getParameterInfo(
+    operationId: string,
     param: Swagger2Parameter,
     tyResolver: LTypeResolver) {
-    if (param.in === "body") {
-        throw new Error("Body parameters not supported");
+    let type: GraphQLInputType;
+    if (param.in === "body") throw new Error("Body parameters not supported");
+
+    if (param.type === "array") {
+        const items = param.items;
+        if (!items) throw new Error(`Saw array param with no items: ${util.inspect(param)}`);
+        if (isRef(items)) {
+            type = new GraphQLList(tyResolver.input.getType(items.$ref));
+        } else if (isComplexType(items)) {
+            type = new GraphQLList(jsonSchema2GraphQLType(
+                `${operationId}_${param.name}`, items, tyResolver, true));
+        } else {
+            type = new GraphQLList(tyResolver.input.getType(items.type));
+        }
     } else {
-        return {
-            type: tyResolver.input.getType(param.type),
-            required: param.required ? param.required : false,
-            default: param.default
-        };
+        type = tyResolver.input.getType(param.type);
     }
+    return {
+        type,
+        required: param.required ? param.required : false,
+        default: param.default
+    };
 }
 
 function buildArgsForOperation(
-    _operationId: string | undefined,
+    operationId: string | undefined,
     parameters: (Swagger2Parameter | Swagger2Ref)[],
     tyResolver: LTypeResolver): GraphQLFieldConfigArgumentMap | undefined {
 
@@ -247,7 +261,8 @@ function buildArgsForOperation(
     const ret: GraphQLFieldConfigArgumentMap = {};
     for (const param of parameters) {
         if (isRef(param)) throw new Error("Refs in parameters not yet supported");
-        const info = getParameterInfo(param, tyResolver);
+        if (operationId == null) throw new Error(`operationId is null`);
+        const info = getParameterInfo(operationId, param, tyResolver);
         const defaultValue = param.in === "body" ? undefined : param.default;
         ret[param.name] = {
             type: (info.required ? new GraphQLNonNull(info.type) : info.type),

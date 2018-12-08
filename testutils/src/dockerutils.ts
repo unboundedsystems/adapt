@@ -1,4 +1,3 @@
-import * as uutils from "@usys/utils";
 import Docker = require("dockerode");
 import * as fs from "fs";
 import ld from "lodash";
@@ -92,6 +91,19 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
     // tslint:enable:no-console
 }
 
+export async function deleteContainer(docker: Docker, name: string) {
+    let ctr: Docker.Container;
+    try {
+        ctr = docker.getContainer(name);
+    } catch (e) { return; }
+    try {
+        await ctr.stop();
+    } catch (e) { /**/ }
+    try {
+        await ctr.remove();
+    } catch (e) { /**/ }
+}
+
 export async function getNetwork(docker: Docker, container: Docker.Container) {
     const info = await container.inspect();
     const networkName = Object.keys(info.NetworkSettings.Networks)[0];
@@ -114,7 +126,15 @@ export async function addToNetwork(container: Docker.Container, network: Docker.
 }
 
 export async function removeFromNetwork(container: Docker.Container, network: Docker.Network) {
-    await network.disconnect({ Container: container.id });
+    try {
+        await network.disconnect({ Container: container.id });
+    } catch (e) {
+        // Ignore error if not connected to this network
+        if (!(typeof e.message === "string" &&
+            e.message.includes("is not connected to network"))) {
+            throw e;
+        }
+    }
 }
 
 export async function getSelfContainer(docker: Docker): Promise<Docker.Container> {
@@ -126,19 +146,6 @@ export async function getSelfContainer(docker: Docker): Promise<Docker.Container
     const id = ld.last(psplit);
     if (id === undefined) throw new Error("Cannot get own container id!");
     return docker.getContainer(id);
-}
-
-export async function waitFor(
-    iterations: number,
-    pollSec: number,
-    timeoutMsg: string,
-    action: () => Promise<boolean>): Promise<void> {
-
-    for (let i = 0; i < iterations; i++) {
-        if (await action()) return;
-        await uutils.sleep(pollSec * 1000);
-    }
-    throw new Error(timeoutMsg);
 }
 
 export function secondsSince(start: number): number {
