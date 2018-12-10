@@ -224,7 +224,8 @@ function buildHelpers(options: BuildOptionsReq): BuildHelpers {
                 if (!isObserverNeedsData(e)) throw e;
                 return undefined;
             }
-        }
+        },
+        deployID: options.deployID
     };
 }
 

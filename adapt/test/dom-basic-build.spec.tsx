@@ -2,6 +2,7 @@ import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
+    BuildHelpers,
     BuildNotImplemented,
     childrenToArray,
     Component,
@@ -65,6 +66,13 @@ class NonDeferredFlex extends Component<DeferredFlexProps> {
 
 function ReturnsNull(_props: {}): AdaptElementOrNull {
     return null;
+}
+
+class GetHelpers extends Component<{ f: (helpers: BuildHelpers) => void }> {
+    build(helpers: BuildHelpers) {
+        this.props.f(helpers);
+        return null;
+    }
 }
 
 describe("DOM Basic Build Tests", () => {
@@ -160,6 +168,14 @@ describe("DOM Basic Build Tests", () => {
                 { noStatus: "element has no children" }
             ]
         });
+    });
+
+    it("Should supply correct deployID", async () => {
+        let helpers: BuildHelpers | undefined;
+        const orig = <GetHelpers f={(h) => { helpers = h; }} />;
+        await Adapt.buildOnce(orig, null, { deployID: "Whee!" });
+        if (helpers === undefined) throw should(helpers).not.Undefined();
+        should(helpers.deployID).equal("Whee!");
     });
 
     it("Should build recursively (outer primitive)", async () => {
