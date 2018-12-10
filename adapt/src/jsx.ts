@@ -104,6 +104,7 @@ export function componentStateNow<
 }
 
 export interface BuildHelpers {
+    deployID: string;
     elementStatus<T = unknown>(handle: Handle): Promise<Status | undefined>;
 }
 
