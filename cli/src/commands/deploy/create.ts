@@ -74,7 +74,7 @@ export default class CreateCommand extends DeployBase {
 
                     const id = deployState.deployID;
 
-                    this.log(`\nDeployment created successfully. DeployID is: ${id}`);
+                    this.appendOutput(`Deployment created successfully. DeployID is: ${id}`);
                 }
             }
         ]);

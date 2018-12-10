@@ -58,6 +58,7 @@ export abstract class DeployBase extends Command {
     flags?: any;
     ctx?: DeployCtx;
     tasks = new Listr();
+    finalOutput = "";
 
     async init() {
         await super.init();
@@ -136,10 +137,17 @@ export abstract class DeployBase extends Command {
         ]);
     }
 
+    async finally(err?: Error) {
+        await super.finally(err);
+        if (err !== undefined) return;
+
+        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
+    }
+
     deployFailure(deployErr: DeployError) {
         const nwarn = deployErr.summary.warning;
         const warns = nwarn === 1 ? "warning" : "warnings";
-        this.log(`${nwarn} ${warns} encountered during deploy:\n` +
+        this.appendOutput(`${nwarn} ${warns} encountered during deploy:\n` +
             getWarnings(deployErr.messages));
 
         const nerr = deployErr.summary.error;
@@ -162,7 +170,11 @@ export abstract class DeployBase extends Command {
         }
 
         if (needsData.length > 0) {
-            this.log(needsData.join("\n\n"));
+            this.appendOutput(needsData.join("\n\n"));
         }
+    }
+
+    appendOutput(s: string) {
+        this.finalOutput += s;
     }
 }
