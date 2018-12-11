@@ -1,6 +1,9 @@
 import Adapt, {
     AdaptElementOrNull,
+    childrenToArray,
     Group,
+    handle,
+    isMountedElement,
     PluginOptions,
     rule,
     Style,
@@ -14,9 +17,12 @@ import { WritableStreamBuffer } from "stream-buffers";
 import * as abs from "../../src";
 import {
     createK8sPlugin,
+    K8sContainer,
     K8sPlugin,
     k8sServiceProps,
     Kind,
+    Pod,
+    Resource,
     resourceElementToName,
     Service,
     ServicePort,
@@ -55,7 +61,7 @@ describe("k8s Service Component Tests", () => {
 
         const domXml = Adapt.serializeDom(dom);
         const expected =
-`<Adapt>
+            `<Adapt>
   <Resource kind="Service">
     <__props__>
       <prop name="config">{}</prop>
@@ -168,6 +174,40 @@ describe("k8s Service Operation Tests", function () {
         should(actions[0].description).match(/Replacing\s.+test/);
 
         await plugin.finish();
+    });
+
+    it("Should use label for referencing pods as selectors", async () => {
+        const hand = handle();
+        const orig = <Group>
+            <Service
+                key="test"
+                ports={[{ port: 8080, targetPort: 8080 }]}
+                selector={hand}
+                config={kubeconfig} />
+            <Pod config={kubeconfig} handle={hand}>
+                <K8sContainer name="foo" image="doesntmatter"></K8sContainer>
+            </Pod>
+        </Group>;
+        const { dom } = await doBuild(orig, options.deployID);
+        const children = childrenToArray(dom.props.children);
+
+        should(children.length).equal(2);
+        const service = children[0];
+        const pod = children[1];
+
+        if (pod === undefined) throw should(service).not.Undefined();
+        if (!isMountedElement(pod)) throw should(isMountedElement(pod)).True();
+        should(pod.componentType).equal(Resource);
+        should(pod.props.kind).equal("Pod");
+
+        if (service === undefined) throw should(service).not.Undefined();
+        if (!isMountedElement(service)) throw should(isMountedElement(service)).True();
+        should(service.componentType).equal(Resource);
+        should(service.props.kind).equal("Service");
+
+        const serviceProps = service.props;
+        should(serviceProps.spec).not.Undefined();
+        should(serviceProps.spec.selector).eql({ adaptName: resourceElementToName(pod, options.deployID) });
     });
 
     async function createService(name: string): Promise<AdaptElementOrNull> {

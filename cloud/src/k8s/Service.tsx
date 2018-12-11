@@ -1,10 +1,22 @@
-import Adapt, { BuildData, BuiltinProps, Component, gql, ObserveForStatus } from "@usys/adapt";
+import Adapt, {
+    AnyProps,
+    BuildData,
+    BuildHelpers,
+    BuiltinProps,
+    Component,
+    gql,
+    Handle,
+    isHandle,
+    isMountedElement,
+    ObserveForStatus
+} from "@usys/adapt";
+import { removeUndef } from "@usys/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
 import { computeNamespaceFromMetadata, Kind, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { resourceIdToName } from "./k8s_plugin";
+import { resourceElementToName, resourceIdToName } from "./k8s_plugin";
 import { Resource, ResourceProps } from "./Resource";
 
 // FIXME(mark): Remove comment when working
@@ -14,6 +26,7 @@ import { Resource, ResourceProps } from "./Resource";
 
 export interface ServiceProps extends ServiceSpec {
     config: any; //Legal configuration loaded from kubeconfig
+    selector?: Handle | object;
 }
 
 export interface ServiceSpec {
@@ -152,14 +165,44 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): Service
     return ret;
 }
 
-export class Service extends Component<ServiceProps> {
+interface ServiceState {
+    endpointSelector?: { [key: string]: string };
+}
+
+export class Service extends Component<ServiceProps, ServiceState> {
     static defaultProps = {
         sessionAffinity: "None",
         type: "ClusterIP",
     };
 
-    build() {
-        const manifest = makeSvcManifest(this.props);
+    initialState() { return {}; }
+
+    updateState(helpers: BuildHelpers) {
+        const deployID = helpers.deployID;
+        this.setState((_prev, props) => {
+            const { selector: ep } = props as ServiceProps & BuiltinProps;
+            if (!isHandle(ep)) return {};
+            if (!ep.target) return {};
+            if (!isMountedElement(ep.target)) return {};
+
+            if (ep.target.componentType !== Resource) {
+                throw new Error(`Cannot handle k8s.Service endpoint of type ${ep.target.componentType.name}`);
+            }
+            const epProps: ResourceProps = ep.target.props as AnyProps as ResourceProps;
+            if (epProps.kind !== Kind.pod) {
+                throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
+            }
+            return {
+                endpointSelector: {
+                    adaptName: resourceElementToName(ep.target, deployID)
+                }
+            };
+        });
+    }
+
+    build(helpers: BuildHelpers) {
+        const manifest = makeSvcManifest(this.props, this.state);
+        this.updateState(helpers);
         return (
             <Resource
                 key={this.props.key}
@@ -230,17 +273,16 @@ function canonicalize(spec: ServiceSpec): ServiceSpec {
         "loadBalancerSourceRanges",
         "ports",
     ]);
-    return s;
+    return removeUndef(s);
 }
 
 function serviceSpecsEqual(spec1: ServiceSpec, spec2: ServiceSpec) {
     spec1 = canonicalize(spec1);
     spec2 = canonicalize(spec2);
-
     return isEqual(spec1, spec2);
 }
 
-function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>): ResourceService {
+function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, state: ServiceState): ResourceService {
     const { config, key, handle, ...spec } = props;
 
     // Explicit default for ports.protocol
@@ -249,10 +291,10 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>): ResourceS
             if (p.protocol === undefined) p.protocol = "TCP";
         }
     }
-    return  {
+    return {
         kind: Kind.service,
         metadata: {},
-        spec,
+        spec: { ...spec, selector: isHandle(spec.selector) ? state.endpointSelector : spec.selector },
         config,
     };
 }
