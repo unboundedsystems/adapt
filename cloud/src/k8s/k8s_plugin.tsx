@@ -176,17 +176,20 @@ export function resourceElementToName(
 function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {
     if (!isMountedElement(elem)) throw new Error("Can only create manifest for mounted elements!");
 
+    const name = resourceElementToName(elem, deployID);
     const ret: Manifest = {
         apiVersion: "v1",
         kind: elem.props.kind,
         metadata: {
             ...elem.props.metadata,
-            name: resourceElementToName(elem, deployID)
+            name
         },
         spec: elem.props.spec
     };
 
     if (ret.metadata.annotations === undefined) ret.metadata.annotations = {};
+    const labels = ret.metadata.labels;
+    ret.metadata.labels = { ...(labels ? labels : {}), adaptName: name };
     ret.metadata.annotations.adaptName = elem.id;
     ret.metadata.annotations.adaptDeployID = deployID;
 

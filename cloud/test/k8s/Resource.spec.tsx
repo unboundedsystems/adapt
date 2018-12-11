@@ -169,6 +169,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         should(status.kind).equal("Pod");
         should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
         should(status.metadata.annotations).containEql({ adaptName: dom.id });
+        should(status.metadata.labels).eql({ adaptName: resourceElementToName(dom, options.deployID) });
 
         await plugin.finish();
         return dom;
