@@ -11,5 +11,6 @@ export interface K8sTestStatusType {
     metadata: {
         name: string;
         annotations: { [key: string]: any }
+        labels?: { [key: string]: any }
     };
 }
