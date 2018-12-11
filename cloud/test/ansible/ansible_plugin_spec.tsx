@@ -97,7 +97,8 @@ const sshdContainerSpec: dockerMocha.ContainerSpec = {
 };
 
 describe("Ansible plugin", async function () {
-    this.timeout(10 * 1000);
+    this.timeout(30 * 1000);
+    this.slow(3 * 1000);
 
     let plugin: AnsiblePluginImpl;
     let options: PluginOptions;
@@ -332,7 +333,8 @@ describe("Ansible plugin", async function () {
         should(output).equal("Test success\n");
     });
 
-    it("Should apply role from galaxy", async () => {
+    it("Should apply role from galaxy", async function () {
+        this.slow(9 * 1000);
         let output = (await fs.readFile("/etc/motd")).toString();
         should(output).not.match(/This system is managed by Ansible/);
 
@@ -342,7 +344,8 @@ describe("Ansible plugin", async function () {
         should(output).match(/This system is managed by Ansible/);
     });
 
-    it("Should apply role from galaxy with vars", async () => {
+    it("Should apply role from galaxy with vars", async function () {
+        this.slow(9 * 1000);
         const msg = `
             This system is managed by Adapt!"
             This is a second line.
