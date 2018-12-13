@@ -17,11 +17,14 @@
             ],
             "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
+                "-g", "AWS observer",
+                //"-g", "Docker observer",
                 "--no-timeouts",
                 "--opts",
                 "mocha.opts"
             ],
             "env":{
+                "ADAPT_TEST_MINIKUBE": "test_minikube",
                 "DOCKER_ARGS": "-p5858:5858 -e \"ADAPT_NO_FORK=1\""
             },
             "address": "127.0.0.1",

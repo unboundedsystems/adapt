@@ -4,11 +4,14 @@ import Adapt, {
     AdaptPrimitiveElement,
     childrenToArray,
     Component,
+    gql,
     isElement,
     isPrimitiveElement,
+    ObserveForStatus,
     PrimitiveComponent,
     WithChildren,
 } from "@usys/adapt";
+import { isError } from "lodash";
 import { OverwriteT } from "type-ops";
 import {
     getResourceIds,
@@ -18,6 +21,7 @@ import {
     ResourceIdState,
     updateResourceIdState
 } from "../resource_id";
+import { AwsObserver } from "./aws_observer";
 import { withCredentials, WithCredentials } from "./credentials";
 
 const resourceIds = resourceIdList("StackName");
@@ -48,6 +52,33 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
             if (isCFStackPrimitiveElement(k)) throw new Error(`Stack within stack`);
             if (isElement<WithChildren>(k)) this.validateChildren(k.props.children);
         }
+    }
+
+    async status(observe: ObserveForStatus) {
+        const { awsCredentials, StackName } = this.props;
+        if (awsCredentials == null) {
+            throw new Error(`awsCredentials must be provided to CFStack`);
+        }
+
+        try {
+            const obs: any = await observe(AwsObserver, gql`
+                query ($input: DescribeStacksInput!, $awsCredentials: AwsCredentials!) {
+                    withCredentials(awsCredentials: $awsCredentials) {
+                        DescribeStacks(body: $input) @all(depth: 10)
+                    }
+                }`,
+                {
+                    input: { StackName },
+                    awsCredentials,
+                }
+            );
+            return obs.withDockerHost.ContainerInspect;
+
+        } catch (err) {
+            if (!isError(err)) throw err;
+            return { noStatus: err.message };
+        }
+
     }
 }
 
