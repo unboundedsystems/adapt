@@ -42,6 +42,19 @@ describe("k8s Service Component Tests", () => {
         should(svc).not.Undefined();
     });
 
+    it("Should refuse multiple ports if one has no name", async () => {
+        const ports: ServicePort[] = [
+            { name: "first", port: 9001, targetPort: 9001 },
+            { port: 8001, targetPort: 81 },
+        ];
+        const svc =
+            <Service key="test" ports={ports} config={{}} />;
+
+        const { messages } = await Adapt.build(svc, null);
+        should(messages).length(1);
+        should(messages[0].content).match(/multiple ports/);
+    });
+
     it("Should translate from abstract to k8s", async () => {
         const absDom =
             <abs.NetworkService port={8080} />;
@@ -142,8 +155,8 @@ describe("k8s Service Operation Tests", function () {
 
     it("Should compute actions with no services from k8s", async () => {
         const ports: ServicePort[] = [
-            { port: 9001, targetPort: 9001 },
-            { port: 8001, targetPort: 81 },
+            { name: "9001", port: 9001, targetPort: 9001 },
+            { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
@@ -161,8 +174,8 @@ describe("k8s Service Operation Tests", function () {
 
     it("Should distinguish between replace and create actions", async () => {
         const ports: ServicePort[] = [
-            { port: 9001, targetPort: 9001 },
-            { port: 8001, targetPort: 81 },
+            { name: "9001", port: 9001, targetPort: 9001 },
+            { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
@@ -306,8 +319,13 @@ describe("k8s Service Operation Tests", function () {
         function makeRoot() {
             const hand = handle();
 
+            const ports: ServicePort[] = [
+                { name: "foo", port: 9001, targetPort: 9001 },
+                { name: "bar", port: 9002, targetPort: 9002 },
+            ];
+
             return <Group>
-                <Service key={"test"} ports={ports} config={kubeconfig} selector={hand} />
+                <Service key={"test"} type="LoadBalancer" ports={ports} config={kubeconfig} selector={hand} />
                 <Pod handle={hand} config={kubeconfig}>
                     <K8sContainer name="foo" image="alpine:3.1" />
                 </Pod>
@@ -315,9 +333,6 @@ describe("k8s Service Operation Tests", function () {
         }
 
         if (!deployID) throw new Error(`Missing deployID?`);
-        const ports: ServicePort[] = [
-            { port: 9001, targetPort: 9001 },
-        ];
 
         const root = makeRoot();
         const { dom: oldDom } = await doBuild(root, options.deployID);
