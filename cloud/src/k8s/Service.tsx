@@ -152,14 +152,14 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): Service
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
 
     const port: ServicePort = {
-        // FIXME(mark): Should NetworkService expose two different ports?
         port: abstractProps.port,
-        targetPort: abstractProps.port,
+        targetPort: abs.targetPort(abstractProps),
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 
     const ret: ServiceSpec = {
         ports: [port],
+        selector: abstractProps.endpoint
     };
 
     return ret;
@@ -271,7 +271,6 @@ function canonicalize(spec: ServiceSpec): ServiceSpec {
     sortArrays(s, [
         "externalIPs",
         "loadBalancerSourceRanges",
-        "ports",
     ]);
     return removeUndef(s);
 }

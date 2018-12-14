@@ -85,6 +85,22 @@ describe("k8s Service Component Tests", () => {
         should(domXml).eql(expected);
     });
 
+    it("Should resolve handle selectors", async () => {
+        const hand = handle();
+        const root = <Group>
+            <Service ports={[{ port: 8000, targetPort: 8080 }]} selector={hand} />
+            <Pod handle={hand} config={{}}>
+                <K8sContainer name="foo" image="alpine:3.1"></K8sContainer>
+            </Pod>
+        </Group>;
+        const deployID = "foo";
+        const { contents: dom, messages } = await Adapt.build(root, null, { deployID });
+        should(messages).eql([]);
+        if (dom === null) throw should(dom).not.Null();
+        should(dom.props.children[0].props.spec.selector.adaptName)
+            .equal(resourceElementToName(dom.props.children[1], deployID));
+
+    });
 });
 
 describe("k8s Service Operation Tests", function () {
