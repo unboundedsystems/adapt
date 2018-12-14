@@ -122,7 +122,8 @@ describe("k8s Pod Component Tests", () => {
       "ports": [],
       "tty": false
     }
-  ]
+  ],
+  "terminationGracePeriodSeconds": 30
 }</prop>
     </__props__>
   </Resource>

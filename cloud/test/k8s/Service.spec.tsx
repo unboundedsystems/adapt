@@ -302,6 +302,47 @@ describe("k8s Service Operation Tests", function () {
         await plugin.finish();
     });
 
+    it("Should leave service alone (with handle)", async () => {
+        function makeRoot() {
+            const hand = handle();
+
+            return <Group>
+                <Service key={"test"} ports={ports} config={kubeconfig} selector={hand} />
+                <Pod handle={hand} config={kubeconfig}>
+                    <K8sContainer name="foo" image="alpine:3.1" />
+                </Pod>
+            </Group>;
+        }
+
+        if (!deployID) throw new Error(`Missing deployID?`);
+        const ports: ServicePort[] = [
+            { port: 9001, targetPort: 9001 },
+        ];
+
+        const root = makeRoot();
+        const { dom: oldDom } = await doBuild(root, options.deployID);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(null, oldDom);
+        const actions = plugin.analyze(null, oldDom, obs);
+        await act(actions);
+
+        const svcs = await getAll("services", { client, deployID });
+        should(svcs).length(1);
+        should(svcs[0].metadata.name)
+            .equal(resourceElementToName(oldDom.props.children[0], options.deployID));
+        await plugin.finish();
+
+        const root2 = makeRoot();
+        const { dom } = await doBuild(root2, options.deployID);
+
+        await plugin.start(options);
+        const obs2 = await plugin.observe(oldDom, dom);
+        const actions2 = plugin.analyze(oldDom, dom, obs2);
+        should(actions2).length(0);
+        await plugin.finish();
+    });
+
     it("Should delete service", async () => {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");

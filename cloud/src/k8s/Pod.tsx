@@ -67,6 +67,10 @@ function makePodManifest(props: PodProps) {
 }
 
 export class Pod extends DeferredComponent<PodProps> {
+    static defaultProps = {
+        terminationGracePeriodSeconds: 30
+    };
+
     checkProps(): void {
         const children = childrenToArray(this.props.children);
 
