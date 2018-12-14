@@ -152,14 +152,14 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): Service
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
 
     const port: ServicePort = {
-        // FIXME(mark): Should NetworkService expose two different ports?
         port: abstractProps.port,
-        targetPort: abstractProps.port,
+        targetPort: abs.targetPort(abstractProps),
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 
     const ret: ServiceSpec = {
         ports: [port],
+        selector: abstractProps.endpoint
     };
 
     return ret;
@@ -174,6 +174,15 @@ export class Service extends Component<ServiceProps, ServiceState> {
         sessionAffinity: "None",
         type: "ClusterIP",
     };
+
+    constructor(props: ServiceProps) {
+        if (props.ports && (props.ports.length > 1)) {
+            for (const port of props.ports) {
+                if (port.name === undefined) throw new Error("Service with multiple ports but no name on port");
+            }
+        }
+        super(props);
+    }
 
     initialState() { return {}; }
 
@@ -266,20 +275,72 @@ function sortArrays<T extends object>(obj: T, keys: ArrayKeys<T>[]): void {
     }
 }
 
-function canonicalize(spec: ServiceSpec): ServiceSpec {
+function canonicalize(spec: ServiceSpec, isActual = false): ServiceSpec {
     const s = pick(spec, knownServiceSpecPaths) as ServiceSpec;
+    if (isActual && spec.type !== "NodePort" && s.ports !== undefined) {
+        s.ports = s.ports.map((port) => {
+            return removeUndef({ ...port, nodePort: undefined });
+        });
+    }
     sortArrays(s, [
         "externalIPs",
         "loadBalancerSourceRanges",
-        "ports",
     ]);
     return removeUndef(s);
 }
 
-function serviceSpecsEqual(spec1: ServiceSpec, spec2: ServiceSpec) {
-    spec1 = canonicalize(spec1);
-    spec2 = canonicalize(spec2);
-    return isEqual(spec1, spec2);
+function sortPorts(ports: ServicePort[]): ServicePort[] {
+    ports = [...ports];
+    ports.sort((aP, bP) => {
+        const a = aP.name;
+        const b = bP.name;
+        if (b === undefined) return -1;
+        if (a === undefined) return 1;
+        return a === b ? 0 : (a < b ? -1 : 1);
+    });
+    return ports;
+}
+
+function nodePortsEqual(actual: ServiceSpec, element: ServiceSpec) {
+    if (actual.ports === undefined) return element.ports === undefined;
+    if (element.ports === undefined) return false;
+    if (actual.ports.length !== element.ports.length) return false;
+
+    const actualPorts = sortPorts(actual.ports);
+    const elementPorts = sortPorts(element.ports);
+
+    if (!(actual.type === "NodePort" && element.type === "NodePort")) {
+        return isEqual(actualPorts, elementPorts);
+    }
+
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < actualPorts.length; i++) {
+        const aport = { ...actualPorts[i] };
+        const eport = { ...elementPorts[i] };
+        if (isEqual(aport, eport)) continue;
+        if (eport.nodePort !== undefined) return false;
+        delete aport.nodePort;
+        delete eport.nodePort;
+        if (!isEqual(aport, eport)) return false;
+    }
+
+    return true;
+}
+
+function serviceSpecsEqual(actual: ServiceSpec, element: ServiceSpec) {
+    actual = canonicalize(actual, true);
+    element = canonicalize(element);
+
+    const actualPorts = actual.ports;
+    const elementPorts = element.ports;
+    delete actual.ports;
+    delete element.ports;
+    const equalWithoutPorts = isEqual(actual, element);
+    if (!equalWithoutPorts) return false;
+
+    actual.ports = actualPorts;
+    element.ports = elementPorts;
+    return nodePortsEqual(actual, element);
 }
 
 function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, state: ServiceState): ResourceService {
@@ -291,6 +352,12 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, state: Ser
             if (p.protocol === undefined) p.protocol = "TCP";
         }
     }
+
+    if (spec.type === "LoadBalancer") {
+        if (spec.sessionAffinity === undefined) spec.sessionAffinity = "None";
+        if (spec.externalTrafficPolicy === undefined) spec.externalTrafficPolicy = "Cluster";
+    }
+
     return {
         kind: Kind.service,
         metadata: {},

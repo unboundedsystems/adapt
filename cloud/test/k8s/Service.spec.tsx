@@ -42,6 +42,19 @@ describe("k8s Service Component Tests", () => {
         should(svc).not.Undefined();
     });
 
+    it("Should refuse multiple ports if one has no name", async () => {
+        const ports: ServicePort[] = [
+            { name: "first", port: 9001, targetPort: 9001 },
+            { port: 8001, targetPort: 81 },
+        ];
+        const svc =
+            <Service key="test" ports={ports} config={{}} />;
+
+        const { messages } = await Adapt.build(svc, null);
+        should(messages).length(1);
+        should(messages[0].content).match(/multiple ports/);
+    });
+
     it("Should translate from abstract to k8s", async () => {
         const absDom =
             <abs.NetworkService port={8080} />;
@@ -85,6 +98,22 @@ describe("k8s Service Component Tests", () => {
         should(domXml).eql(expected);
     });
 
+    it("Should resolve handle selectors", async () => {
+        const hand = handle();
+        const root = <Group>
+            <Service ports={[{ port: 8000, targetPort: 8080 }]} selector={hand} />
+            <Pod handle={hand} config={{}}>
+                <K8sContainer name="foo" image="alpine:3.1"></K8sContainer>
+            </Pod>
+        </Group>;
+        const deployID = "foo";
+        const { contents: dom, messages } = await Adapt.build(root, null, { deployID });
+        should(messages).eql([]);
+        if (dom === null) throw should(dom).not.Null();
+        should(dom.props.children[0].props.spec.selector.adaptName)
+            .equal(resourceElementToName(dom.props.children[1], deployID));
+
+    });
 });
 
 describe("k8s Service Operation Tests", function () {
@@ -126,8 +155,8 @@ describe("k8s Service Operation Tests", function () {
 
     it("Should compute actions with no services from k8s", async () => {
         const ports: ServicePort[] = [
-            { port: 9001, targetPort: 9001 },
-            { port: 8001, targetPort: 81 },
+            { name: "9001", port: 9001, targetPort: 9001 },
+            { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
@@ -145,8 +174,8 @@ describe("k8s Service Operation Tests", function () {
 
     it("Should distinguish between replace and create actions", async () => {
         const ports: ServicePort[] = [
-            { port: 9001, targetPort: 9001 },
-            { port: 8001, targetPort: 81 },
+            { name: "9001", port: 9001, targetPort: 9001 },
+            { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
@@ -283,6 +312,49 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(oldDom, oldDom);
         const actions = plugin.analyze(oldDom, oldDom, obs);
         should(actions).length(0);
+        await plugin.finish();
+    });
+
+    it("Should leave service alone (with handle)", async () => {
+        function makeRoot() {
+            const hand = handle();
+
+            const ports: ServicePort[] = [
+                { name: "foo", port: 9001, targetPort: 9001 },
+                { name: "bar", port: 9002, targetPort: 9002 },
+            ];
+
+            return <Group>
+                <Service key={"test"} type="LoadBalancer" ports={ports} config={kubeconfig} selector={hand} />
+                <Pod handle={hand} config={kubeconfig}>
+                    <K8sContainer name="foo" image="alpine:3.1" />
+                </Pod>
+            </Group>;
+        }
+
+        if (!deployID) throw new Error(`Missing deployID?`);
+
+        const root = makeRoot();
+        const { dom: oldDom } = await doBuild(root, options.deployID);
+
+        await plugin.start(options);
+        const obs = await plugin.observe(null, oldDom);
+        const actions = plugin.analyze(null, oldDom, obs);
+        await act(actions);
+
+        const svcs = await getAll("services", { client, deployID });
+        should(svcs).length(1);
+        should(svcs[0].metadata.name)
+            .equal(resourceElementToName(oldDom.props.children[0], options.deployID));
+        await plugin.finish();
+
+        const root2 = makeRoot();
+        const { dom } = await doBuild(root2, options.deployID);
+
+        await plugin.start(options);
+        const obs2 = await plugin.observe(oldDom, dom);
+        const actions2 = plugin.analyze(oldDom, dom, obs2);
+        should(actions2).length(0);
         await plugin.finish();
     });
 

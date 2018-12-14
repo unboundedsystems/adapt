@@ -69,7 +69,7 @@ export interface ResourceInfo {
     kind: Kind;
     apiName: string;
     statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown | Promise<unknown>;
-    specsEqual(spec1: Spec, spec2: Spec): boolean;
+    specsEqual(actual: Spec, element: Spec): boolean;
 }
 
 const resourceInfo = {
