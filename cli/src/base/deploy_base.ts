@@ -3,6 +3,7 @@ import { filePathToUrl, getErrors, getWarnings } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
+import { ReplaceT } from "type-ops";
 import { DeployError, DeploySuccess } from "../types/adapt_shared";
 
 import {
@@ -19,16 +20,21 @@ export interface DeployCtx {
     // Provided by init
     adaptUrl: string;
     debug: string;
-    dryRun: boolean;
-    projectFile: string;
-    stackName: string;
+    dryRun?: boolean;
+    projectFile?: string;
+    stackName?: string;
 
     // Created by tasks
     project?: Project;
 }
 
 export abstract class DeployBase extends Command {
+
     static flags = {
+        serverUrl: flags.string({
+            description: "URL of Adapt server. Defaults to using local system.",
+            env: "ADAPT_SERVER_URL",
+        }),
         debug: flags.string({
             char: "d",
             description:
@@ -37,6 +43,40 @@ export abstract class DeployBase extends Command {
             default: "",
             helpValue: "debugFlags",
         }),
+    };
+
+    args?: any;
+    flags?: any;
+
+    tasks = new Listr();
+
+    ctx: DeployCtx;
+    finalOutput = "";
+
+    async init() {
+        // tslint:disable-next-line:no-shadowed-variable
+        const { args, flags } = this.parse();
+        this.flags = flags;
+        this.args = args;
+
+        let adaptUrl: string;
+        if (this.flags.serverUrl) {
+            adaptUrl = this.flags.serverUrl;
+        } else {
+            const dbFile = path.join(this.config.dataDir, "local_deploy");
+            adaptUrl = filePathToUrl(dbFile);
+        }
+        this.ctx = {
+            adaptUrl,
+            debug: this.flags.debug
+        };
+
+    }
+}
+
+export abstract class DeployOpBase extends DeployBase {
+    static flags = {
+        ...DeployBase.flags,
         dryRun: flags.boolean({
             description: "Show what would happen during deploy, but do not modify the deployment",
         }),
@@ -48,76 +88,51 @@ export abstract class DeployBase extends Command {
             description: "Project description file to deploy (.ts or .tsx)",
             default: "index.tsx",
         }),
-        serverUrl: flags.string({
-            description: "URL of Adapt server. Defaults to using local system.",
-            env: "ADAPT_SERVER_URL",
-        }),
     };
 
-    args?: any;
-    flags?: any;
-    ctx?: DeployCtx;
-    tasks = new Listr();
-    finalOutput = "";
+    ctx: ReplaceT<Required<DeployCtx>, { project?: Project }>;
 
     async init() {
         await super.init();
 
-        // tslint:disable-next-line:no-shadowed-variable
-        const { args, flags } = this.parse();
-        this.flags = flags;
-        this.args = args;
-
-        const stackName: string = args.stackName;
-
+        const stackName: string = this.args.stackName;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
 
-        if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
+        if (this.flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
+        if (this.flags.dryRun === undefined) this.flags.dryRun = false;
 
-        if (flags.dryRun === undefined) flags.dryRun = false;
+        const projectFile = path.resolve(this.flags.rootFile);
 
-        const projectFile = path.resolve(flags.rootFile);
-
-        if (! await fs.pathExists(projectFile)) {
-            this.error(`Project file '${flags.rootFile}' does not exist`);
-        }
-        const projectRoot = path.dirname(projectFile);
-
-        await fs.ensureDir(cacheDir);
-
-        const session: Session = {
-            cacheDir,
-            projectDir: projectRoot,
-        };
-        const projOpts: ProjectOptions = {
-            session,
-        };
-
-        if (flags.registry) projOpts.registry = flags.registry;
-
-        let adaptUrl: string;
-        if (flags.serverUrl) {
-            adaptUrl = flags.serverUrl;
-        } else {
-            const dbFile = path.join(this.config.dataDir, "local_deploy");
-            adaptUrl = filePathToUrl(dbFile);
-        }
-        const ctx: DeployCtx = {
-            adaptUrl,
-            debug: flags.debug,
-            dryRun: flags.dryRun,
+        this.ctx = {
+            ...this.ctx,
+            dryRun: this.flags.dryRun,
             projectFile,
             stackName,
         };
-        this.ctx = ctx;
 
         this.tasks.add([
             {
                 title: "Validating project",
                 task: async () => {
+                    if (! await fs.pathExists(projectFile)) {
+                        this.error(`Project file '${this.flags.rootFile}' does not exist`);
+                    }
+                    const projectRoot = path.dirname(projectFile);
+
+                    await fs.ensureDir(cacheDir);
+
+                    const session: Session = {
+                        cacheDir,
+                        projectDir: projectRoot,
+                    };
+                    const projOpts: ProjectOptions = {
+                        session,
+                    };
+
                     try {
-                        ctx.project = await load(projectRoot, projOpts);
-                        const gen = getGen(ctx.project);
+                        if (this.flags.registry) projOpts.registry = this.flags.registry;
+                        this.ctx.project = await load(projectRoot, projOpts);
+                        const gen = getGen(this.ctx.project);
                         if (!gen.matchInfo.matches) {
                             this.error(cantDeploy +
                                 `The following updates must be made:\n` +

@@ -1,9 +1,9 @@
 import { flags } from "@oclif/command";
-import { cantDeploy, DeployBase } from "../../base";
+import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
 import { CreateOptions, DeployState, isDeploySuccess } from "../../types/adapt_shared";
 
-export default class CreateCommand extends DeployBase {
+export default class CreateCommand extends DeployOpBase {
     static description = "Create a new deployment for an Adapt project";
 
     static examples = [
@@ -14,7 +14,7 @@ export default class CreateCommand extends DeployBase {
     ];
 
     static flags = {
-        ...DeployBase.flags,
+        ...DeployOpBase.flags,
         init: flags.boolean({
             description: "Initialize a new local deployment server if it doesn't exist",
         }),
@@ -40,9 +40,7 @@ export default class CreateCommand extends DeployBase {
             {
                 title: "Creating new project deployment",
                 task: async () => {
-                    if (ctx.project == null) {
-                        throw new Error(`Internal error: project cannot be null`);
-                    }
+                    if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
 
                     let deployState: DeployState;
                     try {
