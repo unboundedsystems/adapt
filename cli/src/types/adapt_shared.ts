@@ -18,6 +18,7 @@ export interface AdaptModule {
     ProjectCompileError: Constructor<Error>;
     ProjectRunError: Constructor<ProjectRunError>;
 
+    listDeployments(options: ListOptions): Promise<DeploymentInfo[] | Error>;
     createDeployment(options: CreateOptions): Promise<DeployState>;
     updateDeployment(options: UpdateOptions): Promise<DeployState>;
     fetchStatus(options: StatusOptions): Promise<DeployState>;
@@ -28,6 +29,7 @@ export function verifyAdaptModule(val: unknown): AdaptModule {
         ProjectCompileError: "function",
         ProjectRunError: "function",
 
+        listDeployments: "function",
         createDeployment: "function",
         updateDeployment: "function",
     });
@@ -127,6 +129,16 @@ export function verifyMessages(val: any): Message[] {
     }
 
     return val as Message[];
+}
+
+/*
+ * Types related to adapt.listDeployments
+ */
+export interface ListOptions {
+    adaptUrl: string;
+}
+export interface DeploymentInfo {
+    deployID: string;
 }
 
 /*

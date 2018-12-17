@@ -16,7 +16,7 @@ import { stdout } from "stdout-stderr";
 
 import { createDeployment, fetchStatus, updateDeployment } from "../../src/ops";
 import { DeployError, DeployState, DeploySuccess, isDeploySuccess } from "../../src/ops/common";
-import { destroyDeployment, listDeployments } from "../../src/server/deployment";
+import { destroyDeployment, listDeploymentIDs } from "../../src/server/deployment";
 import { LocalServer } from "../../src/server/local_server";
 import { adaptServer, AdaptServer, AdaptServerType, mockServerTypes_ } from "../../src/server/server";
 
@@ -210,12 +210,12 @@ describe("createDeployment Tests", async function () {
     afterEach(async () => {
         stdout.stop();
         const s = await server();
-        let list = await listDeployments(s);
+        let list = await listDeploymentIDs(s);
         for (const id of list) {
             await destroyDeployment(s, id);
         }
 
-        list = await listDeployments(await server());
+        list = await listDeploymentIDs(await server());
         should(list).have.length(0);
     });
 
@@ -240,7 +240,7 @@ describe("createDeployment Tests", async function () {
         }
         checkErrors(ds, expectedErrs);
 
-        const list = await listDeployments(await server());
+        const list = await listDeploymentIDs(await server());
         should(list).have.length(0);
         return ds;
     }
@@ -251,7 +251,7 @@ describe("createDeployment Tests", async function () {
             throw new Error("Failure: " + messagesToString(ds.messages));
         }
 
-        const list = await listDeployments(await server());
+        const list = await listDeploymentIDs(await server());
         should(list).have.length(1);
         should(list[0]).equal(ds.deployID);
         return ds;

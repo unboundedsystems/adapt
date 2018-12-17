@@ -43,6 +43,10 @@ export abstract class DeployBase extends Command {
             default: "",
             helpValue: "debugFlags",
         }),
+        rootFile: flags.string({
+            description: "Project description file to deploy (.ts or .tsx)",
+            default: "index.tsx",
+        }),
     };
 
     args?: any;
@@ -73,9 +77,16 @@ export abstract class DeployBase extends Command {
         };
 
         const projectFile = path.resolve(this.flags.rootFile);
-        if (await fs.pathExists(projectFile)) {
+        if (projectFile && await fs.pathExists(projectFile)) {
             this.ctx.projectFile = projectFile;
         }
+    }
+
+    async finally(err?: Error) {
+        await super.finally(err);
+        if (err !== undefined) return;
+
+        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
     }
 
     appendOutput(s: string) {
@@ -92,10 +103,6 @@ export abstract class DeployOpBase extends DeployBase {
         registry: flags.string({
             description: "URL of alternate NPM registry to use",
             env: "ADAPT_NPM_REGISTRY",
-        }),
-        rootFile: flags.string({
-            description: "Project description file to deploy (.ts or .tsx)",
-            default: "index.tsx",
         }),
     };
 
@@ -156,13 +163,6 @@ export abstract class DeployOpBase extends DeployBase {
                 },
             },
         ]);
-    }
-
-    async finally(err?: Error) {
-        await super.finally(err);
-        if (err !== undefined) return;
-
-        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
     }
 
     deployFailure(deployErr: DeployError) {

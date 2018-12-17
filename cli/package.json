@@ -15,6 +15,7 @@
     "@oclif/command": "^1.5.4",
     "@oclif/config": "^1.8.8",
     "@oclif/plugin-help": "^2.1.3",
+    "@usys/adapt": "0.0.1",
     "@usys/utils": "0.0.1",
     "chalk": "^2.4.1",
     "decamelize": "^2.0.0",
