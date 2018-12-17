@@ -66,11 +66,20 @@ export abstract class DeployBase extends Command {
             const dbFile = path.join(this.config.dataDir, "local_deploy");
             adaptUrl = filePathToUrl(dbFile);
         }
+
         this.ctx = {
             adaptUrl,
             debug: this.flags.debug
         };
 
+        const projectFile = path.resolve(this.flags.rootFile);
+        if (await fs.pathExists(projectFile)) {
+            this.ctx.projectFile = projectFile;
+        }
+    }
+
+    appendOutput(s: string) {
+        this.finalOutput += s;
     }
 }
 
@@ -101,12 +110,9 @@ export abstract class DeployOpBase extends DeployBase {
         if (this.flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
         if (this.flags.dryRun === undefined) this.flags.dryRun = false;
 
-        const projectFile = path.resolve(this.flags.rootFile);
-
         this.ctx = {
             ...this.ctx,
             dryRun: this.flags.dryRun,
-            projectFile,
             stackName,
         };
 
@@ -114,10 +120,10 @@ export abstract class DeployOpBase extends DeployBase {
             {
                 title: "Validating project",
                 task: async () => {
-                    if (! await fs.pathExists(projectFile)) {
+                    if (! await fs.pathExists(this.ctx.projectFile)) {
                         this.error(`Project file '${this.flags.rootFile}' does not exist`);
                     }
-                    const projectRoot = path.dirname(projectFile);
+                    const projectRoot = path.dirname(this.ctx.projectFile);
 
                     await fs.ensureDir(cacheDir);
 
@@ -187,9 +193,5 @@ export abstract class DeployOpBase extends DeployBase {
         if (needsData.length > 0) {
             this.appendOutput(needsData.join("\n\n"));
         }
-    }
-
-    appendOutput(s: string) {
-        this.finalOutput += s;
     }
 }
