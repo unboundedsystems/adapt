@@ -6,7 +6,7 @@ import {
     registerObserver,
     throwObserverErrors,
 } from "@usys/adapt";
-import aws4sign from "aws4";
+import AWS from "aws-sdk";
 import fs from "fs-extra";
 import {
     execute,
@@ -17,15 +17,9 @@ import {
 } from "graphql";
 import { safeLoad } from "js-yaml";
 import jsonStableStringify from "json-stable-stringify";
-import { isError } from "lodash";
-import fetch from "node-fetch";
 import path from "path";
-import URL from "url";
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import { AwsCredentialsProps } from "./credentials";
-
-// tslint:disable-next-line:no-var-requires
-const swaggerClient = require("swagger-client");
 
 interface AwsQueryParams extends AwsCredentialsProps { }
 
@@ -52,15 +46,8 @@ function computeQueryId(queryParams: QueryParams, fieldName: string, args: unkno
     });
 }
 
-/**
- * The AWS swagger specs are broken because the operations have paths with
- * an (erroneous) hash in them like this: "/#DescribeStacks". The swagger
- * client gleefully just tacks on the query string afterwards, which is
- * an invalid url and doesn't allow the url parser to do its job. So just
- * edit the hash out.
- */
-function fixupUrl(url: string) {
-    return url.replace(/\/#[^?]*\?/, "/?");
+function opName(fieldName: string) {
+    return fieldName[0].toLowerCase() + fieldName.substr(1);
 }
 
 const observeResolverFactory: ResolverFactory = {
@@ -76,53 +63,17 @@ const observeResolverFactory: ResolverFactory = {
             };
         }
 
-        return async (obj: ObserveResolverInfo, args, context: Observations, _info) => {
+        return async (obj: ObserveResolverInfo, args: any, context: Observations, _info) => {
             const params = obj[infoSym];
-
-            const resolved = await swaggerClient.resolve({ spec: swaggerDef() });
-            let req = await swaggerClient.buildRequest({
-                spec: resolved.spec,
-                operationId: fieldName,
-                parameters: args,
-                requestContentType: "application/json",
-                responseContentType: "application/json"
-            });
-
-            if (req.body && typeof req.body === "object") {
-                req.body = JSON.stringify(req.body);
-            }
-
-            // Allow aws4sign to generate hostname
-            if (!req.url) throw new Error(`Swagger client did not generate URL`);
-            const urlObj = URL.parse(fixupUrl(req.url));
-            delete req.url;
-            req.path = urlObj.path;
-
-            const auth = {
+            const queryId = computeQueryId(obj[infoSym], fieldName, args);
+            const client: any = new AWS.CloudFormation({
+                region: params.awsRegion,
                 accessKeyId: params.awsAccessKeyId,
                 secretAccessKey: params.awsSecretAccessKey,
-            };
-            req = aws4sign.sign({
-                ...req,
-                service: "cloudformation",
-                region: params.awsRegion,
-                }, auth);
+            });
+            // Make the query to AWS
+            const ret = await client[opName(fieldName)](args.body).promise();
 
-            const url = urlObj.protocol + "//" + req.headers.Host + urlObj.path;
-
-            console.log("Request:", url, req);
-            const queryId = computeQueryId(obj[infoSym], fieldName, args);
-            let ret: any;
-            try {
-                const resp = await fetch(url, req);
-                const body = await resp.text();
-                if (!resp.ok) throw new Error(`${resp.statusText} (${resp.status}): ${body}`);
-                ret = JSON.parse(body);
-
-            } catch (e) {
-                if (!isError(e)) throw e;
-                ret = { noStatus: e.message };
-            }
             context[queryId] = ret; //Overwrite in case data got updated on later query
             return ret;
         };

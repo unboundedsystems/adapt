@@ -111,8 +111,6 @@ function makeGQLFieldName(swaggerName: string) {
     return gqlName;
 }
 
-const names = new Map<string, boolean>();
-
 function jsonSchema2GraphQLType(
     name: string,
     schema: Swagger2Schema,
@@ -153,11 +151,6 @@ function jsonSchema2GraphQLType(
         name: gqlName,
         description: schema.description,
     };
-    const origInput = names.get(gqlName);
-    if (origInput !== undefined) {
-        console.log(`duplicate name ${gqlName} origInput: ${origInput} current: ${inputType}`);
-    }
-    names.set(gqlName, inputType);
 
     if (inputType) {
         const fields = buildFieldsFromSchema(name, schema, tyResolverIn, true);
@@ -260,7 +253,6 @@ function getOrBuildType(
     input: boolean) {
 
     const name = isRef(refOrSchema) ? refOrSchema.$ref : typeName;
-    console.log(`getOrBuildType`, isRef(refOrSchema) ? "ref" : "noRef", name);
     try {
         const type = input ?
             tyResolver.input.getType(name) :
