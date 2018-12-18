@@ -6,7 +6,9 @@ import * as path from "path";
 import { pkgRootDir } from "../testlib";
 
 import { ProjectRunError } from "../../src/error";
+import { isNullStack } from "../../src/stack";
 import {
+    createAdaptContext,
     exec,
     execString,
     MemFileHost,
@@ -140,5 +142,15 @@ describe("Exec module tests", function () {
         const host = MemFileHost("/", projDir);
         const ret = exec(index, {host});
         should(ret).equal("test_camel");
+    });
+});
+
+describe("adaptContext Tests", () => {
+    it("Should add null stack into adapt context", () => {
+        const context = createAdaptContext();
+        const stacks = context.adaptStacks;
+        const nullStack = stacks.get("(null)");
+        if (nullStack === undefined) throw should(nullStack).not.Undefined();
+        should(isNullStack(nullStack)).True();
     });
 });
