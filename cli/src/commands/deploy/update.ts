@@ -2,34 +2,13 @@ import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
 import { DeployState, isDeploySuccess, UpdateOptions } from "../../types/adapt_shared";
 
-export default class UpdateCommand extends DeployOpBase {
-    static description = "Update an existing deployment of an Adapt project";
+function cap(s: string): string {
+    return s.substr(0, 1).toUpperCase() + s.substr(1);
+}
 
-    static examples = [
-`
-Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-the default project description file, "index.tsx":
-    $ adapt deploy:update myproj-dev-abcd dev
-
-Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-an alternate description file, "somefile.tsx":
-    $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev`,
-    ];
-
-    static flags = {
-        ...DeployOpBase.flags,
-    };
-
-    static args = [
-        {
-            name: "deployID",
-            required: true,
-        },
-        {
-            name: "stackName",
-            required: true,
-        },
-    ];
+export class UpdateBaseCommand extends DeployOpBase {
+    ingverb: string = "updating";
+    edverb: string = "updated";
 
     async run() {
         const deployID: string | undefined = this.args.deployID;
@@ -43,8 +22,8 @@ an alternate description file, "somefile.tsx":
         }
 
         this.tasks.add([
-           {
-                title: "Updating project deployment",
+            {
+                title: `${cap(this.ingverb)} project deployment`,
                 task: async () => {
                     if (ctx.project == null) {
                         throw new Error(`Internal error: project cannot be null`);
@@ -78,11 +57,44 @@ an alternate description file, "somefile.tsx":
 
                     const id = deployState.deployID;
 
-                    this.appendOutput(`Deployment ${id} updated successfully.`);
+                    this.appendOutput(`Deployment ${id} ${this.edverb} successfully.`);
                 }
             }
         ]);
 
         await this.tasks.run();
     }
+}
+
+export default class UpdateCommand extends UpdateBaseCommand {
+    static description = "Update an existing deployment of an Adapt project";
+
+    static examples = [
+        `
+Update the deployment "myproj-dev-abcd", using the stack named "dev" from
+the default project description file, "index.tsx":
+    $ adapt deploy:update myproj-dev-abcd dev
+
+Update the deployment "myproj-dev-abcd", using the stack named "dev" from
+an alternate description file, "somefile.tsx":
+    $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev`,
+    ];
+
+    static flags = {
+        ...DeployOpBase.flags,
+    };
+
+    static args = [
+        {
+            name: "deployID",
+            required: true,
+        },
+        {
+            name: "stackName",
+            required: true,
+        },
+    ];
+
+    ingverb = "updating";
+    edverb = "updated";
 }
