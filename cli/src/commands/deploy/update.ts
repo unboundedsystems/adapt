@@ -1,8 +1,8 @@
-import { cantDeploy, DeployBase } from "../../base";
+import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
 import { DeployState, isDeploySuccess, UpdateOptions } from "../../types/adapt_shared";
 
-export default class UpdateCommand extends DeployBase {
+export default class UpdateCommand extends DeployOpBase {
     static description = "Update an existing deployment of an Adapt project";
 
     static examples = [
@@ -17,7 +17,7 @@ an alternate description file, "somefile.tsx":
     ];
 
     static flags = {
-        ...DeployBase.flags,
+        ...DeployOpBase.flags,
     };
 
     static args = [

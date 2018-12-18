@@ -242,6 +242,37 @@ function checkPluginStdout(stdout: string, dryRun = false) {
     }
 }
 
+describe("Deploy list tests", function () {
+    this.slow(30 * 1000);
+    this.timeout(3 * 60 * 1000);
+    mochaTmpdir.each("adapt-cli-test-deploy");
+
+    basicTestChain
+    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:list"])
+
+    .it("Should list deployments", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).contains("Listing Deployments [completed]\n\ntest::dev\n");
+        expect(ctx.stdout).not.contains("using internal adapt module");
+    });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "dev"])
+    .do(() => process.chdir("/"))
+    .command(["deploy:list"])
+    .it("Should list deployments from non-project", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).contains("Listing Deployments [completed]\n\ntest::dev\n");
+        expect(ctx.stdout).contains("using internal adapt module");
+    });
+
+});
+
 describe("Deploy create basic tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
@@ -353,7 +384,6 @@ describe("Observer Needs Data Reporting", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).not.contains("still needs data");
-
         checkPluginStdout(ctx.stdout);
 
         await checkBasicIndexTsxState(

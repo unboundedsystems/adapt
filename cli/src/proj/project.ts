@@ -83,8 +83,7 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     return new Project(manifest, pkgLock, finalOpts);
 }
 
-// FIXME(mark): Move this to another file
-async function adaptModule(projectRoot: string): Promise<AdaptModule> {
+export async function projectAdaptModule(projectRoot: string): Promise<AdaptModule> {
     const entryFile = require.resolve("@usys/adapt", { paths: [projectRoot]});
 
     // Load Adapt at runtime. We've already done some version
@@ -133,7 +132,7 @@ export class Project {
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;
 
-        const adapt = await adaptModule(projectRoot);
+        const adapt = await projectAdaptModule(projectRoot);
 
         try {
             return verifyDeployState(await action(adapt));

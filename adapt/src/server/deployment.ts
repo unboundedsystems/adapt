@@ -1,5 +1,6 @@
 import * as randomstring from "randomstring";
 import { InternalError } from "../error";
+import { DeploymentInfo } from "../ops/listDeployments";
 import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "./history";
 import { AdaptServer } from "./server";
 
@@ -38,7 +39,6 @@ export async function createDeployment(server: AdaptServer, projectName: string,
 
     for (let i = 0; i < maxTries; i++) {
         const deployData = {
-            state: "new",
             deployID,
         };
         try {
@@ -99,10 +99,19 @@ export async function destroyDeployment(server: AdaptServer, deployID: string):
     }
 }
 
-export async function listDeployments(server: AdaptServer): Promise<string[]> {
+export async function listDeploymentIDs(server: AdaptServer): Promise<string[]> {
+    try {
+        const deps = await listDeployments(server);
+        return deps.map((dep) => dep.deployID);
+    } catch (err) {
+        throw new Error(`Error listing deployments: ${err}`);
+    }
+}
+
+export async function listDeployments(server: AdaptServer): Promise<DeploymentInfo[]> {
     try {
         const deps = await server.get(deploymentPath);
-        return Object.keys(deps).map((key) => deps[key].deployID);
+        return Object.keys(deps).map((key) => deps[key]);
     } catch (err) {
         throw new Error(`Error listing deployments: ${err}`);
     }
@@ -111,7 +120,7 @@ export async function listDeployments(server: AdaptServer): Promise<string[]> {
 class DeploymentImpl implements Deployment {
     private historyStore_?: HistoryStore;
 
-    constructor(public deployID: string, private server: AdaptServer) {}
+    constructor(public deployID: string, private server: AdaptServer) { }
 
     init = async () => {
         this.historyStore_ = await this.server.historyStore(dpath(this.deployID), true);

@@ -3,6 +3,7 @@ import { filePathToUrl, getErrors, getWarnings } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
+import { ReplaceT } from "type-ops";
 import { DeployError, DeploySuccess } from "../types/adapt_shared";
 
 import {
@@ -19,45 +20,33 @@ export interface DeployCtx {
     // Provided by init
     adaptUrl: string;
     debug: string;
-    dryRun: boolean;
-    projectFile: string;
-    stackName: string;
+    dryRun?: boolean;
+    projectFile?: string;
+    stackName?: string;
 
     // Created by tasks
     project?: Project;
 }
 
 export abstract class DeployBase extends Command {
+
     static flags = {
-        debug: flags.string({
-            char: "d",
-            description:
-                "Enable additional debug output. Should be a comma-separated " +
-                "list of debug flags. Valid debug flags are: build",
-            default: "",
-            helpValue: "debugFlags",
-        }),
-        dryRun: flags.boolean({
-            description: "Show what would happen during deploy, but do not modify the deployment",
-        }),
-        registry: flags.string({
-            description: "URL of alternate NPM registry to use",
-            env: "ADAPT_NPM_REGISTRY",
+        serverUrl: flags.string({
+            description: "URL of Adapt server. Defaults to using local system.",
+            env: "ADAPT_SERVER_URL",
         }),
         rootFile: flags.string({
             description: "Project description file to deploy (.ts or .tsx)",
             default: "index.tsx",
         }),
-        serverUrl: flags.string({
-            description: "URL of Adapt server. Defaults to using local system.",
-            env: "ADAPT_SERVER_URL",
-        }),
     };
 
     args?: any;
     flags?: any;
-    ctx?: DeployCtx;
+
     tasks = new Listr();
+
+    ctx: DeployCtx;
     finalOutput = "";
 
     async init() {
@@ -68,56 +57,97 @@ export abstract class DeployBase extends Command {
         this.flags = flags;
         this.args = args;
 
-        const stackName: string = args.stackName;
-
-        const cacheDir = path.join(this.config.cacheDir, "npmcache");
-
-        if (flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
-
-        if (flags.dryRun === undefined) flags.dryRun = false;
-
-        const projectFile = path.resolve(flags.rootFile);
-
-        if (! await fs.pathExists(projectFile)) {
-            this.error(`Project file '${flags.rootFile}' does not exist`);
-        }
-        const projectRoot = path.dirname(projectFile);
-
-        await fs.ensureDir(cacheDir);
-
-        const session: Session = {
-            cacheDir,
-            projectDir: projectRoot,
-        };
-        const projOpts: ProjectOptions = {
-            session,
-        };
-
-        if (flags.registry) projOpts.registry = flags.registry;
-
         let adaptUrl: string;
-        if (flags.serverUrl) {
-            adaptUrl = flags.serverUrl;
+        if (this.flags.serverUrl) {
+            adaptUrl = this.flags.serverUrl;
         } else {
             const dbFile = path.join(this.config.dataDir, "local_deploy");
             adaptUrl = filePathToUrl(dbFile);
         }
-        const ctx: DeployCtx = {
+
+        this.ctx = {
             adaptUrl,
-            debug: flags.debug,
-            dryRun: flags.dryRun,
-            projectFile,
+            debug: this.flags.debug
+        };
+
+        const projectFile = path.resolve(this.flags.rootFile);
+        if (projectFile && await fs.pathExists(projectFile)) {
+            this.ctx.projectFile = projectFile;
+        }
+    }
+
+    async finally(err?: Error) {
+        await super.finally(err);
+        if (err !== undefined) return;
+
+        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
+    }
+
+    appendOutput(s: string) {
+        this.finalOutput += s;
+    }
+}
+
+export abstract class DeployOpBase extends DeployBase {
+    static flags = {
+        ...DeployBase.flags,
+        dryRun: flags.boolean({
+            description: "Show what would happen during deploy, but do not modify the deployment",
+        }),
+        debug: flags.string({
+            char: "d",
+            description:
+                "Enable additional debug output. Should be a comma-separated " +
+                "list of debug flags. Valid debug flags are: build",
+            default: "",
+            helpValue: "debugFlags",
+        }),
+        registry: flags.string({
+            description: "URL of alternate NPM registry to use",
+            env: "ADAPT_NPM_REGISTRY",
+        }),
+    };
+
+    ctx: ReplaceT<Required<DeployCtx>, { project?: Project }>;
+
+    async init() {
+        await super.init();
+
+        const stackName: string = this.args.stackName;
+        const cacheDir = path.join(this.config.cacheDir, "npmcache");
+
+        if (this.flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
+        if (this.flags.dryRun === undefined) this.flags.dryRun = false;
+
+        this.ctx = {
+            ...this.ctx,
+            dryRun: this.flags.dryRun,
             stackName,
         };
-        this.ctx = ctx;
 
         this.tasks.add([
             {
                 title: "Validating project",
                 task: async () => {
+                    if (! await fs.pathExists(this.ctx.projectFile)) {
+                        this.error(`Project file '${this.flags.rootFile}' does not exist`);
+                    }
+                    const projectRoot = path.dirname(this.ctx.projectFile);
+
+                    await fs.ensureDir(cacheDir);
+
+                    const session: Session = {
+                        cacheDir,
+                        projectDir: projectRoot,
+                    };
+                    const projOpts: ProjectOptions = {
+                        session,
+                    };
+
                     try {
-                        ctx.project = await load(projectRoot, projOpts);
-                        const gen = getGen(ctx.project);
+                        if (this.flags.registry) projOpts.registry = this.flags.registry;
+                        this.ctx.project = await load(projectRoot, projOpts);
+                        const gen = getGen(this.ctx.project);
                         if (!gen.matchInfo.matches) {
                             this.error(cantDeploy +
                                 `The following updates must be made:\n` +
@@ -135,13 +165,6 @@ export abstract class DeployBase extends Command {
                 },
             },
         ]);
-    }
-
-    async finally(err?: Error) {
-        await super.finally(err);
-        if (err !== undefined) return;
-
-        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
     }
 
     deployFailure(deployErr: DeployError) {
@@ -172,9 +195,5 @@ export abstract class DeployBase extends Command {
         if (needsData.length > 0) {
             this.appendOutput(needsData.join("\n\n"));
         }
-    }
-
-    appendOutput(s: string) {
-        this.finalOutput += s;
     }
 }
