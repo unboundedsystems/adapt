@@ -58,6 +58,8 @@ export abstract class DeployBase extends Command {
     finalOutput = "";
 
     async init() {
+        await super.init();
+
         // tslint:disable-next-line:no-shadowed-variable
         const { args, flags } = this.parse();
         this.flags = flags;
