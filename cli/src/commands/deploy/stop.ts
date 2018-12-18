@@ -7,11 +7,7 @@ export default class StopCommand extends UpdateBaseCommand {
     static examples = [
         `
 Stop the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
-    $ adapt deploy:stop myproj-dev-abcd
-
-Stop the deployment "myproj-dev-abcd" using an alternate description
-file, "somefile.tsx":
-    $ adapt deploy:stop --rootFile somefile.tsx myproj-dev-abcd`,
+    $ adapt deploy:stop myproj-dev-abcd`,
     ];
 
     static flags = {
