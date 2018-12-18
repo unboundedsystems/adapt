@@ -35,14 +35,6 @@ export abstract class DeployBase extends Command {
             description: "URL of Adapt server. Defaults to using local system.",
             env: "ADAPT_SERVER_URL",
         }),
-        debug: flags.string({
-            char: "d",
-            description:
-                "Enable additional debug output. Should be a comma-separated " +
-                "list of debug flags. Valid debug flags are: build",
-            default: "",
-            helpValue: "debugFlags",
-        }),
         rootFile: flags.string({
             description: "Project description file to deploy (.ts or .tsx)",
             default: "index.tsx",
@@ -101,6 +93,14 @@ export abstract class DeployOpBase extends DeployBase {
         ...DeployBase.flags,
         dryRun: flags.boolean({
             description: "Show what would happen during deploy, but do not modify the deployment",
+        }),
+        debug: flags.string({
+            char: "d",
+            description:
+                "Enable additional debug output. Should be a comma-separated " +
+                "list of debug flags. Valid debug flags are: build",
+            default: "",
+            helpValue: "debugFlags",
         }),
         registry: flags.string({
             description: "URL of alternate NPM registry to use",
