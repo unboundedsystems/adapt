@@ -273,7 +273,7 @@ describe("Deploy list tests", function () {
 
 });
 
-describe("Deploy stop tests", function () {
+describe("Deploy destroy tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
@@ -285,14 +285,13 @@ describe("Deploy stop tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
     })
-    .command(["deploy:stop", "test::dev"])
+    .command(["deploy:destroy", "test::dev"])
+    .command(["deploy:list"])
 
-    .it("Should stop created deployment", async (ctx) => {
+    .it("Should stop and destroy created deployment", async (ctx) => {
         expect(ctx.stdout).contains("Stopping project deployment [completed]");
-
-        const historyDir = await findHistoryDir();
-        const domXml = await fs.readFile(path.join(historyDir, domFilename));
-        expect(domXml.toString()).equals("<Adapt/>\n");
+        expect(ctx.stdout).contains("Listing Deployments [completed]");
+        expect(ctx.stdout).not.contains("Listing Deployments [completed]\n\ntest::dev\n");
     });
 });
 

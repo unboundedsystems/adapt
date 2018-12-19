@@ -6,11 +6,11 @@ function cap(s: string): string {
     return s.substr(0, 1).toUpperCase() + s.substr(1);
 }
 
-export class UpdateBaseCommand extends DeployOpBase {
+export abstract class UpdateBaseCommand extends DeployOpBase {
     ingverb: string = "updating";
     edverb: string = "updated";
 
-    async run() {
+    async addUpdateTask() {
         const deployID: string | undefined = this.args.deployID;
         if (deployID == null) {
             throw new Error(`Internal error: deployID cannot be null`);
@@ -61,8 +61,6 @@ export class UpdateBaseCommand extends DeployOpBase {
                 }
             }
         ]);
-
-        await this.tasks.run();
     }
 }
 
@@ -97,4 +95,9 @@ an alternate description file, "somefile.tsx":
 
     ingverb = "updating";
     edverb = "updated";
+
+    async run() {
+        await this.addUpdateTask();
+        await this.tasks.run();
+    }
 }

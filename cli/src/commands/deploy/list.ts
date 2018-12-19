@@ -2,7 +2,7 @@ import * as ld from "lodash";
 import { dirname } from "path";
 import * as util from "util";
 import { DeployBase } from "../../base";
-import { projectAdaptModule } from "../../proj/index";
+import { projectAdaptModule } from "../../proj";
 import { AdaptModule, DeploymentInfo } from "../../types/adapt_shared";
 
 function formatDeployments(info: DeploymentInfo[]) {

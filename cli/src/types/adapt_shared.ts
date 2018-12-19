@@ -20,6 +20,7 @@ export interface AdaptModule {
 
     listDeployments(options: ListOptions): Promise<DeploymentInfo[] | Error>;
     createDeployment(options: CreateOptions): Promise<DeployState>;
+    destroyDeployment(options: DestroyOptions): Promise<boolean>;
     updateDeployment(options: UpdateOptions): Promise<DeployState>;
     fetchStatus(options: StatusOptions): Promise<DeployState>;
 }
@@ -159,6 +160,16 @@ export interface UpdateOptions extends DeployCommonOptions {
     prevStateJson?: string;
 }
 
+/*
+ * Types related to adapt.destroyDeployment
+ */
+export interface DestroyOptions {
+    adaptUrl: string;
+    deployID: string;
+    debug?: string;
+    dryRun?: boolean;
+    logger?: MessageLogger;
+}
 /*
  * Types related to adapt.fetchStatus
  */
