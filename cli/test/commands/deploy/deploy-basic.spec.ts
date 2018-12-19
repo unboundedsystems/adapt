@@ -16,7 +16,7 @@ const basicPackageJson = {
     name: "test",
     version: "1.0.0",
     description: "Adapt project",
-    main: "dist/index.js",
+    main: "index.tsx",
     scripts: {},
     author: "",
     license: "UNLICENSED",
@@ -80,7 +80,7 @@ const simplePluginPackageJson = `
     "name": "echo_plugin",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "index.tsx",
     "scripts": { },
     "author": ""
 }
@@ -129,7 +129,7 @@ const basicIndexTsx = `
     import Adapt, { PrimitiveComponent } from "@usys/adapt";
     import "./simple_plugin";
 
-    class Root extends PrimitiveComponent<{}> { }
+    export class Root extends PrimitiveComponent<{}> { }
 
     const app = <Root />;
     Adapt.stack("dev", app);
@@ -141,7 +141,7 @@ function observerIndexTsx(id1: number, id2: number) {
         import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
         import "./simple_plugin";
 
-        class Root extends PrimitiveComponent<{}> { }
+        export class Root extends PrimitiveComponent<{}> { }
 
         const app = <Observer
             observer={MockObserver}
@@ -197,7 +197,7 @@ async function checkBasicIndexTsxState(
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
 `<Adapt>
-  <Root key="Root" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Root">
+  <Root key="Root" xmlns="urn:Adapt:test:1.0.0::index.tsx:Root">
     <__lifecycle__>
       <field name="stateNamespace">${JSON.stringify(namespaces[stackName])}</field>
       <field name="keyPath">["Root"]</field>
@@ -271,6 +271,29 @@ describe("Deploy list tests", function () {
         expect(ctx.stdout).contains("using internal adapt module");
     });
 
+});
+
+describe("Deploy stop tests", function () {
+    this.slow(30 * 1000);
+    this.timeout(3 * 60 * 1000);
+    mochaTmpdir.each("adapt-cli-test-deploy");
+
+    basicTestChain
+    .command(["deploy:create", "--init", "dev"])
+    .do((ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+    })
+    .command(["deploy:stop", "test::dev"])
+
+    .it("Should stop created deployment", async (ctx) => {
+        expect(ctx.stdout).contains("Stopping project deployment [completed]");
+
+        const historyDir = await findHistoryDir();
+        const domXml = await fs.readFile(path.join(historyDir, domFilename));
+        expect(domXml.toString()).equals("<Adapt/>\n");
+    });
 });
 
 describe("Deploy create basic tests", function () {
@@ -470,14 +493,14 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
     import Adapt, { AnyState, Component, PrimitiveComponent } from "@usys/adapt";
     import "./simple_plugin";
 
-    class Empty extends PrimitiveComponent<{ id: number }> { }
+    export class Empty extends PrimitiveComponent<{ id: number }> { }
 
     interface StateUpdaterProps {
         newState: (prev: any, props: StateUpdaterProps) => any;
         initialState: any;
     }
 
-    class StateUpdater extends Component<StateUpdaterProps, AnyState> {
+    export class StateUpdater extends Component<StateUpdaterProps, AnyState> {
         initialState() {
             return this.props.initialState;
         }
@@ -515,7 +538,7 @@ async function checkStateUpdateState(count: number): Promise<void> {
         const domXml = await fs.readFile(path.join(dir, domFilename));
         expect(domXml.toString()).equals(
 `<Adapt>
-  <Empty id="1" xmlns="urn:Adapt:test:1.0.0:$adaptExports:../index.tsx:Empty">
+  <Empty id="1" xmlns="urn:Adapt:test:1.0.0::index.tsx:Empty">
     <__props__>
       <prop name="key">"StateUpdater-Empty"</prop>
     </__props__>

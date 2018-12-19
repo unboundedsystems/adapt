@@ -3,7 +3,7 @@ import * as path from "path";
 import { InternalError } from "../error";
 import { ObserverManagerDeployment } from "../observers";
 import { PluginModule } from "../plugin_support";
-import { Stack, Stacks } from "../stack";
+import { nullStack, Stack, Stacks } from "../stack";
 import { exec } from "./exec";
 import { MemFileHost } from "./hosts";
 
@@ -17,10 +17,12 @@ export interface AdaptContext {
     Adapt: typeof Adapt;
 }
 
-function createAdaptContext(): AdaptContext {
+export function createAdaptContext(): AdaptContext {
+    const adaptStacks = new Map<string, Stack>();
+    adaptStacks.set("(null)", nullStack());
     return Object.assign(Object.create(null), {
         pluginModules: new Map<string, PluginModule>(),
-        adaptStacks: new Map<string, Stack>(),
+        adaptStacks,
         observers: new Map<string, ObserverManagerDeployment>(),
     });
 }
