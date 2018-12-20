@@ -16,7 +16,6 @@ import {
 } from "graphql";
 import { safeLoad } from "js-yaml";
 import jsonStableStringify from "json-stable-stringify";
-import { isError } from "lodash";
 import path from "path";
 import URL from "url";
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
@@ -76,17 +75,10 @@ const dockerObserveResolverFactory: ResolverFactory = {
             const url = URL.parse(dockerHost);
 
             const queryId = computeQueryId(obj[infoSym].dockerHost, fieldName, args);
-            let ret: any;
-            try {
-                ret = (url.protocol === "file:" || url.protocol === "unix:") ?
-                    await fetchu({ socketPath: url.pathname, path: req.url, ...req }) :
-                    await fetchu(dockerHost + req.url, req);
+            const ret = (url.protocol === "file:" || url.protocol === "unix:") ?
+                await fetchu({ socketPath: url.pathname, path: req.url, ...req }) :
+                await fetchu(dockerHost + req.url, req);
 
-            } catch (e) {
-                if (!isError(e)) throw e;
-                ret = { noStatus: e.message };
-                throw e;
-            }
             context[queryId] = ret; //Overwrite in case data got updated on later query
             return ret;
         };

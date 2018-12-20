@@ -73,6 +73,7 @@
     "express": "^4.16.4",
     "fs-extra": "^6.0.1",
     "mocha": "^5.2.0",
+    "mocha-nock": "^0.2.4",
     "mocked-env": "^1.2.1",
     "nyc": "^12.0.2",
     "should": "^13.2.1",

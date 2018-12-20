@@ -207,6 +207,7 @@ export interface Swagger2 {
     paths: { [path: string]: Swagger2PathItem; };
     schemes?: Swagger2Schemes;
     definitions?: { [name: string]: Swagger2Schema; };
+    parameters?: { [name: string]: Swagger2Parameter; };
 }
 
 export const swagger2Operations = tuple(
