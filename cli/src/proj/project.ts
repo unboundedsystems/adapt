@@ -73,12 +73,22 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
 
     if (!inPlace) await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
 
-    const npmOpts = npmInstallOptions(finalOpts);
-    npmOpts.packageLockOnly = true; // Don't actually install
+    let pkgLock: npm.PackageLock | undefined;
+    try {
+        pkgLock = await npm.packageLock(session.projectDir);
+    } catch (err) {
+        if (err.code !== "ENOENT") throw err;
+        // Fall through
+    }
 
-    await npm.install(npmOpts);
+    if (!pkgLock) {
+        const npmOpts = npmInstallOptions(finalOpts);
+        npmOpts.packageLockOnly = true; // Don't actually install
 
-    const pkgLock = await npm.packageLock(session.projectDir);
+        await npm.install(npmOpts);
+
+        pkgLock = await npm.packageLock(session.projectDir);
+    }
 
     return new Project(manifest, pkgLock, finalOpts);
 }
@@ -126,8 +136,14 @@ export class Project {
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
         Promise<DeployState> {
         const projectRoot = this.options.session.projectDir;
+        const lockfile = path.resolve(projectRoot, "package-lock.json");
+        const installOpts = npmInstallOptions(this.options);
 
-        await npm.install(npmInstallOptions(this.options));
+        if (await fs.pathExists(lockfile)) {
+            await npm.ci(installOpts);
+        } else {
+            await npm.install(installOpts);
+        }
 
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;
