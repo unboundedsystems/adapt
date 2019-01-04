@@ -1,4 +1,5 @@
-import aws = require("aws-sdk");
+import { MultiError } from "@usys/utils";
+import aws from "aws-sdk";
 
 import Adapt, {
     AdaptPrimitiveElement,
@@ -31,6 +32,70 @@ export type CFStackPrimitiveProps =
     WithChildren &
     WithCredentials;
 
+export type Capability =
+    "CAPABILITY_IAM" |
+    "CAPABILITY_NAMED_IAM" |
+    "CAPABILITY_AUTO_EXPAND";
+
+export interface StackDriftInformation {
+    StackDriftStatus: "DRIFTED" | "IN_SYNC" | "UNKNOWN" | "NOT_CHECKED";
+    LastCheckTimestamp: string | null;
+}
+
+export interface Output {
+    OutputKey: string | null;
+    OutputValue: string | null;
+    Description: string | null;
+    ExportName: string | null;
+}
+
+export interface Parameter {
+    ParameterKey: string | null;
+    ParameterValue: string | null;
+    UsePreviousValue: boolean | null;
+    ResolvedValue: string | null;
+}
+
+export interface RollbackTrigger {
+    Arn: string;
+    Type: string;
+}
+
+export interface RollbackConfiguration {
+    RollbackTriggers: RollbackTrigger[];
+    MonitoringTimeInMinutes: number | null;
+}
+
+export interface Tag {
+    Key: string;
+    Value: string;
+}
+
+export interface CFStackStatus {
+    Capabilities: Capability[];
+    ChangeSetId: string | null;
+    CreationTime: string;
+    DeletionTime: string | null;
+    Description: string | null;
+    DisableRollback: boolean;
+    DriftInformation: StackDriftInformation | null;
+    EnableTerminationProtection: boolean;
+    LastUpdatedTime: string | null;
+    NotificationARNs: string[];
+    Outputs: Output[];
+    Parameters: Parameter[];
+    ParentId: string | null;
+    RoleARN: string | null;
+    RollbackConfiguration: RollbackConfiguration;
+    RootId: string | null;
+    StackId: string | null;
+    StackName: string;
+    StackStatus: string;
+    StackStatusReason: string | null;
+    Tags: Tag[];
+    TimeoutInMinutes: number | null;
+}
+
 export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> {
     validate() {
         try {
@@ -62,20 +127,35 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
 
         try {
             const obs: any = await observe(AwsObserver, gql`
-                query ($input: DescribeStacksInput!, $awsCredentials: AwsCredentials!) {
-                    withCredentials(awsCredentials: $awsCredentials) {
-                        DescribeStacks(body: $input) @all(depth: 10)
+                query (
+                    $input: DescribeStacksInput_input!,
+                    $awsAccessKeyId: String!,
+                    $awsSecretAccessKey: String!,
+                    $awsRegion: String!
+                    ) {
+                    withCredentials(
+                        awsAccessKeyId: $awsAccessKeyId,
+                        awsSecretAccessKey: $awsSecretAccessKey,
+                        awsRegion: $awsRegion
+                        ) {
+                        DescribeStacks(body: $input, Action: "DescribeStacks", Version: "2010-05-15") @all(depth: 10)
                     }
                 }`,
                 {
                     input: { StackName },
-                    awsCredentials,
+                    ...awsCredentials,
                 }
             );
-            return obs.withDockerHost.ContainerInspect;
+            return obs.withCredentials.DescribeStacks.Stacks[0];
 
         } catch (err) {
             if (!isError(err)) throw err;
+            if (err instanceof MultiError &&
+                err.errors.length === 1 &&
+                err.errors[0].message &&
+                /Stack with id.*does not exist/.test(err.errors[0].message)) {
+                return { noStatus: err.errors[0].message };
+            }
             return { noStatus: err.message };
         }
 

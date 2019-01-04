@@ -11,7 +11,6 @@ import Adapt, {
     Style,
 } from "@usys/adapt";
 import { compact } from "lodash";
-import * as randomstring from "randomstring";
 import should from "should";
 
 import {
@@ -35,7 +34,8 @@ import {
     findStackElems,
     getTag,
 } from "../../src/aws/aws_plugin";
-import { act, doBuild } from "../testlib";
+import { act, doBuild, makeDeployId } from "../testlib";
+import { getStackNames } from "./aws_testlib";
 const {
     checkStackStatus,
     defaultSecurityGroup,
@@ -52,10 +52,6 @@ const {
 const awsMock = require("aws-sdk-mock");
 import AWS = require("aws-sdk");
 
-function getStackNames(dom: AdaptElement): string[] {
-    return findStackElems(dom).map((s) => s.props.StackName).sort();
-}
-
 class Extra extends PrimitiveComponent {
 }
 function isExtraElement(val: unknown) {
@@ -67,15 +63,6 @@ function findExtras(dom: AdaptElementOrNull): AdaptElement[] {
     return compact(candidateElems.map((e) => isExtraElement(e) ? e : null));
 }
 
-function makeDeployId(prefix: string) {
-    const rand = randomstring.generate({
-        length: 4,
-        charset: "alphabetic",
-        readable: true,
-        capitalization: "lowercase",
-    });
-    return `${prefix}-${rand}`;
-}
 interface InstanceIds {
     physical: string;
     logical: string;

@@ -38,3 +38,13 @@ export function randomName(base: string) {
     });
     return `${base}-${rand}`;
 }
+
+export function makeDeployId(prefix: string) {
+    const rand = randomstring.generate({
+        length: 4,
+        charset: "alphabetic",
+        readable: true,
+        capitalization: "lowercase",
+    });
+    return `${prefix}-${rand}`;
+}
