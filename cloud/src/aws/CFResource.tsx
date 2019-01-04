@@ -12,6 +12,11 @@ export interface CFResourceProps {
     Type: string;
     Properties: AnyProperties;
     children?: any;
+    /**
+     * Set to true if CloudFormation or the underlying AWS resource does not
+     * support tagging
+     */
+    tagsUnsupported?: boolean;
 }
 
 export class CFResource extends PrimitiveComponent<CFResourceProps> {

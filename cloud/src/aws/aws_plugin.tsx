@@ -63,9 +63,10 @@ interface LogicalRef {
 }
 
 const adaptDeployIdTag = "adapt:deployID";
-const adaptIdTag = "adapt:ID";
+const adaptStackIdTag = "adapt:stackID";
+const adaptResourceIdTag = "adapt:resourceID";
 
-function addTag(input: AWS.CloudFormation.CreateStackInput, tag: string, value: string) {
+function addTag(input: Tagged, tag: string, value: string) {
     if (input.Tags == null) input.Tags = [];
     for (const t of input.Tags) {
         if (t.Key === tag) {
@@ -108,11 +109,18 @@ export function getAdaptDeployId(stack: StackObs) {
     return getTag(stack, adaptDeployIdTag);
 }
 
-function addAdaptId(input: AWS.CloudFormation.CreateStackInput, id: string) {
-    addTag(input, adaptIdTag, id);
+function addAdaptStackId(input: AWS.CloudFormation.CreateStackInput, id: string) {
+    addTag(input, adaptStackIdTag, id);
 }
-export function getAdaptId(stack: StackObs) {
-    return getTag(stack, adaptIdTag);
+export function getAdaptStackId(stack: StackObs) {
+    return getTag(stack, adaptStackIdTag);
+}
+
+function addAdaptResourceId(input: Tagged, id: ResourceId) {
+    addTag(input, adaptResourceIdTag, id);
+}
+export function getAdaptResourceId(item: Tagged) {
+    return getTag(item, adaptResourceIdTag);
 }
 
 export function isStatusActive(status: AWS.CloudFormation.StackStatus) {
@@ -139,15 +147,25 @@ export function createTemplate(stackEl: StackElement): Template {
 
     const resources = findResourceElems(stackEl);
     for (const r of resources) {
-        const properties = r.props.Properties;
+        const resourceId = adaptResourceId(r);
+        // Don't modify the element's props. Clone.
+        const properties = { ...r.props.Properties };
+
         for (const k of Object.keys(properties)) {
             if (isHandle(properties[k])) {
                 properties[k] = cfLogicalRef(properties[k]);
             }
         }
-        template.Resources[adaptResourceId(r)] = {
+
+        if (!r.props.tagsUnsupported) {
+            // Don't modify the tags on the element either
+            properties.Tags = properties.Tags ? properties.Tags.slice() : [];
+            addAdaptResourceId(properties, resourceId);
+        }
+
+        template.Resources[resourceId] = {
             Type: r.props.Type,
-            Properties: r.props.Properties,
+            Properties: properties,
         };
     }
 
@@ -226,7 +244,7 @@ interface StackParams extends Partial<AWS.CloudFormation.Stack> {
 export function createStackParams(el: StackElement, deployID: string) {
     const { handle, key, awsCredentials, children, ...params } = el.props;
     addAdaptDeployId(params, deployID);
-    addAdaptId(params, adaptStackId(el));
+    addAdaptStackId(params, adaptStackId(el));
     params.TemplateBody = toTemplateBody(createTemplate(el));
 
     return { ...createDefaults, ...params };
@@ -311,7 +329,7 @@ export class AwsPluginImpl
         return "CloudFormation Stack";
     }
     getWidgetIdFromObs = (obs: StackObs): string => {
-        return getAdaptId(obs) || obs.StackId || obs.StackName;
+        return getAdaptStackId(obs) || obs.StackId || obs.StackName;
     }
     getWidgetTypeFromElem = (_el: StackElement): string => {
         return "CloudFormation Stack";
