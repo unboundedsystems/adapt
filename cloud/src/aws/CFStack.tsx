@@ -138,7 +138,7 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
                         awsSecretAccessKey: $awsSecretAccessKey,
                         awsRegion: $awsRegion
                         ) {
-                        DescribeStacks(body: $input, Action: "DescribeStacks", Version: "2010-05-15") @all(depth: 10)
+                        DescribeStacks(body: $input) @all(depth: 10)
                     }
                 }`,
                 {

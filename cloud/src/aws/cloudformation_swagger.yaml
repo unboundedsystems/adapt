@@ -46,12 +46,12 @@ parameters:
     name: Action
     in: query
     type: string
-    required: true
+    required: false
   Version:
     name: Version
     in: query
     type: string
-    required: true
+    required: false
   X-Amz-Content-Sha256:
     name: X-Amz-Content-Sha256
     in: header

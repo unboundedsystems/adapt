@@ -56,7 +56,7 @@ const describeStacksQuery = gql`
             awsSecretAccessKey: $awsSecretAccessKey,
             awsRegion: $awsRegion
             ) {
-            DescribeStacks(Action: "DescribeStacks", body: $input, Version: "2010-05-15") {
+            DescribeStacks(body: $input) {
                 Stacks {
                     StackName
                     CreationTime
