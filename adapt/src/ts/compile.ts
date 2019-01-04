@@ -29,6 +29,8 @@ const compilerDefaults: ts.CompilerOptions = {
     jsx: ts.JsxEmit.React,
     jsxFactory: "Adapt.createElement",
     resolveJsonModule: true,
+    noErrorTruncation: true,
+    esModuleInterop: true,
     //traceResolution: true,
 };
 
@@ -286,7 +288,7 @@ export class Compiler {
     }
 
     @tracef(debugChainableHosts || debugCompile)
-    private _compile(code: string, filename: string): string | null {
+    private _compile(_code: string, filename: string): string | null {
         let output: ts.EmitOutput;
 
         const mkDebugWrite = (enable = true) => {

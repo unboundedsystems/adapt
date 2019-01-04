@@ -42,7 +42,7 @@ export const awsStyle = loadAwsCreds().then((creds) => (
             <CFStack key="CFStack" StackName="ci-system-nodecellar" awsCredentials={creds}>
                 {info.origElement}
             </CFStack>
-        )})}
+        ); })}
 
         {Compute} {rule<ComputeProps>(({ handle, ...props }) => {
             const instHandle = Adapt.handle();
@@ -74,7 +74,7 @@ export const awsStyle = loadAwsCreds().then((creds) => (
             return <LocalContainer {...props} />;
         })}
 
-        {NetworkService} {rule<NetworkServiceProps>((props) => (
+        {NetworkService} {rule<NetworkServiceProps>(() => (
             null
         ))}
 
