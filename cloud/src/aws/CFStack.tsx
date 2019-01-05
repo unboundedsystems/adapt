@@ -22,7 +22,7 @@ import {
     ResourceIdState,
     updateResourceIdState
 } from "../resource_id";
-import { AwsObserver } from "./aws_observer";
+import { AwsCfObserver } from "./cf_observer";
 import { withCredentials, WithCredentials } from "./credentials";
 
 const resourceIds = resourceIdList("StackName");
@@ -126,7 +126,7 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
         }
 
         try {
-            const obs: any = await observe(AwsObserver, gql`
+            const obs: any = await observe(AwsCfObserver, gql`
                 query (
                     $input: DescribeStacksInput_input!,
                     $awsAccessKeyId: String!,

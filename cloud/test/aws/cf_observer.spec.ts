@@ -3,7 +3,7 @@ import { execute } from "graphql";
 import describeFixture from "mocha-nock";
 import should from "should";
 import { AwsCredentials, loadAwsCreds } from "../../src/aws";
-import { AwsObserver } from "../../src/aws/aws_observer";
+import { AwsCfObserver } from "../../src/aws/cf_observer";
 
 function checkBasicObs(observations: ObserverResponse) {
     should(observations).not.be.Undefined();
@@ -67,12 +67,12 @@ const describeStacksQuery = gql`
         }
     }`;
 
-describeFixture("AWS observer tests", function (this: any) {
+describeFixture("AWS CF observer tests", function (this: any) {
     this.slow(500);
     this.timeout(5000);
 
     let awsCredentials: AwsCredentials;
-    let observer: AwsObserver;
+    let observer: AwsCfObserver;
     let allStacksQuery: ExecutedQuery;
     let oneStackQuery: ExecutedQuery;
     let doesntExistQuery: ExecutedQuery;
@@ -82,7 +82,7 @@ describeFixture("AWS observer tests", function (this: any) {
         this.slow(17 * 1000);
 
         awsCredentials = await loadAwsCreds();
-        observer = new AwsObserver();
+        observer = new AwsCfObserver();
         observer.schema; //Force slow construction of schema once for whole suite
 
         allStacksQuery = {
@@ -111,7 +111,7 @@ describeFixture("AWS observer tests", function (this: any) {
     beforeEach("Instantiate observer", function () {
         this.slow(500);
         this.timeout(2 * 1000);
-        observer = new AwsObserver();
+        observer = new AwsCfObserver();
     });
 
     async function executeQuery(query: ExecutedQuery) {
