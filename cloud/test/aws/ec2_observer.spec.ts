@@ -81,7 +81,6 @@ const describeInstancesQuery = gql`
             }
         }
     }`;
-            //DescribeInstances(body: $input) @all(depth: 10)
 
 describeFixture("AWS EC2 observer tests", function (this: any) {
     this.slow(500);

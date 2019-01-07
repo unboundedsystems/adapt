@@ -32,8 +32,8 @@ import {
     createAwsPlugin,
     createTemplate,
     findStackElems,
-    getTag,
 } from "../../src/aws/aws_plugin";
+import { getTag } from "../../src/aws/plugin_utils";
 import { act, doBuild, makeDeployId } from "../testlib";
 import { getStackNames } from "./aws_testlib";
 const {

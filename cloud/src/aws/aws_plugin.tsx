@@ -4,7 +4,6 @@ import Adapt, {
     findElementsInDom,
     Handle,
     isHandle,
-    isMountedElement,
     QueryDomain,
     registerPlugin,
     Style,
@@ -12,7 +11,7 @@ import Adapt, {
     WidgetPair,
     WidgetPlugin,
 } from "@usys/adapt";
-import { isEqualUnorderedArrays, sha256hex } from "@usys/utils";
+import { isEqualUnorderedArrays } from "@usys/utils";
 import AWS = require("aws-sdk");
 import { compact, pick } from "lodash";
 
@@ -26,6 +25,16 @@ import {
     CFStackPrimitiveProps,
     isCFStackPrimitiveElement,
 } from "./CFStack";
+import {
+    adaptDeployIdTag,
+    adaptIdFromElem,
+    adaptResourceIdFromElem,
+    adaptResourceIdTag,
+    adaptStackIdTag,
+    addTag,
+    getTag,
+    Tagged,
+} from "./plugin_utils";
 
 export enum TemplateFormatVersion {
     current = "2010-09-09",
@@ -62,44 +71,13 @@ interface LogicalRef {
     Ref: string;
 }
 
-const adaptDeployIdTag = "adapt:deployID";
-const adaptStackIdTag = "adapt:stackID";
-const adaptResourceIdTag = "adapt:resourceID";
-
-function addTag(input: Tagged, tag: string, value: string) {
-    if (input.Tags == null) input.Tags = [];
-    for (const t of input.Tags) {
-        if (t.Key === tag) {
-            t.Value = value;
-            return;
-        }
-    }
-    input.Tags.push({
-        Key: tag,
-        Value: value,
-    });
-}
-
-export interface Tagged {
-    Tags?: AWS.CloudFormation.Tag[];
-}
-
-export function getTag(obj: Tagged, tag: string) {
-    if (obj.Tags) {
-        for (const t of obj.Tags) {
-            if (t.Key === tag) return t.Value;
-        }
-    }
-    return undefined;
-}
-
 function cfLogicalRef(handle: Handle): LogicalRef {
     const el = handle.target;
     if (el == null) throw new Error(`Cannot get a CloudFormation ref for an unassociated handle`);
     if (!isCFResourceElement(el)) {
         throw new Error(`Cannot get a CloudFormation ref for an element that is not a CFResource`);
     }
-    return { Ref: adaptResourceId(el) };
+    return { Ref: adaptResourceIdFromElem(el) };
 }
 
 function addAdaptDeployId(input: AWS.CloudFormation.CreateStackInput, deployID: string) {
@@ -147,7 +125,7 @@ export function createTemplate(stackEl: StackElement): Template {
 
     const resources = findResourceElems(stackEl);
     for (const r of resources) {
-        const resourceId = adaptResourceId(r);
+        const resourceId = adaptResourceIdFromElem(r);
         // Don't modify the element's props. Clone.
         const properties = { ...r.props.Properties };
 
@@ -191,21 +169,7 @@ function queryDomain(stackEl: StackElement): AwsQueryDomain {
 }
 
 function adaptStackId(el: StackElement): string {
-    return adaptId("CFStack", el);
-}
-
-function adaptResourceId(el: AdaptElement<CFResourceProps>): ResourceId {
-    return adaptId(el.props.Type, el);
-}
-
-function adaptId(prefix: string, el: AdaptElement<{}>): string {
-    const replaceRe = /[^a-z0-9]/ig;
-    if (!isMountedElement(el)) {
-        throw new Error("Can only compute name of mounted elements");
-    }
-    const name = prefix + sha256hex(el.id).slice(0, 32);
-    // Remove all invalid chars
-    return name.replace(replaceRe, "");
+    return adaptIdFromElem("CFStack", el);
 }
 
 function findResourceElems(dom: AdaptElementOrNull): AdaptElement<CFResourceProps>[] {

@@ -20,6 +20,7 @@ import {
     CFStackStatus,
     createAwsPlugin,
     EC2Instance,
+    EC2InstanceStatus,
     loadAwsCreds,
 } from "../../src/aws";
 import { ResourceIdPolicy } from "../../src/resource_id";
@@ -199,7 +200,12 @@ describeFixture("AWS CFStack API tests", () => {
         should(stackNames).have.length(1);
 
         let stkStatus = await getStackStatus(mountedOrig);
-        should(stkStatus).eql({ noStatus: `Stack with id ${stackNames[0]} does not exist` });
+        should(stkStatus.noStatus).equal(`Stack with id ${stackNames[0]} does not exist`);
+        if (stkStatus.childStatus == null) throw should(stkStatus.childStatus).should.not.be.Undefined();
+        should(stkStatus.childStatus).be.an.Array();
+        should(stkStatus.childStatus).have.length(1);
+        const iStatus: EC2InstanceStatus = stkStatus.childStatus[0];
+        should(iStatus.noStatus).match(/EC2Instance with ID .* does not exist/);
 
         await runPlugin(dom);
         const stacks = await waitForStacks(client, deployID, stackNames,

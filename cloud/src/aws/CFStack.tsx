@@ -1,18 +1,19 @@
-import { MultiError } from "@usys/utils";
 import aws from "aws-sdk";
 
 import Adapt, {
     AdaptPrimitiveElement,
+    BuildData,
     childrenToArray,
     Component,
     gql,
     isElement,
     isPrimitiveElement,
+    mergeDefaultChildStatus,
     ObserveForStatus,
     PrimitiveComponent,
+    Status,
     WithChildren,
 } from "@usys/adapt";
-import { isError } from "lodash";
 import { OverwriteT } from "type-ops";
 import {
     getResourceIds,
@@ -71,7 +72,7 @@ export interface Tag {
     Value: string;
 }
 
-export interface CFStackStatus {
+export interface CFStackStatus extends Status {
     Capabilities: Capability[];
     ChangeSetId: string | null;
     CreationTime: string;
@@ -119,46 +120,38 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
         }
     }
 
-    async status(observe: ObserveForStatus) {
+    async status(observe: ObserveForStatus, buildData: BuildData): Promise<Status> {
         const { awsCredentials, StackName } = this.props;
         if (awsCredentials == null) {
             throw new Error(`awsCredentials must be provided to CFStack`);
         }
 
-        try {
-            const obs: any = await observe(AwsCfObserver, gql`
-                query (
-                    $input: DescribeStacksInput_input!,
-                    $awsAccessKeyId: String!,
-                    $awsSecretAccessKey: String!,
-                    $awsRegion: String!
+        const obsP: Promise<any> = observe(AwsCfObserver, gql`
+            query (
+                $input: DescribeStacksInput_input!,
+                $awsAccessKeyId: String!,
+                $awsSecretAccessKey: String!,
+                $awsRegion: String!
+                ) {
+                withCredentials(
+                    awsAccessKeyId: $awsAccessKeyId,
+                    awsSecretAccessKey: $awsSecretAccessKey,
+                    awsRegion: $awsRegion
                     ) {
-                    withCredentials(
-                        awsAccessKeyId: $awsAccessKeyId,
-                        awsSecretAccessKey: $awsSecretAccessKey,
-                        awsRegion: $awsRegion
-                        ) {
-                        DescribeStacks(body: $input) @all(depth: 10)
-                    }
-                }`,
-                {
-                    input: { StackName },
-                    ...awsCredentials,
+                    DescribeStacks(body: $input) @all(depth: 10)
                 }
-            );
-            return obs.withCredentials.DescribeStacks.Stacks[0];
-
-        } catch (err) {
-            if (!isError(err)) throw err;
-            if (err instanceof MultiError &&
-                err.errors.length === 1 &&
-                err.errors[0].message &&
-                /Stack with id.*does not exist/.test(err.errors[0].message)) {
-                return { noStatus: err.errors[0].message };
+            }`,
+            {
+                input: { StackName },
+                ...awsCredentials,
             }
-            return { noStatus: err.message };
-        }
+        );
 
+        return mergeDefaultChildStatus(this.props, obsP, observe,
+            buildData, (obs: any) => {
+
+            return obs.withCredentials.DescribeStacks.Stacks[0];
+        });
     }
 }
 
