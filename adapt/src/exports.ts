@@ -96,9 +96,12 @@ export {
 } from "./plugin_support";
 
 export {
+    defaultChildStatus,
+    mergeDefaultChildStatus,
     NoStatus,
     noStatusOnError,
     ObserveForStatus,
+    Status,
 } from "./status";
 
 export {
