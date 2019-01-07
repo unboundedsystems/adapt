@@ -3750,9 +3750,9 @@ mkdirp@0.5.1, mkdirp@0.5.x, mkdirp@^0.5.0, mkdirp@^0.5.1, mkdirp@~0.5.1:
   dependencies:
     minimist "0.0.8"
 
-mocha-nock@^0.2.4:
-  version "0.2.4"
-  resolved "https://registry.yarnpkg.com/mocha-nock/-/mocha-nock-0.2.4.tgz#9819f463132441fea06951b07445736fd38f85a2"
+mocha-nock@^0.2.5:
+  version "0.2.5"
+  resolved "https://registry.yarnpkg.com/mocha-nock/-/mocha-nock-0.2.5.tgz#902cd65dc221738be94942861635b27b7f8c3254"
   dependencies:
     fs-extra "^7.0.1"
     lodash.assign "^4.2.0"
