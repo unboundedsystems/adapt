@@ -10,8 +10,6 @@ import Adapt, {
 } from "@usys/adapt";
 import * as util from "util";
 
-export type ServicePort = number | string;
-
 export interface SequenceProps {
     children?: AdaptElement | Handle | (AdaptElement | Handle)[];
 }
