@@ -281,15 +281,16 @@ async function computeContentsFromElement<P extends object>(
     }
 }
 
-function findOverride(styles: css.StyleList, path: DomPath) {
+function findOverride(styles: css.StyleList, path: DomPath, options: BuildOptionsReq) {
     const element = path[path.length - 1];
+    const reg = options.matchInfoReg;
 
     for (const style of styles.reverse()) {
-        if (css.canMatch(element.props) &&
-            !css.ruleHasMatched(element.props, style) &&
+        if (css.canMatch(reg, element) &&
+            !css.ruleHasMatched(reg, element, style) &&
             style.match(path)) {
 
-            css.ruleMatches(element.props, style);
+            css.ruleMatches(reg, element, style);
             return { style, override: style.sfc };
         }
     }
@@ -327,7 +328,8 @@ async function computeContents(
 function ApplyStyle(
     props: {
         override: css.BuildOverride<AnyProps>,
-        element: AdaptElement
+        element: AdaptElement,
+        matchInfoReg: css.MatchInfoReg,
     }) {
 
     const origBuild = () => {
@@ -337,7 +339,8 @@ function ApplyStyle(
     const hand = getInternalHandle(props.element);
     const ret = props.override(props.element.props, {
         origBuild,
-        origElement: props.element
+        origElement: props.element,
+        [css.$matchInfoReg]: props.matchInfoReg,
     });
 
     // Default behavior if they don't explicitly call
@@ -358,9 +361,10 @@ function doOverride(
         throw new Error("Cannot match null element to style rules for empty path");
     }
 
-    const overrideFound = findOverride(styles, path);
+    const overrideFound = findOverride(styles, path, options);
 
     if (overrideFound != null) {
+        const matchInfoReg = options.matchInfoReg;
         if (isComponentElement(element)) {
             if (!isMountedElement(element)) throw new InternalError(`Element should be mounted`);
             if (!isElementImpl(element)) throw new InternalError(`Element should be ElementImpl`);
@@ -370,13 +374,15 @@ function doOverride(
             }
         }
         const hand = getInternalHandle(element);
+        const oldEl = element;
         element = cloneElement(element, key, element.props.children);
+        css.copyRuleMatches(matchInfoReg, oldEl, element);
         hand.replaceTarget(element);
         const { style, override } = overrideFound;
-        const props = { ...key, override, element };
+        const props = { ...key, override, element, matchInfoReg };
         const newElem = createElement(ApplyStyle, props);
         // The ApplyStyle element should never match any CSS rule
-        css.neverMatch(newElem.props);
+        css.neverMatch(matchInfoReg, newElem);
 
         options.recorder({
             type: "step",
@@ -408,7 +414,9 @@ function mountElement(
 
     const newKey = computeMountKey(elem, parentStateNamespace);
     const hand = getInternalHandle(elem);
+    const oldEl = elem;
     elem = cloneElement(elem, newKey, elem.props.children);
+    css.copyRuleMatches(options.matchInfoReg, oldEl, elem);
     if (!hand.targetReplaced) hand.replaceTarget(elem);
 
     if (!isElementImpl(elem)) {
@@ -517,7 +525,9 @@ export interface BuildOptions {
     deployID?: string;
 }
 
-type BuildOptionsReq = Required<BuildOptions>;
+interface BuildOptionsReq extends Required<BuildOptions> {
+    matchInfoReg: css.MatchInfoReg;
+}
 
 function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
     if (optionsIn != null) optionsIn = removeUndef(optionsIn);
@@ -533,7 +543,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
         buildOnce: false,
         deployID: "<none>"
     };
-    return { ...defaultBuildOptions, ...optionsIn };
+    return { ...defaultBuildOptions, ...optionsIn, matchInfoReg: css.createMatchInfoReg() };
 }
 
 export interface BuildOutput {
@@ -582,6 +592,7 @@ async function pathBuild(
     options: BuildOptionsReq,
     results: BuildResults): Promise<void> {
 
+    options.matchInfoReg = css.createMatchInfoReg();
     await pathBuildOnceGuts(path, styles, options, results);
     if (results.buildErr || options.buildOnce) return;
     if (results.stateChanged) {

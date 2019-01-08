@@ -14,6 +14,7 @@ describe("Selector Parsing", () => {
         const info = {
             origBuild: () => null,
             origElement: null,
+            [css.$matchInfoReg]: css.createMatchInfoReg(),
         };
         should(styles[0].sfc({handle: Adapt.handle()}, info)).eql(<Dummy />);
     });

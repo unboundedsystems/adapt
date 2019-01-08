@@ -1,6 +1,6 @@
 import { findPackageDirs } from "@usys/utils";
 import should from "should";
-import * as Adapt from "../src";
+import Adapt, { AdaptElement, build, buildPrinter, StateStore } from "../src";
 import * as jsx from "../src/jsx";
 
 import { makeObserverManagerDeployment } from "../src/observers";
@@ -73,4 +73,35 @@ export function componentConstructorDataFixture(ccData = noStoreConstructorData)
         makeObserverManagerDeployment({}); //Make sure we call after registerObserver from modules are done
     before(() => jsx.pushComponentConstructorData(ccData));
     after(() => jsx.popComponentConstructorData());
+}
+
+export interface DoBuildOpts {
+    deployID?: string;
+    stateStore?: StateStore;
+    debug?: boolean;
+    style?: AdaptElement | null;
+}
+
+const doBuildDefaults = {
+    deployID: "<none>",
+    debug: false,
+    style: null,
+};
+
+export async function doBuild(elem: AdaptElement, options: DoBuildOpts = {}) {
+    const { deployID, stateStore, debug, style } = { ...doBuildDefaults, ...options };
+    const buildOpts = {
+        recorder: debug ? buildPrinter() : undefined,
+        deployID,
+        stateStore,
+    };
+    const { mountedOrig, contents: dom, messages } = await build(elem, style, buildOpts);
+    if (dom == null) {
+        should(dom).not.Null();
+        should(dom).not.Undefined();
+        throw new Error("Unreachable");
+    }
+
+    should(messages).have.length(0);
+    return { mountedOrig, dom };
 }

@@ -9,9 +9,11 @@ import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
+export const $matchInfoReg = Symbol.for("$matchInfoReg");
 export interface StyleBuildInfo {
     origBuild: jsx.SFC;
     origElement: any;
+    [$matchInfoReg]: MatchInfoReg;
 }
 export type BuildOverride<P = jsx.AnyProps> =
     (props: P & jsx.BuiltinProps, info: StyleBuildInfo) => jsx.AdaptElementOrNull;
@@ -291,44 +293,67 @@ function isRule(x: any): x is Rule {
     return (typeof x === "object") && (x instanceof Rule);
 }
 
-function getCssMatched(props: jsx.WithMatchProps) {
-    let m = props[jsx.$cssMatch];
-    if (!m) {
-        m = props[jsx.$cssMatch] = {};
-    }
-    return m;
+/**
+ * Keep track of which rules have matched for a set of props so that in the
+ * typical case, the same rule won't match the same component instance more
+ * than once.
+ *
+ * @interface MatchInfo
+ */
+export interface MatchInfo {
+    matched?: Set<StyleRule>;
+    neverMatch?: true;
+}
+export type MatchInfoReg = Map<jsx.AdaptElement, MatchInfo>;
+
+export function createMatchInfoReg() {
+    return new Map<jsx.AdaptElement, MatchInfo>();
 }
 
-export function ruleHasMatched(props: jsx.WithMatchProps, r: StyleRule) {
-    const m = getCssMatched(props);
+function getCssMatched(reg: MatchInfoReg, el: jsx.AdaptElement): MatchInfo {
+    let mi = reg.get(el);
+    if (mi === undefined) {
+        mi = {};
+        reg.set(el, mi);
+    }
+    return mi;
+}
+
+export function ruleHasMatched(reg: MatchInfoReg, el: jsx.AdaptElement, r: StyleRule) {
+    const m = getCssMatched(reg, el);
     return (m.matched && m.matched.has(r)) === true;
 }
 
-export function ruleMatches(props: jsx.WithMatchProps, r: StyleRule) {
-    const m = getCssMatched(props);
+export function ruleMatches(reg: MatchInfoReg, el: jsx.AdaptElement, r: StyleRule) {
+    const m = getCssMatched(reg, el);
     if (!m.matched) m.matched = new Set<StyleRule>();
     m.matched.add(r);
 }
 
-export function neverMatch(props: jsx.WithMatchProps) {
-    const m = getCssMatched(props);
+export function neverMatch(reg: MatchInfoReg, el: jsx.AdaptElement) {
+    const m = getCssMatched(reg, el);
     m.neverMatch = true;
 }
 
-export function canMatch(props: jsx.WithMatchProps) {
-    const m = getCssMatched(props);
+export function canMatch(reg: MatchInfoReg, el: jsx.AdaptElement) {
+    const m = getCssMatched(reg, el);
     return m.neverMatch !== true;
 }
 
-function copyRuleMatches(fromProps: jsx.WithMatchProps,
-    toProps: jsx.WithMatchProps) {
-    const from = getCssMatched(fromProps);
-    if (!from.matched) return; // No matches to copy
+export function copyRuleMatches(
+    reg: MatchInfoReg,
+    fromEl: jsx.AdaptElement,
+    toEl: jsx.AdaptElement) {
+    const from = getCssMatched(reg, fromEl);
+    const to = getCssMatched(reg, toEl);
 
-    const to = getCssMatched(toProps);
-    if (!to.matched) to.matched = new Set<StyleRule>();
-    for (const r of from.matched) {
-        to.matched.add(r);
+    if (from.neverMatch) {
+        to.neverMatch = true;
+    } else if (from.matched) {
+        if (!to.matched) to.matched = new Set<StyleRule>();
+        for (const r of from.matched) {
+            to.matched.add(r);
+        }
     }
 }
 
@@ -350,7 +375,7 @@ export function ruleNoRematch(info: StyleBuildInfo, elem: jsx.AdaptElement) {
     if (jsx.isMountedElement(elem)) {
         throw new Error(`elem has already been mounted. elem must be a newly created element`);
     }
-    copyRuleMatches(info.origElement.props, elem.props);
+    copyRuleMatches(info[$matchInfoReg], info.origElement, elem);
     return elem;
 }
 
