@@ -48,6 +48,7 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
 import { getInternalHandle, Handle } from "./handle";
+import { finishHooks, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 import { Status } from "./status";
 
@@ -235,14 +236,16 @@ async function computeContentsFromElement<P extends object>(
     const ret = new BuildResults(options.recorder, element);
 
     try {
+        startHooks({ element, options });
         ret.contents =
             (element.componentType as FunctionComponentTyp<P>)(element.props);
         return ret;
-
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (!isClassConstructorError(e)) throw e;
         // element.componentType is a class, not a function. Fall through.
+    } finally {
+        finishHooks();
     }
 
     if (!isComponentElement(element)) {
@@ -525,7 +528,7 @@ export interface BuildOptions {
     deployID?: string;
 }
 
-interface BuildOptionsReq extends Required<BuildOptions> {
+export interface BuildOptionsReq extends Required<BuildOptions> {
     matchInfoReg: css.MatchInfoReg;
 }
 

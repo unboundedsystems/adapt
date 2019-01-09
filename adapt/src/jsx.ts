@@ -32,12 +32,17 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 }
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
+export interface GenericInstance {
+    [key: string]: any;
+}
+
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly props: P & Required<BuiltinProps>;
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
     readonly buildData: BuildData;
+    readonly instance: GenericInstance;
 
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
 }
@@ -260,6 +265,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     stateNamespace: StateNamespace = [];
     mounted = false;
     component: GenericComponent | null;
+    instanceMethods: GenericInstance = {};
     path?: string;
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
@@ -382,6 +388,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 
     get componentName() { return this.componentType.name || "anonymous"; }
     get id() { return JSON.stringify(this.stateNamespace); }
+    get instance(): GenericInstance {
+        return this.component || this.instanceMethods;
+    }
 }
 
 enum DeferredState {

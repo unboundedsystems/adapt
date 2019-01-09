@@ -1,3 +1,6 @@
+export {
+    useImperativeMethods,
+} from "./hooks";
 export * from "./jsx_namespace";
 export {
     childrenToArray,
