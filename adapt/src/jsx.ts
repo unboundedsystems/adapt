@@ -109,7 +109,7 @@ export function componentStateNow<
 
 export interface BuildHelpers {
     deployID: string;
-    elementStatus<T = unknown>(handle: Handle): Promise<Status | undefined>;
+    elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {

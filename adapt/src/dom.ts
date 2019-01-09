@@ -50,7 +50,6 @@ import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./er
 import { getInternalHandle, Handle } from "./handle";
 import { finishHooks, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
-import { Status } from "./status";
 
 export type DomPath = AdaptElement[];
 
@@ -215,7 +214,7 @@ function recordDomError(
 
 function buildHelpers(options: BuildOptionsReq): BuildHelpers {
     return {
-        async elementStatus(handle: Handle): Promise<Status | undefined> {
+        async elementStatus(handle: Handle) {
             const elem = handle.mountedOrig;
             if (elem == null) return { noStatus: true };
             if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
