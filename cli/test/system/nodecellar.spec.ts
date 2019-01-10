@@ -65,6 +65,7 @@ describeLong("Nodecellar system tests", function () {
     const docker = new Docker({ socketPath: "/var/run/docker.sock" });
     let kClient: k8sutils.KubeClient;
     let aClient: AWS.CloudFormation;
+    let lDeployID: string | undefined;
     let kDeployID: string | undefined;
     let aDeployID: string | undefined;
 
@@ -124,8 +125,8 @@ describeLong("Nodecellar system tests", function () {
 
         const matches = ctx.stdout.match(newDeployRegex);
         expect(matches).to.be.an("array").with.length(2);
-        if (matches && matches[1]) kDeployID = matches[1];
-        expect(kDeployID).to.be.a("string").with.length.greaterThan(0);
+        if (matches && matches[1]) lDeployID = matches[1];
+        expect(lDeployID).to.be.a("string").with.length.greaterThan(0);
 
         const nc = docker.getContainer("nodecellar");
         const ncIP = (await nc.inspect()).NetworkSettings.IPAddress;
