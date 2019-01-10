@@ -1,5 +1,6 @@
 import Adapt, {
     BuildData,
+    BuildHelpers,
     Component,
     gql,
     mergeDefaultChildStatus,
@@ -46,6 +47,14 @@ class EC2InstanceNC extends Component<EC2Props> {
                 {props.children}
             </CFResource>
         );
+    }
+
+    async ready(helpers: BuildHelpers) {
+        const hand = this.props.handle;
+        if (!hand) return false;
+        const status = await helpers.elementStatus<EC2InstanceStatus>(hand);
+        if (!status) return false;
+        return status.State != null && status.State.Name === "running";
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData): Promise<EC2InstanceStatus> {
