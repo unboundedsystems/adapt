@@ -212,7 +212,7 @@ function recordDomError(
     return { domError, message };
 }
 
-function buildHelpers(options: BuildOptionsReq): BuildHelpers {
+function buildHelpers(options: BuildOptionsInternal): BuildHelpers {
     return {
         async elementStatus(handle: Handle) {
             const elem = handle.mountedOrig;
@@ -231,7 +231,7 @@ function buildHelpers(options: BuildOptionsReq): BuildHelpers {
 
 async function computeContentsFromElement<P extends object>(
     element: AdaptMountedElement<P & WithChildren>,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
     const ret = new BuildResults(options.recorder, element);
 
     try {
@@ -283,7 +283,7 @@ async function computeContentsFromElement<P extends object>(
     }
 }
 
-function findOverride(styles: css.StyleList, path: DomPath, options: BuildOptionsReq) {
+function findOverride(styles: css.StyleList, path: DomPath, options: BuildOptionsInternal) {
     const element = path[path.length - 1];
     const reg = options.matchInfoReg;
 
@@ -301,7 +301,7 @@ function findOverride(styles: css.StyleList, path: DomPath, options: BuildOption
 
 async function computeContents(
     path: DomPath,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
 
     const element = ld.last(path);
     if (element == null) {
@@ -356,7 +356,7 @@ function doOverride(
     path: DomPath,
     key: ElementKey,
     styles: css.StyleList,
-    options: BuildOptionsReq): AdaptElement {
+    options: BuildOptionsInternal): AdaptElement {
 
     let element = ld.last(path);
     if (element == null) {
@@ -401,7 +401,7 @@ function doOverride(
 function mountElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
-    options: BuildOptionsReq): BuildResults {
+    options: BuildOptionsInternal): BuildResults {
 
     let elem = ld.last(path);
     if (elem === undefined) {
@@ -445,7 +445,7 @@ async function buildElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
 
     const elem = ld.last(path);
     if (elem === undefined) {
@@ -527,11 +527,11 @@ export interface BuildOptions {
     deployID?: string;
 }
 
-export interface BuildOptionsReq extends Required<BuildOptions> {
+export interface BuildOptionsInternal extends Required<BuildOptions> {
     matchInfoReg: css.MatchInfoReg;
 }
 
-function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
+function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
     if (optionsIn != null) optionsIn = removeUndef(optionsIn);
     const defaultBuildOptions = {
         depth: -1,
@@ -548,6 +548,8 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
     return { ...defaultBuildOptions, ...optionsIn, matchInfoReg: css.createMatchInfoReg() };
 }
 
+let buildCount = 0;
+
 export interface BuildOutput {
     mountedOrig: AdaptMountedElement | null;
     contents: AdaptMountedElement | null;
@@ -558,14 +560,23 @@ export async function build(
     styles: AdaptElementOrNull,
     options?: BuildOptions): Promise<BuildOutput> {
 
-    const optionsReq = computeOptions(options);
-    const results = new BuildResults(optionsReq.recorder);
-    const styleList = css.buildStyles(styles);
+    if (buildCount !== 0) {
+        throw new InternalError(`Attempt to build multiple DOMs concurrently not supported`);
+    }
+    try {
+        buildCount++;
 
-    if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
+        const optionsReq = computeOptions(options);
+        const results = new BuildResults(optionsReq.recorder);
+        const styleList = css.buildStyles(styles);
 
-    await pathBuild([root], styleList, optionsReq, results);
-    return results.toBuildOutput();
+        if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
+
+        await pathBuild([root], styleList, optionsReq, results);
+        return results.toBuildOutput();
+    } finally {
+        buildCount--;
+    }
 }
 
 export async function buildOnce(
@@ -576,7 +587,7 @@ export async function buildOnce(
     return build(root, styles, { ...options, buildOnce: true });
 }
 
-function atDepth(options: BuildOptionsReq, depth: number) {
+function atDepth(options: BuildOptionsInternal, depth: number) {
     if (options.shallow) return true;
     if (options.depth === -1) return false;
     return depth >= options.depth;
@@ -591,7 +602,7 @@ async function nextTick(): Promise<void> {
 async function pathBuild(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     results: BuildResults): Promise<void> {
 
     options.matchInfoReg = css.createMatchInfoReg();
@@ -606,7 +617,7 @@ async function pathBuild(
 async function pathBuildOnceGuts(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     results: BuildResults): Promise<void> {
 
     const root = path[path.length - 1];
@@ -668,7 +679,7 @@ async function buildChildren(
     newRoot: AdaptElement,
     workingPath: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq): Promise<{ newChildren: any, childBldResults: BuildResults }> {
+    options: BuildOptionsInternal): Promise<{ newChildren: any, childBldResults: BuildResults }> {
 
     if (!isElementImpl(newRoot)) throw new Error(`Elements must inherit from ElementImpl ${util.inspect(newRoot)}`);
 
@@ -744,7 +755,7 @@ async function realBuildOnce(
     pathIn: DomPath,
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     predecessor: AdaptMountedElement | null,
     workingElem?: AdaptElement): Promise<BuildResults> {
 

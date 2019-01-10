@@ -9,7 +9,7 @@ import Adapt, {
     PropsType,
     WithChildren,
 } from "@usys/adapt";
-import { useForwardReady } from "../ready";
+import { useReadyFrom } from "../ready";
 
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;
@@ -40,7 +40,7 @@ export function withCredentials<
     return (props: PropsType<W> & WithChildren) => {
         const { children, handle, ...rest } = props as any;
         const wHand = Adapt.handle();
-        useForwardReady(wHand);
+        useReadyFrom(wHand);
         return (
             <Ctx.Consumer key={props.key}>
                 { (awsCredentials) => (

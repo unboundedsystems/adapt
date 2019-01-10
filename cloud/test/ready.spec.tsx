@@ -12,7 +12,7 @@ import Adapt, {
     WithChildren,
 } from "@usys/adapt";
 import should from "should";
-import { useForwardReady } from "../src/ready";
+import { useReadyFrom } from "../src/ready";
 import { Sequence } from "../src/Sequence";
 
 import { Prim } from "./Sequence.spec";
@@ -24,7 +24,7 @@ export function withWrapper<W extends Constructor<Component<any, any>>>(
     return (props: PropsType<W> & WithChildren) => {
         const { children, handle, ...rest } = props as any;
         const wHand = Adapt.handle();
-        useForwardReady(wHand);
+        useReadyFrom(wHand);
         return (
             <Wrapped handle={wHand} {...rest} >
                 {children}

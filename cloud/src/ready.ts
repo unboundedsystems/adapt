@@ -16,7 +16,7 @@ export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promis
     return elem.instance.ready(h);
 }
 
-export function useForwardReady(targetHand: Handle) {
+export function useReadyFrom(targetHand: Handle) {
     useImperativeMethods(() => ({
         ready: (helpers: BuildHelpers) => isReady(helpers, targetHand)
     }));

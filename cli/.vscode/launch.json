@@ -17,7 +17,7 @@
             ],
             "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
-                //"-g", "AWS style",
+                //"-g", "keyword",
                 "--no-timeouts",
                 "--opts",
                 "mocha.opts"

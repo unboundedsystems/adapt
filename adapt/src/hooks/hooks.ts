@@ -4,7 +4,7 @@ import { AdaptElement } from "../jsx";
 
 export interface BuildContext {
     element: AdaptElement;
-    options: dom.BuildOptionsReq;
+    options: dom.BuildOptionsInternal;
 }
 
 const buildContext: BuildContext[] = [];
