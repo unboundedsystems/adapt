@@ -48,7 +48,7 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
 import { getInternalHandle, Handle } from "./handle";
-import { finishHooks, startHooks } from "./hooks";
+import { createHookInfo, finishHooks, HookInfo, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 
 export type DomPath = AdaptElement[];
@@ -500,6 +500,7 @@ function constructComponent<P extends object = {}>(
     pushComponentConstructorData({
         getState: () => stateStore.elementState(elem.stateNamespace),
         setInitialState: (init) => stateStore.setElementState(elem.stateNamespace, init),
+        stateUpdates: elem.stateUpdates,
         observerManager
     });
 
@@ -529,6 +530,7 @@ export interface BuildOptions {
 
 export interface BuildOptionsInternal extends Required<BuildOptions> {
     matchInfoReg: css.MatchInfoReg;
+    hookInfo: HookInfo;
 }
 
 function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
@@ -543,9 +545,12 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
         observerManager: createObserverManagerDeployment(),
         maxBuildPasses: 200,
         buildOnce: false,
-        deployID: "<none>"
+        deployID: "<none>",
+
+        matchInfoReg: css.createMatchInfoReg(),
+        hookInfo: createHookInfo(),
     };
-    return { ...defaultBuildOptions, ...optionsIn, matchInfoReg: css.createMatchInfoReg() };
+    return { ...defaultBuildOptions, ...optionsIn };
 }
 
 let buildCount = 0;

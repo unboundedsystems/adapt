@@ -1,10 +1,23 @@
 import { last } from "lodash";
 import * as dom from "../dom"; // types only
-import { AdaptElement } from "../jsx";
+import { AdaptMountedElement } from "../jsx";
 
 export interface BuildContext {
-    element: AdaptElement;
+    element: AdaptMountedElement;
     options: dom.BuildOptionsInternal;
+}
+
+export type StateInfo = Map<AdaptMountedElement, number>;
+
+// Stuff that gets re-created for each new build
+export interface HookInfo {
+    stateInfo: StateInfo;
+}
+
+export function createHookInfo(): HookInfo {
+    return {
+        stateInfo: new Map<AdaptMountedElement, number>(),
+    };
 }
 
 const buildContext: BuildContext[] = [];
