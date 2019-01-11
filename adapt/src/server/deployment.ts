@@ -38,6 +38,7 @@ export async function createDeployment(server: AdaptServer, projectName: string,
     let deployID = baseName;
 
     for (let i = 0; i < maxTries; i++) {
+        deployID = makeName(baseName);
         const deployData = {
             deployID,
         };
@@ -47,7 +48,6 @@ export async function createDeployment(server: AdaptServer, projectName: string,
         } catch (err) {
             // continue
         }
-        deployID = makeName(baseName);
     }
 
     const deployment = new DeploymentImpl(deployID, server);

@@ -114,6 +114,7 @@ async function writeInventory(
         append(host, "ansible_user");
         append(host, "ansible_docker_extra_args");
         append(host, "ansible_ssh_pass");
+        append(host, "ansible_become");
 
         if (isAnsibleHostSsh(host) && host.ansible_ssh_private_key) {
             const keyFile = path.join(pluginDir, "key");

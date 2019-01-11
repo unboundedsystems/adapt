@@ -1,5 +1,7 @@
+import { MultiError } from "@usys/utils";
 import { DocumentNode as Query } from "graphql";
 import ld from "lodash";
+import pSettle from "p-settle";
 import { CustomError } from "ts-custom-error";
 import util from "util";
 import { childrenToArray, isMountedElement } from "../src/jsx";
@@ -69,4 +71,44 @@ export async function defaultStatus<P extends object, S = unknown>(
     if (succ === undefined) return defaultChildStatus(props, mgr, data);
     if (succ === null) return { noStatus: "successor was null" };
     return noStatusOnError(() => succ.status());
+}
+
+function noTransform(val: unknown): Status {
+    if (val == null) return { noStatus: `Error: parent status is null`};
+    return val as Status;
+}
+
+export async function mergeDefaultChildStatus<P extends object, S extends object>(
+    props: P,
+    parentStatus: object | Promise<object>,
+    mgr: ObserveForStatus,
+    data: BuildData,
+    transformParentStatus = noTransform): Promise<Status> {
+
+    const childrenP = defaultChildStatus(props, mgr, data);
+    const [ parentResult, childrenResult ] =
+        await pSettle([ Promise.resolve(parentStatus), childrenP ]);
+
+    if (childrenResult.isRejected) throw childrenResult.reason;
+    const children: Status = childrenResult.value as any;
+    if (children == null) throw new Error(`Error: status for children is null`);
+
+    let stat: Status;
+    if (parentResult.isFulfilled) {
+        stat = transformParentStatus(parentResult.value);
+    } else {
+        const err = parentResult.reason;
+        if (!ld.isError(err)) throw err;
+        stat = (err instanceof MultiError &&
+            err.errors.length === 1 &&
+            err.errors[0].message) ?
+            { noStatus: err.errors[0].message } :
+            stat = { noStatus: err.message };
+    }
+
+    if (Array.isArray(children.childStatus) && children.childStatus.length > 0) {
+        stat.childStatus = children.childStatus;
+    }
+
+    return stat;
 }

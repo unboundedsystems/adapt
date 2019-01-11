@@ -1,17 +1,19 @@
-import aws = require("aws-sdk");
+import aws from "aws-sdk";
 
 import Adapt, {
     AdaptPrimitiveElement,
+    BuildData,
     childrenToArray,
     Component,
     gql,
     isElement,
     isPrimitiveElement,
+    mergeDefaultChildStatus,
     ObserveForStatus,
     PrimitiveComponent,
+    Status,
     WithChildren,
 } from "@usys/adapt";
-import { isError } from "lodash";
 import { OverwriteT } from "type-ops";
 import {
     getResourceIds,
@@ -21,7 +23,7 @@ import {
     ResourceIdState,
     updateResourceIdState
 } from "../resource_id";
-import { AwsObserver } from "./aws_observer";
+import { AwsCfObserver } from "./cf_observer";
 import { withCredentials, WithCredentials } from "./credentials";
 
 const resourceIds = resourceIdList("StackName");
@@ -30,6 +32,70 @@ export type CFStackPrimitiveProps =
     aws.CloudFormation.CreateStackInput &
     WithChildren &
     WithCredentials;
+
+export type Capability =
+    "CAPABILITY_IAM" |
+    "CAPABILITY_NAMED_IAM" |
+    "CAPABILITY_AUTO_EXPAND";
+
+export interface StackDriftInformation {
+    StackDriftStatus: "DRIFTED" | "IN_SYNC" | "UNKNOWN" | "NOT_CHECKED";
+    LastCheckTimestamp: string | null;
+}
+
+export interface Output {
+    OutputKey: string | null;
+    OutputValue: string | null;
+    Description: string | null;
+    ExportName: string | null;
+}
+
+export interface Parameter {
+    ParameterKey: string | null;
+    ParameterValue: string | null;
+    UsePreviousValue: boolean | null;
+    ResolvedValue: string | null;
+}
+
+export interface RollbackTrigger {
+    Arn: string;
+    Type: string;
+}
+
+export interface RollbackConfiguration {
+    RollbackTriggers: RollbackTrigger[];
+    MonitoringTimeInMinutes: number | null;
+}
+
+export interface Tag {
+    Key: string;
+    Value: string;
+}
+
+export interface CFStackStatus extends Status {
+    Capabilities: Capability[];
+    ChangeSetId: string | null;
+    CreationTime: string;
+    DeletionTime: string | null;
+    Description: string | null;
+    DisableRollback: boolean;
+    DriftInformation: StackDriftInformation | null;
+    EnableTerminationProtection: boolean;
+    LastUpdatedTime: string | null;
+    NotificationARNs: string[];
+    Outputs: Output[];
+    Parameters: Parameter[];
+    ParentId: string | null;
+    RoleARN: string | null;
+    RollbackConfiguration: RollbackConfiguration;
+    RootId: string | null;
+    StackId: string | null;
+    StackName: string;
+    StackStatus: string;
+    StackStatusReason: string | null;
+    Tags: Tag[];
+    TimeoutInMinutes: number | null;
+}
 
 export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> {
     validate() {
@@ -54,31 +120,38 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
         }
     }
 
-    async status(observe: ObserveForStatus) {
+    async status(observe: ObserveForStatus, buildData: BuildData): Promise<Status> {
         const { awsCredentials, StackName } = this.props;
         if (awsCredentials == null) {
             throw new Error(`awsCredentials must be provided to CFStack`);
         }
 
-        try {
-            const obs: any = await observe(AwsObserver, gql`
-                query ($input: DescribeStacksInput!, $awsCredentials: AwsCredentials!) {
-                    withCredentials(awsCredentials: $awsCredentials) {
-                        DescribeStacks(body: $input) @all(depth: 10)
-                    }
-                }`,
-                {
-                    input: { StackName },
-                    awsCredentials,
+        const obsP: Promise<any> = observe(AwsCfObserver, gql`
+            query (
+                $input: DescribeStacksInput_input!,
+                $awsAccessKeyId: String!,
+                $awsSecretAccessKey: String!,
+                $awsRegion: String!
+                ) {
+                withCredentials(
+                    awsAccessKeyId: $awsAccessKeyId,
+                    awsSecretAccessKey: $awsSecretAccessKey,
+                    awsRegion: $awsRegion
+                    ) {
+                    DescribeStacks(body: $input) @all(depth: 10)
                 }
-            );
-            return obs.withDockerHost.ContainerInspect;
+            }`,
+            {
+                input: { StackName },
+                ...awsCredentials,
+            }
+        );
 
-        } catch (err) {
-            if (!isError(err)) throw err;
-            return { noStatus: err.message };
-        }
+        return mergeDefaultChildStatus(this.props, obsP, observe,
+            buildData, (obs: any) => {
 
+            return obs.withCredentials.DescribeStacks.Stacks[0];
+        });
     }
 }
 

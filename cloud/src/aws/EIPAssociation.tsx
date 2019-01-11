@@ -24,7 +24,12 @@ class EIPAssociationNC extends Component<EIPAssociationProps> {
     build() {
         const properties = pick(this.props, resourceProps);
 
-        return <CFResource Type="AWS::EC2::EIPAssociation" Properties={properties} />;
+        return (
+            <CFResource
+                Type="AWS::EC2::EIPAssociation"
+                Properties={properties}
+                tagsUnsupported={true}
+            />);
     }
 }
 

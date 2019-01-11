@@ -1,3 +1,6 @@
+export {
+    useImperativeMethods,
+} from "./hooks";
 export * from "./jsx_namespace";
 export {
     childrenToArray,
@@ -96,9 +99,12 @@ export {
 } from "./plugin_support";
 
 export {
+    defaultChildStatus,
+    mergeDefaultChildStatus,
     NoStatus,
     noStatusOnError,
     ObserveForStatus,
+    Status,
 } from "./status";
 
 export {

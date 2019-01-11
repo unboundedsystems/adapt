@@ -3,6 +3,7 @@ export * from "./credentials";
 export {
     CFStack,
     CFStackProps,
+    CFStackStatus,
 } from "./CFStack";
 export * from "./EC2Instance";
 export * from "./EIPAssociation";

@@ -48,8 +48,8 @@ import {
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
 import { getInternalHandle, Handle } from "./handle";
+import { finishHooks, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
-import { Status } from "./status";
 
 export type DomPath = AdaptElement[];
 
@@ -212,9 +212,9 @@ function recordDomError(
     return { domError, message };
 }
 
-function buildHelpers(options: BuildOptionsReq): BuildHelpers {
+function buildHelpers(options: BuildOptionsInternal): BuildHelpers {
     return {
-        async elementStatus(handle: Handle): Promise<Status | undefined> {
+        async elementStatus(handle: Handle) {
             const elem = handle.mountedOrig;
             if (elem == null) return { noStatus: true };
             if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
@@ -231,18 +231,20 @@ function buildHelpers(options: BuildOptionsReq): BuildHelpers {
 
 async function computeContentsFromElement<P extends object>(
     element: AdaptMountedElement<P & WithChildren>,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
     const ret = new BuildResults(options.recorder, element);
 
     try {
+        startHooks({ element, options });
         ret.contents =
             (element.componentType as FunctionComponentTyp<P>)(element.props);
         return ret;
-
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (!isClassConstructorError(e)) throw e;
         // element.componentType is a class, not a function. Fall through.
+    } finally {
+        finishHooks();
     }
 
     if (!isComponentElement(element)) {
@@ -281,15 +283,16 @@ async function computeContentsFromElement<P extends object>(
     }
 }
 
-function findOverride(styles: css.StyleList, path: DomPath) {
+function findOverride(styles: css.StyleList, path: DomPath, options: BuildOptionsInternal) {
     const element = path[path.length - 1];
+    const reg = options.matchInfoReg;
 
     for (const style of styles.reverse()) {
-        if (css.canMatch(element.props) &&
-            !css.ruleHasMatched(element.props, style) &&
+        if (css.canMatch(reg, element) &&
+            !css.ruleHasMatched(reg, element, style) &&
             style.match(path)) {
 
-            css.ruleMatches(element.props, style);
+            css.ruleMatches(reg, element, style);
             return { style, override: style.sfc };
         }
     }
@@ -298,7 +301,7 @@ function findOverride(styles: css.StyleList, path: DomPath) {
 
 async function computeContents(
     path: DomPath,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
 
     const element = ld.last(path);
     if (element == null) {
@@ -327,7 +330,8 @@ async function computeContents(
 function ApplyStyle(
     props: {
         override: css.BuildOverride<AnyProps>,
-        element: AdaptElement
+        element: AdaptElement,
+        matchInfoReg: css.MatchInfoReg,
     }) {
 
     const origBuild = () => {
@@ -337,7 +341,8 @@ function ApplyStyle(
     const hand = getInternalHandle(props.element);
     const ret = props.override(props.element.props, {
         origBuild,
-        origElement: props.element
+        origElement: props.element,
+        [css.$matchInfoReg]: props.matchInfoReg,
     });
 
     // Default behavior if they don't explicitly call
@@ -351,16 +356,17 @@ function doOverride(
     path: DomPath,
     key: ElementKey,
     styles: css.StyleList,
-    options: BuildOptionsReq): AdaptElement {
+    options: BuildOptionsInternal): AdaptElement {
 
     let element = ld.last(path);
     if (element == null) {
         throw new Error("Cannot match null element to style rules for empty path");
     }
 
-    const overrideFound = findOverride(styles, path);
+    const overrideFound = findOverride(styles, path, options);
 
     if (overrideFound != null) {
+        const matchInfoReg = options.matchInfoReg;
         if (isComponentElement(element)) {
             if (!isMountedElement(element)) throw new InternalError(`Element should be mounted`);
             if (!isElementImpl(element)) throw new InternalError(`Element should be ElementImpl`);
@@ -370,13 +376,15 @@ function doOverride(
             }
         }
         const hand = getInternalHandle(element);
+        const oldEl = element;
         element = cloneElement(element, key, element.props.children);
+        css.copyRuleMatches(matchInfoReg, oldEl, element);
         hand.replaceTarget(element);
         const { style, override } = overrideFound;
-        const props = { ...key, override, element };
+        const props = { ...key, override, element, matchInfoReg };
         const newElem = createElement(ApplyStyle, props);
         // The ApplyStyle element should never match any CSS rule
-        css.neverMatch(newElem.props);
+        css.neverMatch(matchInfoReg, newElem);
 
         options.recorder({
             type: "step",
@@ -393,7 +401,7 @@ function doOverride(
 function mountElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
-    options: BuildOptionsReq): BuildResults {
+    options: BuildOptionsInternal): BuildResults {
 
     let elem = ld.last(path);
     if (elem === undefined) {
@@ -408,7 +416,9 @@ function mountElement(
 
     const newKey = computeMountKey(elem, parentStateNamespace);
     const hand = getInternalHandle(elem);
+    const oldEl = elem;
     elem = cloneElement(elem, newKey, elem.props.children);
+    css.copyRuleMatches(options.matchInfoReg, oldEl, elem);
     if (!hand.targetReplaced) hand.replaceTarget(elem);
 
     if (!isElementImpl(elem)) {
@@ -435,7 +445,7 @@ async function buildElement(
     path: DomPath,
     parentStateNamespace: StateNamespace,
     styles: css.StyleList,
-    options: BuildOptionsReq): Promise<BuildResults> {
+    options: BuildOptionsInternal): Promise<BuildResults> {
 
     const elem = ld.last(path);
     if (elem === undefined) {
@@ -517,9 +527,11 @@ export interface BuildOptions {
     deployID?: string;
 }
 
-type BuildOptionsReq = Required<BuildOptions>;
+export interface BuildOptionsInternal extends Required<BuildOptions> {
+    matchInfoReg: css.MatchInfoReg;
+}
 
-function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
+function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
     if (optionsIn != null) optionsIn = removeUndef(optionsIn);
     const defaultBuildOptions = {
         depth: -1,
@@ -533,8 +545,10 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsReq {
         buildOnce: false,
         deployID: "<none>"
     };
-    return { ...defaultBuildOptions, ...optionsIn };
+    return { ...defaultBuildOptions, ...optionsIn, matchInfoReg: css.createMatchInfoReg() };
 }
+
+let buildCount = 0;
 
 export interface BuildOutput {
     mountedOrig: AdaptMountedElement | null;
@@ -546,14 +560,23 @@ export async function build(
     styles: AdaptElementOrNull,
     options?: BuildOptions): Promise<BuildOutput> {
 
-    const optionsReq = computeOptions(options);
-    const results = new BuildResults(optionsReq.recorder);
-    const styleList = css.buildStyles(styles);
+    if (buildCount !== 0) {
+        throw new InternalError(`Attempt to build multiple DOMs concurrently not supported`);
+    }
+    try {
+        buildCount++;
 
-    if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
+        const optionsReq = computeOptions(options);
+        const results = new BuildResults(optionsReq.recorder);
+        const styleList = css.buildStyles(styles);
 
-    await pathBuild([root], styleList, optionsReq, results);
-    return results.toBuildOutput();
+        if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
+
+        await pathBuild([root], styleList, optionsReq, results);
+        return results.toBuildOutput();
+    } finally {
+        buildCount--;
+    }
 }
 
 export async function buildOnce(
@@ -564,7 +587,7 @@ export async function buildOnce(
     return build(root, styles, { ...options, buildOnce: true });
 }
 
-function atDepth(options: BuildOptionsReq, depth: number) {
+function atDepth(options: BuildOptionsInternal, depth: number) {
     if (options.shallow) return true;
     if (options.depth === -1) return false;
     return depth >= options.depth;
@@ -579,9 +602,10 @@ async function nextTick(): Promise<void> {
 async function pathBuild(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     results: BuildResults): Promise<void> {
 
+    options.matchInfoReg = css.createMatchInfoReg();
     await pathBuildOnceGuts(path, styles, options, results);
     if (results.buildErr || options.buildOnce) return;
     if (results.stateChanged) {
@@ -593,7 +617,7 @@ async function pathBuild(
 async function pathBuildOnceGuts(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     results: BuildResults): Promise<void> {
 
     const root = path[path.length - 1];
@@ -655,7 +679,7 @@ async function buildChildren(
     newRoot: AdaptElement,
     workingPath: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsReq): Promise<{ newChildren: any, childBldResults: BuildResults }> {
+    options: BuildOptionsInternal): Promise<{ newChildren: any, childBldResults: BuildResults }> {
 
     if (!isElementImpl(newRoot)) throw new Error(`Elements must inherit from ElementImpl ${util.inspect(newRoot)}`);
 
@@ -731,7 +755,7 @@ async function realBuildOnce(
     pathIn: DomPath,
     parentStateNamespace: StateNamespace | null,
     styles: css.StyleList,
-    options: BuildOptionsReq,
+    options: BuildOptionsInternal,
     predecessor: AdaptMountedElement | null,
     workingElem?: AdaptElement): Promise<BuildResults> {
 

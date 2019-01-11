@@ -8,6 +8,7 @@ import {
     GraphQLSchema,
     isNonNullType,
     isObjectType,
+    isWrappingType,
     Kind,
     OperationDefinitionNode,
     SelectionSetNode,
@@ -20,12 +21,18 @@ function notUndefined<T>(x: T | undefined): x is T {
     return x !== undefined;
 }
 
+function getUnwrappedType(type: GraphQLOutputType): GraphQLOutputType {
+    while (isWrappingType(type)) type = type.ofType;
+    return type;
+}
+
 function buildSelectionSet(
     type: GraphQLOutputType,
     orig?: SelectionSetNode,
     allDepth: number = 1): SelectionSetNode | undefined {
 
     if (allDepth === 0) return orig;
+    type = getUnwrappedType(type);
     if (!isObjectType(type)) return orig; //FIXME(manishv) handle interfaces and fragments spreads
 
     const origNames = orig
@@ -140,7 +147,7 @@ class AllDirectiveVisitor {
                 return;
             }
 
-            this.infoStack.push({ type: field.type, allDepth });
+            this.infoStack.push({ type: getUnwrappedType(field.type), allDepth });
         }
     };
 

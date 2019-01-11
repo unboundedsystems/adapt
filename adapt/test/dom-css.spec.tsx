@@ -6,10 +6,28 @@ import { fake } from "sinon";
 import {
     checkChildComponents,
     deepFilterElemsToPublic,
+    doBuild,
     Empty,
     MakeEmpty,
     MakeMakeEmpty,
 } from "./testlib";
+
+interface GroupThenEmptyState { didGroup: boolean; }
+
+class GroupThenEmpty extends Adapt.Component<{}, GroupThenEmptyState> {
+    initialState() {
+        return { didGroup: false };
+    }
+
+    build() {
+        if (this.state.didGroup) {
+            return <Empty key={this.props.key} id={1} />;
+        } else {
+            this.setState({ didGroup: true });
+            return <Adapt.Group key={this.props.key} />;
+        }
+    }
+}
 
 describe("DOM CSS Build Tests", () => {
     it("Should replace empty primitive", async () => {
@@ -84,6 +102,33 @@ describe("DOM CSS Build Tests", () => {
             f.firstCall.args[0].id.should.equal(1, msg);
             f.secondCall.args[0].id.should.equal(2, msg);
         });
+    });
+
+    it("Should clear matches on every build iteration", async () => {
+        let countGte = 0;
+        let countGroup = 0;
+        let countEmpty = 0;
+        const orig = <GroupThenEmpty />;
+        const style =
+            <Adapt.Style>
+                {GroupThenEmpty} {Adapt.rule((_, info) => {
+                    countGte++;
+                    return info.origElement;
+                })}
+                {Adapt.Group} {Adapt.rule((_, info) => {
+                    countGroup++;
+                    return info.origElement;
+                })}
+                {Empty} {Adapt.rule((_, info) => {
+                    countEmpty++;
+                    return info.origElement;
+                })}
+            </Adapt.Style>;
+        const { dom } = await doBuild(orig, { style });
+        if (dom == null) throw should(dom).not.Null();
+        should(countGte).equal(2);
+        should(countGroup).equal(1);
+        should(countEmpty).equal(1);
     });
 
     it("Should stop matching rule if ruleNoRematch is used", async () => {

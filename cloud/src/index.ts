@@ -5,6 +5,8 @@ export * from "./LocalCompute";
 export * from "./LocalContainer";
 export * from "./LocalDockerHost";
 export * from "./NetworkService";
+export * from "./ready";
+export * from "./Sequence";
 
 import * as ansible from "./ansible";
 import * as aws from "./aws";

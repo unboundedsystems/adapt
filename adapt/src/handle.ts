@@ -1,11 +1,11 @@
 import { sha256hex } from "@usys/utils";
 import { InternalError } from "./error";
-import { AdaptElement, isMountedElement, KeyPath } from "./jsx";
+import { AdaptElement, AdaptMountedElement, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
     readonly target: AdaptElement | null | undefined;
-    readonly mountedOrig: AdaptElement | null | undefined;
+    readonly mountedOrig: AdaptMountedElement | null | undefined;
     readonly name?: string;
     replaceTarget(child: AdaptElement | null): void;
 }
@@ -141,8 +141,9 @@ class HandleImpl implements HandleInternal {
         return orig;
     }
 
-    get mountedOrig(): AdaptElement | null | undefined {
-        return traverseUntil(this, (hand) => isMountedElement(hand.origTarget));
+    get mountedOrig(): AdaptMountedElement | null | undefined {
+        return traverseUntil(this,
+            (hand) => isMountedElement(hand.origTarget)) as AdaptMountedElement;
     }
 
     get target(): AdaptElement | null | undefined {

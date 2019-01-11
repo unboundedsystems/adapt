@@ -3,6 +3,7 @@ export interface AnsibleHostSsh {
     ansible_host: string;
     ansible_port?: number;
     ansible_user?: string;
+    ansible_become?: "yes";
     ansible_ssh_pass?: string;
     ansible_ssh_private_key?: string;
 }

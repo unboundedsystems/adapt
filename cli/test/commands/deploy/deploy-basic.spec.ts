@@ -5,6 +5,7 @@ import { last } from "lodash";
 import * as path from "path";
 import { clitest, expect } from "../../common/fancy";
 import { cliLocalRegistry } from "../../common/start-local-registry";
+import { getNewDeployID } from "../../common/testlib";
 
 const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
@@ -255,7 +256,7 @@ describe("Deploy list tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).contains("Listing Deployments [completed]\n\ntest::dev\n");
+        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).not.contains("using internal adapt module");
     });
 
@@ -267,7 +268,7 @@ describe("Deploy list tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).contains("Listing Deployments [completed]\n\ntest::dev\n");
+        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).contains("using internal adapt module");
     });
 
@@ -276,6 +277,7 @@ describe("Deploy list tests", function () {
 describe("Deploy destroy tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
+    let deployID: string;
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
@@ -284,14 +286,15 @@ describe("Deploy destroy tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        deployID = getNewDeployID(ctx.stdout);
     })
-    .command(["deploy:destroy", "test::dev"])
+    .delayedcommand(() => ["deploy:destroy", deployID!])
     .command(["deploy:list"])
 
     .it("Should stop and destroy created deployment", async (ctx) => {
         expect(ctx.stdout).contains("Stopping project deployment [completed]");
         expect(ctx.stdout).contains("Listing Deployments [completed]");
-        expect(ctx.stdout).not.contains("Listing Deployments [completed]\n\ntest::dev\n");
+        expect(ctx.stdout).does.not.contain("Listing Deployments [completed]\n\ntest::dev-");
     });
 });
 

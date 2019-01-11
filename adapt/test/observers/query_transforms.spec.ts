@@ -15,6 +15,7 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
                 x: Int!
                 foo: Foo
                 bar(y: Int = 3): Bar
+                wrapped: Wrapped
             }
 
             type Bar {
@@ -22,6 +23,18 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
                 foo: Foo
                 bar(y: Int!): Bar
                 barNull(y: Int): Bar
+            }
+
+            type Wrapped {
+                thing: Thing
+                thingNonNull: Thing!
+                thingArr: [Thing]
+                thingArrNonNull: [Thing]!
+            }
+
+            type Thing {
+              a: Int!
+              b: Int!
             }
 
             type Query {
@@ -52,6 +65,7 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
     x
     foo
     bar
+    wrapped
   }
 }
 `;
@@ -77,6 +91,7 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
           x
           foo
           bar
+          wrapped
         }
         barNull {
           y
@@ -122,11 +137,18 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         x
         foo
         bar
+        wrapped
       }
       bar {
         y
         foo
         barNull
+      }
+      wrapped {
+        thing
+        thingNonNull
+        thingArr
+        thingArrNonNull
       }
     }
     bar {
@@ -135,11 +157,30 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         x
         foo
         bar
+        wrapped
       }
       barNull {
         y
         foo
         barNull
+      }
+    }
+    wrapped {
+      thing {
+        a
+        b
+      }
+      thingNonNull {
+        a
+        b
+      }
+      thingArr {
+        a
+        b
+      }
+      thingArrNonNull {
+        a
+        b
       }
     }
   }
@@ -168,11 +209,18 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
           x
           foo
           bar
+          wrapped
         }
         bar {
           y
           foo
           barNull
+        }
+        wrapped {
+          thing
+          thingNonNull
+          thingArr
+          thingArrNonNull
         }
       }
       barNull {
@@ -181,6 +229,7 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
           x
           foo
           bar
+          wrapped
         }
         barNull {
           y
@@ -196,11 +245,36 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
         x
         foo
         bar
+        wrapped
       }
       bar {
         y
         foo
         barNull
+      }
+      wrapped {
+        thing
+        thingNonNull
+        thingArr
+        thingArrNonNull
+      }
+    }
+    wrapped {
+      thing {
+        a
+        b
+      }
+      thingNonNull {
+        a
+        b
+      }
+      thingArr {
+        a
+        b
+      }
+      thingArrNonNull {
+        a
+        b
       }
     }
   }
@@ -218,6 +292,7 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
       x
       foo
       bar
+      wrapped
     }
   }
 }
@@ -249,6 +324,35 @@ describe("Adapt GraphQL Query Transforms (@all)", () => {
     y
     foo
     barNull
+  }
+}
+`;
+
+        transformPrintAndCheck(schema, q, ref);
+    });
+
+    it("should recurse into wrapped types", () => {
+        const q = gql`{ foo { wrapped @all(depth: 2) } }`;
+        const ref = `{
+  foo {
+    wrapped @all(depth: 2) {
+      thing {
+        a
+        b
+      }
+      thingNonNull {
+        a
+        b
+      }
+      thingArr {
+        a
+        b
+      }
+      thingArrNonNull {
+        a
+        b
+      }
+    }
   }
 }
 `;

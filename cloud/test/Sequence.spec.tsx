@@ -1,6 +1,7 @@
 import Adapt, {
     AdaptElement,
     build,
+    BuildHelpers,
     createStateStore,
     deepFilterElemsToPublic,
     Group,
@@ -12,7 +13,11 @@ import should from "should";
 
 export class Prim extends Adapt.PrimitiveComponent<{ id: any, ready: () => boolean }> {
 
-    static ready(status: boolean) {
+    async ready(helpers: BuildHelpers): Promise<boolean> {
+        const hand = this.props.handle;
+        if (!hand) return false;
+        const status = await helpers.elementStatus<boolean>(hand);
+        if (status === undefined) return false;
         return status;
     }
 

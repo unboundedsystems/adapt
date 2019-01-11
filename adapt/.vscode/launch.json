@@ -17,11 +17,13 @@
             ],
             "program": "${workspaceFolder}/node_modules/.bin/_mocha",
             "args": [
+                //"-g", "keyword",
                 "--no-timeouts",
                 "--opts",
                 "mocha.opts"
             ],
             "env":{
+                "ADAPT_NO_FORK": "1",
                 "DOCKER_ARGS": "-p5858:5858"
             },
             "address": "127.0.0.1",

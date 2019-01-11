@@ -4,7 +4,6 @@ import * as ld from "lodash";
 
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
-import { StyleRule } from "./css";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
@@ -33,12 +32,17 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 }
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
+export interface GenericInstance {
+    [key: string]: any;
+}
+
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly props: P & Required<BuiltinProps>;
     readonly id: string;
     readonly path: string;
     readonly keyPath: KeyPath;
     readonly buildData: BuildData;
+    readonly instance: GenericInstance;
 
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
 }
@@ -105,7 +109,7 @@ export function componentStateNow<
 
 export interface BuildHelpers {
     deployID: string;
-    elementStatus<T = unknown>(handle: Handle): Promise<Status | undefined>;
+    elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}> {
@@ -253,30 +257,15 @@ export interface WithChildren {
 
 export type GenericComponent = Component<AnyProps, AnyState>;
 
-/**
- * Keep track of which rules have matched for a set of props so that in the
- * typical case, the same rule won't match the same component instance more
- * than once.
- *
- * @interface MatchProps
- */
-export interface MatchProps {
-    matched?: Set<StyleRule>;
-    neverMatch?: true;
-}
-export const $cssMatch = Symbol.for("$cssMatch");
-export interface WithMatchProps {
-    [$cssMatch]?: MatchProps;
-}
-
 export type KeyPath = string[];
 
 export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
-    readonly props: Props & BuiltinProps & WithChildren & Required<WithMatchProps>;
+    readonly props: Props & BuiltinProps & WithChildren;
 
     stateNamespace: StateNamespace = [];
     mounted = false;
     component: GenericComponent | null;
+    instanceMethods: GenericInstance = {};
     path?: string;
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
@@ -292,7 +281,6 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         hand.associate(this);
 
         this.props = {
-            [$cssMatch]: {},
             // https://github.com/Microsoft/TypeScript/pull/13288
             ...props as any,
             handle: hand,
@@ -400,6 +388,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 
     get componentName() { return this.componentType.name || "anonymous"; }
     get id() { return JSON.stringify(this.stateNamespace); }
+    get instance(): GenericInstance {
+        return this.component || this.instanceMethods;
+    }
 }
 
 enum DeferredState {

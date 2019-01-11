@@ -16,39 +16,18 @@ import {
     GraphQLString,
 } from "graphql";
 import { safeLoad } from "js-yaml";
-import jsonStableStringify from "json-stable-stringify";
 import path from "path";
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
-import { AwsCredentialsProps } from "./credentials";
-
-interface AwsQueryParams extends AwsCredentialsProps { }
-
-type QueryParams = AwsQueryParams;
-
-const infoSym = Symbol("adaptObserverInfo");
-interface QueryResolverInfo {
-    [infoSym]: AwsQueryParams;
-}
-type ObserveResolverInfo = QueryResolverInfo;
-
-interface Observations {
-    [queryId: string]: any;
-}
-
-const withParamsProp = "withCredentials";
-
-function computeQueryId(queryParams: QueryParams, fieldName: string, args: unknown) {
-    return jsonStableStringify({
-        awsRegion: queryParams.awsRegion,
-        awsAccessKeyId: queryParams.awsAccessKeyId,
-        fieldName, //Note(manishv) should this really be the path in case operationId changes?
-        args,
-    });
-}
-
-function opName(fieldName: string) {
-    return fieldName[0].toLowerCase() + fieldName.substr(1);
-}
+import {
+    computeQueryId,
+    infoSym,
+    Observations,
+    ObserveResolverInfo,
+    opName,
+    QueryParams,
+    QueryResolverInfo,
+    withParamsProp,
+} from "./observer_common";
 
 const observeResolverFactory: ResolverFactory = {
     fieldResolvers: (_type, fieldName, isQuery) => {
@@ -66,7 +45,7 @@ const observeResolverFactory: ResolverFactory = {
         return async (obj: ObserveResolverInfo, args: any, context: Observations, _info) => {
             const params = obj[infoSym];
             const queryId = computeQueryId(obj[infoSym], fieldName, args);
-            const client: any = new AWS.CloudFormation({
+            const client: any = new AWS.EC2({
                 region: params.awsRegion,
                 accessKeyId: params.awsAccessKeyId,
                 secretAccessKey: params.awsSecretAccessKey,
@@ -146,7 +125,7 @@ let _swaggerDef: any;
 function swaggerDef() {
     if (_swaggerDef) return _swaggerDef;
 
-    const text = fs.readFileSync(path.join(__dirname, "cloudformation_swagger.yaml"));
+    const text = fs.readFileSync(path.join(__dirname, "ec2_swagger.yaml"));
     _swaggerDef = safeLoad(text.toString());
     return _swaggerDef;
 }
@@ -163,7 +142,7 @@ function buildQuerySchema() {
 let querySchema: GraphQLSchema;
 let observeSchema: GraphQLSchema;
 
-export class AwsObserver implements ObserverPlugin {
+export class AwsEc2Observer implements ObserverPlugin {
     static observerName: string;
 
     get schema() {
@@ -182,4 +161,4 @@ export class AwsObserver implements ObserverPlugin {
     }
 }
 
-registerObserver(new AwsObserver());
+registerObserver(new AwsEc2Observer());

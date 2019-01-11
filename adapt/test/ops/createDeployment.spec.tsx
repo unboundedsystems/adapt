@@ -282,7 +282,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
-        should(ds.deployID).equal("myproject::default");
+        should(ds.deployID).match(/myproject::default-[a-z]{4}/);
         should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
 
         const lstdout = logger.stdout;
@@ -299,7 +299,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
-        should(ds.deployID).equal("myproject::promises");
+        should(ds.deployID).match(/myproject::promises-[a-z]{4}/);
 
         const lstdout = logger.stdout;
         should(lstdout).match(/EchoPlugin: start/);
@@ -329,7 +329,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(ds.stateJson).equal("{}");
-        should(ds.deployID).equal("myproject::default");
+        should(ds.deployID).match(/myproject::default-[a-z]{4}/);
         should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
 
         const dsStatus = await fetchStatus({
@@ -346,7 +346,7 @@ describe("createDeployment Tests", async function () {
 
         should(dsStatus.domXml).equal(defaultDomXmlOutput(["Simple"]));
         should(dsStatus.stateJson).equal("{}");
-        should(dsStatus.deployID).equal("myproject::default");
+        should(dsStatus.deployID).match(/myproject::default-[a-z]{4}/);
         should(dsStatus.mountedOrigStatus).eql({ status: "Here I am!" });
     });
 
