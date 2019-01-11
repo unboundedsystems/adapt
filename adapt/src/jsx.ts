@@ -118,7 +118,7 @@ export abstract class Component<Props extends object = {}, State extends object 
     // subtree has completed.
     cleanup?: (this: this) => void;
 
-    private stateUpdates: StateUpdater<Props, State>[] = [];
+    private stateUpdates: StateUpdater<Props, State>[];
     private getState?: () => any;
 
     get state(): Readonly<State> {
@@ -155,6 +155,7 @@ export abstract class Component<Props extends object = {}, State extends object 
             }
             cData.setInitialState(init);
         }
+        this.stateUpdates = cData.stateUpdates as any;
 
         // Prevent subclass constructors from accessing this.state too early
         // by waiting to init getState.
@@ -270,6 +271,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
     reanimated: boolean = false;
+    stateUpdates: StateUpdater[] = [];
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -313,12 +315,14 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.buildData.id = this.id;
     }
 
+    setState = (stateUpdate: StateUpdater<Props, AnyState>): void => {
+        this.stateUpdates.push(stateUpdate);
+    }
+
     async postBuild(stateStore: StateStore): Promise<{ stateChanged: boolean }> {
-        if (this.component == null) return { stateChanged: false };
-        const updates: StateUpdater[] = (this.component as any).stateUpdates;
         return {
             stateChanged: await applyStateUpdates(this.stateNamespace, stateStore,
-                this.props, updates)
+                this.props, this.stateUpdates)
         };
     }
 
@@ -545,6 +549,7 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
 export interface ComponentConstructorData {
     getState: () => any;
     setInitialState: <T extends object>(init: T) => void;
+    stateUpdates: StateUpdater[];
     observerManager: ObserverManagerDeployment;
 }
 

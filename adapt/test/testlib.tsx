@@ -65,6 +65,7 @@ export { deepFilterElemsToPublic } from "../src";
 const noStoreConstructorData: jsx.ComponentConstructorData = {
     getState: () => ({}),
     setInitialState: () => {/**/ },
+    stateUpdates: [],
     observerManager: makeObserverManagerDeployment({}) //Just a placeholder value, observers may not yet be registered
 };
 

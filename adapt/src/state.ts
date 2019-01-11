@@ -5,7 +5,6 @@ import * as ld from "lodash";
 import { removeUndef } from "@usys/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
-import { StateNamespace } from "./state";
 
 export interface StateStore {
     setElementState(elem: StateNamespace, data: AnyState | undefined): void;
