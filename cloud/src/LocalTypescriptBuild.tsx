@@ -4,39 +4,23 @@ import Adapt, {
     useImperativeMethods,
     useState
 } from "@usys/adapt";
+import { mkdtmp } from "@usys/utils";
 import execa from "execa";
-import fs, { copy, pathExists, writeFile } from "fs-extra";
+import fs from "fs-extra";
 import ld from "lodash";
 import path from "path";
-import tmp from "tmp";
 
-async function inDirectory<T>(dir: string, f: () => Promise<T> | T): Promise<T> {
-    const old = process.cwd();
+async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
+    const tmpDir = await mkdtmp(prefix);
     try {
-        process.chdir(dir);
-        return await f();
-    } finally {
-        process.chdir(old);
-    }
-}
-
-async function mkTmpDir(id: string): Promise<string> {
-    return new Promise<string>((res, rej) => {
-        tmp.dir({ template: `/tmp/${id}-XXXXXX` }, (err, dirPath) => err ? rej(err) : res(dirPath));
-    });
-}
-
-async function inTmpDir<T>(id: string, f: () => Promise<T> | T): Promise<T> {
-    const tmpDir = await mkTmpDir(id);
-    try {
-        return inDirectory(tmpDir, f);
+        return await f(tmpDir);
     } finally {
         await fs.remove(tmpDir);
     }
 }
 
-async function dockerBuild(): Promise<string> {
-    const { stdout, stderr } = await execa("docker", ["build", "."]);
+async function dockerBuild(dockerfile: string, contextPath: string): Promise<string> {
+    const { stdout, stderr } = await execa("docker", ["build", "-f", dockerfile, contextPath]);
     const outLines = stdout.split(/\r?\n/);
     const lastLine = ld.last(outLines);
     if (!lastLine) throw new Error("No output from docker build!");
@@ -46,24 +30,22 @@ async function dockerBuild(): Promise<string> {
 }
 
 export async function localTypescriptBuild(srcDir: string) {
-    const absSrcDir = path.isAbsolute(srcDir) ? srcDir : path.resolve(srcDir);
-    const srcDirBase = path.parse(srcDir).base;
-    if (!await pathExists(absSrcDir)) throw new Error(`Source director ${srcDir} not found`);
+    srcDir = path.resolve(srcDir);
+    if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
+    const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
+    const main = pkgInfo.main ? pkgInfo.main : "index.js";
 
-    return inTmpDir("localTypescriptBuild", async () => {
-        await copy(absSrcDir, ".");
-        const pkgJSON = await fs.readFile(path.join(absSrcDir, "package.json"));
-        const pkgInfo = JSON.parse(pkgJSON.toString());
-        const main = pkgInfo.main ? pkgInfo.main : "index.js";
-        await writeFile("Dockerfile", `FROM node:10
-COPY ${srcDirBase} .
-CHDIR ${srcDirBase}
+    return withTmpDir("adapt-typescript-build", async (tmpDir) => {
+        const dockerfile = path.join(tmpDir, "Dockerfile");
+        await fs.writeFile(dockerfile, `
+FROM node:10-alpine
+WORKDIR /app
+ADD . /app
 RUN npm install
 RUN npm run build
-CMD [node, ${main}]
+CMD ["node", "${main}"]
 `);
-
-        return dockerBuild();
+        return dockerBuild(dockerfile, srcDir);
     });
 }
 
