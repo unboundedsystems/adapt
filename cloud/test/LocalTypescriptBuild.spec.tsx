@@ -24,7 +24,8 @@ async function checkDockerRun(image: string) {
 }
 
 describe("localTypescriptBuild tests", () => {
-    before(async () => {
+    before(async function () {
+        this.timeout(2 * 60 * 1000);
         // tslint:disable-next-line:no-console
         console.log(`    Installing Docker`);
         await execa("sh", [ "/src/bin/install-docker.sh" ]);
@@ -68,7 +69,9 @@ describe("localTypescriptBuild tests", () => {
         });
     }
 
-    it("Should build and run docker image", async () => {
+    it("Should build and run docker image", async function () {
+        this.timeout(60 * 1000);
+        this.slow(2 * 1000);
         await createProject();
         const imgSha = await localTypescriptBuild("./testproj");
 
