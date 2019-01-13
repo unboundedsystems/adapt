@@ -1,4 +1,4 @@
-import { mochaLocalRegistry, mochaTmpdir } from "@usys/testutils";
+import { mochaLocalRegistry, mochaTmpdir, Package, writePackage } from "@usys/testutils";
 import {
     Constructor,
     npm,
@@ -9,7 +9,6 @@ import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";
 import should from "should";
-import { Package, writePackage } from "../package_maker";
 import { packageDirs } from "../testlib";
 
 import {
