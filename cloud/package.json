@@ -11,8 +11,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:watch": "npm run clean; npm run _build:watch",
-    "_build:watch": "tsc -w -p tsconfig.json",
+    "build:watch": "make build && tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",
     "lint": "tslint -e **/*.json --project .",
