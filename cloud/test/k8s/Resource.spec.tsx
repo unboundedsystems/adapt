@@ -75,7 +75,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             }}>
             </Resource >;
 
-        const { dom } = await doBuild(resElem, options.deployID);
+        const { dom } = await doBuild(resElem, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -96,7 +96,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             }}>
             </Resource>;
 
-        const { dom } = await doBuild(resElem, options.deployID);
+        const { dom } = await doBuild(resElem, { deployID });
         if (!isMountedElement(dom)) {
             throw should(isMountedElement(dom)).True();
         }
@@ -145,7 +145,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
                 }}>
             </Resource>;
 
-        const { mountedOrig, dom } = await doBuild(resElem, options.deployID);
+        const { mountedOrig, dom } = await doBuild(resElem, { deployID });
         if (!isMountedElement(dom)) {
             throw should(isMountedElement(dom)).True();
         }
@@ -198,7 +198,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             }}>
         </Resource>;
 
-        const { dom } = await doBuild(resElem, options.deployID);
+        const { dom } = await doBuild(resElem, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -236,7 +236,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
             }}>
         </Resource>;
 
-        const { dom } = await doBuild(resElem, options.deployID);
+        const { dom } = await doBuild(resElem, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -249,7 +249,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createPod("test");
 
-        const { dom } = await doBuild(<Group />, options.deployID);
+        const { dom } = await doBuild(<Group />, { deployID });
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
@@ -288,7 +288,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const result = await client.api.v1.namespaces("default").pods.post({ body: manifest });
         should(result.statusCode).equal(201);
 
-        const { dom } = await doBuild(<Group />, options.deployID);
+        const { dom } = await doBuild(<Group />, { deployID });
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);

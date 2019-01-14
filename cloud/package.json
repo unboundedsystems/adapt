@@ -11,8 +11,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:watch": "npm run clean; npm run _build:watch",
-    "_build:watch": "tsc -w -p tsconfig.json",
+    "build:watch": "make build && tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",
     "lint": "tslint -e **/*.json --project .",
@@ -48,6 +47,7 @@
     "postinstall-build": "^5.0.1",
     "randomstring": "^1.1.5",
     "swagger-client": "^3.8.21",
+    "tmp": "^0.0.33",
     "tslib": "^1.9.3",
     "type-ops": "^3.0.1"
   },
@@ -66,6 +66,7 @@
     "@types/node": "^10.11.7",
     "@types/node-fetch": "^2.1.2",
     "@types/randomstring": "^1.1.6",
+    "@types/tmp": "^0.0.33",
     "@usys/testutils": "0.0.1",
     "@usys/utils": "^0.0.1",
     "aws-sdk-mock": "^4.1.0",

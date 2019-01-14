@@ -186,7 +186,7 @@ describe("Ansible plugin", async function () {
     }
 
     async function buildAndRun(orig: AdaptElement) {
-        const { dom } = await doBuild(orig, "<none>");
+        const { dom } = await doBuild(orig);
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);

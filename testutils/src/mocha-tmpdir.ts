@@ -69,7 +69,7 @@ function tmpDirFixture(beforeFn: FixtureFunc, afterFn: FixtureFunc,
     });
 
     afterFn(async function cleanupTmpDir(this: any) {
-        this.timeout(2 * 1000);
+        this.timeout(30 * 1000);
         if (!origdir || !tmpdir) return;
         process.chdir(origdir);
         if (process.env.KEEP_TMPDIR) {

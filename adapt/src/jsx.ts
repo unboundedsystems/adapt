@@ -471,11 +471,7 @@ export function createElement<Props extends object>(
         throw new Error("createElement cannot called with string element type");
     }
 
-    type PropsNoChildren =
-        ExcludeInterface<Props, tySup.Children<any>>;
-
-    //props===null PropsNoChildren == {}
-    let fixedProps = ((props === null) ? {} : props) as PropsNoChildren & Partial<BuiltinProps>;
+    let fixedProps = ((props === null) ? {} : props) as Props & Partial<BuiltinProps>;
     if (ctor.defaultProps) {
         // The 'as any' below is due to open TS bugs/PR:
         // https://github.com/Microsoft/TypeScript/pull/13288

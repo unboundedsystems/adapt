@@ -161,7 +161,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const { dom } = await doBuild(svc, options.deployID);
+        const { dom } = await doBuild(svc, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -180,7 +180,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key="test" ports={ports} config={kubeconfig} />;
 
-        const { dom } = await doBuild(svc, options.deployID);
+        const { dom } = await doBuild(svc, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -217,7 +217,7 @@ describe("k8s Service Operation Tests", function () {
                 <K8sContainer name="foo" image="doesntmatter"></K8sContainer>
             </Pod>
         </Group>;
-        const { dom } = await doBuild(orig, options.deployID);
+        const { dom } = await doBuild(orig, { deployID });
         const children = childrenToArray(dom.props.children);
 
         should(children.length).equal(2);
@@ -247,7 +247,7 @@ describe("k8s Service Operation Tests", function () {
         const svc =
             <Service key={name} ports={ports} config={kubeconfig} />;
 
-        const { mountedOrig, dom } = await doBuild(svc, options.deployID);
+        const { mountedOrig, dom } = await doBuild(svc, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -286,7 +286,7 @@ describe("k8s Service Operation Tests", function () {
         ];
         const svc =
             <Service key="test" ports={newPorts} config={kubeconfig} />;
-        const { dom } = await doBuild(svc, options.deployID);
+        const { dom } = await doBuild(svc, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
@@ -335,7 +335,7 @@ describe("k8s Service Operation Tests", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
 
         const root = makeRoot();
-        const { dom: oldDom } = await doBuild(root, options.deployID);
+        const { dom: oldDom } = await doBuild(root, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, oldDom);
@@ -349,7 +349,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.finish();
 
         const root2 = makeRoot();
-        const { dom } = await doBuild(root2, options.deployID);
+        const { dom } = await doBuild(root2, { deployID });
 
         await plugin.start(options);
         const obs2 = await plugin.observe(oldDom, dom);
@@ -362,7 +362,7 @@ describe("k8s Service Operation Tests", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
-        const { dom } = await doBuild(<Group />, options.deployID);
+        const { dom } = await doBuild(<Group />, { deployID });
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);

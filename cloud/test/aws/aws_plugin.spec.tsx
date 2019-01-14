@@ -232,6 +232,7 @@ describe("AWS plugin basic tests", () => {
     let plugin: AwsPluginImpl;
     let options: PluginOptions;
     let logger: MockLogger;
+    const deployID = "abc123";
 
     before(async () => {
         awsMock.setSDKInstance(AWS);
@@ -241,7 +242,7 @@ describe("AWS plugin basic tests", () => {
         plugin  = createAwsPlugin();
         logger = createMockLogger();
         options = {
-            deployID: "abc123",
+            deployID,
             log: logger.info,
             dataDir: "/fake/datadir",
         };
@@ -253,7 +254,7 @@ describe("AWS plugin basic tests", () => {
     it("Should allow additional DOM elements under CFStack", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
         const orig = simpleDom({ creds, addExtra: true });
-        const { dom } = await doBuild(orig, options.deployID);
+        const { dom } = await doBuild(orig, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -272,7 +273,7 @@ describe("AWS plugin basic tests", () => {
     it("Should compute create actions", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
         const orig = simpleDom({ creds });
-        const { dom } = await doBuild(orig, options.deployID);
+        const { dom } = await doBuild(orig, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
@@ -286,7 +287,7 @@ describe("AWS plugin basic tests", () => {
 
     it("Should create template", async () => {
         const orig = simpleDom({ creds });
-        const { dom } = await doBuild(orig, options.deployID);
+        const { dom } = await doBuild(orig, { deployID });
         const stackEls = findStackElems(dom);
         should(stackEls).have.length(2);
         const templ = createTemplate(stackEls[0]);
@@ -310,7 +311,7 @@ describe("AWS plugin basic tests", () => {
                     InstanceId={instHandle}
                 />
             </CFStack>;
-        const { dom } = await doBuild(orig, options.deployID);
+        const { dom } = await doBuild(orig, { deployID });
         const stackEls = findStackElems(dom);
         should(stackEls).have.length(1);
         const templ = createTemplate(stackEls[0]);
@@ -374,7 +375,7 @@ describeLong("AWS plugin live tests", function () {
 
     it("Should create stacks [step 1]", async () => {
         const orig = simpleDom(domConfig);
-        const { dom } = await doBuild(orig, options.deployID, stateStore);
+        const { dom } = await doBuild(orig, { deployID, stateStore });
         stackNames = getStackNames(dom);
 
         should(stackNames).have.length(2);
@@ -438,7 +439,7 @@ describeLong("AWS plugin live tests", function () {
         // Remove one of the stacks from the dom
         domConfig.secondStack = false;
         const orig = simpleDom(domConfig);
-        const { dom } = await doBuild(orig, options.deployID, stateStore);
+        const { dom } = await doBuild(orig, { deployID, stateStore });
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change
@@ -484,7 +485,7 @@ describeLong("AWS plugin live tests", function () {
         // Just update the tag value
         domConfig.testTagVal = "newvalue";
         const orig = simpleDom(domConfig);
-        const { dom } = await doBuild(orig, options.deployID, stateStore);
+        const { dom } = await doBuild(orig, { deployID, stateStore });
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change
@@ -519,7 +520,7 @@ describeLong("AWS plugin live tests", function () {
         // Remove the FIRST instance from the first stack
         domConfig.secondInstance = false;
         const orig = simpleDom(domConfig);
-        const { dom } = await doBuild(orig, options.deployID, stateStore);
+        const { dom } = await doBuild(orig, { deployID, stateStore });
         const newStackNames = getStackNames(dom);
 
         // Stack name shouldn't change
