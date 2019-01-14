@@ -1,8 +1,10 @@
-import Adapt from "@usys/adapt";
+import Adapt, { PrimitiveComponent } from "@usys/adapt";
 import { mochaTmpdir, writePackage } from "@usys/testutils";
 import execa from "execa";
 import should from "should";
-import { localTypescriptBuild, useAsync } from "../src/LocalTypescriptBuild";
+import { doBuild } from "./testlib";
+
+import { TypescriptBuildProps, useAsync, useTypescriptBuild } from "../src/LocalTypescriptBuild";
 
 //FIXME(manishv) Move to a dedicate file for useAsync
 describe("useAsync hook tests", () => {
@@ -23,22 +25,33 @@ async function checkDockerRun(image: string) {
     return stdout;
 }
 
-describe("localTypescriptBuild tests", () => {
+interface FinalProps {
+    imgSha: string;
+}
+class Final extends PrimitiveComponent<FinalProps> {}
+
+function TypescriptProject(props: TypescriptBuildProps) {
+    const { imgSha, buildObj } = useTypescriptBuild(props.srcDir);
+    return imgSha ? <Final imgSha={imgSha} /> : buildObj;
+}
+
+describe("useTypescriptBuild tests", () => {
     let imgSha: string | undefined;
+
+    mochaTmpdir.all(`adapt-cloud-dockerbuild`);
 
     before(async function () {
         this.timeout(2 * 60 * 1000);
         // tslint:disable-next-line:no-console
         console.log(`    Installing Docker`);
         await execa("sh", [ "/src/bin/install-docker.sh" ]);
+        await createProject();
     });
 
     after(async function () {
         this.timeout(10 * 1000);
         if (imgSha) await execa("docker", ["rmi", imgSha]);
     });
-
-    mochaTmpdir.all(`adapt-cloud-dockerbuild`);
 
     const pkgJson = {
         name: "testproject",
@@ -79,8 +92,12 @@ describe("localTypescriptBuild tests", () => {
     it("Should build and run docker image", async function () {
         this.timeout(60 * 1000);
         this.slow(2 * 1000);
-        await createProject();
-        imgSha = await localTypescriptBuild("./testproj");
+
+        const orig = <TypescriptProject srcDir="./testproj" />;
+        const { dom } = await doBuild(orig);
+
+        imgSha = dom.props.imgSha;
+        if (imgSha === undefined) throw should(imgSha).not.be.Undefined();
 
         const output = await checkDockerRun(imgSha);
         should(output).equal("SUCCESS");

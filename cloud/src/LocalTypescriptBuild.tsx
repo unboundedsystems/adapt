@@ -50,7 +50,11 @@ CMD ["node", "${main}"]
     });
 }
 
-export default function LocalTypescriptBuild(props: { srcDir: string } & BuiltinProps) {
+export interface TypescriptBuildProps extends Partial<BuiltinProps> {
+    srcDir: string;
+}
+
+export function LocalTypescriptBuild(props: TypescriptBuildProps) {
     const imgSha = useAsync(async () => {
         //FIXME(manishv) Don't rebuild every time, use some kind of uptoda
         return localTypescriptBuild(props.srcDir);
@@ -62,20 +66,21 @@ export default function LocalTypescriptBuild(props: { srcDir: string } & Builtin
     }));
     return null;
 }
+export default LocalTypescriptBuild;
 
 //Note(manishv) Break this out into a separate file?
 export function useTypescriptBuild(srcDir: string) {
     const [buildState, setBuildState] = useState("build");
-    const buildHand = handle();
-
-    setBuildState(async () => {
-        if (!buildHand.mountedOrig) return "build";
-        if (buildHand.mountedOrig.instance.buildComplete()) {
-            return buildHand.mountedOrig.instance.imgSha;
-        }
-    });
 
     if (buildState === "build") {
+        const buildHand = handle();
+
+        setBuildState(async () => {
+            if (buildHand.mountedOrig && buildHand.mountedOrig.instance.buildComplete()) {
+                return buildHand.mountedOrig.instance.imgSha;
+            }
+            return "build";
+        });
         return { buildObj: <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} /> };
     }
 
