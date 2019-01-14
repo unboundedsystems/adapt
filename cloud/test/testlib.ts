@@ -1,23 +1,9 @@
-import { Action, AdaptElement, build, buildPrinter, StateStore } from "@usys/adapt";
+import { Action } from "@usys/adapt";
 import * as randomstring from "randomstring";
-import should from "should";
 import * as util from "util";
 
-const debugBuild = false;
-const buildOpts = debugBuild ? { recorder: buildPrinter() } : undefined;
-
-export async function doBuild(elem: AdaptElement, deployID: string, stateStore?: StateStore) {
-    const { mountedOrig, contents: dom, messages } = await build(elem, null,
-        { ...buildOpts, stateStore, deployID });
-    if (dom == null) {
-        should(dom).not.Null();
-        should(dom).not.Undefined();
-        throw new Error("Unreachable");
-    }
-
-    should(messages).have.length(0);
-    return { mountedOrig, dom };
-}
+// tslint:disable-next-line:no-submodule-imports
+export { doBuild } from "@usys/adapt/dist/test/testlib";
 
 export async function act(actions: Action[]) {
     for (const action of actions) {
