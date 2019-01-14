@@ -20,7 +20,8 @@ async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> |
 }
 
 async function dockerBuild(dockerfile: string, contextPath: string): Promise<string> {
-    const { stdout, stderr } = await execa("docker", ["build", "-f", dockerfile, contextPath]);
+    const { stdout, stderr } = await execa(
+        "docker", ["build", "-f", dockerfile, "--force-rm", contextPath]);
     const outLines = stdout.split(/\r?\n/);
     const lastLine = ld.last(outLines);
     if (!lastLine) throw new Error("No output from docker build!");

@@ -24,11 +24,18 @@ async function checkDockerRun(image: string) {
 }
 
 describe("localTypescriptBuild tests", () => {
+    let imgSha: string | undefined;
+
     before(async function () {
         this.timeout(2 * 60 * 1000);
         // tslint:disable-next-line:no-console
         console.log(`    Installing Docker`);
         await execa("sh", [ "/src/bin/install-docker.sh" ]);
+    });
+
+    after(async function () {
+        this.timeout(10 * 1000);
+        if (imgSha) await execa("docker", ["rmi", imgSha]);
     });
 
     mochaTmpdir.all(`adapt-cloud-dockerbuild`);
@@ -73,7 +80,7 @@ describe("localTypescriptBuild tests", () => {
         this.timeout(60 * 1000);
         this.slow(2 * 1000);
         await createProject();
-        const imgSha = await localTypescriptBuild("./testproj");
+        imgSha = await localTypescriptBuild("./testproj");
 
         const output = await checkDockerRun(imgSha);
         should(output).equal("SUCCESS");
