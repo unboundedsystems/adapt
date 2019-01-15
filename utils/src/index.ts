@@ -14,6 +14,7 @@ export * from "./wait_for";
 import * as npm from "./npm";
 import { removeUndef } from "./removeUndef";
 import { sleep } from "./sleep";
+import * as yarn from "./yarn";
 
 export {
     sortArray,
@@ -28,4 +29,5 @@ export {
     npm,
     removeUndef,
     sleep,
+    yarn,
 };
