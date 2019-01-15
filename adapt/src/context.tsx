@@ -27,6 +27,10 @@ export interface Context<T> {
     Consumer: Consumer<T>;
 }
 
+interface ContextImpl<T> extends Context<T> {
+    currentVal(): T;
+}
+
 export function createContext<T>(defaultValue: T): Context<T> {
     const stack: Provider[] = []; // class Provider
 
@@ -76,8 +80,20 @@ export function createContext<T>(defaultValue: T): Context<T> {
         }
     }
 
-    return {
+    const ret: ContextImpl<T> = {
         Provider,
         Consumer,
+        currentVal: () => currentVal()
     };
+
+    return ret;
+}
+
+function isContextImpl<T>(context: Context<T>): context is ContextImpl<T> {
+    return ("currentVal" in context);
+}
+
+export function useContext<T>(context: Context<T>): T {
+    if (!isContextImpl(context)) throw new Error("useContext context not a ContextImpl");
+    return context.currentVal();
 }

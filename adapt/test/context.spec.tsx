@@ -1,85 +1,13 @@
 import should from "should";
-import Adapt, { buildOnce, createContext, Group } from "../src";
+import Adapt, { AdaptElement, buildOnce, createContext, Group, useContext } from "../src";
+import { ConsumerProps } from "../src/context";
+import { ComponentType } from "../src/jsx";
 
 import { DomError } from "../src/builtin_components";
 import { deepFilterElemsToPublic, Empty } from "./testlib";
 
 describe("Context basic tests", () => {
-    it("Consumer should get default value", async () => {
-        // tslint:disable-next-line:variable-name
-        const TestContext = createContext(11);
-        const orig =
-            <TestContext.Consumer>
-                {(val) => <Empty id={val} />}
-            </TestContext.Consumer>;
-
-        const { contents: dom } = await buildOnce(orig, null);
-        if (dom == null) {
-            should(dom).not.Null();
-            return;
-        }
-        should(dom.componentType).equal(Empty);
-        const expected = deepFilterElemsToPublic(<Empty key="Consumer-Empty" id={11} />);
-        should(deepFilterElemsToPublic(dom)).eql(expected);
-    });
-
-    it("Consumer should get Provider value", async () => {
-        // tslint:disable-next-line:variable-name
-        const TestContext = createContext(11);
-        const orig =
-            <TestContext.Provider value={201} >
-                <TestContext.Consumer>
-                    {(val) => <Empty id={val} />}
-                </TestContext.Consumer>
-            </TestContext.Provider>;
-
-        const { contents: dom } = await buildOnce(orig, null);
-        if (dom == null) {
-            should(dom).not.Null();
-            return;
-        }
-        const expected = deepFilterElemsToPublic(<Empty key="Provider-Consumer-Empty" id={201} />);
-        should(deepFilterElemsToPublic(dom)).eql(expected);
-    });
-
-    it("Consumers should get different Provider values", async () => {
-        // tslint:disable-next-line:variable-name
-        const TestContext = createContext(11);
-        const orig =
-            <Group>
-                <TestContext.Provider value={101} >
-                    <Group>
-                        <TestContext.Provider value={201} >
-                            <TestContext.Consumer>
-                                {(val) => <Empty id={val} />}
-                            </TestContext.Consumer>
-                        </TestContext.Provider>
-                        <TestContext.Consumer>
-                            {(val) => <Empty id={val} />}
-                        </TestContext.Consumer>
-                    </Group>
-                </TestContext.Provider>
-                <TestContext.Consumer>
-                    {(val) => <Empty id={val} />}
-                </TestContext.Consumer>
-            </Group>;
-
-        const { contents: dom } = await buildOnce(orig, null);
-        if (dom == null) {
-            should(dom).not.Null();
-            return;
-        }
-
-        const expected = deepFilterElemsToPublic(
-            <Group key="Group">
-                <Group key="Provider-Group">
-                    <Empty key="Provider-Consumer-Empty" id={201} />
-                    <Empty key="Consumer-Empty" id={101} />
-                </Group>
-                <Empty key="Consumer-Empty" id={11} />
-            </Group>);
-        should(deepFilterElemsToPublic(dom)).eql(expected);
-    });
+    buildConsumerTestSuite((context) => context.Consumer);
 
     it("Should error if Provider has more than one child", async () => {
         // tslint:disable-next-line:variable-name
@@ -175,5 +103,102 @@ describe("Context basic tests", () => {
         const expected = deepFilterElemsToPublic(<Empty key="donttouch" id={1} />);
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
-
 });
+
+describe("useContext tests", () => {
+    function hookConsumer(context: Adapt.Context<number>):
+        (props: ConsumerProps<number>) => AdaptElement | null {
+        // tslint:disable-next-line:variable-name
+        const Consumer = (props: ConsumerProps<number>) => {
+            const val = useContext(context);
+            return props.children(val);
+        };
+        return Consumer;
+    }
+
+    buildConsumerTestSuite((context) => hookConsumer(context));
+});
+
+function buildConsumerTestSuite(consumer: (context: Adapt.Context<number>) => ComponentType<ConsumerProps<number>>) {
+    it("Consumer should get default value", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(11);
+        // tslint:disable-next-line:variable-name
+        const Consumer = consumer(TestContext);
+        const orig =
+            <Consumer>
+                {(val) => <Empty id={val} />}
+            </Consumer>;
+
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        should(dom.componentType).equal(Empty);
+        const expected = deepFilterElemsToPublic(<Empty key="Consumer-Empty" id={11} />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
+    it("Consumer should get Provider value", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(11);
+        // tslint:disable-next-line:variable-name
+        const Consumer = consumer(TestContext);
+        const orig =
+            <TestContext.Provider value={201} >
+                <Consumer>
+                    {(val) => <Empty id={val} />}
+                </Consumer>
+            </TestContext.Provider>;
+
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        const expected = deepFilterElemsToPublic(<Empty key="Provider-Consumer-Empty" id={201} />);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+
+    it("Consumers should get different Provider values", async () => {
+        // tslint:disable-next-line:variable-name
+        const TestContext = createContext(11);
+        // tslint:disable-next-line:variable-name
+        const Consumer = consumer(TestContext);
+        const orig =
+            <Group>
+                <TestContext.Provider value={101} >
+                    <Group>
+                        <TestContext.Provider value={201} >
+                            <Consumer>
+                                {(val) => <Empty id={val} />}
+                            </Consumer>
+                        </TestContext.Provider>
+                        <Consumer>
+                            {(val) => <Empty id={val} />}
+                        </Consumer>
+                    </Group>
+                </TestContext.Provider>
+                <Consumer>
+                    {(val) => <Empty id={val} />}
+                </Consumer>
+            </Group>;
+
+        const { contents: dom } = await buildOnce(orig, null);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+
+        const expected = deepFilterElemsToPublic(
+            <Group key="Group">
+                <Group key="Provider-Group">
+                    <Empty key="Provider-Consumer-Empty" id={201} />
+                    <Empty key="Consumer-Empty" id={101} />
+                </Group>
+                <Empty key="Consumer-Empty" id={11} />
+            </Group>);
+        should(deepFilterElemsToPublic(dom)).eql(expected);
+    });
+}

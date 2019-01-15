@@ -67,6 +67,7 @@ export { isDefaultKey } from "./keys";
 export {
     Context,
     createContext,
+    useContext
 } from "./context";
 
 export {
