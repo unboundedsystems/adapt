@@ -10,7 +10,6 @@ import Adapt, {
 import {
     createMockLogger,
     dockerutils,
-    installAnsible,
     mochaTmpdir,
 } from "@usys/testutils";
 import Docker = require("dockerode");
@@ -34,11 +33,6 @@ describe("Container component", () => {
     let name: string;
 
     mochaTmpdir.all("adapt-test-Container");
-
-    before(async function () {
-        this.timeout(3 * 60 * 1000);
-        await installAnsible();
-    });
 
     beforeEach(() => {
         name = randomName("adapt-cloud-test");

@@ -22,6 +22,11 @@ DOCKER_ARGS+=" --dns ${DNS_IP}"
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
 
+DOCKER_CREDS="${HOME}/.docker/config.json"
+if [ -f "${DOCKER_CREDS}" ]; then
+    DOCKER_ARGS+=" -v${DOCKER_CREDS}:/root/.docker/config.json"
+fi
+
 CRED_FILE="${HOME}/.adaptAwsCreds"
 if [ -f "${CRED_FILE}" ]; then
     DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"

@@ -31,13 +31,10 @@ describeLong("tshello system tests", function () {
 
     before(async function () {
         this.timeout(2 * 60 * 1000);
-        // tslint:disable-next-line:no-console
-        console.log(`    Installing Docker`);
         const results = await Promise.all([
             minikube.client,
             minikube.info.container.inspect(),
             fs.outputJson("kubeconfig.json", minikube.kubeconfig),
-            execa("sh", [ "/src/bin/install-docker.sh" ]),
         ]);
 
         kClient = results[0];

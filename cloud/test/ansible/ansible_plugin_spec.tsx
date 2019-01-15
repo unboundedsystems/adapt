@@ -10,7 +10,6 @@ import should from "should";
 import {
     createMockLogger,
     dockerMocha,
-    installAnsible,
     mochaTmpdir,
     MockLogger,
 } from "@usys/testutils";
@@ -110,11 +109,10 @@ describe("Ansible plugin", async function () {
     mochaTmpdir.all("test-cloud-ansible");
     const sshd = dockerMocha.all(sshdContainerSpec);
 
-    before("Ansible bootstrap & dir setup", async function () {
+    before("Ansible dir setup", async function () {
         this.timeout(60 * 1000);
 
         dataDir = path.join(process.cwd(), "pluginData");
-        await installAnsible();
         await setupDir();
         await fs.ensureDir(dataDir);
 

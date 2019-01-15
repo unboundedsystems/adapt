@@ -42,9 +42,6 @@ describe("useTypescriptBuild tests", () => {
 
     before(async function () {
         this.timeout(2 * 60 * 1000);
-        // tslint:disable-next-line:no-console
-        console.log(`    Installing Docker`);
-        await execa("sh", [ "/src/bin/install-docker.sh" ]);
         await createProject();
     });
 

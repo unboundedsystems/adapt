@@ -2,7 +2,6 @@ import {
     awsutils,
     describeLong,
     dockerutils,
-    installAnsible,
     k8sutils,
     minikubeMocha,
     mochaTmpdir,
@@ -60,8 +59,6 @@ describeLong("Nodecellar system tests", function () {
         const results = await Promise.all([
             minikube.client,
             loadAwsCreds(),
-            // Bootstrap our CLI system with ansible
-            installAnsible(),
             deleteContainer(docker, "mongo"),
             deleteContainer(docker, "nodecellar"),
             fs.outputJson("kubeconfig.json", minikube.kubeconfig),
