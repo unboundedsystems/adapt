@@ -8,6 +8,7 @@ export interface ContainerSpec {
     args?: string[];
     command?: string[];
     env?: EnvVar[];
+    imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
     tty?: boolean;
     ports?: ContainerPort[];
     workingDir?: string;

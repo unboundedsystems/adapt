@@ -1,0 +1,16 @@
+{
+  "name": "tshello",
+  "version": "1.0.0",
+  "description": "Adapt project to deploy tshello",
+  "main": "dist/index.js",
+  "scripts": {},
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@types/node": "^8.10.20",
+    "@usys/adapt": "*",
+    "@usys/cloud": "*",
+    "source-map-support": "^0.5.5",
+    "typescript": "^2.9.2"
+  }
+}

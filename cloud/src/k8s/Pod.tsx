@@ -51,6 +51,7 @@ function makePodManifest(props: PodProps) {
             command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
             env: c.props.env,
             image: c.props.image,
+            imagePullPolicy: c.props.imagePullPolicy,
             name: c.props.name,
             ports: c.props.ports,
             tty: c.props.tty,

@@ -7,15 +7,14 @@ import {
     minikubeMocha,
     mochaTmpdir,
 } from "@usys/testutils";
-import { filePathToUrl, sleep } from "@usys/utils";
+import { sleep } from "@usys/utils";
 import Docker = require("dockerode");
 import execa from "execa";
 import * as fs from "fs-extra";
 import * as path from "path";
-import { clitest, expect } from "../common/fancy";
+import { expect } from "../common/fancy";
 import { findDeploymentDir, findHistoryDirs } from "../common/local_server";
-import { pkgRootDir } from "../common/paths";
-import { cliLocalRegistry } from "../common/start-local-registry";
+import { projectsRoot, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 const {
@@ -35,26 +34,6 @@ const { deleteContainer } = dockerutils;
 // tslint:disable-next-line:no-submodule-imports no-var-requires
 const awsCredentials = require("@usys/cloud/dist/src/aws/credentials");
 const { loadAwsCreds } = awsCredentials;
-
-const ncTestChain =
-    clitest
-    .onerror((ctx) => {
-        // tslint:disable-next-line:no-console
-        console.log(`Error encountered. Dumping stdout.`);
-        // tslint:disable-next-line:no-console
-        console.log(ctx.stdout);
-    })
-    .stub(process.stdout, "isTTY", false) // Turn off progress, etc
-    .stdout()
-    .stderr()
-    .delayedenv(() => {
-        return {
-            ADAPT_NPM_REGISTRY: cliLocalRegistry.npmProxyOpts.registry,
-            ADAPT_SERVER_URL: filePathToUrl("local_server"),
-        };
-    });
-
-const projectsRoot = path.join(pkgRootDir, "test_projects");
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
@@ -115,7 +94,7 @@ describeLong("Nodecellar system tests", function () {
         }
     });
 
-    ncTestChain
+    systemTestChain
     .command(["deploy:create", "--init", "dev"])
 
     .it("Should deploy local style", async (ctx) => {
@@ -138,7 +117,7 @@ describeLong("Nodecellar system tests", function () {
         expect(ret.stdout).contains("Though dense and chewy, this wine does not overpower");
     });
 
-    ncTestChain
+    systemTestChain
     .command(["deploy:create", "--init", "k8s"])
 
     .it("Should deploy k8s style", async (ctx) => {
@@ -187,7 +166,7 @@ describeLong("Nodecellar system tests", function () {
         throw new Error(`Unable to find StackName in state store`);
     }
 
-    ncTestChain
+    systemTestChain
     .command(["deploy:create", "--init", "aws"])
 
     .it("Should deploy AWS style", async (ctx) => {

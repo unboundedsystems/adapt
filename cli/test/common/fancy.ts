@@ -6,10 +6,10 @@ import fancyEnv from "fancy-test/lib/env";
 // tslint:disable-next-line:no-submodule-imports
 import { EnvOptions } from "fancy-test/lib/types";
 
-interface Env {
+export interface Env {
     [key: string]: string | null | undefined;
 }
-type DelayedEnvFunc = () => Env;
+export type DelayedEnvFunc = () => Env;
 
 function delayedenv(getEnv?: DelayedEnvFunc, opts?: EnvOptions) {
     let envCtx: any;
