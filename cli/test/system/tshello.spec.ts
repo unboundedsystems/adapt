@@ -37,7 +37,13 @@ describeLong("tshello system tests", function () {
 
         kClient = results[0];
         const ctrInfo = await results[1].container.inspect();
-        dockerHost = ctrInfo.NetworkSettings.IPAddress;
+        dockerHost = ctrInfo.Name;
+        if (dockerHost.startsWith("/")) dockerHost = dockerHost.slice(1);
+        if (!dockerHost) {
+            // tslint:disable-next-line:no-console
+            console.log(`Minikube ctrInfo`, ctrInfo);
+            throw new Error(`Error getting minikube endpoint`);
+        }
     });
 
     afterEach(async function () {
