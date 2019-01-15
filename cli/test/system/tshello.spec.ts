@@ -1,7 +1,6 @@
 import {
     describeLong,
     k8sutils,
-    minikubeMocha,
     mochaTmpdir,
 } from "@usys/testutils";
 import { sleep } from "@usys/utils";
@@ -9,6 +8,7 @@ import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
 import { expect } from "../common/fancy";
+import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
 import { projectsRoot, systemTestChain } from "./common";
 
@@ -24,17 +24,15 @@ describeLong("tshello system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const minikube = minikubeMocha.all();
-
     const copyDir = path.join(projectsRoot, "tshello");
     mochaTmpdir.all("adapt-cli-test-tshello", { copy: copyDir });
 
     before(async function () {
         this.timeout(2 * 60 * 1000);
         const results = await Promise.all([
-            minikube.client,
-            minikube.info.container.inspect(),
-            fs.outputJson("kubeconfig.json", minikube.kubeconfig),
+            mkInstance.client,
+            mkInstance.info.container.inspect(),
+            fs.outputJson("kubeconfig.json", mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];
