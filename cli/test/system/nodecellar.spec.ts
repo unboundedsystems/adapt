@@ -53,13 +53,13 @@ describeLong("Nodecellar system tests", function () {
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
     before(async function () {
-        this.timeout(60 * 1000);
+        this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
         const results = await Promise.all([
             mkInstance.client,
             loadAwsCreds(),
             deleteContainer(docker, "mongo"),
             deleteContainer(docker, "nodecellar"),
-            fs.outputJson("kubeconfig.json", mkInstance.kubeconfig),
+            fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];

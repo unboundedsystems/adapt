@@ -28,15 +28,15 @@ describeLong("tshello system tests", function () {
     mochaTmpdir.all("adapt-cli-test-tshello", { copy: copyDir });
 
     before(async function () {
-        this.timeout(2 * 60 * 1000);
+        this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
         const results = await Promise.all([
             mkInstance.client,
-            mkInstance.info.container.inspect(),
-            fs.outputJson("kubeconfig.json", mkInstance.kubeconfig),
+            mkInstance.info,
+            fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];
-        const ctrInfo = results[1];
+        const ctrInfo = await results[1].container.inspect();
         dockerHost = ctrInfo.NetworkSettings.IPAddress;
     });
 

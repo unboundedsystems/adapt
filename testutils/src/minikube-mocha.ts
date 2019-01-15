@@ -1,3 +1,4 @@
+import pDefer from "p-defer";
 import { getClient, getK8sConfig, KubeClient } from "./k8sutils";
 import {
     MinikubeInfo,
@@ -7,13 +8,7 @@ import {
 
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
-function setup(fixture: MinikubeFixtureImpl, beforeFn: FixtureFunc, afterFn: FixtureFunc) {
-
-    beforeFn(async function startMinikube(this: any) {
-        this.timeout(4 * 60 * 1000);
-
-        fixture.info_ = await startTestMinikube();
-    });
+function setup(fixture: MinikubeFixtureImpl, _beforeFn: FixtureFunc, afterFn: FixtureFunc) {
 
     afterFn(async function stopMinikube(this: any) {
         this.timeout(60 * 1000);
@@ -26,32 +21,65 @@ function setup(fixture: MinikubeFixtureImpl, beforeFn: FixtureFunc, afterFn: Fix
 }
 
 export interface MinikubeFixture {
-    info: MinikubeInfo;
-    kubeconfig: MinikubeInfo["kubeconfig"];
+    setupTimeoutMs: number;
+
     /**
-     * MUST be awaited.
+     * All properties of this interface except those above MUST be awaited.
      */
+    info: Promise<MinikubeInfo>;
+    kubeconfig: Promise<MinikubeInfo["kubeconfig"]>;
     client: Promise<KubeClient>;
 }
 
 class MinikubeFixtureImpl implements MinikubeFixture {
+    setupTimeoutMs = 4 * 60 * 1000;
     info_?: MinikubeInfo;
+    private waiters: pDefer.DeferredPromise<MinikubeInfo>[] = [];
 
-    get info(): MinikubeInfo {
-        if (!this.info_) throw new Error(`Mocha minikube not initialized`);
-        return this.info_;
+    /**
+     * All getters MUST be awaited.
+     */
+    get info(): Promise<MinikubeInfo> {
+        return this.getInfo();
+    }
+    get kubeconfig() {
+        return this.getKubeconfig();
+    }
+    get client(): Promise<KubeClient> {
+        return this.getClient();
     }
 
-    get kubeconfig() {
-        return this.info.kubeconfig;
+    private async getInfo() {
+        if (this.info_) return this.info_;
+
+        const deferred = pDefer<MinikubeInfo>();
+        this.waiters.push(deferred);
+
+        if (this.waiters.length === 1) {
+            return startTestMinikube().then((mkinfo) => {
+                this.info_ = mkinfo;
+                while (true) {
+                    const waiter = this.waiters.pop();
+                    if (!waiter) break;
+                    waiter.resolve(this.info_);
+                }
+                return this.info_;
+            });
+        }
+        return deferred.promise;
+    }
+
+    private async getKubeconfig() {
+        return (await this.info).kubeconfig;
+    }
+
+    private async getClient() {
+        return getClient(getK8sConfig(await this.kubeconfig));
     }
 
     /**
      * MUST be awaited. Returns promise.
      */
-    get client(): Promise<KubeClient> {
-        return getClient(getK8sConfig(this.kubeconfig));
-    }
 }
 
 export function all(): MinikubeFixture {

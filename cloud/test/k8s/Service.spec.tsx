@@ -127,9 +127,9 @@ describe("k8s Service Operation Tests", function () {
     let deployID: string | undefined;
 
     before(async function () {
-        this.timeout(30 * 1000);
+        this.timeout(mkInstance.setupTimeoutMs);
         this.slow(20 * 1000);
-        kubeconfig = mkInstance.kubeconfig;
+        kubeconfig = await mkInstance.kubeconfig;
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
     });
