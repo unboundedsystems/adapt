@@ -7,7 +7,6 @@ import Adapt, {
 import { mkdtmp } from "@usys/utils";
 import execa from "execa";
 import fs from "fs-extra";
-import ld from "lodash";
 import path from "path";
 
 async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
@@ -19,18 +18,34 @@ async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> |
     }
 }
 
-async function dockerBuild(dockerfile: string, contextPath: string): Promise<string> {
-    const { stdout, stderr } = await execa(
-        "docker", ["build", "-f", dockerfile, "--force-rm", contextPath]);
-    const outLines = stdout.split(/\r?\n/);
-    const lastLine = ld.last(outLines);
-    if (!lastLine) throw new Error("No output from docker build!");
-    const match = /^Successfully built ([0-9a-zA-Z]+$)/g.exec(lastLine);
+interface DockerBuildOptions {
+    dockerHost?: string;
+    tag?: string;
+    forceRm?: boolean;
+}
+
+const defaultDockerBuildOptions = {
+    forceRm: true,
+};
+
+async function dockerBuild(dockerfile: string, contextPath: string,
+    options: DockerBuildOptions = {}): Promise<string> {
+
+    const opts = { ...defaultDockerBuildOptions, ...options };
+
+    const args = [ "build", "-f", dockerfile ];
+    if (opts.forceRm) args.push("--force-rm");
+    if (opts.dockerHost) args.push("-H", opts.dockerHost);
+    if (opts.tag) args.push("-t", opts.tag);
+    args.push(contextPath);
+
+    const { stdout, stderr } = await execa("docker", args);
+    const match = /^Successfully built ([0-9a-zA-Z]+)$/mg.exec(stdout);
     if (!match || !match[1]) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
     return match[1];
 }
 
-export async function localTypescriptBuild(srcDir: string) {
+export async function localTypescriptBuild(srcDir: string, options: TypescriptBuildOptions = {}) {
     srcDir = path.resolve(srcDir);
     if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
     const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
@@ -46,18 +61,19 @@ RUN npm install
 RUN npm run build
 CMD ["node", "${main}"]
 `);
-        return dockerBuild(dockerfile, srcDir);
+        return dockerBuild(dockerfile, srcDir, options);
     });
 }
 
 export interface TypescriptBuildProps extends Partial<BuiltinProps> {
     srcDir: string;
+    options?: TypescriptBuildOptions;
 }
 
 export function LocalTypescriptBuild(props: TypescriptBuildProps) {
     const imgSha = useAsync(async () => {
         //FIXME(manishv) Don't rebuild every time, use some kind of uptoda
-        return localTypescriptBuild(props.srcDir);
+        return localTypescriptBuild(props.srcDir, props.options);
     }, undefined);
 
     useImperativeMethods(() => ({
@@ -66,10 +82,11 @@ export function LocalTypescriptBuild(props: TypescriptBuildProps) {
     }));
     return null;
 }
-export default LocalTypescriptBuild;
+
+interface TypescriptBuildOptions extends DockerBuildOptions { }
 
 //Note(manishv) Break this out into a separate file?
-export function useTypescriptBuild(srcDir: string) {
+export function useTypescriptBuild(srcDir: string, options: TypescriptBuildOptions = {}) {
     const [buildState, setBuildState] = useState("build");
 
     if (buildState === "build") {
@@ -81,7 +98,9 @@ export function useTypescriptBuild(srcDir: string) {
             }
             return "build";
         });
-        return { buildObj: <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} /> };
+        return { buildObj:
+            <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} options={options} />
+        };
     }
 
     return { imgSha: buildState, buildObj: null };
