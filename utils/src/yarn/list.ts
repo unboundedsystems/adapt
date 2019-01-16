@@ -1,4 +1,4 @@
-import { CommonOptions, run } from "./common";
+import { CommonOptions, parseJsonMessages, run } from "./common";
 
 export interface ListCommonOptions extends CommonOptions {
     depth?: number;
@@ -48,10 +48,12 @@ export async function listParsed(options?: ListParsedOptions): Promise<ListTreeM
     const finalOpts = { ...defaultJsonOptions, ...options, json: true };
 
     const out = await list(finalOpts);
-    const val = JSON.parse(out.stdout);
-    if (val.type !== "tree") {
-        throw new Error(`Unrecognized data type '${val.type} returned from yarn list`);
-    }
+
+    const objs = parseJsonMessages(out.stdout, "tree");
+    if (objs.length === 0) throw new Error(`No tree list returned from yarn list`);
+    if (objs.length !== 1) throw new Error(`Too many tree lists returned from yarn list`);
+
+    const val = objs[0];
     if (typeof val.data !== "object") {
         throw new Error(`No data object returned from yarn list`);
     }

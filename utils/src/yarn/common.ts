@@ -64,7 +64,7 @@ export async function run(action: string, options: InternalOptions & AnyOptions,
             prom.stdout.pipe(process.stdout);
             prom.stderr.pipe(process.stdout);
         }
-        return prom;
+        return await prom;
 
     } catch (err) {
         err.message = `yarn ${action} failed: ${err.message}`;
@@ -83,4 +83,22 @@ function optionsBoolToUndef(options: AnyOptions, keys: string[]): AnyOptions {
 
 function getMutex(): string {
     return process.env.YARN_MUTEX || "file";
+}
+
+export interface JsonMessage {
+    type: string;
+    data: any;
+}
+
+export function parseJsonMessages(output: string, typeFilter?: string): JsonMessage[] {
+    const lines = output.split(/\r?\n/g);
+    let objs: JsonMessage[] = lines.map((l) => {
+        try {
+            return JSON.parse(l);
+        } catch (e) {
+            return { type: "MessageError", data: e.message };
+        }
+    });
+    if (typeFilter) objs = objs.filter((o) => o != null && o.type === typeFilter);
+    return objs;
 }
