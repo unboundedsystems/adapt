@@ -1,1 +1,1 @@
-IMAGE="unboundedsystems/node-testimg:v1.0.0"
+IMAGE="unboundedsystems/node-testimg:v1.0.1"
