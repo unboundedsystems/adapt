@@ -1,5 +1,4 @@
 import { waitFor } from "@usys/utils";
-import execa from "execa";
 import * as fs from "fs-extra";
 import path from "path";
 
@@ -33,16 +32,4 @@ export async function installOnce(
     } catch (err) {
         await fs.writeFile(statusFile, String(err));
     }
-}
-
-export async function installAnsible(verbose = false) {
-    await installOnce("ansible", 2 * 60, async () => {
-        const opts: execa.Options = verbose ? { stdio: "inherit" } : {};
-        await fs.writeFile("/etc/apt/sources.list.d/ansible.list",
-            "deb http://ppa.launchpad.net/ansible/ansible/ubuntu trusty main\n");
-        await execa("apt-key", ["adv", "--keyserver", "keyserver.ubuntu.com",
-            "--recv-keys", "93C4A3FD7BB9C367"], opts);
-        await execa("apt-get", ["update"], opts);
-        await execa("apt-get", ["install", "-y", "--no-install-recommends", "ansible"], opts);
-    });
 }

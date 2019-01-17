@@ -1,7 +1,6 @@
 import {
     describeLong,
     k8sutils,
-    minikubeMocha,
     mochaTmpdir,
 } from "@usys/testutils";
 import { sleep } from "@usys/utils";
@@ -9,6 +8,7 @@ import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
 import { expect } from "../common/fancy";
+import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
 import { projectsRoot, systemTestChain } from "./common";
 
@@ -24,25 +24,26 @@ describeLong("tshello system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const minikube = minikubeMocha.all();
-
     const copyDir = path.join(projectsRoot, "tshello");
     mochaTmpdir.all("adapt-cli-test-tshello", { copy: copyDir });
 
     before(async function () {
-        this.timeout(2 * 60 * 1000);
-        // tslint:disable-next-line:no-console
-        console.log(`    Installing Docker`);
+        this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
         const results = await Promise.all([
-            minikube.client,
-            minikube.info.container.inspect(),
-            fs.outputJson("kubeconfig.json", minikube.kubeconfig),
-            execa("sh", [ "/src/bin/install-docker.sh" ]),
+            mkInstance.client,
+            mkInstance.info,
+            fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];
-        const ctrInfo = results[1];
-        dockerHost = ctrInfo.NetworkSettings.IPAddress;
+        const ctrInfo = await results[1].container.inspect();
+        dockerHost = ctrInfo.Name;
+        if (dockerHost.startsWith("/")) dockerHost = dockerHost.slice(1);
+        if (!dockerHost) {
+            // tslint:disable-next-line:no-console
+            console.log(`Minikube ctrInfo`, ctrInfo);
+            throw new Error(`Error getting minikube endpoint`);
+        }
     });
 
     afterEach(async function () {

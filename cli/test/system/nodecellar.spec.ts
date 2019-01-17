@@ -2,9 +2,7 @@ import {
     awsutils,
     describeLong,
     dockerutils,
-    installAnsible,
     k8sutils,
-    minikubeMocha,
     mochaTmpdir,
 } from "@usys/testutils";
 import { sleep } from "@usys/utils";
@@ -14,6 +12,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import { expect } from "../common/fancy";
 import { findDeploymentDir, findHistoryDirs } from "../common/local_server";
+import { mkInstance } from "../common/start-minikube";
 import { projectsRoot, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
@@ -50,21 +49,17 @@ describeLong("Nodecellar system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const minikube = minikubeMocha.all();
-
     const copyDir = path.join(projectsRoot, "nodecellar");
     mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
 
     before(async function () {
-        this.timeout(60 * 1000);
+        this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
         const results = await Promise.all([
-            minikube.client,
+            mkInstance.client,
             loadAwsCreds(),
-            // Bootstrap our CLI system with ansible
-            installAnsible(),
             deleteContainer(docker, "mongo"),
             deleteContainer(docker, "nodecellar"),
-            fs.outputJson("kubeconfig.json", minikube.kubeconfig),
+            fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];

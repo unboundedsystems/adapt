@@ -13,6 +13,12 @@ services:
 before_script:
   - apk update && apk add bash
   - ./bin/dnsmasq
+  - |
+    if [ "${DOCKER_AUTH_CONFIG}" = "" ]; then
+      echo No DOCKER_AUTH_CONFIG CI variable set in Gitlab web UI
+      exit 1
+    fi
+  - . ./bin/setup-docker-auth.sh
 
 test:
   stage: test

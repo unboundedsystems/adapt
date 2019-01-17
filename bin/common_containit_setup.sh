@@ -19,8 +19,21 @@ if [ $? -ne 0 ]; then
 fi
 DOCKER_ARGS+=" --dns ${DNS_IP}"
 
-DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=/root/.cache/yarn -v${HOME}/.cache/yarn:/root/.cache/yarn"
+CTR_CACHE_DIR="/root/.cache/yarn"
+DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=${CTR_CACHE_DIR} -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}"
+DOCKER_ARGS+=" -eYARN_MUTEX=file:${CTR_CACHE_DIR}/.yarn-mutex"
+
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
+
+# Export Docker auth into child containers, either via env or file
+if [ -n "${DOCKER_AUTH_CONFIG}" ]; then
+    DOCKER_ARGS+=" -eDOCKER_AUTH_CONFIG"
+else
+    DOCKER_CREDS_DIR="${HOME}/.docker"
+    if [ -f "${DOCKER_CREDS_DIR}/config.json" ]; then
+        DOCKER_ARGS+=" -v${DOCKER_CREDS_DIR}:/root/.docker"
+    fi
+fi
 
 CRED_FILE="${HOME}/.adaptAwsCreds"
 if [ -f "${CRED_FILE}" ]; then

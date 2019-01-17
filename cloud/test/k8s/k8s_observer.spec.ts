@@ -45,12 +45,14 @@ function checkObservations(observations: ObserverResponse) {
 describe("k8s observer tests", () => {
     let observer: K8sObserver;
     let queries: ExecutedQuery[];
+    let kubeconfig: object;
 
-    before("Construct schema", function () {
-        this.timeout(40 * 1000);
+    before("Construct schema", async function () {
+        this.timeout(mkInstance.setupTimeoutMs);
         this.slow(17 * 1000);
         observer = new K8sObserver();
         observer.schema; //Force slow construction of schema once for whole suite
+        kubeconfig = await mkInstance.kubeconfig;
     });
 
     before(() => {
@@ -64,7 +66,7 @@ describe("k8s observer tests", () => {
                         }
                     }
                 }`,
-                variables: { kubeconfig: mkInstance.kubeconfig }
+                variables: { kubeconfig }
             },
             {
                 query: gql`query ($kubeconfig: JSON!) {
@@ -76,7 +78,7 @@ describe("k8s observer tests", () => {
                         }
                     }
                 }`,
-                variables: { kubeconfig: mkInstance.kubeconfig }
+                variables: { kubeconfig }
             }
         ];
     });

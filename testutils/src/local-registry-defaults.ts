@@ -1,4 +1,4 @@
-import { npm, repoDirs, repoRootDir } from "@usys/utils";
+import { npm, repoDirs, repoRootDir, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -9,6 +9,10 @@ export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;
 export interface NpmProxyOpts {
     registry?: string;
     userconfig?: string;
+}
+export interface YarnProxyOpts {
+    registry?: string;
+    // Yarn equivalent of userconfig not yet supported
 }
 
 export const npmLocalProxyOpts = {
@@ -39,6 +43,14 @@ export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOp
         for (const modDir of publishList) {
             const out = await npm.publish(modDir, opts);
             output += out.stderr + out.stdout;
+            const match = out.stdout.match(/\+ (@?[^@]+)@.*\n/);
+            if (!match || match.length !== 2) {
+                throw new Error(`Output from npm publish not understood`);
+            }
+            const modName = match[1];
+            // Always clean yarn's cache when publishing a package which
+            // might be the same name/version, but with different bits.
+            await yarn.cacheClean(modName, opts);
         }
     } catch (err) {
         output = `Local registry setup failed: ${err.message}`;

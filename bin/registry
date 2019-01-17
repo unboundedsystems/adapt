@@ -8,9 +8,10 @@
 # We can't use containit as-is without finding a way to run a background
 # command before exec-ing the final interactive bash process.
 
-IMAGE="node:10.11"
-
 TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+# Use the common testimg
+. "${TOP_DIR}/bin/testimg-base.sh"
+
 . "${TOP_DIR}/bin/common_containit_setup.sh"
 
 # Returns the absolute path to a file, without any sym links.

@@ -23,6 +23,7 @@ const defaultOpts: Required<MochaLocalRegOptions> = {
 
 export interface RegistryFixture {
     npmProxyOpts: localRegistryDefaults.NpmProxyOpts;
+    yarnProxyOpts: localRegistryDefaults.YarnProxyOpts;
 }
 
 class RegistryFixtureImpl implements RegistryFixture {
@@ -106,6 +107,12 @@ ${svr}:always-auth=false
             userconfig: this.npmrc,
         };
     }
+    get yarnProxyOpts() {
+        return {
+            registry: `http://127.0.0.1:${this.port}`,
+            // NOTE(mark): Equivalent of userconfig not yet supported with yarn
+        };
+    }
 
     async start() {
         this.tmpDir_ = await fs.mkdtemp(path.join(os.tmpdir(), "local_registry-"));
@@ -142,12 +149,12 @@ function setup(beforeFn: FixtureFunc, afterFn: FixtureFunc,
                fixture: RegistryFixtureImpl) {
 
     beforeFn(async function startLocalRegistry(this: any) {
-        this.timeout(20 * 1000);
+        this.timeout(2 * 60 * 1000);
         await fixture.start();
     });
 
     afterFn(async function stopLocalRegistry(this: any) {
-        this.timeout(5 * 1000);
+        this.timeout(60 * 1000);
         await fixture.stop();
     });
 }

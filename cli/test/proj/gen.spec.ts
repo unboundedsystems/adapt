@@ -46,7 +46,7 @@ const genEmpty: Gen = {
 
 const projOpts: ProjectOptions = {
     progress: false,
-    loglevel: "error",
+    loglevel: "normal",
 };
 
 // NOTE: Assumes use with mocha-tmpdir, which changes cwd to a new, empty

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-IMAGE="node:10.11"
 
 TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
-. "${TOP_DIR}/bin/common_containit_setup.sh"
 
+# Use the common testimg
+. "${TOP_DIR}/bin/testimg-base.sh"
+
+. "${TOP_DIR}/bin/common_containit_setup.sh"
 
 . "${TOP_DIR}/containit/containit.sh"

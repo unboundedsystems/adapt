@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import { mkdtmp, npm, ValidationError } from "@usys/utils";
+import { mkdtmp, ValidationError, withTmpDir, yarn } from "@usys/utils";
 import { UserError } from "../error";
 import {
     AdaptModule,
@@ -22,7 +22,7 @@ export interface Session {
 }
 
 export interface ProjectOptionsComplete {
-    loglevel: npm.LogLevel;
+    loglevel: yarn.LogLevel;
     progress: boolean;
     registry?: string;
     session: Session;
@@ -31,7 +31,7 @@ export interface ProjectOptionsComplete {
 export type ProjectOptions = Partial<ProjectOptionsComplete>;
 
 const defaultOptions = {
-    loglevel: "warn" as npm.LogLevel,
+    loglevel: "normal" as yarn.LogLevel,
     progress: true,
 };
 
@@ -42,16 +42,34 @@ async function finalProjectOptions(userOpts?: ProjectOptions): Promise<ProjectOp
     return { ...defaultOptions, ...userOpts, session };
 }
 
-function npmInstallOptions(projOpts: ProjectOptionsComplete): npm.InstallOptions {
-    const npmOpts: npm.InstallOptions = {
+function yarnCommonOptions(
+    projOpts: ProjectOptionsComplete, tmpModules?: string): yarn.CommonOptions {
+    const yOpts: yarn.CommonOptions = {
         cwd: projOpts.session.projectDir,
         loglevel: projOpts.loglevel,
-        progress: projOpts.progress,
+        noProgress: !projOpts.progress,
+    };
+    if (projOpts.registry) yOpts.registry = projOpts.registry;
+    if (tmpModules) yOpts.modulesFolder = tmpModules;
+
+    return yOpts;
+}
+
+function yarnInstallOptions(projOpts: ProjectOptionsComplete, tmpModules?: string): yarn.InstallOptions {
+    const yOpts: yarn.InstallOptions = yarnCommonOptions(projOpts, tmpModules);
+    return {
+        ...yOpts,
+        production: true,
+        preferOffline: true,
+    };
+}
+
+function yarnListOptions(projOpts: ProjectOptionsComplete, tmpModules?: string): yarn.ListParsedOptions {
+    const yOpts: yarn.ListParsedOptions = yarnCommonOptions(projOpts, tmpModules);
+    return {
+        ...yOpts,
         production: true,
     };
-    if (projOpts.registry) npmOpts.registry = projOpts.registry;
-
-    return npmOpts;
 }
 
 export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
@@ -73,24 +91,14 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
 
     if (!inPlace) await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
 
-    let pkgLock: npm.PackageLock | undefined;
-    try {
-        pkgLock = await npm.packageLock(session.projectDir);
-    } catch (err) {
-        if (err.code !== "ENOENT") throw err;
-        // Fall through
-    }
+    const tree = await withTmpDir(async (tmpModules) => {
 
-    if (!pkgLock) {
-        const npmOpts = npmInstallOptions(finalOpts);
-        npmOpts.packageLockOnly = true; // Don't actually install
+        await yarn.install(yarnInstallOptions(finalOpts, tmpModules));
+        return yarn.listParsed(yarnListOptions(finalOpts, tmpModules));
 
-        await npm.install(npmOpts);
+    }, { prefix: ".adapt-tmp-modules", basedir: session.projectDir });
 
-        pkgLock = await npm.packageLock(session.projectDir);
-    }
-
-    return new Project(manifest, pkgLock, finalOpts);
+    return new Project(manifest, tree, finalOpts);
 }
 
 export async function projectAdaptModule(projectRoot: string): Promise<AdaptModule> {
@@ -111,14 +119,22 @@ type AdaptAction = (adapt: AdaptModule) => Promise<any>;
 export class Project {
     readonly name: string;
     constructor(readonly manifest: pacote.Manifest,
-                readonly packageLock: npm.PackageLock,
+                readonly packageTree: yarn.ListTreeMods,
                 readonly options: ProjectOptionsComplete) {
         this.name = manifest.name;
     }
 
     getLockedVersion(pkgName: string): VersionString | null {
-        const dep = this.packageLock.dependencies[pkgName];
-        return dep ? dep.version : null;
+        const mods = this.packageTree.get(pkgName);
+        if (!mods) return null;
+        const vList = Object.keys(mods.versions);
+        if (vList.length > 1) {
+            throw new Error(`More than one version of ${pkgName} installed`);
+        }
+        if (vList.length === 0) {
+            throw new Error(`Data error - no version of ${pkgName} installed`);
+        }
+        return mods.versions[vList[0]].version;
     }
 
     async create(options: CreateOptions): Promise<DeployState> {
@@ -136,14 +152,8 @@ export class Project {
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
         Promise<DeployState> {
         const projectRoot = this.options.session.projectDir;
-        const lockfile = path.resolve(projectRoot, "package-lock.json");
-        const installOpts = npmInstallOptions(this.options);
 
-        if (await fs.pathExists(lockfile)) {
-            await npm.ci(installOpts);
-        } else {
-            await npm.install(installOpts);
-        }
+        await yarn.install(yarnInstallOptions(this.options));
 
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;

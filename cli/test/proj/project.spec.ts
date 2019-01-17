@@ -24,7 +24,7 @@ const basicPackageJson = {
 
 const projOpts: proj.ProjectOptions = {
     progress: false,
-    loglevel: "error",
+    loglevel: "normal",
 };
 
 describe("Project basic tests", function () {
@@ -69,10 +69,6 @@ describe("Project basic tests", function () {
         expect(p.manifest._resolved).equal("https://registry.npmjs.org/decamelize/-/decamelize-2.0.0.tgz");
         expect(p.manifest.dependencies.xregexp).equal("4.0.0");
 
-        const lock = p.packageLock;
-        expect(lock.name).equal("decamelize");
-        expect(lock.version).equal("2.0.0");
-
         expect(p.getLockedVersion("xregexp")).equal("4.0.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
@@ -99,10 +95,6 @@ describe("Project basic tests", function () {
         expect(p.manifest.dependencies.jsonify).equal("~0.0.0");
         expect(p.manifest.devDependencies.tape).equal("~1.0.4");
 
-        const lock = p.packageLock;
-        expect(lock.name).equal("json-stable-stringify");
-        expect(lock.version).equal("1.0.1");
-
         expect(p.getLockedVersion("jsonify")).equal("0.0.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
@@ -120,17 +112,14 @@ describe("Project basic tests", function () {
         this.slow(20 * 1000);
         this.timeout(50 * 1000);
         const opts = { ...cliLocalRegistry.npmProxyOpts, ...projOpts };
-        // FIXME(mark): Once we actually publish @usys/cloud publicly, this
+        // FIXME(mark): Once we actually publish @usys/dom-parser publicly, this
         // test is no longer a great test. Change the package to something
         // that we know is definitely only present in the local registry.
-        const p = await proj.load("@usys/cloud@0.0.1", opts);
+        const p = await proj.load("@usys/dom-parser@0.0.1", opts);
         expect(p).to.be.an("object");
-        expect(p.manifest.name).equal("@usys/cloud");
+        expect(p.manifest.name).equal("@usys/dom-parser");
         expect(p.manifest.version).equal("0.0.1");
-        expect(p.manifest.dependencies["@usys/adapt"]).equal("0.0.1");
-
-        const lock = p.packageLock;
-        expect(lock.name).equal("@usys/cloud");
-        expect(lock.version).equal("0.0.1");
+        expect(p.manifest.dependencies.tslib).equal("^1.9.3");
+        expect(p.getLockedVersion("1.9.3"));
     });
 });

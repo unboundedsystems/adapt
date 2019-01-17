@@ -4,6 +4,26 @@ system.
 
 # Building and Testing
 [![pipeline status](https://gitlab.com/unboundedsystems/adapt/badges/master/pipeline.svg)](https://gitlab.com/unboundedsystems/adapt/commits/master)
+
+## First: Credentials setup
+### Docker Hub Credentials
+
+**You'll need to sign up to have your own login on
+[Docker Hub](hub.docker.com) for this step.**
+
+Once you have your Docker Hub login set up, from a Linux shell, type:
+```
+docker login
+```
+It will prompt you for your Docker Hub username (NOT your email) and password.
+
+If you got logged in successfully, there should now be a file
+`${HOME}/.docker/config.json` that contains an *unencrypted* version
+of your password. Treat it like you would your private SSH keys.
+
+This will be used to pull private images from the
+unboundedsystems Docker Hub repos.
+
 ## Quick Start
 Simply running `make` from the project root directory will build all sub-projects
 and run the majority of the tests.
@@ -86,20 +106,51 @@ ADAPT_NO_FORK=1
 
 1. Supply deployment keys to CI/CD
 
-    **You'll need to have AWS credentials handy for this step.**
-    For Unbounded employees, get the shared CI AWS credentials from Mark.
+    1. AWS Credentials
 
-    Once you have AWS credentials, go to your fork's web UI:
-    `Settings > CI/CD > Variables`.
-    You'll need to add the following three variables on this screen:
-    * `AWS_ACCESS_KEY_ID`
-    * `AWS_SECRET_ACCESS_KEY`
-    * `AWS_DEFAULT_REGION`
-    
-    **NOTE:**
-    If you're using the shared Unbounded CI credentials, `AWS_DEFAULT_REGION`
-    **must** be set to `us-west-2` because the credentials only have
-    permissions for that region.
+        **You'll need to have AWS credentials handy for this step.**
+        For Unbounded employees, get the shared CI AWS credentials from Mark.
+
+        Once you have AWS credentials, go to your fork's web UI:
+        `Settings > CI/CD > Variables`.
+        You'll need to add the following three variables on this screen:
+        * `AWS_ACCESS_KEY_ID`
+        * `AWS_SECRET_ACCESS_KEY`
+        * `AWS_DEFAULT_REGION`
+
+        Don't forget to save.
+        
+        **NOTE:**
+        If you're using the shared Unbounded CI credentials, `AWS_DEFAULT_REGION`
+        **must** be set to `us-west-2` because the credentials only have
+        permissions for that region.
+
+
+    1. Docker Hub Credentials
+
+        **Make sure you completed the Docker Hub Credentials Setup step
+        near the top of this doc first.**
+
+        From a Linux shell, run:
+        ```
+        cat ~/.docker/config.json | tr -d '\n\t'
+        ```
+        You should get something that looks like this:
+        ```
+        {"auths": {"https://index.docker.io/v1/": {"auth": "LONGSECRETKEYSTRING="}},"HttpHeaders": {"User-Agent": "Docker-Client/18.06.1-ce (linux)"}}
+        ```
+        Once you have that, go to your fork's web UI page and navigate to:
+
+        `Settings > CI/CD > Variables`
+
+        Create a new variable:
+        * `DOCKER_AUTH_CONFIG`
+
+        Cut and paste the output of the shell command above into the value for
+        this new variable and click save.
+
+
+
 
 1. Register the runner to your fork
 

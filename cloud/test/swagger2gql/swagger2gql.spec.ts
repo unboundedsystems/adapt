@@ -235,9 +235,9 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
 
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
     let schema: GraphQLSchema;
-    before(function () {
-        this.timeout(30000);
-        const kubeconfig = mkInstance.kubeconfig;
+    before(async function () {
+        this.timeout(30 * 1000 + mkInstance.setupTimeoutMs);
+        const kubeconfig = await mkInstance.kubeconfig;
         const info = getK8sConnectInfo(kubeconfig as Kubeconfig);
         const agent = new https.Agent({
             key: info.key,
