@@ -7,7 +7,7 @@ import {
 } from "@usys/testutils";
 import {
     messagesToString,
-    npm
+    yarn,
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -274,7 +274,7 @@ describe("createDeployment Tests", async function () {
         await fs.outputFile(path.join("simple_plugin", "index.ts"), simplePluginTs);
         await fs.outputFile(path.join("simple_plugin", "package.json"), simplePluginPackageJson);
 
-        await npm.install(localRegistry.npmProxyOpts);
+        await yarn.install(localRegistry.yarnProxyOpts);
     }
 
     it("Should build a single file", async () => {

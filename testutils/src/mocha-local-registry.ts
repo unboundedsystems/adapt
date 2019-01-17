@@ -23,6 +23,7 @@ const defaultOpts: Required<MochaLocalRegOptions> = {
 
 export interface RegistryFixture {
     npmProxyOpts: localRegistryDefaults.NpmProxyOpts;
+    yarnProxyOpts: localRegistryDefaults.YarnProxyOpts;
 }
 
 class RegistryFixtureImpl implements RegistryFixture {
@@ -104,6 +105,12 @@ ${svr}:always-auth=false
         return {
             registry: `http://127.0.0.1:${this.port}`,
             userconfig: this.npmrc,
+        };
+    }
+    get yarnProxyOpts() {
+        return {
+            registry: `http://127.0.0.1:${this.port}`,
+            // NOTE(mark): Equivalent of userconfig not yet supported with yarn
         };
     }
 

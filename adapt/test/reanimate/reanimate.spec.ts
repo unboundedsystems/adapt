@@ -1,8 +1,8 @@
 import { mochaLocalRegistry, mochaTmpdir, Package, writePackage } from "@usys/testutils";
 import {
     Constructor,
-    npm,
     repoDirs,
+    yarn,
 } from "@usys/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
@@ -511,7 +511,7 @@ describe("Reanimate in package tests", function () {
 
     before(async function () {
         this.timeout(20 * 1000);
-        await npm.install(localRegistry.npmProxyOpts);
+        await yarn.install(localRegistry.yarnProxyOpts);
     });
 
     it("Should reanimate top level dependency from mummy", async () => {
@@ -561,7 +561,7 @@ describe("Reanimate in package tests", function () {
         try {
             process.chdir(newTmp);
             await createProject();
-            await npm.install(localRegistry.npmProxyOpts);
+            await yarn.install(localRegistry.yarnProxyOpts);
 
             let res = await execa("node", ["index.js", mummy1]);
             should(res.stdout).match(/SUCCESS/);

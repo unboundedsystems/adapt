@@ -1,5 +1,5 @@
 import { mochaTmpdir as tmpdir } from "@usys/testutils";
-import { npm } from "@usys/utils";
+import { yarn } from "@usys/utils";
 import should from "should";
 
 import * as path from "path";
@@ -137,7 +137,7 @@ describe("Exec module tests", function () {
 
     it("Should import a node module", async () => {
         const projDir = process.cwd();
-        await npm.install();
+        await yarn.install();
         const index = path.resolve(projDir, "index.ts");
         const host = MemFileHost("/", projDir);
         const ret = exec(index, {host});

@@ -10,6 +10,10 @@ export interface NpmProxyOpts {
     registry?: string;
     userconfig?: string;
 }
+export interface YarnProxyOpts {
+    registry?: string;
+    // Yarn equivalent of userconfig not yet supported
+}
 
 export const npmLocalProxyOpts = {
     registry: localRegistryUrl,
