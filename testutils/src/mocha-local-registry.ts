@@ -149,12 +149,12 @@ function setup(beforeFn: FixtureFunc, afterFn: FixtureFunc,
                fixture: RegistryFixtureImpl) {
 
     beforeFn(async function startLocalRegistry(this: any) {
-        this.timeout(20 * 1000);
+        this.timeout(2 * 60 * 1000);
         await fixture.start();
     });
 
     afterFn(async function stopLocalRegistry(this: any) {
-        this.timeout(5 * 1000);
+        this.timeout(60 * 1000);
         await fixture.stop();
     });
 }
