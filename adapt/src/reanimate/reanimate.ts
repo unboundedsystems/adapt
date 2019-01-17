@@ -1,4 +1,4 @@
-import { npm } from "@usys/utils";
+import { createPackageRegistry } from "@usys/utils";
 import callsites = require("callsites");
 import stringify from "json-stable-stringify";
 import * as path from "path";
@@ -23,20 +23,17 @@ try {
 }
 
 const debugReanimate = false;
-const debugPackageRegistry = false;
 
 export type MummyJson = string;
 export type MummyUrn = string;
 
 type PackageId = string;
-type PackagePath = string;
-type PackageRegistry = Map<PackageId, PackagePath>;
 
 // Exported for testing only
 export class MummyRegistry {
     jsonToObj = new Map<MummyJson, any>();
     objToJson = new Map<any, MummyJson>();
-    packageRegistry_: PackageRegistry | null = null;
+    packageRegistry = createPackageRegistry(".");
 
     async awaken(mummyJson: MummyJson): Promise<any> {
         let obj = this.jsonToObj.get(mummyJson);
@@ -45,7 +42,7 @@ export class MummyRegistry {
         const mummy = JSON.parse(mummyJson);
         if (!isMummy(mummy)) throw new Error(`Invalid mummy JSON`);
 
-        let pkgPath = packagePath(await this.packageRegistry(), mummy);
+        let pkgPath = await this.packageRegistry.findPath(mummy.pkgName, mummy.pkgVersion);
         if (pkgPath == null) {
             // We can't find an EXACT match for the package ID from mummy
             // (package name and exact version). This typically happens for
@@ -127,24 +124,6 @@ export class MummyRegistry {
         this.objToJson.forEach((key, val) => {
             trace(debugReanimate, `  ${key} -> ${val}`);
         });
-    }
-
-    async packageRegistry(): Promise<PackageRegistry> {
-        if (this.packageRegistry_ == null) {
-            const moduleTree = await npm.lsParsed({ long: true });
-            const newReg = new Map<PackageId, PackagePath>();
-            if (moduleTree.path == null) {
-                throw new Error(`Cannot create package registry: root path is null`);
-            }
-            findPaths(newReg, moduleTree.path, moduleTree.name || "unknown", moduleTree);
-            if (debugPackageRegistry) {
-                newReg.forEach((modPath, id) => {
-                    trace(debugPackageRegistry, `${id} -> ${modPath}`);
-                });
-            }
-            this.packageRegistry_ = newReg;
-        }
-        return this.packageRegistry_;
     }
 }
 
@@ -381,44 +360,6 @@ export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
 
     if (!isMummy(mummy)) throw new InternalError(`isMummy returned false`);
     return registry.awaken(stringify(mummy));
-}
-
-/**
- * Walk the output of npm ls --json and for each package, extract it's _id
- * and package root directory, then store in the PackageRegistry.
- * @param reg PackageRegistry to store in
- * @param root Root directory of the topmost NPM module
- * @param name Name of the current package for where we are in the LsTree
- * @param tree The LsTree object for the current package (corresponding to name)
- */
-function findPaths(reg: PackageRegistry, root: string, name: string, tree: npm.LsTree) {
-    const { _id, _location, path: ppath } = tree;
-    let loc: string | null = null;
-    if (ppath != null) {
-        loc = ppath; // ppath is absolute path
-    } else if (_location) {
-        loc = path.join(root,
-            _location.startsWith("/") ? _location.substring(1) : _location);
-    }
-
-    if (_id != null && loc != null) {
-        if (!reg.has(_id)) reg.set(_id, loc);
-    } else {
-        trace(debugReanimate, `WARN: cannot insert module '${name}' [_id: ${_id}, loc: ${loc}`);
-    }
-    processDeps(tree.dependencies);
-    return;
-
-    function processDeps(deps: npm.LsTrees | undefined) {
-        if (deps == null) return;
-        for (const mName of Object.keys(deps)) {
-            findPaths(reg, root, mName, deps[mName]);
-        }
-    }
-}
-
-function packagePath(pkgReg: PackageRegistry, pkg: Mummy): PackagePath | undefined {
-    return pkgReg.get(packageId(pkg));
 }
 
 function packageId(pkg: Mummy): PackageId {
