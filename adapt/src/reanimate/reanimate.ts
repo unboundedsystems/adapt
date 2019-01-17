@@ -57,7 +57,14 @@ export class MummyRegistry {
             pkgPath = mummy.pkgName;
         }
 
-        const mainFile = require.resolve(pkgPath);
+        let mainFile;
+        try {
+            mainFile = require.resolve(pkgPath);
+        } catch (err) {
+            throw new Error(
+                `Unable to locate installed package ${mummy.pkgName} version ` +
+                `${mummy.pkgVersion})}`);
+        }
         const modPath = path.join(path.dirname(mainFile), mummy.relFilePath);
 
         // This should cause the module to initialize and call registerObject.
