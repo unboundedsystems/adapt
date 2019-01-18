@@ -126,22 +126,24 @@ describeLong("Nodecellar system tests", function () {
         expect(kDeployID).to.be.a("string").with.length.greaterThan(0);
 
         let pods: any;
-        for (let i = 0; i < 120; i++) {
+        let i: number;
+        for (i = 120; i > 0; i--) {
             pods = await getAll("pods", { client: kClient, deployID: kDeployID });
             expect(pods).to.have.length(1);
             expect(pods[0] && pods[0].status).to.be.an("object").and.not.null;
 
             // containerStatuses can take a moment to populate
-            if (pods[0].status.containerStatuses == null) continue;
-
-            expect(pods[0].status.containerStatuses).to.be.an("array").with.length(2);
-            if ((pods[0].status.phase === "Running") &&
-                (pods[0].status.containerStatuses[0].ready) &&
-                (pods[0].status.containerStatuses[1].ready)) {
-                break;
+            if (pods[0].status.containerStatuses) {
+                expect(pods[0].status.containerStatuses).to.be.an("array").with.length(2);
+                if ((pods[0].status.phase === "Running") &&
+                    (pods[0].status.containerStatuses[0].ready) &&
+                    (pods[0].status.containerStatuses[1].ready)) {
+                    break;
+                }
             }
             await sleep(1000);
         }
+        if (i <= 0) throw new Error(`Pods did not become ready`);
         expect(pods[0].spec.containers).to.have.length(2);
 
         // TODO: Should be able to curl the web interface and get HTML

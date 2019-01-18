@@ -69,22 +69,23 @@ describeLong("tshello system tests", function () {
         kDeployID = getNewDeployID(stdout);
 
         let pods: any;
-        for (let i = 0; i < 120; i++) {
+        let i: number;
+        for (i = 120; i > 0; i--) {
             pods = await getAll("pods", { client: kClient, deployID: kDeployID });
             expect(pods).to.have.length(1);
             expect(pods[0] && pods[0].status).to.be.an("object").and.not.null;
 
             // containerStatuses can take a moment to populate
-            if (pods[0].status.containerStatuses == null) continue;
-
-            expect(pods[0].status.containerStatuses).to.be.an("array").with.length(1);
-            if ((pods[0].status.phase === "Running") &&
-                (pods[0].status.containerStatuses[0].ready)) {
-                break;
+            if (pods[0].status.containerStatuses) {
+                expect(pods[0].status.containerStatuses).to.be.an("array").with.length(1);
+                if ((pods[0].status.phase === "Running") &&
+                    (pods[0].status.containerStatuses[0].ready)) {
+                    break;
+                }
             }
             await sleep(1000);
         }
-        expect(pods[0].spec.containers).to.have.length(1);
+        if (i <= 0) throw new Error(`Pods did not become ready`);
 
         const ret = await execa("curl", [ `http://${dockerHost}:8080/` ]);
         expect(ret.stdout).equals("Hello World! via TypeScript");
