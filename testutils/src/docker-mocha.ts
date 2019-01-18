@@ -28,10 +28,12 @@ export type ContainerSpecFunc = () => ContainerSpec;
 
 export interface Options {
     addToNetworks?: string[];
+    pullPolicy?: "always" | "never";
 }
 
 const defaults: Required<Options> = {
     addToNetworks: [],
+    pullPolicy: "always",
 };
 
 const specDefaults: ContainerSpec = {
@@ -83,7 +85,9 @@ class DockerFixtureImpl implements DockerFixture {
 
         const spec = merge(specDefaults, { name: tempName }, containerSpec);
 
-        await dockerPull(this.dockerClient, image, "      ");
+        if (this.options.pullPolicy !== "never") {
+            await dockerPull(this.dockerClient, image, "      ");
+        }
         const container = await this.dockerClient.createContainer(spec);
 
         let newNets = 0;

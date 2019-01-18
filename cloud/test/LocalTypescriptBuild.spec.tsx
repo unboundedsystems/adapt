@@ -1,10 +1,16 @@
 import Adapt, { PrimitiveComponent } from "@usys/adapt";
 import { mochaTmpdir, writePackage } from "@usys/testutils";
 import execa from "execa";
+import { uniq } from "lodash";
 import should from "should";
 import { doBuild } from "./testlib";
 
-import { TypescriptBuildProps, useAsync, useTypescriptBuild } from "../src/LocalTypescriptBuild";
+import {
+    TypescriptBuildOptions,
+    TypescriptBuildProps,
+    useAsync,
+    useTypescriptBuild,
+} from "../src/LocalTypescriptBuild";
 
 //FIXME(manishv) Move to a dedicate file for useAsync
 describe("useAsync hook tests", () => {
@@ -26,17 +32,16 @@ async function checkDockerRun(image: string) {
 }
 
 interface FinalProps {
-    imgSha: string;
+    id: string;
+    tag?: string;
 }
 class Final extends PrimitiveComponent<FinalProps> {}
 
-function TypescriptProject(props: TypescriptBuildProps) {
-    const { imgSha, buildObj } = useTypescriptBuild(props.srcDir);
-    return imgSha ? <Final imgSha={imgSha} /> : buildObj;
-}
+describe("useTypescriptBuild tests", function () {
+    const imageIds: string[] = [];
 
-describe("useTypescriptBuild tests", () => {
-    let imgSha: string | undefined;
+    this.timeout(60 * 1000);
+    this.slow(2 * 1000);
 
     mochaTmpdir.all(`adapt-cloud-dockerbuild`);
 
@@ -46,9 +51,17 @@ describe("useTypescriptBuild tests", () => {
     });
 
     after(async function () {
-        this.timeout(10 * 1000);
-        if (imgSha) await execa("docker", ["rmi", imgSha]);
+        this.timeout(20 * 1000);
+        await Promise.all(
+            uniq(imageIds).map((id) => execa("docker", ["rmi", "-f", id]))
+        );
     });
+
+    function TypescriptProject(props: TypescriptBuildProps) {
+        const { image, buildObj } = useTypescriptBuild(props.srcDir, props.options);
+        if (image) imageIds.push(image.id);
+        return image ? <Final id={image.id} tag={image.nameTag} /> : buildObj;
+    }
 
     const pkgJson = {
         name: "testproject",
@@ -86,18 +99,45 @@ describe("useTypescriptBuild tests", () => {
         });
     }
 
-    it("Should build and run docker image", async function () {
-        this.timeout(60 * 1000);
-        this.slow(2 * 1000);
-
-        const orig = <TypescriptProject srcDir="./testproj" />;
+    async function basicTest(options?: TypescriptBuildOptions) {
+        const orig = <TypescriptProject srcDir="./testproj" options={options} />;
         const { dom } = await doBuild(orig);
 
-        imgSha = dom.props.imgSha;
-        if (imgSha === undefined) throw should(imgSha).not.be.Undefined();
+        const { id, tag } = dom.props;
+        if (id === undefined) throw should(id).not.be.Undefined();
+        if (tag === undefined) throw should(tag).not.be.Undefined();
+        should(id).match(/^sha256:[a-f0-9]{64}$/);
 
-        const output = await checkDockerRun(imgSha);
+        let output = await checkDockerRun(id);
         should(output).equal("SUCCESS");
+
+        output = await checkDockerRun(tag);
+        should(output).equal("SUCCESS");
+
+        return { id, tag };
+    }
+
+    it("Should build and run docker image", async () => {
+        const { tag } = await basicTest();
+        should(tag).match(/^tsservice:[a-z]{8}$/);
     });
 
+    it("Should use custom name and base tag", async () => {
+        const options = {
+            imageName: "myimage",
+            imageTag: "foo",
+        };
+        const { tag } = await basicTest(options);
+        should(tag).match(/^myimage:foo-[a-z]{8}$/);
+    });
+
+    it("Should use custom name and non-random tag", async () => {
+        const options = {
+            imageName: "myimage",
+            imageTag: "bar",
+            uniqueTag: false,
+        };
+        const { tag } = await basicTest(options);
+        should(tag).equal("myimage:bar");
+    });
 });

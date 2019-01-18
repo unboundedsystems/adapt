@@ -9,7 +9,7 @@ function kubeconfig() {
 }
 
 export default function TypeScriptService(props: { srcDir: string, port: number, targetPort: number }) {
-    const { imgSha, buildObj } = useTypescriptBuild(props.srcDir, { tag: "tsservice" });
+    const { image, buildObj } = useTypescriptBuild(props.srcDir);
     const podHandle = handle();
 
     return <Group>
@@ -20,11 +20,11 @@ export default function TypeScriptService(props: { srcDir: string, port: number,
             selector={podHandle}
             ports={[{ port: props.port, targetPort: props.targetPort }]}
         />
-        {imgSha ?
+        {image ?
             <Pod handle={podHandle} config={kubeconfig()} terminationGracePeriodSeconds={0}>
                 <K8sContainer
                     name="typescript-service"
-                    image="tsservice"
+                    image={image.nameTag!}
                     ports={[{
                         containerPort: props.targetPort,
                         hostPort: props.targetPort
