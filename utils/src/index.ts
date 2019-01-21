@@ -27,6 +27,12 @@ export {
 } from "./is_equal_unordered_arrays";
 
 export {
+    TaskObserver,
+    TaskGroup,
+    createTaskObserver
+} from "./task_observer";
+
+export {
     npm,
     removeUndef,
     sleep,

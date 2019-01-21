@@ -1,12 +1,24 @@
-import { loggerToParentProcess, Message, MessageLogger, MessageStreamer, MessageSummary } from "@usys/utils";
+import {
+    createTaskObserver,
+    loggerToParentProcess,
+    Message,
+    MessageLogger,
+    MessageStreamer,
+    MessageSummary,
+    TaskObserver,
+} from "@usys/utils";
 import { ObserversThatNeedData } from "../observers";
+
+export interface ApiResponse {
+    type: "success" | "error" | string;
+    messages: ReadonlyArray<Message>;
+    summary: MessageSummary;
+}
 
 export type DeployState = DeploySuccess | DeployError;
 
-export interface DeploySuccess {
+export interface DeploySuccess extends ApiResponse {
     type: "success";
-    messages: ReadonlyArray<Message>;
-    summary: MessageSummary;
 
     domXml: string;
     stateJson: string;
@@ -15,10 +27,8 @@ export interface DeploySuccess {
     mountedOrigStatus: any;
 }
 
-export interface DeployError {
+export interface DeployError extends ApiResponse {
     type: "error";
-    messages: ReadonlyArray<Message>;
-    summary: MessageSummary;
 
     domXml?: string;
     stateJson?: string;
@@ -48,7 +58,7 @@ export const defaultDeployCommonOptions = {
     projectRoot: undefined,
 };
 
-export async function setupLogger(
+async function setupLogger(
     logger: MessageLogger | undefined): Promise<MessageLogger> {
 
     const from = logger ? logger.from : "deploy";
@@ -73,4 +83,46 @@ export function parseDebugString(s: string): DebugFlags {
     const flags: DebugFlags = {};
     s.split(/\s*,\s*/).map((f) => flags[f] = true);
     return flags;
+}
+
+export interface OpsSetupOptions {
+    name: string;          // Task name
+    description: string;  // Task description
+    logger?: MessageLogger;
+}
+
+export interface OpsSetupInfo {
+    logger: MessageLogger;
+    taskObserver: TaskObserver;
+}
+
+export type OpsFunction<T extends ApiResponse> = (info: OpsSetupInfo) => T | Promise<T>;
+
+export async function withOpsSetup<T extends ApiResponse>(
+    options: OpsSetupOptions,
+    func: OpsFunction<T>): Promise<T> {
+
+    const logger = await setupLogger(options.logger);
+    const taskObserver = createTaskObserver(options.name, {
+        logger,
+        description: options.description,
+    });
+
+    try {
+        taskObserver.started();
+        const ret = await func({ logger, taskObserver });
+        taskObserver.complete();
+        return ret;
+
+    } catch (err) {
+        const msg = `Error ${options.description}: ${err.message}`;
+        logger.error(msg);
+        taskObserver.failed(msg);
+        const ret: ApiResponse = {
+            type: "error",
+            messages: logger.messages,
+            summary: logger.summary,
+        };
+        return ret as T;
+    }
 }
