@@ -18,9 +18,9 @@ export interface AdaptModule {
     ProjectCompileError: Constructor<Error>;
     ProjectRunError: Constructor<ProjectRunError>;
 
-    listDeployments(options: ListOptions): Promise<DeploymentInfo[] | Error>;
+    listDeployments(options: ListOptions): Promise<ListResponse>;
     createDeployment(options: CreateOptions): Promise<DeployState>;
-    destroyDeployment(options: DestroyOptions): Promise<boolean>;
+    destroyDeployment(options: DestroyOptions): Promise<ApiResponse>;
     updateDeployment(options: UpdateOptions): Promise<DeployState>;
     fetchStatus(options: StatusOptions): Promise<DeployState>;
 }
@@ -32,7 +32,9 @@ export function verifyAdaptModule(val: unknown): AdaptModule {
 
         listDeployments: "function",
         createDeployment: "function",
+        destroyDeployment: "function",
         updateDeployment: "function",
+        fetchStatus: "function",
     });
 
     return val as AdaptModule;
@@ -48,14 +50,27 @@ export interface ProjectRunError extends Error {
 }
 
 /*
+ * Base API return type
+ */
+export interface ApiResponse {
+    type: "success" | "error" | string;
+    messages: ReadonlyArray<Message>;
+    summary: MessageSummary;
+}
+
+export interface ApiSuccess {
+    type: "success";
+    messages: ReadonlyArray<Message>;
+    summary: MessageSummary;
+}
+
+/*
  * Types related to deployment
  */
 export type DeployState = DeploySuccess | DeployError;
 
-export interface DeploySuccess {
+export interface DeploySuccess extends ApiResponse {
     type: "success";
-    messages: Message[];
-    summary: MessageSummary;
 
     domXml: string;
     stateJson: string;
@@ -64,10 +79,8 @@ export interface DeploySuccess {
     mountedOrigStatus: any;
 }
 
-export interface DeployError {
+export interface DeployError extends ApiResponse {
     type: "error";
-    messages: Message[];
-    summary: MessageSummary;
 
     domXml?: string;
     stateJson?: string;
@@ -94,18 +107,17 @@ export function verifyDeployState(val: any): DeployState {
     return val as DeployState;
 }
 
-export function isDeploySuccess(val: DeployState): val is DeploySuccess {
-    return val.type === "success";
+export interface WithLogger {
+    logger?: MessageLogger;
 }
 
-export interface DeployCommonOptions {
+export interface DeployCommonOptions extends WithLogger {
     adaptUrl: string;
     fileName: string;
     stackName: string;
 
     debug?: string;
     dryRun?: boolean;
-    logger?: MessageLogger;
     projectRoot?: string;
 }
 
@@ -135,11 +147,17 @@ export function verifyMessages(val: any): Message[] {
 /*
  * Types related to adapt.listDeployments
  */
-export interface ListOptions {
-    adaptUrl: string;
-}
 export interface DeploymentInfo {
     deployID: string;
+}
+
+export interface ListOptions extends WithLogger {
+    adaptUrl: string;
+}
+
+export interface ListResponse extends ApiResponse {
+    type: "success";
+    deployments: DeploymentInfo[];
 }
 
 /*
@@ -150,6 +168,7 @@ export interface CreateOptions extends DeployCommonOptions {
 
     initLocalServer?: boolean;
     initialStateJson?: string;
+    initialObservationsJson?: string;
 }
 
 /*
@@ -158,18 +177,19 @@ export interface CreateOptions extends DeployCommonOptions {
 export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
     prevStateJson?: string;
+    observationsJson?: string;
 }
 
 /*
  * Types related to adapt.destroyDeployment
  */
-export interface DestroyOptions {
+export interface DestroyOptions extends WithLogger {
     adaptUrl: string;
     deployID: string;
     debug?: string;
     dryRun?: boolean;
-    logger?: MessageLogger;
 }
+
 /*
  * Types related to adapt.fetchStatus
  */

@@ -1,6 +1,6 @@
 import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
-import { DeployState, isDeploySuccess, UpdateOptions } from "../../types/adapt_shared";
+import { DeployState, UpdateOptions } from "../../types/adapt_shared";
 
 function cap(s: string): string {
     return s.substr(0, 1).toUpperCase() + s.substr(1);
@@ -49,11 +49,9 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
                         throw err;
                     }
 
-                    if (!isDeploySuccess(deployState)) {
-                        return this.deployFailure(deployState);
-                    } else {
-                        this.deployInformation(deployState);
-                    }
+                    if (!this.isDeploySuccess(deployState)) return;
+
+                    this.deployInformation(deployState);
 
                     const id = deployState.deployID;
 

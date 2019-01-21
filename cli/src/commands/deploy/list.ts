@@ -1,4 +1,3 @@
-import * as ld from "lodash";
 import { dirname } from "path";
 import * as util from "util";
 import { DeployBase } from "../../base";
@@ -61,10 +60,8 @@ export default class ListCommand extends DeployBase {
             title: "Listing Deployments",
             task: async () => {
                 const info = await this.adapt.listDeployments({ adaptUrl: ctx.adaptUrl });
-                if (ld.isError(info)) {
-                    throw info;
-                }
-                this.appendOutput(formatDeployments(info));
+                if (!this.isApiSuccess(info, { action: "list" })) return;
+                this.appendOutput(formatDeployments(info.deployments));
             }
         }]);
 

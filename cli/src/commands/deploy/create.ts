@@ -1,7 +1,7 @@
 import { flags } from "@oclif/command";
 import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
-import { CreateOptions, DeployState, isDeploySuccess } from "../../types/adapt_shared";
+import { CreateOptions, DeployState } from "../../types/adapt_shared";
 
 export default class CreateCommand extends DeployOpBase {
     static description = "Create a new deployment for an Adapt project";
@@ -64,11 +64,8 @@ export default class CreateCommand extends DeployOpBase {
                         throw err;
                     }
 
-                    if (!isDeploySuccess(deployState)) {
-                        return this.deployFailure(deployState);
-                    } else {
-                        this.deployInformation(deployState);
-                    }
+                    if (!this.isDeploySuccess(deployState)) return;
+                    this.deployInformation(deployState);
 
                     const id = deployState.deployID;
 

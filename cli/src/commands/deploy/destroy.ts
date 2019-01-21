@@ -1,5 +1,4 @@
 import { dirname } from "path";
-import { isError } from "util";
 import { DeployOpBase } from "../../base/deploy_base";
 import { projectAdaptModule } from "../../proj";
 import { AdaptModule } from "../../types/adapt_shared";
@@ -53,7 +52,7 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
                     debug: this.ctx.debug
                 });
 
-                if (isError(result)) throw result;
+                this.handleApiResponse(result, { action: "destroy" });
             }
         });
         await this.tasks.run();

@@ -1,6 +1,6 @@
 import { DeployOpBase } from "../../base";
 import { UserError } from "../../error";
-import { DeployState, isDeploySuccess, StatusOptions } from "../../types/adapt_shared";
+import { DeployState, StatusOptions } from "../../types/adapt_shared";
 
 export default class StatusCommand extends DeployOpBase {
     static description = "Fetch the status of an existing deployment of an Adapt project";
@@ -65,11 +65,9 @@ an alternate description file, "somefile.tsx":
                         throw err;
                     }
 
-                    if (!isDeploySuccess(deployState)) {
-                        return this.deployFailure(deployState);
-                    } else {
-                        this.deployInformation(deployState);
-                    }
+                    if (!this.isApiSuccess(deployState, { action: "fetching status" })) return;
+
+                    this.deployInformation(deployState);
 
                     const id = deployState.deployID;
 

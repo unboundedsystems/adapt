@@ -1,10 +1,11 @@
-import { Command, flags } from "@oclif/command";
-import { filePathToUrl, getErrors, getWarnings } from "@usys/utils";
+import { flags } from "@oclif/command";
+import { filePathToUrl } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
-import { DeployError, DeploySuccess } from "../types/adapt_shared";
+import { DeployState, DeploySuccess } from "../types/adapt_shared";
+import { AdaptBase } from "./adapt_base";
 
 import {
     getGen,
@@ -28,7 +29,7 @@ export interface DeployCtx {
     project?: Project;
 }
 
-export abstract class DeployBase extends Command {
+export abstract class DeployBase extends AdaptBase {
 
     static flags = {
         serverUrl: flags.string({
@@ -167,18 +168,11 @@ export abstract class DeployOpBase extends DeployBase {
         ]);
     }
 
-    deployFailure(deployErr: DeployError) {
-        const nwarn = deployErr.summary.warning;
-        const warns = nwarn === 1 ? "warning" : "warnings";
-        this.appendOutput(`${nwarn} ${warns} encountered during deploy:\n` +
-            getWarnings(deployErr.messages));
-
-        const nerr = deployErr.summary.error;
-        const errors = nerr === 1 ? "error" : "errors";
-        return this.error(
-            cantDeploy +
-            `${nerr} ${errors} encountered during deploy:\n` +
-            getErrors(deployErr.messages));
+    isDeploySuccess(response: DeployState): response is DeploySuccess {
+        return this.isApiSuccess(response, {
+            errorMessage: cantDeploy,
+            action: "deploy",
+        });
     }
 
     deployInformation(deployStatus: DeploySuccess) {
