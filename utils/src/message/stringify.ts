@@ -25,12 +25,12 @@ export function messageToString(msg: Message, options = defaultOptions): string 
     return ret;
 }
 
-export function getErrors(msgs: Message[]): string {
+export function getErrors(msgs: ReadonlyArray<Message>): string {
     return messagesToString(msgs, MessageType.error,
                             { timestamp: false, type: false });
 }
 
-export function getWarnings(msgs: Message[]): string {
+export function getWarnings(msgs: ReadonlyArray<Message>): string {
     return messagesToString(msgs, MessageType.warning,
                             { timestamp: false, type: false });
 }
