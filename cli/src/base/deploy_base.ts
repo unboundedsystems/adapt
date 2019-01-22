@@ -48,7 +48,6 @@ export abstract class DeployBase extends AdaptBase {
     tasks = new Listr();
 
     ctx: DeployCtx;
-    finalOutput = "";
 
     async init() {
         await super.init();
@@ -75,17 +74,6 @@ export abstract class DeployBase extends AdaptBase {
         if (projectFile && await fs.pathExists(projectFile)) {
             this.ctx.projectFile = projectFile;
         }
-    }
-
-    async finally(err?: Error) {
-        await super.finally(err);
-        if (err !== undefined) return;
-
-        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
-    }
-
-    appendOutput(s: string) {
-        this.finalOutput += s;
     }
 }
 
