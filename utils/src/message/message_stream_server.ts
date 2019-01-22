@@ -8,25 +8,29 @@ import {
     MessageStore,
     MessageType
 } from "./common";
-import { logToStreams } from "./stringify";
 
-export interface MessageStreamerOptions {
+export interface MessageStreamServerOptions {
+    parent?: MessageStreamServer;
     outStream?: stream.Writable;
-    errStream?: stream.Writable;
     store?: MessageStore;
 }
 
-export class MessageStreamer implements MessageLogger {
-    outStream?: stream.Writable;
-    errStream?: stream.Writable;
+export class MessageStreamServer implements MessageLogger {
+    readonly from: string;
+    readonly outStream: stream.Writable;
     protected store: MessageStore;
 
-    constructor(public from: string, options: MessageStreamerOptions = {}) {
-        this.outStream = options.outStream;
-        this.errStream = (options.outStream != null && options.errStream == null) ?
-            options.outStream :
-            options.errStream;
-        this.store = options.store || new LocalStore();
+    constructor(id: string, options: MessageStreamServerOptions = {}) {
+        const outStream = options.outStream || (options.parent && options.parent.outStream);
+        if (!outStream) {
+            throw new Error(`MessageStreamServer: either parent or outStream must be specified`);
+        }
+        this.outStream = outStream;
+        this.store =
+            options.store ||
+            (options.parent && options.parent.store) ||
+            new LocalStore();
+        this.from = options.parent ? `${options.parent.from}:${id}` : id;
     }
 
     get messages() {
@@ -35,6 +39,10 @@ export class MessageStreamer implements MessageLogger {
 
     get summary() {
         return this.store.summary;
+    }
+
+    end = () => {
+        this.outStream.end();
     }
 
     info: Logger = (arg: any, ...args: any[]) => {
@@ -54,7 +62,7 @@ export class MessageStreamer implements MessageLogger {
             from: this.from,
             content: format(arg, ...args),
         };
-        logToStreams(m, this.outStream, this.errStream);
+
         this.message(m);
     }
 
@@ -68,5 +76,6 @@ export class MessageStreamer implements MessageLogger {
 
     message = (msg: Message) => {
         this.store.store(msg);
+        this.outStream.write(JSON.stringify(msg) + "\n");
     }
 }
