@@ -71,6 +71,11 @@ export interface MessageLogger {
     message: (this: MessageLogger, msg: Message) => void;
     outStream?: stream.Writable;
     errStream?: stream.Writable;
+    readonly isMessageLogger: true;
+}
+
+export function isMessageLogger(val: unknown): val is MessageLogger {
+    return (val && typeof val === "object" && (val as any).isMessageLogger === true);
 }
 
 export interface MessageStore {
@@ -206,4 +211,9 @@ export interface MessageClient {
     error: MessageEmitter;
     task: TaskEmitter;
     fromStream?: (this: MessageClient, inputStream: stream.Readable) => void;
+    readonly isMessageClient: true;
+}
+
+export function isMessageClient(val: unknown): val is MessageClient {
+    return (val && typeof val === "object" && (val as any).isMessageClient === true);
 }

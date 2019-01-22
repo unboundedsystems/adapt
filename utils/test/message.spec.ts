@@ -138,12 +138,15 @@ describe("MessageStreamClient tests", () => {
         const eSpy = sinon.spy();
         const tSpy = sinon.spy();
         const done = pDefer<Message>();
+        let count = 0;
 
         client.info.on("message:*", iSpy);
         client.warning.on("message:*", wSpy);
         client.error.on("message:*", eSpy);
+        client.task.on("task:**", () => {
+            if (++count === 2) done.resolve();
+        });
         client.task.on("task:**", tSpy);
-        client.info.on("close", done.resolve);
 
         const inMsgs: Message[] = [
             {

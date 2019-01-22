@@ -1,12 +1,16 @@
 import {
     createTaskObserver,
-    loggerToParentProcess,
+    isMessageClient,
+    isMessageLogger,
     Message,
+    MessageClient,
     MessageLogger,
     MessageStreamer,
+    MessageStreamServer,
     MessageSummary,
     TaskObserver,
 } from "@usys/utils";
+import { PassThrough } from "stream";
 import { ObserversThatNeedData } from "../observers";
 
 export interface ApiResponse {
@@ -39,7 +43,7 @@ export function isDeploySuccess(val: DeployState): val is DeploySuccess {
 }
 
 export interface WithLogger {
-    logger?: MessageLogger;
+    logger?: MessageLogger | MessageClient;
 }
 
 export interface DeployCommonOptions extends WithLogger {
@@ -58,21 +62,26 @@ export const defaultDeployCommonOptions = {
     projectRoot: undefined,
 };
 
-async function setupLogger(
-    logger: MessageLogger | undefined): Promise<MessageLogger> {
-
-    const from = logger ? logger.from : "deploy";
-
+async function setupLogger(options: WithLogger): Promise<MessageLogger> {
     if (process.env.ADAPT_OP_FORKED) { // child process
-        logger = await loggerToParentProcess(from);
-
-    } else if (!logger) {
-        logger = new MessageStreamer(from, {
-            outStream: process.stdout,
-            errStream: process.stderr,
-        });
+        return new MessageStreamServer("main", { outStream: process.stdout });
     }
-    return logger;
+
+    if (isMessageLogger(options.logger)) return options.logger;
+    if (isMessageClient(options.logger)) {
+        if (!options.logger.fromStream) {
+            throw new Error(`MessageClient does not support fromStream`);
+        }
+        const thru = new PassThrough();
+        const logger = new MessageStreamServer("main", { outStream: thru });
+        options.logger.fromStream(thru);
+        return logger;
+    }
+
+    return new MessageStreamer("main", {
+        outStream: process.stdout,
+        errStream: process.stderr,
+    });
 }
 
 export interface DebugFlags {
@@ -85,10 +94,9 @@ export function parseDebugString(s: string): DebugFlags {
     return flags;
 }
 
-export interface OpsSetupOptions {
+export interface OpsSetupOptions extends WithLogger {
     name: string;          // Task name
     description: string;  // Task description
-    logger?: MessageLogger;
 }
 
 export interface OpsSetupInfo {
@@ -102,7 +110,7 @@ export async function withOpsSetup<T extends ApiResponse>(
     options: OpsSetupOptions,
     func: OpsFunction<T>): Promise<T> {
 
-    const logger = await setupLogger(options.logger);
+    const logger = await setupLogger(options);
     const taskObserver = createTaskObserver(options.name, {
         logger,
         description: options.description,

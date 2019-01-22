@@ -18,6 +18,7 @@ export interface MessageStreamServerOptions {
 export class MessageStreamServer implements MessageLogger {
     readonly from: string;
     readonly outStream: stream.Writable;
+    readonly isMessageLogger: true = true;
     protected store: MessageStore;
 
     constructor(id: string, options: MessageStreamServerOptions = {}) {

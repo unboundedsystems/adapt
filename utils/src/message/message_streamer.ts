@@ -19,6 +19,7 @@ export interface MessageStreamerOptions {
 export class MessageStreamer implements MessageLogger {
     outStream?: stream.Writable;
     errStream?: stream.Writable;
+    readonly isMessageLogger: true = true;
     protected store: MessageStore;
 
     constructor(public from: string, options: MessageStreamerOptions = {}) {

@@ -21,10 +21,10 @@ export interface MessageStreamClientOptions {
 }
 
 export class MessageStreamClient implements MessageClient {
-    private associated = false;
+    readonly isMessageClient: true = true;
+    protected outStream?: stream.Writable;
+    protected errStream?: stream.Writable;
     private emitters: Emitters = {};
-    private outStream?: stream.Writable;
-    private errStream?: stream.Writable;
 
     constructor(options: MessageStreamClientOptions = {}) {
         if (options.outStream) this.outStream = options.outStream;
@@ -33,16 +33,11 @@ export class MessageStreamClient implements MessageClient {
     }
 
     fromStream(input: stream.Readable) {
-        if (this.associated) {
-            throw new Error(`MessageStreamClient already associated with an input stream`);
-        }
-        this.associated = true;
         const rl = readline.createInterface({
             input,
             crlfDelay: Infinity,
         });
         rl.on("line", this.inputMessage);
-        rl.on("close", this.inputClose);
     }
 
     get info(): MessageEmitter { return this.emitter(MessageType.info); }
@@ -51,30 +46,27 @@ export class MessageStreamClient implements MessageClient {
     get task(): TaskEmitter { return this.emitter(MessageType.task); }
 
     private inputMessage = (line: string): void => {
-        const msg = JSON.parse(line);
-        if (!isMessage(msg)) throw new Error(`Invalid message: ${line}`);
-        const em = this.emitter(msg.type);
+        try {
+            const msg = JSON.parse(line);
+            if (!isMessage(msg)) throw new Error(`Invalid message`);
+            const em = this.emitter(msg.type);
 
-        switch (msg.type) {
-            case MessageType.info:
-            case MessageType.error:
-            case MessageType.warning:
-                logToStreams(msg, this.outStream, this.errStream);
-                em.emit(`message:${msg.from}`, msg);
-                break;
-            case MessageType.task:
-                const { event, status } = parseTaskContent(msg.content);
-                em.emit(`task:${event}:${msg.from}`, event, status);
-                break;
-            default:
-                return badMessageType(msg.type);
-        }
-    }
-
-    private inputClose = () => {
-        for (const name of Object.keys(this.emitters)) {
-            const em = this.emitters[name as MessageType];
-            if (em) em.emit("close");
+            switch (msg.type) {
+                case MessageType.info:
+                case MessageType.error:
+                case MessageType.warning:
+                    logToStreams(msg, this.outStream, this.errStream);
+                    em.emit(`message:${msg.from}`, msg);
+                    break;
+                case MessageType.task:
+                    const { event, status } = parseTaskContent(msg.content);
+                    em.emit(`task:${event}:${msg.from}`, event, status);
+                    break;
+                default:
+                    return badMessageType(msg.type);
+            }
+        } catch (err) {
+            console.log(`Invalid Message: ${line}`);
         }
     }
 

@@ -4,6 +4,7 @@
 import {
     Constructor,
     Message,
+    MessageClient,
     MessageLogger,
     MessageSummary,
     validateMessage,
@@ -108,7 +109,7 @@ export function verifyDeployState(val: any): DeployState {
 }
 
 export interface WithLogger {
-    logger?: MessageLogger;
+    logger?: MessageLogger | MessageClient;
 }
 
 export interface DeployCommonOptions extends WithLogger {

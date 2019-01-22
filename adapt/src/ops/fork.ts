@@ -1,4 +1,4 @@
-import { logFromChildProcess, MessageStreamer } from "@usys/utils";
+import { isMessageClient, MessageStreamClient } from "@usys/utils";
 import db from "debug";
 // tslint:disable-next-line:no-var-requires
 const forkRequire = require("fork-require");
@@ -21,7 +21,7 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
 
     if (process.env.ADAPT_NO_FORK || process.env.ADAPT_OP_FORKED) return func;
 
-    return async (opts: WithLogger, ...args: any[]): Promise<Ret> => {
+    return async (options: WithLogger, ...args: any[]): Promise<Ret> => {
         debug(`${funcName}: parent (PID ${process.pid})`);
 
         const forked = forkRequire(filename, {
@@ -31,15 +31,25 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
 
         // Ensure output from child goes to parent's output streams (which
         // might not actually stream to real stdout/stderr file descriptors).
-        forked._childProcess.stdout.pipe(process.stdout, { end: false });
         forked._childProcess.stderr.pipe(process.stderr, { end: false });
 
-        const logger = opts.logger || new MessageStreamer("deploy", {
-            outStream: process.stdout,
-            errStream: process.stderr,
-        });
         try {
-            await logFromChildProcess(logger, forked._childProcess);
+            // tslint:disable-next-line:prefer-const
+            let { logger, ...opts } = options;
+            if (!logger) {
+                    logger = new MessageStreamClient({
+                    outStream: process.stdout,
+                    errStream: process.stderr,
+                });
+            }
+
+            if (!isMessageClient(logger)) {
+                throw new Error(`API must be called with a MessageClient when using child process`);
+            }
+            if (!logger.fromStream) {
+                throw new Error(`MessageClient does not support fromStream`);
+            }
+            logger.fromStream(forked._childProcess.stdout);
 
             return await forked[funcName](opts, ...args);
         } finally {

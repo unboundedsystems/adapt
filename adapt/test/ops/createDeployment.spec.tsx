@@ -1,9 +1,9 @@
 import {
-    createMockLogger,
+    createMockLoggerClient,
     localRegistryDefaults,
     mochaLocalRegistry,
     mochaTmpdir as tmpdir,
-    MockLogger,
+    MockLoggerClient,
 } from "@usys/testutils";
 import {
     messagesToString,
@@ -175,7 +175,7 @@ function checkErrors(ds: DeployState, expected: RegExp[]) {
 
 describe("createDeployment Tests", async function () {
     let origServerTypes: AdaptServerType[];
-    let logger: MockLogger;
+    let logger: MockLoggerClient;
     let adaptUrl: string;
     let server_: AdaptServer;
 
@@ -205,7 +205,7 @@ describe("createDeployment Tests", async function () {
         if (server_) await server_.destroy();
     });
     beforeEach(() => {
-        logger = createMockLogger();
+        logger = createMockLoggerClient();
     });
     afterEach(async () => {
         stdout.stop();
