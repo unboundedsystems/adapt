@@ -1,5 +1,6 @@
 import stream from "stream";
 import { format } from "util";
+import { Constructor } from "../common_types";
 import {
     LocalStore,
     Logger,
@@ -78,5 +79,9 @@ export class MessageStreamServer implements MessageLogger {
     message = (msg: Message) => {
         this.store.store(msg);
         this.outStream.write(JSON.stringify(msg) + "\n");
+    }
+
+    createChild(id: string): this {
+        return new (this.constructor as Constructor<this>)(id, { parent: this });
     }
 }

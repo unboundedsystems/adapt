@@ -1,6 +1,6 @@
 import ld from "lodash";
 import { CustomError } from "ts-custom-error";
-import { MessageLogger, MessageStreamer } from "./message/index";
+import { MessageLogger, MessageStreamer, MessageType } from "./message/index";
 
 export interface TaskDefinitions {
     [ name: string ]: string;  // value is task description
@@ -63,15 +63,17 @@ class TaskObserverImpl implements TaskObserver {
     private childGroup_?: TaskGroupImpl;
 
     constructor(readonly name: string, options: TaskObserverOptions) {
-        let { logger } = options;
-        if (logger === undefined) logger = new MessageStreamer(name, {});
+        let { logger, description } = options;
+        if (logger == null) logger = new MessageStreamer(name);
+        if (description == null) description = name;
 
         this.logger = logger;
+        this.description = description;
         this.options = {
-            ...options,
-            logger: options.logger || new MessageStreamer(name),
-            description: options.description || name,
+            logger,
+            description,
         };
+        this.log(this.state_, this.description);
     }
 
     get state() {
@@ -79,7 +81,7 @@ class TaskObserverImpl implements TaskObserver {
     }
 
     updateStatus(txt: string): void {
-        console.log(`Task ${this.name} [status]: ${txt}`);
+        this.log("Status", txt);
     }
 
     childGroup(serial = true): TaskGroup {
@@ -125,8 +127,7 @@ class TaskObserverImpl implements TaskObserver {
 
     failed(err: string | Error): void {
         const msg = ld.isError(err) ? err.message : err.toString();
-        console.log(`Task ${this.name} [error]: ${msg}`);
-        this.updateState(TaskState.Failed);
+        this.updateState(TaskState.Failed, msg);
     }
 
     private checkTransition(current: TaskState, next: TaskState): void {
@@ -156,7 +157,13 @@ class TaskObserverImpl implements TaskObserver {
         if (errored) throw new TaskObserverStateError(this, current, next);
     }
 
-    private updateState(state: TaskState): void {
+    private log(event: TaskState | "Status", txt?: string) {
+        let msg = `[${event}]`;
+        if (txt !== undefined) msg += `: ${txt}`;
+        this.logger.log(MessageType.task, msg);
+    }
+
+    private updateState(state: TaskState, msg?: string): void {
         switch (state) {
             case TaskState.Created:
             case TaskState.Started:
@@ -170,8 +177,8 @@ class TaskObserverImpl implements TaskObserver {
 
         this.checkTransition(this.state_, state);
 
-        console.log(`Task ${this.name} [${state}]`);
         this.state_ = state;
+        this.log(state, msg);
     }
 }
 
@@ -204,9 +211,13 @@ class TaskGroupImpl implements TaskGroup {
             }
         }
 
+        const parentLogger = this.taskOptions.logger;
+
         for (const name of Object.keys(tasks)) {
+            const logger = parentLogger && parentLogger.createChild(name);
             const task = new TaskObserverImpl(name, {
                 ...this.taskOptions,
+                logger,
                 description: tasks[name],
             });
             this.tasks_[name] = task;

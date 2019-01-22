@@ -224,7 +224,6 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
         observe: "Observing environment",
         analyze: "Analyzing environment",
         act: "Applying changes to environment",
-        finish: "Finishing up",
     });
     const logger = taskObserver.logger;
 

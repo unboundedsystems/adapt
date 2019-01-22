@@ -72,6 +72,7 @@ export interface MessageLogger {
     outStream?: stream.Writable;
     errStream?: stream.Writable;
     readonly isMessageLogger: true;
+    createChild: (this: MessageLogger, id: string) => this;
 }
 
 export function isMessageLogger(val: unknown): val is MessageLogger {
@@ -135,7 +136,7 @@ export enum TaskEvent {
     Status = "Status",
 }
 
-function badTaskEvent(event: never): never {
+export function badTaskEvent(event: never): never {
     throw new Error(`Invalid TaskEvent ${event}`);
 }
 
@@ -183,7 +184,8 @@ export interface TaskEmitter extends ee2.EventEmitter2 {
     emit(event: string, msg: Message): boolean;
     listeners(event: string | string[]): TaskListener[];
 }
-export type TaskListener = (event: TaskEvent, status?: string) => void;
+export type TaskListener =
+    (event: TaskEvent, status: string | undefined, from: string) => void;
 
 /**
  * Task message is one of these two forms:

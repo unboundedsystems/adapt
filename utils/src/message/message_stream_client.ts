@@ -4,6 +4,7 @@ import stream from "stream";
 import {
     badMessageType,
     isMessage,
+    Message,
     MessageClient,
     MessageEmitter,
     MessageType,
@@ -46,27 +47,35 @@ export class MessageStreamClient implements MessageClient {
     get task(): TaskEmitter { return this.emitter(MessageType.task); }
 
     private inputMessage = (line: string): void => {
+        let msg: Message;
         try {
-            const msg = JSON.parse(line);
-            if (!isMessage(msg)) throw new Error(`Invalid message`);
-            const em = this.emitter(msg.type);
-
-            switch (msg.type) {
-                case MessageType.info:
-                case MessageType.error:
-                case MessageType.warning:
-                    logToStreams(msg, this.outStream, this.errStream);
-                    em.emit(`message:${msg.from}`, msg);
-                    break;
-                case MessageType.task:
-                    const { event, status } = parseTaskContent(msg.content);
-                    em.emit(`task:${event}:${msg.from}`, event, status);
-                    break;
-                default:
-                    return badMessageType(msg.type);
-            }
+            msg = JSON.parse(line);
+            if (!isMessage(msg)) throw new Error(`Failed validation`);
         } catch (err) {
-            console.log(`Invalid Message: ${line}`);
+            // Turn the message we didn't parse into an error
+            msg = {
+                timestamp: Date.now(),
+                type: MessageType.error,
+                content: `Invalid Message (${err.message}): ${line}`,
+                from: "system.logger",
+            };
+        }
+
+        const em = this.emitter(msg.type);
+
+        switch (msg.type) {
+            case MessageType.info:
+            case MessageType.error:
+            case MessageType.warning:
+                logToStreams(msg, this.outStream, this.errStream);
+                em.emit(`message:${msg.from}`, msg);
+                break;
+            case MessageType.task:
+                const { event, status } = parseTaskContent(msg.content);
+                em.emit(`task:${event}:${msg.from}`, event, status, msg.from);
+                break;
+            default:
+                return badMessageType(msg.type);
         }
     }
 
