@@ -23,7 +23,7 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { TaskObserver } from "@usys/utils";
+import { immediatePromise, TaskObserver } from "@usys/utils";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement } from "../jsx";
@@ -330,6 +330,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         rebuild: "Rebuilding DOM",
         deploy: "Deploying",
     });
+    await immediatePromise();
 
     return withContext(initial, async (ctx: AdaptContext) => {
         const build1 = await tasks.build.complete(() => build({

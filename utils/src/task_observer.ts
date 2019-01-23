@@ -7,6 +7,7 @@ import {
     TaskState,
     TaskStatus,
 } from "./message/index";
+import { immediatePromise } from "./sleep";
 
 export interface TaskDefinitions {
     [ name: string ]: string;  // value is task description
@@ -112,7 +113,9 @@ class TaskObserverImpl implements TaskObserver {
     complete<T>(p?: Promise<T> | (() => T | Promise<T>)): Promise<T> | void {
         const done = (val?: T) => {
             this.updateState(TaskState.Complete);
-            return val as T;
+            // Allow events to fire
+            return immediatePromise()
+                .then(() => val as T);
         };
         const fail = (err: any) => {
             this.failed(err);
@@ -121,7 +124,8 @@ class TaskObserverImpl implements TaskObserver {
 
         if (ld.isFunction(p)) {
             this.started();
-            return (async () => p())()
+            return immediatePromise()
+                .then(p)
                 .then(done)
                 .catch(fail);
         }
@@ -130,7 +134,7 @@ class TaskObserverImpl implements TaskObserver {
                 .then(done)
                 .catch(fail);
         }
-        done();
+        this.updateState(TaskState.Complete);
     }
 
     failed(err: string | Error): void {
