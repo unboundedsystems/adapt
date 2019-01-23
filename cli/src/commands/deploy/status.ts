@@ -1,6 +1,7 @@
 import { DeployOpBase } from "../../base";
 import { UserError } from "../../error";
 import { DeployState, StatusOptions } from "../../types/adapt_shared";
+import { addDynamicTask } from "../../ui/dynamic_task_mgr";
 
 export default class StatusCommand extends DeployOpBase {
     static description = "Fetch the status of an existing deployment of an Adapt project";
@@ -42,40 +43,51 @@ an alternate description file, "somefile.tsx":
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        this.tasks.add([
-           {
-                title: "Fetching status for project deployment",
-                task: async () => {
-                    if (ctx.project == null) {
-                        throw new Error(`Internal error: project cannot be null`);
-                    }
+        let deployStateP: Promise<DeployState>;
 
-                    let deployState: DeployState;
-                    try {
-                        const statusOptions: StatusOptions = {
-                            adaptUrl: ctx.adaptUrl,
-                            deployID,
-                            dryRun: ctx.dryRun,
-                            fileName: ctx.projectFile,
-                            stackName: ctx.stackName,
-                        };
-                        deployState = await ctx.project.status(statusOptions);
-                    } catch (err) {
+        const loggerId = `${ctx.logger.from}:status`;
+
+        addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
+            id: loggerId,
+            title: "Fetching status for project deployment",
+            adoptable: true,
+            initiate: () => {
+                if (ctx.project == null) {
+                    throw new Error(`Internal error: project cannot be null`);
+                }
+
+                const statusOptions: StatusOptions = {
+                    adaptUrl: ctx.adaptUrl,
+                    client: ctx.client,
+                    deployID,
+                    dryRun: ctx.dryRun,
+                    fileName: ctx.projectFile,
+                    logger: ctx.logger,
+                    loggerId,
+                    stackName: ctx.stackName,
+                };
+                deployStateP = ctx.project.status(statusOptions)
+                    .catch((err) => {
                         if (err instanceof UserError) this.error(err.message);
                         throw err;
-                    }
-
-                    if (!this.isApiSuccess(deployState, { action: "fetching status" })) return;
-
-                    this.deployInformation(deployState);
-
-                    const id = deployState.deployID;
-
-                    this.appendOutput(`Deployment ${id} status:`);
-                    this.appendOutput(JSON.stringify(deployState.mountedOrigStatus, null, 2));
-                }
+                    });
             }
-        ]);
+        });
+
+        this.tasks.add({
+            title: "Checking results",
+            task: async () => {
+                const deployState = await deployStateP;
+                if (!this.isApiSuccess(deployState, { action: "fetching status" })) return;
+
+                this.deployInformation(deployState);
+
+                const id = deployState.deployID;
+
+                this.appendOutput(`Deployment ${id} status:`);
+                this.appendOutput(JSON.stringify(deployState.mountedOrigStatus, null, 2));
+            }
+        });
 
         await this.tasks.run();
     }

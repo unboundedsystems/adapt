@@ -1,7 +1,8 @@
 import { dirname } from "path";
 import { DeployOpBase } from "../../base/deploy_base";
 import { projectAdaptModule } from "../../proj";
-import { AdaptModule } from "../../types/adapt_shared";
+import { AdaptModule, ApiResponse } from "../../types/adapt_shared";
+import { addDynamicTask } from "../../ui/dynamic_task_mgr";
 import { UpdateBaseCommand } from "./update";
 
 export default class DestroyCommand extends UpdateBaseCommand {
@@ -30,9 +31,16 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
     async run() {
         this.ctx.stackName = "(null)";
         await this.addUpdateTask();
-        this.tasks.add({
+
+        let resultP: Promise<ApiResponse>;
+
+        const loggerId = `${this.ctx.logger.from}:destroy`;
+
+        addDynamicTask(this.tasks, this.ctx.logger.from, this.ctx.client, {
+            id: loggerId,
             title: "Destroying deployment",
-            task: async (_ctx, task) => {
+            adoptable: true,
+            initiate: async (_ctx, task) => {
                 let adapt: AdaptModule | undefined;
                 if (this.ctx.projectFile !== undefined) {
                     try {
@@ -45,16 +53,26 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
                 if (adapt === undefined) adapt = require("@usys/adapt");
                 if (adapt === undefined) throw new Error("Internal Error: adapt is undefined");
 
-                const result = await adapt.destroyDeployment({
+                resultP = adapt.destroyDeployment({
                     adaptUrl: this.ctx.adaptUrl,
+                    client: this.ctx.client,
                     deployID: this.args.deployID,
                     dryRun: this.ctx.dryRun,
-                    debug: this.ctx.debug
+                    debug: this.ctx.debug,
+                    logger: this.ctx.logger,
+                    loggerId,
                 });
+            }
+        });
 
+        this.tasks.add({
+            title: "Checking results",
+            task: async () => {
+                const result = await resultP;
                 this.handleApiResponse(result, { action: "destroy" });
             }
         });
+
         await this.tasks.run();
     }
 }

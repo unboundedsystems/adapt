@@ -2,7 +2,8 @@ import { dirname } from "path";
 import * as util from "util";
 import { DeployBase } from "../../base";
 import { projectAdaptModule } from "../../proj";
-import { AdaptModule, DeploymentInfo } from "../../types/adapt_shared";
+import { AdaptModule, DeploymentInfo, ListResponse } from "../../types/adapt_shared";
+import { addDynamicTask } from "../../ui/dynamic_task_mgr";
 
 function formatDeployments(info: DeploymentInfo[]) {
     return info.map((i) => i.deployID).join("\n");
@@ -35,7 +36,7 @@ export default class ListCommand extends DeployBase {
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        this.tasks.add([{
+        this.tasks.add({
             title: "Checking for project-level adapt module",
             skip: () => {
                 if (this.ctx.projectFile === undefined) {
@@ -55,15 +56,34 @@ export default class ListCommand extends DeployBase {
                     this.adapt = require("@usys/adapt");
                 }
             }
-        },
-        {
+        });
+
+        let infoP: Promise<ListResponse>;
+
+        const loggerId = `${ctx.logger.from}:list`;
+
+        addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
+            id: loggerId,
             title: "Listing Deployments",
+            adoptable: true,
+            initiate: () => {
+                infoP = this.adapt.listDeployments({
+                    adaptUrl: ctx.adaptUrl,
+                    client: ctx.client,
+                    logger: ctx.logger,
+                    loggerId,
+                });
+            }
+        });
+
+        this.tasks.add({
+            title: "Checking results",
             task: async () => {
-                const info = await this.adapt.listDeployments({ adaptUrl: ctx.adaptUrl });
+                const info = await infoP;
                 if (!this.isApiSuccess(info, { action: "list" })) return;
                 this.appendOutput(formatDeployments(info.deployments));
             }
-        }]);
+        });
 
         await this.tasks.run();
     }
