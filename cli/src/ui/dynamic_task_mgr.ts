@@ -67,6 +67,7 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
 
     switch (event) {
         case TaskEvent.Complete:
+            if (task && status) task.title = `${task.title} (${status})`;
             taskStatus.dPromise.resolve();
             break;
         case TaskEvent.Skipped:

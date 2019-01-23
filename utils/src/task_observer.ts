@@ -9,6 +9,8 @@ import {
 } from "./message/index";
 import { immediatePromise } from "./sleep";
 
+const debugTaskTime = false;
+
 export interface TaskDefinitions {
     [ name: string ]: string;  // value is task description
 }
@@ -66,6 +68,7 @@ class TaskObserverImpl implements TaskObserver {
     readonly description: string;
     readonly logger: MessageLogger;
     readonly options: Required<TaskObserverOptions>;
+    startTime?: number;
     private state_ = TaskState.Created;
     private childGroup_?: TaskGroupImpl;
 
@@ -188,6 +191,13 @@ class TaskObserverImpl implements TaskObserver {
         }
 
         this.checkTransition(this.state_, state);
+
+        if (debugTaskTime) {
+            if (state === TaskState.Started) this.startTime = Date.now();
+            if (state === TaskState.Complete && this.startTime) {
+                msg = `${Date.now() - this.startTime}ms`;
+            }
+        }
 
         this.state_ = state;
         this.log(state, msg);
