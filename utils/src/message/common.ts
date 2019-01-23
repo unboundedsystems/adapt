@@ -127,14 +127,22 @@ export interface MessageEmitter extends ee2.EventEmitter2 {
 }
 export type MessageListener = (msg: Message) => void;
 
-export enum TaskEvent {
+export enum TaskState {
     Created = "Created",
     Started = "Started",
     Complete = "Complete",
     Skipped = "Skipped",
     Failed = "Failed",
-    Status = "Status",
 }
+
+export enum TaskStatus {
+    Status = "Status",
+    ChildGroup = "ChildGroup",
+}
+
+export type TaskEvent = TaskState | TaskStatus;
+// tslint:disable-next-line:variable-name
+export const TaskEvent = { ...TaskStatus, ...TaskState };
 
 export function badTaskEvent(event: never): never {
     throw new Error(`Invalid TaskEvent ${event}`);
@@ -149,6 +157,7 @@ function isTaskEvent(event: unknown): event is TaskEvent {
         case TaskEvent.Skipped:
         case TaskEvent.Failed:
         case TaskEvent.Status:
+        case TaskEvent.ChildGroup:
             return true;
         default:
             return badTaskEvent(ev);

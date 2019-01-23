@@ -1,6 +1,12 @@
 import ld from "lodash";
 import { CustomError } from "ts-custom-error";
-import { MessageLogger, MessageStreamer, MessageType } from "./message/index";
+import {
+    MessageLogger,
+    MessageStreamer,
+    MessageType,
+    TaskState,
+    TaskStatus,
+} from "./message/index";
 
 export interface TaskDefinitions {
     [ name: string ]: string;  // value is task description
@@ -22,13 +28,13 @@ export interface TaskGroup {
     task(name: string): TaskObserver;
 }
 
-export enum TaskState {
-    Created = "Created",
-    Started = "Started",
-    Complete = "Complete",
-    Skipped = "Skipped",
-    Failed = "Failed",
+export interface TaskGroupOptions {
+    serial?: boolean;
 }
+
+const defaultTaskGroupOptions = {
+    serial: true,
+};
 
 export interface TaskObserver {
     readonly name: string;
@@ -38,7 +44,7 @@ export interface TaskObserver {
     readonly state: TaskState;
 
     updateStatus(txt: string): void;
-    childGroup(serial?: boolean): TaskGroup;
+    childGroup(options?: TaskGroupOptions): TaskGroup;
     started(): void;
     skipped(): void;
     complete(): void;
@@ -81,12 +87,14 @@ class TaskObserverImpl implements TaskObserver {
     }
 
     updateStatus(txt: string): void {
-        this.log("Status", txt);
+        this.log(TaskStatus.Status, txt);
     }
 
-    childGroup(serial = true): TaskGroup {
+    childGroup(options: TaskGroupOptions = {}): TaskGroup {
         if (!this.childGroup_) {
-            this.childGroup_ = new TaskGroupImpl(serial, this.options);
+            const tgOpts = { ...defaultTaskGroupOptions, ...options };
+            this.childGroup_ = new TaskGroupImpl(tgOpts, this.options);
+            this.log(TaskStatus.ChildGroup, JSON.stringify(tgOpts));
         }
         return this.childGroup_;
     }
@@ -157,7 +165,7 @@ class TaskObserverImpl implements TaskObserver {
         if (errored) throw new TaskObserverStateError(this, current, next);
     }
 
-    private log(event: TaskState | "Status", txt?: string) {
+    private log(event: TaskState | TaskStatus, txt?: string) {
         let msg = `[${event}]`;
         if (txt !== undefined) msg += `: ${txt}`;
         this.logger.log(MessageType.task, msg);
@@ -201,7 +209,9 @@ function badState(task: TaskObserver, x: never): never {
 class TaskGroupImpl implements TaskGroup {
     private tasks_: TaskObserversUnknown = Object.create(null);
 
-    constructor(readonly serial: boolean, readonly taskOptions: TaskObserverOptions) { }
+    constructor(
+        readonly options: Required<TaskGroupOptions>,
+        readonly taskOptions: TaskObserverOptions) { }
 
     add<T extends TaskDefinitions>(tasks: T): TaskObservers<Extract<keyof T, string>> {
         // Pre-flight checks

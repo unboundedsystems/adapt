@@ -29,6 +29,7 @@ export {
 export {
     TaskObserver,
     TaskGroup,
+    TaskGroupOptions,
     createTaskObserver
 } from "./task_observer";
 

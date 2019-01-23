@@ -5,7 +5,7 @@ import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
-import { AdaptBase } from "./adapt_base";
+import { AdaptBase, defaultListrOptions } from "./adapt_base";
 
 import {
     getGen,
@@ -45,7 +45,7 @@ export abstract class DeployBase extends AdaptBase {
     args?: any;
     flags?: any;
 
-    tasks = new Listr();
+    tasks = new Listr(defaultListrOptions);
 
     ctx: DeployCtx;
 

@@ -2,6 +2,12 @@ import { Command } from "@oclif/command";
 import { getErrors, getWarnings } from "@usys/utils";
 import { ApiResponse, ApiSuccess } from "../types/adapt_shared";
 
+// NOTE: type is any because the types for ListrOptions do not include the
+// options for the renderers.
+export const defaultListrOptions: any = {
+    collapse: false,  // For update-renderer
+};
+
 export interface HandleResponseOptions {
     errorMessage?: string;
     action?: string;
