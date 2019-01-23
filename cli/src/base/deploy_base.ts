@@ -1,5 +1,5 @@
 import { flags } from "@oclif/command";
-import { filePathToUrl } from "@usys/utils";
+import { filePathToUrl, MessageClient, MessageStreamClient } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
@@ -22,6 +22,7 @@ export interface DeployCtx {
     adaptUrl: string;
     debug: string;
     dryRun?: boolean;
+    msgClient: MessageClient;
     projectFile?: string;
     stackName?: string;
 
@@ -67,6 +68,10 @@ export abstract class DeployBase extends AdaptBase {
 
         this.ctx = {
             adaptUrl,
+            msgClient: new MessageStreamClient({
+                outStream: process.stdout,
+                errStream: process.stderr,
+            }),
             debug: this.flags.debug
         };
 
