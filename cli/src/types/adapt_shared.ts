@@ -109,7 +109,9 @@ export function verifyDeployState(val: any): DeployState {
 }
 
 export interface WithLogger {
-    logger?: MessageLogger | MessageClient;
+    client?: MessageClient;
+    logger?: MessageLogger;
+    loggerId?: string;
 }
 
 export interface DeployCommonOptions extends WithLogger {

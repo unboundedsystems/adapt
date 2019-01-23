@@ -43,7 +43,9 @@ export function isDeploySuccess(val: DeployState): val is DeploySuccess {
 }
 
 export interface WithLogger {
-    logger?: MessageLogger | MessageClient;
+    client?: MessageClient;
+    logger?: MessageLogger;
+    loggerId?: string;
 }
 
 export interface DeployCommonOptions extends WithLogger {
@@ -63,22 +65,24 @@ export const defaultDeployCommonOptions = {
 };
 
 async function setupLogger(options: WithLogger): Promise<MessageLogger> {
+    const loggerId = options.loggerId || "main";
+
     if (process.env.ADAPT_OP_FORKED) { // child process
-        return new MessageStreamServer("main", { outStream: process.stdout });
+        return new MessageStreamServer(loggerId, { outStream: process.stdout });
     }
 
-    if (isMessageLogger(options.logger)) return options.logger;
-    if (isMessageClient(options.logger)) {
-        if (!options.logger.fromStream) {
+    if (isMessageLogger(options.client)) return options.client;
+    if (isMessageClient(options.client)) {
+        if (!options.client.fromStream) {
             throw new Error(`MessageClient does not support fromStream`);
         }
         const thru = new PassThrough();
-        const logger = new MessageStreamServer("main", { outStream: thru });
-        options.logger.fromStream(thru);
+        const logger = new MessageStreamServer(loggerId, { outStream: thru });
+        options.client.fromStream(thru);
         return logger;
     }
 
-    return new MessageStreamer("main", {
+    return new MessageStreamer(loggerId, {
         outStream: process.stdout,
         errStream: process.stderr,
     });

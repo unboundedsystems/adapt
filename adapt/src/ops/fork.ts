@@ -35,21 +35,21 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
 
         try {
             // tslint:disable-next-line:prefer-const
-            let { logger, ...opts } = options;
-            if (!logger) {
-                    logger = new MessageStreamClient({
+            let { client, logger, ...opts } = options;
+            if (!client) {
+                client = new MessageStreamClient({
                     outStream: process.stdout,
                     errStream: process.stderr,
                 });
             }
 
-            if (!isMessageClient(logger)) {
+            if (!isMessageClient(client)) {
                 throw new Error(`API must be called with a MessageClient when using child process`);
             }
-            if (!logger.fromStream) {
+            if (!client.fromStream) {
                 throw new Error(`MessageClient does not support fromStream`);
             }
-            logger.fromStream(forked._childProcess.stdout);
+            client.fromStream(forked._childProcess.stdout);
 
             return await forked[funcName](opts, ...args);
         } finally {

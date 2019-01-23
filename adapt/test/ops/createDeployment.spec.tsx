@@ -175,7 +175,7 @@ function checkErrors(ds: DeployState, expected: RegExp[]) {
 
 describe("createDeployment Tests", async function () {
     let origServerTypes: AdaptServerType[];
-    let logger: MockLoggerClient;
+    let client: MockLoggerClient;
     let adaptUrl: string;
     let server_: AdaptServer;
 
@@ -205,7 +205,7 @@ describe("createDeployment Tests", async function () {
         if (server_) await server_.destroy();
     });
     beforeEach(() => {
-        logger = createMockLoggerClient();
+        client = createMockLoggerClient();
     });
     afterEach(async () => {
         stdout.stop();
@@ -225,7 +225,7 @@ describe("createDeployment Tests", async function () {
             fileName: "index.tsx",
             initLocalServer: true,
             initialStateJson: "{}",
-            logger,
+            client,
             projectName: "myproject",
             stackName,
         });
@@ -285,7 +285,7 @@ describe("createDeployment Tests", async function () {
         should(ds.deployID).match(/myproject::default-[a-z]{4}/);
         should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
@@ -301,7 +301,7 @@ describe("createDeployment Tests", async function () {
         should(ds.stateJson).equal("{}");
         should(ds.deployID).match(/myproject::promises-[a-z]{4}/);
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
@@ -336,7 +336,7 @@ describe("createDeployment Tests", async function () {
             adaptUrl,
             deployID: ds.deployID,
             fileName: "index.tsx",
-            logger,
+            client,
             stackName: "default",
         });
 
@@ -358,7 +358,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds1.stateJson).equal("{}");
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
@@ -371,7 +371,7 @@ describe("createDeployment Tests", async function () {
             adaptUrl,
             deployID: ds1.deployID,
             fileName: "index.tsx",
-            logger,
+            client,
             prevStateJson: "{}",
             stackName: "default",
         });
@@ -393,7 +393,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds1.stateJson).equal("{}");
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
@@ -415,7 +415,7 @@ describe("createDeployment Tests", async function () {
         should(stdout.output).match(/Props: undefined null/);
         should(stdout.output).match(/Props: { mockById: { idSquared: 1 } } null/);
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
@@ -429,7 +429,7 @@ describe("createDeployment Tests", async function () {
             adaptUrl,
             deployID: ds1.deployID,
             fileName: "index.tsx",
-            logger,
+            client,
             prevStateJson: "{}",
             stackName: "ObserverToSimple",
         });
@@ -461,7 +461,7 @@ describe("createDeployment Tests", async function () {
 
         should(ds1.needsData).eql({ neverObserve: [{ query: "{\n  mockById(id: \"1\") {\n    idSquared\n  }\n}\n" }] });
 
-        const lstdout = logger.stdout;
+        const lstdout = client.stdout;
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);

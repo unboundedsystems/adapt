@@ -22,7 +22,7 @@ export async function listDeployments(options: ListOptions): Promise<ListRespons
     const setup = {
         name: "listDeployments",
         description: "Listing deployments",
-        logger: options.logger,
+        ...options,
     };
     return withOpsSetup(setup, async (info): Promise<ListResponse> => {
         const { logger } = info;

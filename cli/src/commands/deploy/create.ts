@@ -40,8 +40,10 @@ export default class CreateCommand extends DeployOpBase {
 
         let deployStateP: Promise<DeployState>;
 
-        addDynamicTask(this.tasks, ctx.msgClient, {
-            id: "main",
+        const loggerId = `${ctx.logger.from}:create`;
+
+        addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
+            id: loggerId,
             title: "Creating new project deployment",
             adoptable: true,
             initiate: () => {
@@ -51,8 +53,10 @@ export default class CreateCommand extends DeployOpBase {
                     adaptUrl: ctx.adaptUrl,
                     debug: ctx.debug,
                     dryRun: ctx.dryRun,
+                    client: ctx.client,
                     fileName: ctx.projectFile,
-                    logger: ctx.msgClient,
+                    logger: ctx.logger,
+                    loggerId,
                     projectName: ctx.project.name,
                     stackName: ctx.stackName,
                     initLocalServer: this.flags.init,

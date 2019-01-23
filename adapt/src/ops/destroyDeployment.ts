@@ -24,7 +24,9 @@ export async function destroyDeployment(optionsIn: DestroyOptions): Promise<ApiR
     const setup = {
         name: "destroyDeployment",
         description: "Destroying deployment",
+        client: options.client,
         logger: options.logger,
+        loggerId: options.loggerId,
     };
     return withOpsSetup(setup, async (info) => {
         const { adaptUrl, deployID, } = options;

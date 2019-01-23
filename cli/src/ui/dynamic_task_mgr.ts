@@ -10,13 +10,16 @@ export interface DynamicTaskDef {
 }
 
 export function addDynamicTask(
-    listr: Listr,
+    listr: Listr,    // The listr where this dynamic task will be added
+    listrId: string, // The task ID that corresponds to this listr
     msgClient: MessageClient,
     taskDef: DynamicTaskDef) {
 
-    const registry = new TaskRegistry(listr);
+    const registry = new TaskRegistry(listr, listrId);
 
-    msgClient.task.on("task:**", (event, status, from) => {
+    // Listen for all task events for all tasks in the task hierarchy under taskDef.id
+    msgClient.task.on(`task:*:${taskDef.id}:**`, (event, status, from) => {
+    //msgClient.task.on(`task:**`, (event, status, from) => {
         if (event === TaskEvent.Created) {
             createTask(registry, {
                 id: from,
@@ -93,14 +96,14 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
 class TaskRegistry {
     tasks = new Map<string, ListrTaskStatus>();
 
-    constructor(readonly rootListr: Listr) {}
+    constructor(private rootListr: Listr, private rootListrId: string) { }
 
     get(id: string) { return this.tasks.get(id); }
     set(id: string, tStatus: ListrTaskStatus) { return this.tasks.set(id, tStatus); }
 
     getParent(child: string): ListrTaskStatus | undefined {
         const parentId = parent(child);
-        if (parentId === "") return undefined;
+        if (parentId === this.rootListrId) return undefined;
         const parentStatus = this.get(parentId);
         if (!parentStatus) throw new Error(`Can't find parent status for ${parentId} for child ${child}`);
         return parentStatus;

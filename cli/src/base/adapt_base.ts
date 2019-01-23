@@ -1,5 +1,13 @@
 import { Command } from "@oclif/command";
-import { getErrors, getWarnings } from "@usys/utils";
+import {
+    getErrors,
+    getWarnings,
+    MessageClient,
+    MessageLogger,
+    MessageStreamClient,
+    MessageStreamServer,
+} from "@usys/utils";
+import { PassThrough } from "stream";
 import { ApiResponse, ApiSuccess } from "../types/adapt_shared";
 
 // NOTE: type is any because the types for ListrOptions do not include the
@@ -58,4 +66,25 @@ export abstract class AdaptBase extends Command {
         }
         return true;
     }
+}
+
+export interface LoggerPair {
+    client: MessageClient;
+    logger: MessageLogger;
+}
+
+export function createLoggerPair(loggerId: string): LoggerPair {
+    const thru = new PassThrough();
+    const client = new MessageStreamClient({
+        inputStream: thru,
+        outStream: process.stdout,
+        errStream: process.stdout,
+    });
+    const logger = new MessageStreamServer(loggerId, {
+        outStream: thru,
+    });
+    return {
+        client,
+        logger,
+    };
 }

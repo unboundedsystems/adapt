@@ -24,12 +24,21 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
         ...defaultOptions,
         ...options
     };
-    const { adaptUrl, deployID, logger: _logger, ...buildOpts } = finalOptions;
+    const {
+        adaptUrl,
+        client,
+        deployID,
+        logger: _logger,
+        loggerId,
+        ...buildOpts
+    } = finalOptions;
 
     const setup = {
         name: "updateDeployment",
         description: "Updating deployment",
+        client,
         logger: _logger,
+        loggerId,
     };
     return withOpsSetup(setup, async (info): Promise<DeployState> => {
         const { taskObserver } = info;

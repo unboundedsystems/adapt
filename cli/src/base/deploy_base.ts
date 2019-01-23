@@ -1,11 +1,11 @@
 import { flags } from "@oclif/command";
-import { filePathToUrl, MessageClient, MessageStreamClient } from "@usys/utils";
+import { filePathToUrl, MessageClient, MessageLogger } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
-import { AdaptBase, defaultListrOptions } from "./adapt_base";
+import { AdaptBase, createLoggerPair, defaultListrOptions } from "./adapt_base";
 
 import {
     getGen,
@@ -22,7 +22,8 @@ export interface DeployCtx {
     adaptUrl: string;
     debug: string;
     dryRun?: boolean;
-    msgClient: MessageClient;
+    logger: MessageLogger;
+    client: MessageClient;
     projectFile?: string;
     stackName?: string;
 
@@ -66,13 +67,11 @@ export abstract class DeployBase extends AdaptBase {
             adaptUrl = filePathToUrl(dbFile);
         }
 
+        const pair = createLoggerPair("deploy");
         this.ctx = {
             adaptUrl,
-            msgClient: new MessageStreamClient({
-                outStream: process.stdout,
-                errStream: process.stderr,
-            }),
-            debug: this.flags.debug
+            debug: this.flags.debug,
+            ...pair,
         };
 
         const projectFile = path.resolve(this.flags.rootFile);

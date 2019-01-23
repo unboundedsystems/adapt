@@ -37,10 +37,12 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
 
     const {
         adaptUrl,
+        client,
         initLocalServer,
         initialStateJson,
         initialObservationsJson,
         logger: _logger,
+        loggerId,
         projectName,
         ...buildOpts
     } = finalOptions;
@@ -48,7 +50,9 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
     const setup = {
         name: "createDeployment",
         description: "Creating deployment",
+        client,
         logger: _logger,
+        loggerId,
     };
     return withOpsSetup(setup, async (info): Promise<DeployState> => {
         const { logger, taskObserver } = info;
