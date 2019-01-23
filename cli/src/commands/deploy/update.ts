@@ -24,7 +24,8 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
 
         let deployStateP: Promise<DeployState>;
 
-        const loggerId = `${ctx.logger.from}:update`;
+        const logger = ctx.logger.createChild("update");
+        const loggerId = logger.from;
 
         addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
             id: loggerId,
@@ -42,7 +43,7 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
                     client: ctx.client,
                     dryRun: ctx.dryRun,
                     fileName: ctx.projectFile,
-                    logger: ctx.logger,
+                    logger,
                     loggerId,
                     stackName: ctx.stackName,
                 };

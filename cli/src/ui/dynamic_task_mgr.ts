@@ -7,6 +7,9 @@ export interface DynamicTaskDef {
     title: string;
     initiate?: (context: any, task: Listr.ListrTaskWrapper) => any | Promise<any>;
     adoptable?: boolean;
+    // If task is a child group, allow the group to run when this many tasks
+    // have been Created in the group. Minimum 1. Default=1.
+    runOnChildTask?: number;
 }
 
 export function addDynamicTask(
@@ -19,7 +22,6 @@ export function addDynamicTask(
 
     // Listen for all task events for all tasks in the task hierarchy under taskDef.id
     msgClient.task.on(`task:*:${taskDef.id}:**`, (event, status, from) => {
-    //msgClient.task.on(`task:**`, (event, status, from) => {
         if (event === TaskEvent.Created) {
             createTask(registry, {
                 id: from,
@@ -41,7 +43,7 @@ interface ListrTaskStatus {
     task?: Listr.ListrTaskWrapper;
     childGroup?: Listr;
     dPromise: pDefer.DeferredPromise<void | Listr>;
-    childGroupStarted?: boolean;
+    childTasksNeeded: number;
 }
 
 function parent(id: string) {
@@ -117,8 +119,18 @@ class TaskRegistry {
     }
 }
 
+const createTaskDefaults = {
+    adoptable: false,
+    runOnChildTask: 1,
+};
+
 function createTask(registry: TaskRegistry, taskDef: DynamicTaskDef) {
-    const { id, title, initiate, adoptable = false } = taskDef;
+    const def = { ...createTaskDefaults, ...taskDef };
+    const { id, title, initiate, adoptable, runOnChildTask } = def;
+
+    if (!Number.isInteger(runOnChildTask) || runOnChildTask < 1) {
+        throw new Error(`createTask: runOnChildTask must be an integer >= 1`);
+    }
     let tStatus = registry.get(id);
 
     if (tStatus) {
@@ -131,6 +143,7 @@ function createTask(registry: TaskRegistry, taskDef: DynamicTaskDef) {
             status: undefined,
             adoptable,
             dPromise: pDefer(),
+            childTasksNeeded: runOnChildTask,
         };
         registry.set(id, tStatus);
     }
@@ -156,8 +169,9 @@ function createTask(registry: TaskRegistry, taskDef: DynamicTaskDef) {
 
     // Allow the task group to run once there's a task in the group
     const parentStat = registry.getParent(id);
-    if (parentStat && parentStat.childGroup && !parentStat.childGroupStarted) {
-        parentStat.childGroupStarted = true;
-        parentStat.dPromise.resolve(parentStat.childGroup);
+    if (parentStat && parentStat.childGroup && parentStat.childTasksNeeded > 0) {
+        if (--parentStat.childTasksNeeded === 0) {
+            parentStat.dPromise.resolve(parentStat.childGroup);
+        }
     }
 }

@@ -34,7 +34,8 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
 
         let resultP: Promise<ApiResponse>;
 
-        const loggerId = `${this.ctx.logger.from}:destroy`;
+        const logger = this.ctx.logger.createChild("destroy");
+        const loggerId = logger.from;
 
         addDynamicTask(this.tasks, this.ctx.logger.from, this.ctx.client, {
             id: loggerId,
@@ -59,7 +60,7 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
                     deployID: this.args.deployID,
                     dryRun: this.ctx.dryRun,
                     debug: this.ctx.debug,
-                    logger: this.ctx.logger,
+                    logger,
                     loggerId,
                 });
             }

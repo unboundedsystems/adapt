@@ -45,7 +45,8 @@ an alternate description file, "somefile.tsx":
 
         let deployStateP: Promise<DeployState>;
 
-        const loggerId = `${ctx.logger.from}:status`;
+        const logger = ctx.logger.createChild("status");
+        const loggerId = logger.from;
 
         addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
             id: loggerId,
@@ -62,7 +63,7 @@ an alternate description file, "somefile.tsx":
                     deployID,
                     dryRun: ctx.dryRun,
                     fileName: ctx.projectFile,
-                    logger: ctx.logger,
+                    logger,
                     loggerId,
                     stackName: ctx.stackName,
                 };

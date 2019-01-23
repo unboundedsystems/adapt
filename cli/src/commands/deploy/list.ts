@@ -60,7 +60,8 @@ export default class ListCommand extends DeployBase {
 
         let infoP: Promise<ListResponse>;
 
-        const loggerId = `${ctx.logger.from}:list`;
+        const logger = ctx.logger.createChild("list");
+        const loggerId = logger.from;
 
         addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
             id: loggerId,
@@ -70,7 +71,7 @@ export default class ListCommand extends DeployBase {
                 infoP = this.adapt.listDeployments({
                     adaptUrl: ctx.adaptUrl,
                     client: ctx.client,
-                    logger: ctx.logger,
+                    logger,
                     loggerId,
                 });
             }
