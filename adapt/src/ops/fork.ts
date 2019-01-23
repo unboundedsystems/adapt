@@ -29,10 +29,6 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
             stdio: [ "inherit", "pipe", "pipe", "ipc" ]
         });
 
-        // Ensure output from child goes to parent's output streams (which
-        // might not actually stream to real stdout/stderr file descriptors).
-        forked._childProcess.stderr.pipe(process.stderr, { end: false });
-
         try {
             // tslint:disable-next-line:prefer-const
             let { client, logger, ...opts } = options;
@@ -50,6 +46,12 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
                 throw new Error(`MessageClient does not support fromStream`);
             }
             client.fromStream(forked._childProcess.stdout);
+
+            if (client.errStream) {
+                // Ensure output from child goes to parent's output streams (which
+                // might not actually stream to real stdout/stderr file descriptors).
+                forked._childProcess.stderr.pipe(client.errStream, { end: false });
+            }
 
             return await forked[funcName](opts, ...args);
         } finally {
