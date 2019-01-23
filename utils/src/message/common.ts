@@ -223,6 +223,8 @@ export interface MessageClient {
     task: TaskEmitter;
     fromStream?: (this: MessageClient, inputStream: stream.Readable) => void;
     readonly isMessageClient: true;
+    readonly outStream?: stream.Writable;
+    readonly errStream?: stream.Writable;
 }
 
 export function isMessageClient(val: unknown): val is MessageClient {

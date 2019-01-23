@@ -5,7 +5,7 @@ import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
-import { AdaptBase, createLoggerPair, defaultListrOptions } from "./adapt_base";
+import { AdaptBase, createLoggerPair, defaultListrOptions, doLogging } from "./adapt_base";
 
 import {
     getGen,
@@ -67,7 +67,7 @@ export abstract class DeployBase extends AdaptBase {
             adaptUrl = filePathToUrl(dbFile);
         }
 
-        const pair = createLoggerPair("deploy");
+        const pair = createLoggerPair("deploy", doLogging);
         this.ctx = {
             adaptUrl,
             debug: this.flags.debug,

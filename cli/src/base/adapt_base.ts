@@ -16,6 +16,10 @@ export const defaultListrOptions: any = {
     collapse: false,  // For update-renderer
 };
 
+// We're using the default Listr renderer, which controls the screen if we're
+// outputting to a TTY. So don't do logging if we're on a TTY.
+export const doLogging = !process.stdout.isTTY;
+
 export interface HandleResponseOptions {
     errorMessage?: string;
     action?: string;
@@ -73,12 +77,12 @@ export interface LoggerPair {
     logger: MessageLogger;
 }
 
-export function createLoggerPair(loggerId: string): LoggerPair {
+export function createLoggerPair(loggerId: string, logging: boolean): LoggerPair {
     const thru = new PassThrough();
     const client = new MessageStreamClient({
         inputStream: thru,
-        outStream: process.stdout,
-        errStream: process.stdout,
+        outStream: logging ? process.stdout : undefined,
+        errStream: logging ? process.stderr : undefined,
     });
     const logger = new MessageStreamServer(loggerId, {
         outStream: thru,

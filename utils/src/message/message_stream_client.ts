@@ -23,8 +23,8 @@ export interface MessageStreamClientOptions {
 
 export class MessageStreamClient implements MessageClient {
     readonly isMessageClient: true = true;
-    protected outStream?: stream.Writable;
-    protected errStream?: stream.Writable;
+    outStream?: stream.Writable;
+    errStream?: stream.Writable;
     private emitters: Emitters = {};
 
     constructor(options: MessageStreamClientOptions = {}) {
