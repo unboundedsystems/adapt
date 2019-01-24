@@ -255,7 +255,8 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
                 await mgr.start(prevDom, newDom, {
                     dataDir: path.join(dataDir, "plugins"),
                     deployID: deployment.deployID,
-                    logger,
+                    logger: tasks.act.logger,
+                    taskObserver: tasks.act,
                 });
                 return mgr.observe();
             });

@@ -27,7 +27,11 @@ export {
 } from "./is_equal_unordered_arrays";
 
 export {
+    TaskDefinitions,
     TaskObserver,
+    TaskObservers,
+    TaskObserversKnown,
+    TaskObserversUnknown,
     TaskGroup,
     TaskGroupOptions,
     createTaskObserver
