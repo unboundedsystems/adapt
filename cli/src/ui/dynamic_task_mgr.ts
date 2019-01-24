@@ -72,6 +72,7 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
             break;
         case TaskEvent.Skipped:
             if (task) task.skip(status || "");
+            taskStatus.dPromise.resolve();
             break;
         case TaskEvent.Failed:
             taskStatus.dPromise.reject(new Error(status));
