@@ -81,6 +81,8 @@ export default class CreateCommand extends DeployOpBase {
                 if (!this.isDeploySuccess(deployState)) return;
                 this.deployInformation(deployState);
 
+                if (ctx.dryRun) return;
+
                 const id = deployState.deployID;
 
                 this.appendOutput(`Deployment created successfully. DeployID is: ${id}`);
