@@ -63,7 +63,7 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
     }
 
     if (status == null) status = taskStatus.status;
-    else taskStatus.status = status;
+    else if (event !== TaskEvent.ChildGroup) taskStatus.status = status;
 
     switch (event) {
         case TaskEvent.Complete:
