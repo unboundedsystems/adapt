@@ -9,7 +9,8 @@ import { mkdtmp } from "@usys/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
-import randomstring from "randomstring";
+import { useAsync } from "./hooks";
+import { dockerBuild, DockerBuildOptions, ImageInfo } from "./LocalDockerBuild";
 
 async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
     const tmpDir = await mkdtmp(prefix);
@@ -164,9 +165,3 @@ export function useTypescriptBuild(srcDir: string,
     return { image: buildState, buildObj: null };
 }
 
-//Note(manishv) Break this out into a separate file
-export function useAsync<T>(f: () => Promise<T> | T, initial: T): T {
-    const [val, setVal] = useState(initial);
-    setVal(f);
-    return val;
-}
