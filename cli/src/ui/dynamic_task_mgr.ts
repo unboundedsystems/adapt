@@ -1,6 +1,9 @@
 import { badTaskEvent, MessageClient, TaskEvent, TaskGroupOptions, TaskState } from "@usys/utils";
+import db from "debug";
 import Listr from "listr";
 import pDefer from "p-defer";
+
+const debug = db("cli:tasks");
 
 export interface DynamicTaskDef {
     id: string;
@@ -22,6 +25,7 @@ export function addDynamicTask(
 
     // Listen for all task events for all tasks in the task hierarchy under taskDef.id
     msgClient.task.on(`task:*:${taskDef.id}:**`, (event, status, from) => {
+        debug(`Dynamic task event ${event} (${from}) ${status || ""}`);
         if (event === TaskEvent.Created) {
             createTask(registry, {
                 id: from,
