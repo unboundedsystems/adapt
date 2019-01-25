@@ -43,22 +43,31 @@ export async function fetchStatus(options: StatusOptions): Promise<DeployState> 
     return withOpsSetup(setup, async (info): Promise<DeployState> => {
         const { logger, taskObserver } = info;
         try {
-            const server = await adaptServer(adaptUrl, {});
-            const deployment = await loadDeployment(server, deployID);
-            const currState = await currentState({
-                deployment,
-                taskObserver,
-                ...buildOpts
+            const tasks = taskObserver.childGroup().add({
+                load: "Getting deployment information",
+                compile: "Compiling project",
+                status: "Querying status",
+            });
+
+            const currState = await tasks.load.complete(async () => {
+                const server = await adaptServer(adaptUrl, {});
+                const deployment = await loadDeployment(server, deployID);
+                return currentState({
+                    deployment,
+                    taskObserver,
+                    ...buildOpts
+                });
             });
 
             let result: BuildResults | undefined;
             let needsData: ObserversThatNeedData | undefined;
             await withContext(currState, async (ctx) => {
-                result = await build({
+                result = await tasks.status.complete(() => build({
                     ...currState,
+                    taskObserver,
                     ctx,
                     withStatus: true
-                });
+                }));
 
                 const inAdapt = ctx.Adapt;
                 needsData = inAdapt.internal.simplifyNeedsData(result.needsData);

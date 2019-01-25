@@ -53,7 +53,7 @@ export interface BuildOptions {
     projectRoot?: string;
 }
 
-interface FullBuildOptions extends Required<BuildOptions> {
+export interface FullBuildOptions extends Required<BuildOptions> {
     ctx?: AdaptContext;
 }
 
@@ -164,6 +164,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
 
         return {
             ...options,
+            ctx,
             domXml: inAdapt.serializeDom(newDom, true),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
                 podify(await mountedOrig.status()) : { noStatus: true },
@@ -210,7 +211,9 @@ export async function withContext<T>(
     let ctx: AdaptContext | undefined = options.ctx;
     if (ctx === undefined) {
         // Compile and run the project
-        ctx = projectExec(options.projectRoot, options.fileName);
+        const task = options.taskObserver.childGroup().task("compile");
+        const exec = () => projectExec(options.projectRoot, options.fileName);
+        ctx = task ? await task.complete(exec) : exec();
     }
     return f(ctx);
 }
@@ -326,6 +329,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     const initial = await currentState(options);
     const topTask = options.taskObserver;
     const tasks = topTask.childGroup().add({
+        compile: "Compiling project",
         build: "Building DOM",
         observe: "Observing environment",
         rebuild: "Rebuilding DOM",
