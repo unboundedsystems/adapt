@@ -1,4 +1,4 @@
-import * as Adapt from "../src";
+import Adapt, { Children } from "../src";
 
 import should = require("should");
 
@@ -166,6 +166,40 @@ describe("JSX cloneElement Tests", () => {
                                           {children: [<Adapt.Group />]},
                                           <Dummy2 />, <Dummy2 />);
         checkChildComponents(element, Dummy2, Dummy2);
+    });
+
+});
+
+describe("JSX Child Handling Tests", () => {
+    function Test(props: {} & Children<string | number>) {
+        return null;
+    }
+
+    it("Singleton Child should be accepted", () => {
+        const elem = <Test>
+            {"foo"}
+        </Test>;
+
+        should(elem.props.children).eql("foo");
+    });
+
+    it("Multiple Children should be accepted", () => {
+        const elem = <Test>
+            {"foo"}
+            {"bar"}
+        </Test>;
+
+        should(elem.props.children).eql(["foo", "bar"]);
+    });
+
+    it("Array Children should be accepted and flattened", () => {
+        const elem = <Test>
+            {["foo", 3]}
+            {"bar"}
+            {[4, 5]}
+        </Test>;
+
+        should(elem.props.children).eql(["foo", 3, "bar", 4, 5]);
     });
 
 });
