@@ -34,7 +34,9 @@ export interface ContainerPort {
     protocol?: string;
 }
 
-export interface EnvVar {
+export type EnvVar = EnvVarSimple | EnvVarFrom;
+
+export interface EnvVarSimple {
     // Name of the environment variable. Must be a C_IDENTIFIER.
     name: string;
     // Variable references $(VAR_NAME) are expanded using the previous defined
@@ -46,7 +48,10 @@ export interface EnvVar {
     value: string;
     // Source for the environment variable's value. Cannot be used if value is
     // not empty.
-    //valueFrom?: EnvVarSource; // NOTE(mark): Not implemented yet.
+}
+
+export interface EnvVarFrom {
+    valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
 export function k8sContainerProps(abstractProps: ctr.ContainerProps): K8sContainerProps {
