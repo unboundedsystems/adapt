@@ -67,12 +67,15 @@ export default class ListCommand extends DeployBase {
             id: loggerId,
             title: "Listing Deployments",
             adoptable: true,
-            initiate: () => {
+            initiate: (_ctx, task) => {
                 infoP = this.adapt.listDeployments({
                     adaptUrl: ctx.adaptUrl,
                     client: ctx.client,
                     logger,
                     loggerId,
+                }).catch((err) => {
+                    task.fail(err);
+                    throw err;
                 });
             }
         });

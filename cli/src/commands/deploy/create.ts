@@ -47,7 +47,7 @@ export default class CreateCommand extends DeployOpBase {
             id: loggerId,
             title: "Creating new project deployment",
             adoptable: true,
-            initiate: () => {
+            initiate: (_ctx, task) => {
                 if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
 
                 const createOptions: CreateOptions = {
@@ -69,6 +69,10 @@ export default class CreateCommand extends DeployOpBase {
                                 `The project did not import any Adapt plugins`);
                         }
                         if (err instanceof UserError) this.error(err.message);
+                        throw err;
+                    })
+                    .catch((err) => {
+                        task.fail(err);
                         throw err;
                     });
             }

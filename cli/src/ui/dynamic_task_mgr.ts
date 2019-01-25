@@ -5,10 +5,14 @@ import pDefer from "p-defer";
 
 const debug = db("cli:tasks");
 
+export interface DynamicTaskWrapper extends Listr.ListrTaskWrapper {
+    fail: (error: Error) => void;
+}
+
 export interface DynamicTaskDef {
     id: string;
     title: string;
-    initiate?: (context: any, task: Listr.ListrTaskWrapper) => any | Promise<any>;
+    initiate?: (context: any, task: DynamicTaskWrapper) => any | Promise<any>;
     adoptable?: boolean;
     // If task is a child group, allow the group to run when this many tasks
     // have been Created in the group. Minimum 1. Default=1.
@@ -157,7 +161,7 @@ function createTask(registry: TaskRegistry, taskDef: DynamicTaskDef) {
     const taskgroup = registry.getParentListr(id);
     taskgroup.add({
         title,
-        task: (ctx, task) => {
+        task: (ctx, task: DynamicTaskWrapper) => {
             const cur = registry.get(id);
             if (!cur) throw new Error(`Cannot find task ${id}`);
             if (cur.task) throw new Error(`Task ${id} already has a task object`);
@@ -165,6 +169,7 @@ function createTask(registry: TaskRegistry, taskDef: DynamicTaskDef) {
             updateTask(registry, id);
 
             if (initiate) {
+                task.fail = (err: Error) => cur.dPromise.reject(err);
                 const ret = initiate(ctx, task);
                 return Promise.resolve(ret)
                     .then(() => cur.dPromise.promise);

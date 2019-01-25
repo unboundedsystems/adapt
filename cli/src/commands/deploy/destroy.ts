@@ -62,6 +62,9 @@ Stop the deployment "myproj-dev-abcd" using the default project description file
                     debug: this.ctx.debug,
                     logger,
                     loggerId,
+                }).catch((err) => {
+                    task.fail(err);
+                    throw err;
                 });
             }
         });

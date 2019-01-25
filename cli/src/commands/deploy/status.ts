@@ -52,7 +52,7 @@ an alternate description file, "somefile.tsx":
             id: loggerId,
             title: "Fetching status for project deployment",
             adoptable: true,
-            initiate: () => {
+            initiate: (_ctx, task) => {
                 if (ctx.project == null) {
                     throw new Error(`Internal error: project cannot be null`);
                 }
@@ -70,6 +70,10 @@ an alternate description file, "somefile.tsx":
                 deployStateP = ctx.project.status(statusOptions)
                     .catch((err) => {
                         if (err instanceof UserError) this.error(err.message);
+                        throw err;
+                    })
+                    .catch((err) => {
+                        task.fail(err);
                         throw err;
                     });
             }
