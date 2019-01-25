@@ -9,6 +9,8 @@ export enum MessageType {
     warning = "warning",
     error = "error",
     task = "task",
+    stdout = "stdout",
+    stderr = "stderr",
 }
 
 export interface Message {
@@ -31,6 +33,8 @@ function validType(val: unknown) {
         case "warning":
         case "error":
         case "task":
+        case "stdout":
+        case "stderr":
             return true;
     }
     return false;
@@ -57,6 +61,8 @@ export interface MessageSummary {
     warning: number;
     error: number;
     task: number;
+    stdout: number;
+    stderr: number;
 }
 
 export interface MessageLogger {
@@ -92,6 +98,8 @@ export class LocalStore implements MessageStore {
         warning: 0,
         error: 0,
         task: 0,
+        stdout: 0,
+        stderr: 0,
     };
     store(msg: Message) {
         this.messages.push(msg);

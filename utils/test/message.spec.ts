@@ -1,6 +1,7 @@
 import pDefer from "p-defer";
 import should from "should";
 import sinon from "sinon";
+import { stderr, stdout } from "stdout-stderr";
 import { PassThrough } from "stream";
 import { ReadableStreamBuffer, WritableStreamBuffer } from "stream-buffers";
 import {
@@ -11,11 +12,11 @@ import {
     MessageType,
 } from "../src/message";
 
-function checkMessage(msg: any, type: string, id = "testid") {
+function checkMessage(msg: any, type: string, id = "testid", cr = "") {
     should(msg).be.an.Object();
     should(msg.from).equal(id);
     should(msg.type).equal(type);
-    should(msg.content).equal(`Testing ${type} from ${id}`);
+    should(msg.content).equal(`Testing ${type} from ${id}${cr}`);
     should(msg.timestamp).be.a.Number();
 }
 
@@ -41,21 +42,28 @@ describe("MessageStreamer tests", () => {
         should(ms.messages[1].content).equal("Testing error");
         should(ms.messages[1].from).equal("MS Test");
 
-        const stdout = outStream.getContentsAsString();
-        const stderr = errStream.getContentsAsString();
-        should(stdout).match(/^.*\[MS Test\] INFO: Testing info\n$/);
-        should(stderr).match(/^.*\[MS Test\] ERROR: Testing error\n$/);
+        const out = outStream.getContentsAsString();
+        const err = errStream.getContentsAsString();
+        should(out).match(/^.*\[MS Test\] INFO: Testing info\n$/);
+        should(err).match(/^.*\[MS Test\] ERROR: Testing error\n$/);
 
         should(ms.summary).eql({
             info: 1,
             warning: 0,
             error: 1,
-            task: 0
+            task: 0,
+            stdout: 0,
+            stderr: 0,
         });
     });
 });
 
 describe("MessageStreamServer tests", () => {
+    afterEach(() => {
+        stdout.stop();
+        stderr.stop();
+    });
+
     it("Should combine messages onto output stream", () => {
         const outStream = new WritableStreamBuffer();
         const server = new MessageStreamServer("testid", { outStream });
@@ -84,7 +92,9 @@ describe("MessageStreamServer tests", () => {
             info: 1,
             warning: 1,
             error: 1,
-            task: 1
+            task: 1,
+            stdout: 0,
+            stderr: 0,
         });
     });
 
@@ -118,8 +128,62 @@ describe("MessageStreamServer tests", () => {
             info: 1,
             warning: 1,
             error: 1,
-            task: 1
+            task: 1,
+            stdout: 0,
+            stderr: 0,
         });
+    });
+
+    it("Should intercept stdout and stderr", () => {
+        // tslint:disable:no-console
+        const outStream = new WritableStreamBuffer();
+        stdout.start();
+        stderr.start();
+        const root = new MessageStreamServer("root", {
+            outStream,
+            interceptStdio: true,
+        });
+
+        try {
+            root.warning("Testing warning from root");
+            console.log("Testing stdout from root");
+            console.error("Testing stderr from root");
+
+            should(root.messages).have.length(3);
+            checkMessage(root.messages[0], "warning", "root");
+            checkMessage(root.messages[1], "stdout", "root", "\n");
+            checkMessage(root.messages[2], "stderr", "root", "\n");
+
+            const out = outStream.getContentsAsString();
+            const jsons = out.split("\n").filter((s) => s);
+            const msgs = jsons.map((s) => JSON.parse(s));
+            should(msgs).have.length(3);
+            checkMessage(msgs[0], "warning", "root");
+            checkMessage(msgs[1], "stdout", "root", "\n");
+            checkMessage(msgs[2], "stderr", "root", "\n");
+
+            should(root.summary).eql({
+                info: 0,
+                warning: 1,
+                error: 0,
+                task: 0,
+                stdout: 1,
+                stderr: 1,
+            });
+
+            should(stdout.output).equal("");
+            should(stderr.output).equal("");
+
+        } finally {
+            root.stopIntercept();
+            console.log("Testing stdout");
+            console.error("Testing stderr");
+            stdout.stop();
+            stderr.stop();
+            should(stdout.output).equal("Testing stdout\n");
+            should(stderr.output).equal("Testing stderr\n");
+        }
+        // tslint:enaable:no-console
     });
 });
 

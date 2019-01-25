@@ -68,7 +68,10 @@ async function setupLogger(options: WithLogger): Promise<MessageLogger> {
     const loggerId = options.loggerId || "main";
 
     if (process.env.ADAPT_OP_FORKED) { // child process
-        return new MessageStreamServer(loggerId, { outStream: process.stdout });
+        return new MessageStreamServer(loggerId, {
+            outStream: process.stdout,
+            interceptStdio: true,
+        });
     }
 
     if (isMessageLogger(options.client)) return options.client;

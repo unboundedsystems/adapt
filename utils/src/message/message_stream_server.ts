@@ -1,4 +1,5 @@
-import stream from "stream";
+import { isFunction, isString } from "lodash";
+import { Writable } from "stream";
 import { format } from "util";
 import { Constructor } from "../common_types";
 import {
@@ -12,15 +13,22 @@ import {
 
 export interface MessageStreamServerOptions {
     parent?: MessageStreamServer;
-    outStream?: stream.Writable;
+    outStream?: Writable;
     store?: MessageStore;
+    interceptStdio?: boolean;
 }
+
+type WriteCallback = (error: Error | null | undefined) => void;
+
+const intercepted = new Map<Writable, Writable["write"]>();
 
 export class MessageStreamServer implements MessageLogger {
     readonly from: string;
-    readonly outStream: stream.Writable;
+    readonly outStream: Writable;
     readonly isMessageLogger: true = true;
     protected store: MessageStore;
+    protected write: Writable["write"];
+    protected intercepting = false;
 
     constructor(id: string, options: MessageStreamServerOptions = {}) {
         const outStream = options.outStream || (options.parent && options.parent.outStream);
@@ -33,6 +41,13 @@ export class MessageStreamServer implements MessageLogger {
             (options.parent && options.parent.store) ||
             new LocalStore();
         this.from = options.parent ? `${options.parent.from}:${id}` : id;
+
+        this.write = outStream.write.bind(outStream);
+        if (options.interceptStdio) {
+            this.intercept(process.stdout, MessageType.stdout);
+            this.intercept(process.stderr, MessageType.stderr);
+            this.intercepting = true;
+        }
     }
 
     get messages() {
@@ -76,12 +91,44 @@ export class MessageStreamServer implements MessageLogger {
         for (const m of toAppend) { this.message(m); }
     }
 
-    message = (msg: Message) => {
+    message = (msg: Message, cb?: WriteCallback): boolean => {
         this.store.store(msg);
-        this.outStream.write(JSON.stringify(msg) + "\n");
+        return this.write(JSON.stringify(msg) + "\n", cb);
     }
 
     createChild(id: string): this {
-        return new (this.constructor as Constructor<this>)(id, { parent: this });
+        return new (this.constructor as Constructor<this>)(id, {
+            parent: this,
+            interceptConsole: false,
+        });
+    }
+
+    stopIntercept() {
+        if (!this.intercepting || intercepted.size === 0) return;
+        intercepted.forEach((origWrite, stream) => {
+            stream.write = origWrite;
+        });
+        intercepted.clear();
+        this.intercepting = false;
+    }
+
+    private intercept(toIntercept: Writable, type: MessageType) {
+        if (intercepted.has(toIntercept)) {
+            throw new Error(`Only one stdio interceptor can be used at a time`);
+        }
+        intercepted.set(toIntercept, toIntercept.write);
+
+        // write(chunk: any, cb?: (error: Error | null | undefined) => void): boolean;
+        // write(chunk: any, encoding?: string, cb?: (error: Error | null | undefined) => void): boolean;
+        toIntercept.write = (chunk: any, encodingOrCb?: string | WriteCallback, cb?: WriteCallback): boolean => {
+            if (isFunction(encodingOrCb)) cb = encodingOrCb;
+            if (!isString(chunk)) chunk = chunk.toString();
+            return this.message({
+                type,
+                timestamp: Date.now(),
+                from: this.from,
+                content: chunk,
+            }, cb);
+        };
     }
 }

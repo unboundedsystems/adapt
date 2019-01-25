@@ -74,6 +74,12 @@ export class MessageStreamClient implements MessageClient {
                 const { event, status } = parseTaskContent(msg.content);
                 em.emit(`task:${event}:${msg.from}`, event, status, msg.from);
                 break;
+            case MessageType.stdout:
+                if (this.outStream) this.outStream.write(msg.content);
+                break;
+            case MessageType.stderr:
+                if (this.errStream) this.errStream.write(msg.content);
+                break;
             default:
                 return badMessageType(msg.type);
         }
