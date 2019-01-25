@@ -157,6 +157,16 @@ export abstract class DeployOpBase extends DeployBase {
                     }
                 },
             },
+            {
+                title: "Installing node modules",
+                task: async () => {
+                    const project = this.ctx.project;
+                    if (project == null) {
+                        throw new Error(`Internal error: project is null`);
+                    }
+                    await project.installModules();
+                }
+            }
         ]);
     }
 

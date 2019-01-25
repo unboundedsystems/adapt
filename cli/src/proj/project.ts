@@ -118,6 +118,7 @@ type AdaptAction = (adapt: AdaptModule) => Promise<any>;
 
 export class Project {
     readonly name: string;
+    private installed = false;
     constructor(readonly manifest: pacote.Manifest,
                 readonly packageTree: yarn.ListTreeMods,
                 readonly options: ProjectOptionsComplete) {
@@ -149,11 +150,18 @@ export class Project {
         return this.deploy(options, (adapt) => adapt.fetchStatus(options));
     }
 
+    async installModules() {
+        if (this.installed) return;
+        await yarn.install(yarnInstallOptions(this.options));
+        this.installed = true;
+    }
+
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
         Promise<DeployState> {
+        if (!this.installed) {
+            throw new Error(`Internal error: must call installModules before any deploy operation`);
+        }
         const projectRoot = this.options.session.projectDir;
-
-        await yarn.install(yarnInstallOptions(this.options));
 
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;
