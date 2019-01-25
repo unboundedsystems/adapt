@@ -42,7 +42,7 @@ export class MessageStreamServer implements MessageLogger {
             new LocalStore();
         this.from = options.parent ? `${options.parent.from}:${id}` : id;
 
-        this.write = outStream.write.bind(outStream);
+        this.write = options.parent ? options.parent.write : outStream.write.bind(outStream);
         if (options.interceptStdio) {
             this.intercept(process.stdout, MessageType.stdout);
             this.intercept(process.stderr, MessageType.stderr);
