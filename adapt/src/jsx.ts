@@ -520,7 +520,13 @@ export function cloneElement(
     }
 }
 
-export function childrenToArray(propsChildren: any | any[] | undefined): any[] {
+type PrimitiveChildType<T> =
+    T extends (infer U | (infer U)[])[] ? U :
+    T extends (infer V)[][] ? V :
+    T extends (infer W)[] ? W :
+    T;
+
+export function childrenToArray<T>(propsChildren: T | undefined): PrimitiveChildType<T>[] {
     const ret = simplifyChildren(propsChildren);
     if (ret == null) return [];
     if (!Array.isArray(ret)) return [ret];
