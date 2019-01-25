@@ -188,7 +188,11 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
 
         await addToNetwork(self, network);
 
-        stops.unshift(async () => removeFromNetwork(self, network));
+        // If it's a shared minikube, we don't have an in-use count, so just
+        // leave self connected.
+        if (!process.env.ADAPT_TEST_MINIKUBE) {
+            stops.unshift(async () => removeFromNetwork(self, network));
+        }
 
         const exec = (command: string[]) => dockerExec(container, command);
         return { docker, container, network, kubeconfig, stop, exec };
