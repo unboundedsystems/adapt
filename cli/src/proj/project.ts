@@ -150,10 +150,17 @@ export class Project {
         return this.deploy(options, (adapt) => adapt.fetchStatus(options));
     }
 
-    async installModules() {
+    /**
+     * NOTE: This function is purposely NOT async and returns the promise-like
+     * execa ChildProcess object, NOT a promise to that object. That gives
+     * the caller access to the output streams without having to wait for
+     * completion of the yarn process.
+     */
+    installModules() {
         if (this.installed) return;
-        await yarn.install(yarnInstallOptions(this.options));
-        this.installed = true;
+        const ret = yarn.install(yarnInstallOptions(this.options));
+        ret.then(() => this.installed = true).catch();
+        return ret;
     }
 
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):

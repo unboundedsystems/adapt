@@ -5,6 +5,7 @@ import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
+import { taskObservable } from "../ui";
 import { AdaptBase, createLoggerPair, defaultListrOptions, doLogging } from "./adapt_base";
 
 import {
@@ -164,7 +165,10 @@ export abstract class DeployOpBase extends DeployBase {
                     if (project == null) {
                         throw new Error(`Internal error: project is null`);
                     }
-                    await project.installModules();
+                    const ret = project.installModules();
+                    if (!ret) return;
+
+                    return taskObservable(ret.stdout, ret);
                 }
             }
         ]);
