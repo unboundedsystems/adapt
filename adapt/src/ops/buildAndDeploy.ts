@@ -1,3 +1,4 @@
+import db from "debug";
 import * as path from "path";
 
 /*
@@ -38,6 +39,8 @@ import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
 import { DeployState, DeploySuccess, parseDebugString } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
+
+const debugAction = db("adapt:ops:action");
 
 export interface BuildOptions {
     debug: string;
@@ -184,13 +187,15 @@ interface ObserveOptions extends ObserveResults {
 }
 
 export async function observe(options: ObserveOptions): Promise<ObserveResults> {
-    return withContext(options, async (ctx: AdaptContext) => {
+    debugAction(`observe: start`);
+    const ret = withContext(options, async (ctx: AdaptContext) => {
         const { taskObserver } = options;
         const logger = taskObserver.logger;
 
         const origObservations = parseFullObservationsJson(options.observationsJson);
         // This is the inner context's copy of Adapt
         const inAdapt = ctx.Adapt;
+        debugAction(`observe: run observers`);
         const observations = await inAdapt.internal.observe(options.executedQueries, logger);
         inAdapt.internal.patchInNewQueries(observations, options.executedQueries);
         const { executedQueries, ...orig } = options;
@@ -202,6 +207,8 @@ export async function observe(options: ObserveOptions): Promise<ObserveResults> 
             })
         };
     });
+    debugAction(`observe: done`);
+    return ret;
 }
 
 export async function withContext<T>(
@@ -211,9 +218,11 @@ export async function withContext<T>(
     let ctx: AdaptContext | undefined = options.ctx;
     if (ctx === undefined) {
         // Compile and run the project
+        debugAction(`buildAndDeploy: compile start`);
         const task = options.taskObserver.childGroup().task("compile");
         const exec = () => projectExec(options.projectRoot, options.fileName);
         ctx = task ? await task.complete(exec) : exec();
+        debugAction(`buildAndDeploy: compile done`);
     }
     return f(ctx);
 }
@@ -326,6 +335,7 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
 }
 
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
+    debugAction(`buildAndDeploy: start`);
     const initial = await currentState(options);
     const topTask = options.taskObserver;
     const tasks = topTask.childGroup().add({
@@ -337,7 +347,8 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
     });
     await immediatePromise();
 
-    return withContext(initial, async (ctx: AdaptContext) => {
+    const ret = withContext(initial, async (ctx: AdaptContext) => {
+        debugAction(`buildAndDeploy: build`);
         const build1 = await tasks.build.complete(() => build({
             ...initial,
             ctx,
@@ -348,16 +359,21 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             ...build1,
             taskObserver: tasks.observe
         };
+        debugAction(`buildAndDeploy: observe`);
         const obs = await tasks.observe.complete(() => observe(observeOptions));
         const { needsData, ...build2Options } = obs;
+        debugAction(`buildAndDeploy: build 2`);
         const build2 = await tasks.rebuild.complete(() => build({
             ...build2Options,
             withStatus: true,
             taskObserver: tasks.rebuild
         }));
+        debugAction(`buildAndDeploy: deploy`);
         return tasks.deploy.complete(() => deploy({
             ...build2,
             taskObserver: tasks.deploy
         }));
     });
+    debugAction(`buildAndDeploy: done`);
+    return ret;
 }
