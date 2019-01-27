@@ -151,11 +151,13 @@ export class AwsEc2Observer implements ObserverPlugin {
     }
 
     observe = async (queries: ExecutedQuery[]): Promise<ObserverResponse<object>> => {
-        if (!observeSchema) observeSchema = buildObserveSchema();
         const observations = {};
-        const waitFor = queries.map((q) =>
-            Promise.resolve(execute(observeSchema, q.query, null, observations, q.variables)));
-        throwObserverErrors(await Promise.all(waitFor));
+        if (queries.length > 0) {
+            if (!observeSchema) observeSchema = buildObserveSchema();
+            const waitFor = queries.map((q) =>
+                Promise.resolve(execute(observeSchema, q.query, null, observations, q.variables)));
+            throwObserverErrors(await Promise.all(waitFor));
+        }
 
         return { context: observations };
     }
