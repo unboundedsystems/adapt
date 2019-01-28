@@ -6,3 +6,4 @@ export * from "./add";
 export * from "./cache";
 export * from "./install";
 export * from "./list";
+export * from "./publish";

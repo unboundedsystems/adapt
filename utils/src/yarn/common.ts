@@ -10,7 +10,6 @@ export interface CommonOptions {
     mutex?: string;
     noProgress?: boolean;
     registry?: string;
-    userconfig?: string;
 }
 
 export interface InternalOptions extends CommonOptions {
