@@ -9,12 +9,12 @@ export * from "./multi_error";
 export * from "./object_set";
 export { createPackageRegistry, PackageRegistry } from "./package_registry";
 export * from "./paths";
+export * from "./sleep";
 export * from "./type_check";
 export * from "./wait_for";
 
 import * as npm from "./npm";
 import { removeUndef } from "./removeUndef";
-import { sleep } from "./sleep";
 import * as yarn from "./yarn";
 
 export {
@@ -27,8 +27,18 @@ export {
 } from "./is_equal_unordered_arrays";
 
 export {
+    TaskDefinitions,
+    TaskObserver,
+    TaskObservers,
+    TaskObserversKnown,
+    TaskObserversUnknown,
+    TaskGroup,
+    TaskGroupOptions,
+    createTaskObserver
+} from "./task_observer";
+
+export {
     npm,
     removeUndef,
-    sleep,
     yarn,
 };

@@ -1,7 +1,9 @@
 import { flags } from "@oclif/command";
+
 import { cantDeploy, DeployOpBase } from "../../base";
 import { UserError } from "../../error";
-import { CreateOptions, DeployState, isDeploySuccess } from "../../types/adapt_shared";
+import { CreateOptions, DeployState } from "../../types/adapt_shared";
+import { addDynamicTask } from "../../ui/dynamic_task_mgr";
 
 export default class CreateCommand extends DeployOpBase {
     static description = "Create a new deployment for an Adapt project";
@@ -36,46 +38,60 @@ export default class CreateCommand extends DeployOpBase {
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        this.tasks.add([
-            {
-                title: "Creating new project deployment",
-                task: async () => {
-                    if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
+        let deployStateP: Promise<DeployState>;
 
-                    let deployState: DeployState;
-                    try {
-                        const createOptions: CreateOptions = {
-                            adaptUrl: ctx.adaptUrl,
-                            debug: ctx.debug,
-                            dryRun: ctx.dryRun,
-                            fileName: ctx.projectFile,
-                            projectName: ctx.project.name,
-                            stackName: ctx.stackName,
-                            initLocalServer: this.flags.init,
-                        };
-                        deployState = await ctx.project.create(createOptions);
+        const logger = ctx.logger.createChild("create");
+        const loggerId = logger.from;
 
-                    } catch (err) {
+        addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
+            id: loggerId,
+            title: "Creating new project deployment",
+            adoptable: true,
+            initiate: (_ctx, task) => {
+                if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
+
+                const createOptions: CreateOptions = {
+                    adaptUrl: ctx.adaptUrl,
+                    debug: ctx.debug,
+                    dryRun: ctx.dryRun,
+                    client: ctx.client,
+                    fileName: ctx.projectFile,
+                    logger,
+                    loggerId,
+                    projectName: ctx.project.name,
+                    stackName: ctx.stackName,
+                    initLocalServer: this.flags.init,
+                };
+                deployStateP = ctx.project.create(createOptions)
+                    .catch((err) => {
                         if (err.message.match(/No plugins registered/)) {
                             this.error(cantDeploy +
                                 `The project did not import any Adapt plugins`);
                         }
                         if (err instanceof UserError) this.error(err.message);
                         throw err;
-                    }
-
-                    if (!isDeploySuccess(deployState)) {
-                        return this.deployFailure(deployState);
-                    } else {
-                        this.deployInformation(deployState);
-                    }
-
-                    const id = deployState.deployID;
-
-                    this.appendOutput(`Deployment created successfully. DeployID is: ${id}`);
-                }
+                    })
+                    .catch((err) => {
+                        task.fail(err);
+                        throw err;
+                    });
             }
-        ]);
+        });
+
+        this.tasks.add({
+            title: "Checking results",
+            task: async () => {
+                const deployState = await deployStateP;
+                if (!this.isDeploySuccess(deployState)) return;
+                this.deployInformation(deployState);
+
+                if (ctx.dryRun) return;
+
+                const id = deployState.deployID;
+
+                this.appendOutput(`Deployment created successfully. DeployID is: ${id}`);
+            }
+        });
 
         await this.tasks.run();
     }

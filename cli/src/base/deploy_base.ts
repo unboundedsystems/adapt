@@ -1,10 +1,12 @@
-import { Command, flags } from "@oclif/command";
-import { filePathToUrl, getErrors, getWarnings } from "@usys/utils";
+import { flags } from "@oclif/command";
+import { filePathToUrl, MessageClient, MessageLogger } from "@usys/utils";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
-import { DeployError, DeploySuccess } from "../types/adapt_shared";
+import { DeployState, DeploySuccess } from "../types/adapt_shared";
+import { taskObservable } from "../ui";
+import { AdaptBase, createLoggerPair, defaultListrOptions, doLogging } from "./adapt_base";
 
 import {
     getGen,
@@ -21,6 +23,8 @@ export interface DeployCtx {
     adaptUrl: string;
     debug: string;
     dryRun?: boolean;
+    logger: MessageLogger;
+    client: MessageClient;
     projectFile?: string;
     stackName?: string;
 
@@ -28,7 +32,7 @@ export interface DeployCtx {
     project?: Project;
 }
 
-export abstract class DeployBase extends Command {
+export abstract class DeployBase extends AdaptBase {
 
     static flags = {
         serverUrl: flags.string({
@@ -44,10 +48,9 @@ export abstract class DeployBase extends Command {
     args?: any;
     flags?: any;
 
-    tasks = new Listr();
+    tasks = new Listr(defaultListrOptions);
 
     ctx: DeployCtx;
-    finalOutput = "";
 
     async init() {
         await super.init();
@@ -65,26 +68,17 @@ export abstract class DeployBase extends Command {
             adaptUrl = filePathToUrl(dbFile);
         }
 
+        const pair = createLoggerPair("deploy", doLogging);
         this.ctx = {
             adaptUrl,
-            debug: this.flags.debug
+            debug: this.flags.debug,
+            ...pair,
         };
 
         const projectFile = path.resolve(this.flags.rootFile);
         if (projectFile && await fs.pathExists(projectFile)) {
             this.ctx.projectFile = projectFile;
         }
-    }
-
-    async finally(err?: Error) {
-        await super.finally(err);
-        if (err !== undefined) return;
-
-        if (this.finalOutput !== "") this.log("\n" + this.finalOutput);
-    }
-
-    appendOutput(s: string) {
-        this.finalOutput += s;
     }
 }
 
@@ -164,21 +158,27 @@ export abstract class DeployOpBase extends DeployBase {
                     }
                 },
             },
+            {
+                title: "Installing node modules",
+                task: async () => {
+                    const project = this.ctx.project;
+                    if (project == null) {
+                        throw new Error(`Internal error: project is null`);
+                    }
+                    const ret = project.installModules();
+                    if (!ret) return;
+
+                    return taskObservable(ret.stdout, ret);
+                }
+            }
         ]);
     }
 
-    deployFailure(deployErr: DeployError) {
-        const nwarn = deployErr.summary.warning;
-        const warns = nwarn === 1 ? "warning" : "warnings";
-        this.appendOutput(`${nwarn} ${warns} encountered during deploy:\n` +
-            getWarnings(deployErr.messages));
-
-        const nerr = deployErr.summary.error;
-        const errors = nerr === 1 ? "error" : "errors";
-        return this.error(
-            cantDeploy +
-            `${nerr} ${errors} encountered during deploy:\n` +
-            getErrors(deployErr.messages));
+    isDeploySuccess(response: DeployState): response is DeploySuccess {
+        return this.isApiSuccess(response, {
+            errorMessage: cantDeploy,
+            action: "deploy",
+        });
     }
 
     deployInformation(deployStatus: DeploySuccess) {

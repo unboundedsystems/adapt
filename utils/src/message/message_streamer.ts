@@ -1,43 +1,49 @@
-import * as stream from "stream";
+import stream from "stream";
 import { format } from "util";
+import { Constructor } from "../common_types";
 import {
     LocalStore,
     Logger,
     Message,
     MessageLogger,
     MessageStore,
-    MessageSummary,
     MessageType
 } from "./common";
-import { messageToString } from "./stringify";
+import { logToStreams } from "./stringify";
 
 export interface MessageStreamerOptions {
     outStream?: stream.Writable;
     errStream?: stream.Writable;
+    parent?: MessageStreamer;
     store?: MessageStore;
 }
 
 export class MessageStreamer implements MessageLogger {
-    summary: MessageSummary = {
-        info: 0,
-        warning: 0,
-        error: 0,
-    };
-
-    outStream?: stream.Writable;
-    errStream?: stream.Writable;
+    readonly outStream?: stream.Writable;
+    readonly errStream?: stream.Writable;
+    readonly from: string;
+    readonly isMessageLogger: true = true;
     protected store: MessageStore;
 
-    constructor(public from: string, options: MessageStreamerOptions = {}) {
-        this.outStream = options.outStream;
-        this.errStream = (options.outStream != null && options.errStream == null) ?
-            options.outStream :
-            options.errStream;
-        this.store = options.store || new LocalStore();
+    constructor(id: string, options: MessageStreamerOptions = {}) {
+        this.outStream = options.outStream || (options.parent && options.parent.outStream);
+        this.errStream =
+            options.errStream ||
+            (options.parent && options.parent.errStream) ||
+            this.outStream;
+        this.store =
+            options.store ||
+            (options.parent && options.parent.store) ||
+            new LocalStore();
+        this.from = options.parent ? `${options.parent.from}:${id}` : id;
     }
 
     get messages() {
         return this.store.messages;
+    }
+
+    get summary() {
+        return this.store.summary;
     }
 
     info: Logger = (arg: any, ...args: any[]) => {
@@ -57,16 +63,7 @@ export class MessageStreamer implements MessageLogger {
             from: this.from,
             content: format(arg, ...args),
         };
-
-        switch (type) {
-            case MessageType.error:
-                if (this.errStream) this.errStream.write(messageToString(m) + "\n");
-                break;
-            case MessageType.info:
-            case MessageType.warning:
-                if (this.outStream) this.outStream.write(messageToString(m) + "\n");
-                break;
-        }
+        logToStreams(m, this.outStream, this.errStream);
         this.message(m);
     }
 
@@ -79,9 +76,10 @@ export class MessageStreamer implements MessageLogger {
     }
 
     message = (msg: Message) => {
-        this.updateSummary(msg.type);
         this.store.store(msg);
     }
 
-    protected updateSummary(type: MessageType) { this.summary[type]++; }
+    createChild(id: string): this {
+        return new (this.constructor as Constructor<this>)(id, { parent: this });
+    }
 }

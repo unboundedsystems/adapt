@@ -1,4 +1,5 @@
 import { MessageLogger, MessageStreamer } from "@usys/utils";
+import db from "debug";
 import * as ld from "lodash";
 import * as util from "util";
 import {
@@ -10,6 +11,8 @@ import {
 import {
     ObserverPlugin
 } from "./plugin";
+
+const debug = db("adapt:observers");
 
 interface ObserverRecord {
     [name: string]: ObserverPlugin;
@@ -62,12 +65,15 @@ export async function observe(
         const queries = executedQueries[name] ? executedQueries[name] : [];
         const waitP = (async () => {
             try {
+                debug(`starting observations for ${name} with ${queries.length} queries`);
                 const observations = await obs.observe(queries);
+                debug(`finished observations for ${name}`);
                 ret[name] = {
                     observations,
                     queries
                 };
             } catch (e) {
+                debug(`errored observations for ${name}`);
                 if (!ld.isError(e)) e = new Error(util.inspect(e));
                 const msg = `Error observing for ${name}: ${e.message}`;
                 logger.warning(msg);

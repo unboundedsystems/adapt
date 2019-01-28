@@ -2,23 +2,38 @@ import { adaptServer } from "../server";
 import {
     listDeployments as listDeploymentsInner,
 } from "../server/deployment";
+import { ApiResponse, WithLogger, withOpsSetup } from "./common";
 //import { forkExports } from "./fork";
 
 export interface DeploymentInfo {
     deployID: string;
 }
 
-export interface ListOptions {
+export interface ListOptions extends WithLogger {
     adaptUrl: string;
 }
 
-export async function listDeployments(options: ListOptions): Promise<DeploymentInfo[] | Error> {
-    try {
+export interface ListResponse extends ApiResponse {
+    type: "success";
+    deployments: DeploymentInfo[];
+}
+
+export async function listDeployments(options: ListOptions): Promise<ListResponse> {
+    const setup = {
+        name: "listDeployments",
+        description: "Listing deployments",
+        ...options,
+    };
+    return withOpsSetup(setup, async (info): Promise<ListResponse> => {
+        const { logger } = info;
         const server = await adaptServer(options.adaptUrl, {});
-        return await listDeploymentsInner(server);
-    } catch (err) {
-        return err;
-    }
+        return {
+            type: "success",
+            deployments: await listDeploymentsInner(server),
+            messages: logger.messages,
+            summary: logger.summary,
+        };
+    });
 }
 
 //FIXME(manishv) Adding this causes a straggling listener which means processes never exit

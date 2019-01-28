@@ -1,5 +1,5 @@
 import decamelize from "decamelize";
-import execa from "execa";
+import execa, { ExecaChildProcess, ExecaError } from "execa";
 
 export type LogLevel = "normal" | "silent" | "verbose";
 
@@ -32,12 +32,17 @@ export const commonDefaults = {
     noProgress: true,
 };
 
-export interface Output {
-    stdout: string;
-    stderr: string;
-}
+type OnRejectedFunc<T = any> = ((reason: ExecaError) => T | PromiseLike<T>);
+type OnRejected<T = any> = OnRejectedFunc<T> | null | undefined;
 
-export async function run(action: string, options: InternalOptions & AnyOptions, args?: string[]): Promise<Output> {
+/**
+ * NOTE: This function is purposely NOT async.
+ * The childProc object that execa returns gives the caller a lot of flexibility
+ * in how to consume the results, especially including consuming the
+ * output streams in real time, without waiting for the target process to exit.
+ * So we take care to pass exactly that object back, NOT a promise to that object.
+ */
+export function run(action: string, options: InternalOptions & AnyOptions, args?: string[]): ExecaChildProcess {
     // tslint:disable-next-line:prefer-const
     let { boolNoArgOptions = [], loglevel, pipeOutput, ...opts } = { ...commonDefaults, ...options };
 
@@ -58,18 +63,42 @@ export async function run(action: string, options: InternalOptions & AnyOptions,
     }
     if (args) finalArgs.push(...args);
 
-    try {
-        const prom = execa("yarn", finalArgs, { stripEof: false });
-        if (pipeOutput) {
-            prom.stdout.pipe(process.stdout);
-            prom.stderr.pipe(process.stdout);
-        }
-        return await prom;
-
-    } catch (err) {
-        err.message = `yarn ${action} failed: ${err.message}`;
-        throw err;
+    const childProc = execa("yarn", finalArgs, { stripEof: false });
+    if (pipeOutput) {
+        childProc.stdout.pipe(process.stdout);
+        childProc.stderr.pipe(process.stdout);
     }
+
+    // Make the error message slightly more helpful. But if we want to
+    // return the original childProc object, we have to do a little
+    // extra work to insert our translation into the promise chain rather
+    // than just adding a .catch handler.
+    const translateError = (err: ExecaError) => {
+        err.message = `yarn ${action} failed: ${err.message}`;
+        return Promise.reject(err);
+    };
+    insertCatch(childProc, translateError);
+
+    return childProc;
+}
+
+function insertCatch(childProc: ExecaChildProcess, catcher: OnRejectedFunc) {
+    const origCatch = childProc.catch;
+    const origThen = childProc.then;
+    childProc.then = (onFulfilled, onRejected) => {
+        try {
+            return origThen(onFulfilled, catcher).catch(onRejected);
+        } catch (err) {
+            return catcher(err);
+        }
+    };
+    childProc.catch = (onRejected: OnRejected) => {
+        try {
+            return origCatch(catcher).catch(onRejected);
+        } catch (err) {
+            return catcher(err);
+        }
+    };
 }
 
 function optionsBoolToUndef(options: AnyOptions, keys: string[]): AnyOptions {

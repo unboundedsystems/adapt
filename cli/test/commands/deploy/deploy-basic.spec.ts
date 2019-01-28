@@ -256,7 +256,8 @@ describe("Deploy list tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
+        expect(ctx.stdout).contains("Listing Deployments [completed]");
+        expect(ctx.stdout).matches(/Checking results \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).not.contains("using internal adapt module");
     });
 
@@ -268,7 +269,8 @@ describe("Deploy list tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
+        expect(ctx.stdout).contains("Listing Deployments [completed]");
+        expect(ctx.stdout).matches(/Checking results \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).contains("using internal adapt module");
     });
 

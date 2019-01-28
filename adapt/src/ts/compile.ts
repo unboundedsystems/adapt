@@ -1,6 +1,7 @@
 /*
  * Copyright 2017 Unbounded Systems, LLC
  */
+import db from "debug";
 import * as fs from "fs";
 import * as mkdirp from "mkdirp";
 import * as path from "path";
@@ -19,6 +20,8 @@ const debugCompile = false;
 const debugPreprocessing = false;
 let debugIntermediateDom = true;
 if (debugCompile || debugPreprocessing) debugIntermediateDom = true;
+
+const debugAction = db("adapt:compile:action");
 
 const compilerDefaults: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2016,
@@ -229,6 +232,7 @@ export class Compiler {
     @tracef(debugChainableHosts)
     compile(code: string, filename: string, module: VmModule,
             lineOffset = 0): string | null {
+        debugAction(`Compile start: ${filename}`);
         this.registerExtension(".ts", module);
         this.registerExtension(".tsx", module);
 
@@ -245,8 +249,11 @@ export class Compiler {
          */
         this.projectVersion++;
         try {
-            return this._compile(code, filename);
+            const ret = this._compile(code, filename);
+            debugAction(`Compile done: ${filename}`);
+            return ret;
         } catch (err) {
+            debugAction(`Compile error: ${filename}`);
             if (err instanceof EmitError) {
                 throw new CompileError(err.diags,
                     diagText(err.diags, this.primaryChain.getCurrentDirectory(),
@@ -313,7 +320,9 @@ export class Compiler {
         };
 
         try {
+            debugAction(`Emit output start: ${filename}`);
             output = this.service.getEmitOutput(filename);
+            debugAction(`Emit output done: ${filename}`);
         } catch (err) {
             trace(debugChainableHosts, `Error compiling. Dumping chain info`);
             if (debugChainableHosts) this.dir();

@@ -1,3 +1,4 @@
+import stream from "stream";
 import { Message, MessageType } from "./common";
 
 export interface MessageStringOptions {
@@ -25,12 +26,28 @@ export function messageToString(msg: Message, options = defaultOptions): string 
     return ret;
 }
 
-export function getErrors(msgs: Message[]): string {
+export function getErrors(msgs: ReadonlyArray<Message>): string {
     return messagesToString(msgs, MessageType.error,
                             { timestamp: false, type: false });
 }
 
-export function getWarnings(msgs: Message[]): string {
+export function getWarnings(msgs: ReadonlyArray<Message>): string {
     return messagesToString(msgs, MessageType.warning,
                             { timestamp: false, type: false });
+}
+
+export function logToStreams(
+    msg: Message,
+    outStream: stream.Writable | undefined,
+    errStream: stream.Writable | undefined) {
+
+    switch (msg.type) {
+        case MessageType.error:
+            if (errStream) errStream.write(messageToString(msg) + "\n");
+            break;
+        case MessageType.info:
+        case MessageType.warning:
+            if (outStream) outStream.write(messageToString(msg) + "\n");
+            break;
+    }
 }

@@ -118,6 +118,7 @@ type AdaptAction = (adapt: AdaptModule) => Promise<any>;
 
 export class Project {
     readonly name: string;
+    private installed = false;
     constructor(readonly manifest: pacote.Manifest,
                 readonly packageTree: yarn.ListTreeMods,
                 readonly options: ProjectOptionsComplete) {
@@ -149,11 +150,25 @@ export class Project {
         return this.deploy(options, (adapt) => adapt.fetchStatus(options));
     }
 
+    /**
+     * NOTE: This function is purposely NOT async and returns the promise-like
+     * execa ChildProcess object, NOT a promise to that object. That gives
+     * the caller access to the output streams without having to wait for
+     * completion of the yarn process.
+     */
+    installModules() {
+        if (this.installed) return;
+        const ret = yarn.install(yarnInstallOptions(this.options));
+        ret.then(() => this.installed = true).catch();
+        return ret;
+    }
+
     private async deploy(options: CreateOptions | UpdateOptions, action: AdaptAction):
         Promise<DeployState> {
+        if (!this.installed) {
+            throw new Error(`Internal error: must call installModules before any deploy operation`);
+        }
         const projectRoot = this.options.session.projectDir;
-
-        await yarn.install(yarnInstallOptions(this.options));
 
         options.fileName = path.resolve(projectRoot, options.fileName);
         options.projectRoot = projectRoot;

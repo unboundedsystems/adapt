@@ -1,9 +1,9 @@
-import * as ld from "lodash";
 import { dirname } from "path";
 import * as util from "util";
 import { DeployBase } from "../../base";
 import { projectAdaptModule } from "../../proj";
-import { AdaptModule, DeploymentInfo } from "../../types/adapt_shared";
+import { AdaptModule, DeploymentInfo, ListResponse } from "../../types/adapt_shared";
+import { addDynamicTask } from "../../ui/dynamic_task_mgr";
 
 function formatDeployments(info: DeploymentInfo[]) {
     return info.map((i) => i.deployID).join("\n");
@@ -36,7 +36,7 @@ export default class ListCommand extends DeployBase {
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        this.tasks.add([{
+        this.tasks.add({
             title: "Checking for project-level adapt module",
             skip: () => {
                 if (this.ctx.projectFile === undefined) {
@@ -56,17 +56,38 @@ export default class ListCommand extends DeployBase {
                     this.adapt = require("@usys/adapt");
                 }
             }
-        },
-        {
+        });
+
+        let infoP: Promise<ListResponse>;
+
+        const logger = ctx.logger.createChild("list");
+        const loggerId = logger.from;
+
+        addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {
+            id: loggerId,
             title: "Listing Deployments",
-            task: async () => {
-                const info = await this.adapt.listDeployments({ adaptUrl: ctx.adaptUrl });
-                if (ld.isError(info)) {
-                    throw info;
-                }
-                this.appendOutput(formatDeployments(info));
+            adoptable: true,
+            initiate: (_ctx, task) => {
+                infoP = this.adapt.listDeployments({
+                    adaptUrl: ctx.adaptUrl,
+                    client: ctx.client,
+                    logger,
+                    loggerId,
+                }).catch((err) => {
+                    task.fail(err);
+                    throw err;
+                });
             }
-        }]);
+        });
+
+        this.tasks.add({
+            title: "Checking results",
+            task: async () => {
+                const info = await infoP;
+                if (!this.isApiSuccess(info, { action: "list" })) return;
+                this.appendOutput(formatDeployments(info.deployments));
+            }
+        });
 
         await this.tasks.run();
     }

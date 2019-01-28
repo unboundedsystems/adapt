@@ -5,7 +5,7 @@ import {
     defaultDeployCommonOptions,
     DeployCommonOptions,
     DeployState,
-    setupLogger,
+    withOpsSetup,
 } from "./common";
 import { forkExports } from "./fork";
 
@@ -24,29 +24,33 @@ export async function updateDeployment(options: UpdateOptions): Promise<DeploySt
         ...defaultOptions,
         ...options
     };
-    const { adaptUrl, deployID, logger: _logger, ...buildOpts } = finalOptions;
+    const {
+        adaptUrl,
+        client,
+        deployID,
+        logger: _logger,
+        loggerId,
+        ...buildOpts
+    } = finalOptions;
 
-    const logger = await setupLogger(_logger);
-
-    try {
+    const setup = {
+        name: "updateDeployment",
+        description: "Updating deployment",
+        client,
+        logger: _logger,
+        loggerId,
+    };
+    return withOpsSetup(setup, async (info): Promise<DeployState> => {
+        const { taskObserver } = info;
         const server = await adaptServer(adaptUrl, {});
         const deployment = await loadDeployment(server, deployID);
 
         return buildAndDeploy({
             deployment,
-            logger,
+            taskObserver,
             ...buildOpts,
         });
-
-    } catch (err) {
-        logger.error(`Error updating deployment: ${err}`);
-        return {
-            type: "error",
-            messages: logger.messages,
-            summary: logger.summary,
-            domXml: err.domXml,
-        };
-    }
+    });
 }
 
 forkExports(module, "updateDeployment");
