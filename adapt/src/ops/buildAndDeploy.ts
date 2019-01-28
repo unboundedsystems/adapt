@@ -220,8 +220,7 @@ export async function withContext<T>(
         // Compile and run the project
         debugAction(`buildAndDeploy: compile start`);
         const task = options.taskObserver.childGroup().task("compile");
-        const exec = () => projectExec(options.projectRoot, options.fileName);
-        ctx = task ? await task.complete(exec) : exec();
+        ctx = await task.complete(() => projectExec(options.projectRoot, options.fileName));
         debugAction(`buildAndDeploy: compile done`);
     }
     return f(ctx);
