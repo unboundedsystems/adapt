@@ -5,42 +5,9 @@ import Adapt, {
     useImperativeMethods,
     useState
 } from "@usys/adapt";
-import { mkdtmp } from "@usys/utils";
 import fs from "fs-extra";
 import path from "path";
-import { useAsync } from "./hooks";
-import { dockerBuild, DockerBuildOptions, ImageInfo } from "./LocalDockerBuild";
-
-async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
-    const tmpDir = await mkdtmp(prefix);
-    try {
-        return await f(tmpDir);
-    } finally {
-        await fs.remove(tmpDir);
-    }
-}
-
-export async function localTypescriptBuild(srcDir: string,
-    options: TypescriptBuildOptions = {}): Promise<ImageInfo> {
-
-    srcDir = path.resolve(srcDir);
-    if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
-    const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
-    const main = pkgInfo.main ? pkgInfo.main : "index.js";
-
-    return withTmpDir("adapt-typescript-build", async (tmpDir) => {
-        const dockerfile = path.join(tmpDir, "Dockerfile");
-        await fs.writeFile(dockerfile, `
-FROM node:10-alpine
-WORKDIR /app
-ADD . /app
-RUN npm install
-RUN npm run build
-CMD ["node", "${main}"]
-`);
-        return dockerBuild(dockerfile, srcDir, options);
-    });
-}
+import { DockerBuildOptions, ImageInfo, useDockerBuild } from "./LocalDockerBuild";
 
 export interface TypescriptBuildProps extends Partial<BuiltinProps> {
     srcDir: string;
@@ -48,17 +15,34 @@ export interface TypescriptBuildProps extends Partial<BuiltinProps> {
 }
 
 function LocalTypescriptBuild(props: TypescriptBuildProps) {
-    const image = useAsync(async () => {
-        //FIXME(manishv) Don't rebuild every time, use some kind of uptoda
-        return localTypescriptBuild(props.srcDir, props.options);
-    }, undefined);
+    const { image, buildObj } = useDockerBuild(
+        async () => {
+            const srcDir = path.resolve(props.srcDir);
+            if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
+            const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
+            const main = pkgInfo.main ? pkgInfo.main : "index.js";
+            return {
+                dockerfile: "Dockerfile",
+                contextDir: srcDir,
+                options: props.options,
+                files: [{
+                    path: "Dockerfile",
+                    contents: `FROM node:10-alpine
+WORKDIR /app
+ADD . /app
+RUN npm install
+RUN npm run build
+CMD ["node", "${main}"]`
+                }]
+            };
+        });
 
     useImperativeMethods(() => ({
         buildComplete: () => image !== undefined,
         ready: () => image !== undefined,
         image
     }));
-    return null;
+    return buildObj;
 }
 
 export interface TypescriptBuildOptions extends DockerBuildOptions { }
@@ -68,14 +52,13 @@ const defaultLocalTsBuildOptions = {
     uniqueTag: true,
 };
 
-export interface BuildStatus {
+export interface TypescriptBuildStatus {
     buildObj: AdaptElement<TypescriptBuildOptions> | null;
     image?: ImageInfo;
 }
 
-//Note(manishv) Break this out into a separate file?
 export function useTypescriptBuild(srcDir: string,
-    options: TypescriptBuildOptions = {}): BuildStatus {
+    options: TypescriptBuildOptions = {}): TypescriptBuildStatus {
 
     const opts = { ...defaultLocalTsBuildOptions, ...options };
     const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);

@@ -1,5 +1,15 @@
+import Adapt, {
+    AdaptElement,
+    handle,
+    useImperativeMethods,
+    useState
+} from "@usys/adapt";
+import { mkdtmp } from "@usys/utils";
 import execa from "execa";
+import fs from "fs-extra";
+import ld from "lodash";
 import randomstring from "randomstring";
+import { useAsync } from "./hooks";
 
 export interface ImageInfo {
     id: string;
@@ -19,7 +29,9 @@ const defaultDockerBuildOptions = {
     uniqueTag: false,
 };
 
-export async function dockerBuild(dockerfile: string, contextPath: string,
+async function dockerBuild(
+    dockerfile: string,
+    contextPath: string,
     options: DockerBuildOptions = {}): Promise<ImageInfo> {
 
     const opts = { ...defaultDockerBuildOptions, ...options };
@@ -67,4 +79,111 @@ function createTag(baseTag: string | undefined, appendUnique: boolean): string |
         });
     }
     return tag;
+}
+
+export interface File {
+    path: string;
+    contents: Buffer | string;
+}
+
+async function writeFiles(files: File[]) {
+    await Promise.all(files.map(async (f) => {
+        const contents = ld.isString(f.contents) ? Buffer.from(f.contents) : f.contents;
+        return fs.writeFile(f.path, contents);
+    }));
+}
+
+async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
+    const tmpDir = await mkdtmp(prefix);
+    try {
+        return await f(tmpDir);
+    } finally {
+        await fs.remove(tmpDir);
+    }
+}
+
+export interface LocalDockerBuildProps {
+    dockerfile: string;
+    contextDir: string;
+    files?: File[];
+    options?: DockerBuildOptions;
+}
+
+export function LocalDockerBuild(props: LocalDockerBuildProps) {
+    const dockerfile = props.dockerfile || "Dockerfile";
+    const image = useAsync(async () => {
+        return withTmpDir("adapt-docker-build", async () => {
+            await writeFiles(props.files ? props.files : []);
+            const ret = await dockerBuild(dockerfile, props.contextDir, props.options);
+            return ret;
+        });
+    }, undefined);
+
+    useImperativeMethods(() => ({
+        buildComplete: () => image !== undefined,
+        ready: () => image !== undefined,
+        image
+    }));
+    return null;
+}
+
+export interface DockerBuildStatus {
+    buildObj: AdaptElement<DockerBuildOptions> | null;
+    image?: ImageInfo;
+}
+
+export interface DockerBuildArgs {
+    dockerfile: string;
+    contextDir: string;
+    options?: DockerBuildOptions;
+    files?: File[];
+}
+
+export function useDockerBuild(prepare: () => Promise<DockerBuildArgs> | DockerBuildArgs): DockerBuildStatus;
+export function useDockerBuild(
+    dockerfile: string,
+    contextDir: string,
+    options?: DockerBuildOptions,
+    files?: File[]): DockerBuildStatus;
+export function useDockerBuild(
+    prepOrFile: (() => Promise<DockerBuildArgs> | DockerBuildArgs) | string,
+    contextDirIn?: string,
+    optionsIn: DockerBuildOptions = {},
+    filesIn: File[] = []
+): DockerBuildStatus {
+    const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
+
+    const args = useAsync(async () => {
+        if (ld.isFunction(prepOrFile)) return prepOrFile();
+        return {
+            dockerfile: prepOrFile,
+            contextDir: contextDirIn ? contextDirIn : ".",
+            options: optionsIn,
+            files: filesIn
+        };
+    }, undefined);
+
+    if (!args) return { buildObj: null };
+    const opts = { ...defaultDockerBuildOptions, ...(args.options || {}) };
+    if (!buildState) {
+        const buildHand = handle();
+
+        setBuildState(async () => {
+            if (buildHand.mountedOrig && buildHand.mountedOrig.instance.buildComplete()) {
+                return buildHand.mountedOrig.instance.image;
+            }
+            return undefined;
+        });
+        return {
+            buildObj:
+                <LocalDockerBuild
+                    handle={buildHand}
+                    dockerfile={args.dockerfile}
+                    contextDir={args.contextDir}
+                    files={args.files}
+                    options={opts} />
+        };
+    }
+
+    return { image: buildState, buildObj: null };
 }
