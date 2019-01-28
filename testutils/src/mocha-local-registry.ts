@@ -22,7 +22,6 @@ const defaultOpts: Required<MochaLocalRegOptions> = {
 };
 
 export interface RegistryFixture {
-    npmProxyOpts: localRegistryDefaults.NpmProxyOpts;
     yarnProxyOpts: localRegistryDefaults.YarnProxyOpts;
 }
 
@@ -45,7 +44,7 @@ class RegistryFixtureImpl implements RegistryFixture {
         if (this.opts.publishList.length === 0) return;
         const resolved = this.opts.publishList.map((p) => path.resolve(p));
         return localRegistryDefaults.setupLocalRegistry(
-            resolved, this.npmProxyOpts);
+            resolved, this.yarnProxyOpts);
     }
 
     newPort() {
@@ -62,17 +61,6 @@ class RegistryFixtureImpl implements RegistryFixture {
         }
     }
 
-    async makeNpmrc() {
-        const svr = `//127.0.0.1:${this.port}/`;
-        const contents = `
-${svr}:_password="dGVzdA=="
-${svr}:username=test
-${svr}:email=test@root.com
-${svr}:always-auth=false
-`;
-        await fs.writeFile(this.npmrc, contents);
-    }
-
     get config(): localRegistry.Config {
         return {
             ...localRegistryDefaults.config,
@@ -86,9 +74,6 @@ ${svr}:always-auth=false
         };
     }
 
-    get npmrc() {
-        return path.join(this.tmpDir, "npmrc_proxy");
-    }
     get port() {
         if (!this.port_) throw new Error(`Registry server not started`);
         return this.port_;
@@ -100,12 +85,6 @@ ${svr}:always-auth=false
     get tmpDir() {
         if (!this.tmpDir_) throw new Error(`Registry server not started`);
         return this.tmpDir_;
-    }
-    get npmProxyOpts() {
-        return {
-            registry: `http://127.0.0.1:${this.port}`,
-            userconfig: this.npmrc,
-        };
     }
     get yarnProxyOpts() {
         return {
@@ -125,7 +104,6 @@ ${svr}:always-auth=false
         while (--max >= 0) {
             try {
                 this.newPort();
-                await this.makeNpmrc();
                 const config = this.config;
                 this.server = await localRegistry.start(config, config.self_path!);
                 return;

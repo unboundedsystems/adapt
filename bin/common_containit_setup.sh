@@ -22,6 +22,7 @@ DOCKER_ARGS+=" --dns ${DNS_IP}"
 CTR_CACHE_DIR="/root/.cache/yarn"
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=${CTR_CACHE_DIR} -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}"
 DOCKER_ARGS+=" -eYARN_MUTEX=file:${CTR_CACHE_DIR}/.yarn-mutex"
+DOCKER_ARGS+=' -eYARN_AUTH_TOKEN="faketoken"'
 
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
 

@@ -1,4 +1,4 @@
-import { npm, repoDirs, repoRootDir, yarn } from "@usys/utils";
+import { repoDirs, repoRootDir, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -6,18 +6,12 @@ import { Config } from "./local-registry";
 export const localRegistryPort = 4873;
 export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;
 
-export interface NpmProxyOpts {
-    registry?: string;
-    userconfig?: string;
-}
 export interface YarnProxyOpts {
     registry?: string;
-    // Yarn equivalent of userconfig not yet supported
 }
 
-export const npmLocalProxyOpts = {
+export const yarnLocalProxyOpts = {
     registry: localRegistryUrl,
-    userconfig: path.join(repoDirs.verdaccio, "npmrc_test"),
 };
 
 const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
@@ -36,24 +30,19 @@ export const defaultPublishList =
         })
         .map((p: string) => path.join(repoRootDir, p));
 
-export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOpts = {}): Promise<void> {
-    opts = { ...npmLocalProxyOpts, ...opts };
-    let output = "";
+export async function setupLocalRegistry(publishList: string[], opts: YarnProxyOpts = {}): Promise<void> {
+    opts = { ...yarnLocalProxyOpts, ...opts };
     try {
         for (const modDir of publishList) {
-            const out = await npm.publish(modDir, opts);
-            output += out.stderr + out.stdout;
-            const match = out.stdout.match(/\+ (@?[^@]+)@.*\n/);
-            if (!match || match.length !== 2) {
-                throw new Error(`Output from npm publish not understood`);
-            }
-            const modName = match[1];
+            const pkgJson = await fs.readJson(path.join(modDir, "package.json"));
+            const modName = pkgJson.name;
+            await yarn.publish(modDir, opts);
             // Always clean yarn's cache when publishing a package which
             // might be the same name/version, but with different bits.
             await yarn.cacheClean(modName, opts);
         }
     } catch (err) {
-        output = `Local registry setup failed: ${err.message}`;
+        let output = `Local registry setup failed: ${err.message}`;
         if (err.stderr) output += err.stderr;
         if (err.stdout) output += err.stdout;
         // tslint:disable-next-line:no-console
@@ -61,7 +50,8 @@ export async function setupLocalRegistry(publishList: string[], opts: NpmProxyOp
         throw new Error(output);
     }
     // tslint:disable-next-line:no-console
-    console.log(`${output}\n>> Local NPM registry started [loaded ${publishList.length} modules]\n`);
+    console.log(`\n>> Local NPM registry started on ${opts.registry} ` +
+        `[loaded ${publishList.length} modules]\n`);
 }
 
 function setupDefault(): Promise<void> {
