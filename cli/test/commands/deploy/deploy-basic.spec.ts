@@ -108,7 +108,7 @@ const testCommon =
     testCommonNoEnv
     .delayedenv(() => {
         return {
-            ADAPT_NPM_REGISTRY: cliLocalRegistry.npmProxyOpts.registry,
+            ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
             ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
         };
     });

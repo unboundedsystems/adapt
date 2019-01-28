@@ -111,7 +111,7 @@ describe("Project basic tests", function () {
     it("Should load from alternate registry", async function () {
         this.slow(20 * 1000);
         this.timeout(50 * 1000);
-        const opts = { ...cliLocalRegistry.npmProxyOpts, ...projOpts };
+        const opts = { ...cliLocalRegistry.yarnProxyOpts, ...projOpts };
         // FIXME(mark): Once we actually publish @usys/dom-parser publicly, this
         // test is no longer a great test. Change the package to something
         // that we know is definitely only present in the local registry.
