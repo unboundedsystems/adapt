@@ -158,9 +158,7 @@ class TaskObserverImpl implements TaskObserver {
                 errored = true;
                 break;
             case TaskState.Started:
-                errored =
-                    ((next === TaskState.Created) ||
-                     (next === TaskState.Skipped));
+                if (next === TaskState.Created) errored = true;
                 break;
             case TaskState.Created:
                 // Must go to Started before Complete
