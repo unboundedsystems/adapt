@@ -14,7 +14,7 @@ import {
 import { printError as gqlPrintError } from "graphql";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
-import { Handle, handle, isHandleInternal } from "./handle";
+import { Handle, handle, isHandle, isHandleInternal } from "./handle";
 import { Defaultize } from "./jsx_namespace";
 import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
@@ -179,6 +179,8 @@ export abstract class Component<Props extends object = {}, State extends object 
         this.getState = cData.getState;
     }
 
+    ready(helpers: BuildHelpers): boolean | Promise<boolean> { return true; }
+
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
         if (this.initialState == null) {
             throw new Error(`Component ${this.constructor.name}: cannot access ` +
@@ -250,6 +252,7 @@ export interface ComponentStatic<P> {
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
     status?: (props: P, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
+    ready?: (helpers: BuildHelpers) => boolean | Promise<boolean>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -579,6 +582,16 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
     }
 
     return children;
+}
+
+export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promise<boolean> {
+    const hand = isHandle(e) ? e : e.props.handle;
+    const elem = hand.mountedOrig;
+    if (elem === undefined) throw new Error("element has no mountedOrig!");
+    if (elem === null) return true;
+
+    if (!elem.instance.ready) return true;
+    return elem.instance.ready(h);
 }
 
 export interface ComponentConstructorData {

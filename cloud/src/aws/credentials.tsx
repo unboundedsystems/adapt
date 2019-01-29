@@ -7,9 +7,9 @@ import Adapt, {
     Context,
     createContext,
     PropsType,
+    useReadyFrom,
     WithChildren,
 } from "@usys/adapt";
-import { useReadyFrom } from "../ready";
 
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;
