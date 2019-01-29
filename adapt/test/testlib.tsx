@@ -97,12 +97,12 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts = {}) {
         stateStore,
     };
     const { mountedOrig, contents: dom, messages } = await build(elem, style, buildOpts);
+    should(messages).have.length(0);
     if (dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
         throw new Error("Unreachable");
     }
 
-    should(messages).have.length(0);
     return { mountedOrig, dom };
 }

@@ -110,6 +110,10 @@ export {
 } from "./status";
 
 export {
+    Children
+} from "./type_support";
+
+export {
     Observed,
     WidgetPlugin,
     QueryDomain,

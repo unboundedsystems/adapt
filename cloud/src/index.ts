@@ -5,6 +5,7 @@ export * from "./LocalCompute";
 export * from "./LocalContainer";
 export * from "./LocalDockerHost";
 export * from "./LocalTypescriptBuild";
+export * from "./LocalDockerBuild";
 export * from "./NetworkService";
 export * from "./ready";
 export * from "./Sequence";
@@ -19,3 +20,4 @@ export {
     cloudify,
     k8s,
 };
+export * from "./hooks";

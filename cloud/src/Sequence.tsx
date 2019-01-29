@@ -1,6 +1,7 @@
 import Adapt, {
     AdaptElement,
     BuildHelpers,
+    Children,
     childrenToArray,
     Component,
     Group,
@@ -11,9 +12,7 @@ import Adapt, {
 import * as util from "util";
 import { isReady } from "./ready";
 
-export interface SequenceProps {
-    children?: AdaptElement | Handle | (AdaptElement | Handle)[];
-}
+export interface SequenceProps extends Children<Handle | AdaptElement> { }
 
 interface SequenceState {
     stage: number;
