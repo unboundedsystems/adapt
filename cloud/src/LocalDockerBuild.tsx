@@ -4,10 +4,11 @@ import Adapt, {
     useImperativeMethods,
     useState
 } from "@usys/adapt";
-import { mkdtmp } from "@usys/utils";
+import { withTmpDir } from "@usys/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
+import * as path from "path";
 import randomstring from "randomstring";
 import { useAsync } from "./hooks";
 
@@ -86,37 +87,36 @@ export interface File {
     contents: Buffer | string;
 }
 
-async function writeFiles(files: File[]) {
+async function writeFiles(pwd: string, files: File[]) {
     await Promise.all(files.map(async (f) => {
         const contents = ld.isString(f.contents) ? Buffer.from(f.contents) : f.contents;
-        return fs.writeFile(f.path, contents);
+        return fs.writeFile(makeAbsolute(pwd, f.path), contents);
     }));
-}
-
-async function withTmpDir<T>(prefix: string, f: (tmpDir: string) => Promise<T> | T): Promise<T> {
-    const tmpDir = await mkdtmp(prefix);
-    try {
-        return await f(tmpDir);
-    } finally {
-        await fs.remove(tmpDir);
-    }
 }
 
 export interface LocalDockerBuildProps {
     dockerfile: string;
-    contextDir: string;
+    contextDir?: string;
     files?: File[];
     options?: DockerBuildOptions;
+}
+
+function makeAbsolute(pwd: string, loc: string): string {
+    if (path.isAbsolute(loc)) return loc;
+    return path.join(pwd, loc);
 }
 
 export function LocalDockerBuild(props: LocalDockerBuildProps) {
     const dockerfile = props.dockerfile || "Dockerfile";
     const image = useAsync(async () => {
-        return withTmpDir("adapt-docker-build", async () => {
-            await writeFiles(props.files ? props.files : []);
-            const ret = await dockerBuild(dockerfile, props.contextDir, props.options);
+        return withTmpDir(async (dir: string) => {
+            await writeFiles(dir, props.files ? props.files : []);
+            const ret = await dockerBuild(
+                makeAbsolute(dir, dockerfile),
+                props.contextDir ? makeAbsolute(dir, props.contextDir) : dir,
+                props.options);
             return ret;
-        });
+        }, { prefix: "adapt-docker-build" });
     }, undefined);
 
     useImperativeMethods(() => ({
@@ -134,7 +134,7 @@ export interface DockerBuildStatus {
 
 export interface DockerBuildArgs {
     dockerfile: string;
-    contextDir: string;
+    contextDir?: string;
     options?: DockerBuildOptions;
     files?: File[];
 }
@@ -142,7 +142,7 @@ export interface DockerBuildArgs {
 export function useDockerBuild(prepare: () => Promise<DockerBuildArgs> | DockerBuildArgs): DockerBuildStatus;
 export function useDockerBuild(
     dockerfile: string,
-    contextDir: string,
+    contextDir?: string,
     options?: DockerBuildOptions,
     files?: File[]): DockerBuildStatus;
 export function useDockerBuild(
@@ -157,7 +157,7 @@ export function useDockerBuild(
         if (ld.isFunction(prepOrFile)) return prepOrFile();
         return {
             dockerfile: prepOrFile,
-            contextDir: contextDirIn ? contextDirIn : ".",
+            contextDir: contextDirIn,
             options: optionsIn,
             files: filesIn
         };
