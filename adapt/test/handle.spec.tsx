@@ -103,7 +103,7 @@ describe("Element Handle", () => {
             </Group>;
         const style =
             <Style>
-                {Empty} {rule((props) => <Anything final="yes" />)}
+                {Empty} {rule((_props) => <Anything final="yes" />)}
             </Style>;
         const { dom, mountedOrig } = await doBuild(orig, style);
         if (dom == null) throw should(dom).not.be.Null();
@@ -135,6 +135,13 @@ describe("Element Handle", () => {
         should(dom.props.children.componentType).equal(Anything);
         should(dom.props.children.props.ref).equal(hand);
         should(dom.props.children.props.ref.target).be.Null();
+    });
+
+    it("Should return undefined for mountedOrig if element is never mounted", async () => {
+        const hand = handle();
+        <Group handle={hand} />;
+        await doBuild(<Group />);
+        should(hand.mountedOrig).Undefined();
     });
 
     it("Should reference other element if component build calls replace", async () => {
