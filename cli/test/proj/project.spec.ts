@@ -69,6 +69,7 @@ describe("Project basic tests", function () {
         expect(p.manifest._resolved).equal("https://registry.npmjs.org/decamelize/-/decamelize-2.0.0.tgz");
         expect(p.manifest.dependencies.xregexp).equal("4.0.0");
 
+        await p.installModules();
         expect(p.getLockedVersion("xregexp")).equal("4.0.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
@@ -95,6 +96,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.dependencies.jsonify).equal("~0.0.0");
         expect(p.manifest.devDependencies.tape).equal("~1.0.4");
 
+        await p.installModules();
         expect(p.getLockedVersion("jsonify")).equal("0.0.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
@@ -120,6 +122,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.name).equal("@usys/dom-parser");
         expect(p.manifest.version).equal("0.0.1");
         expect(p.manifest.dependencies.tslib).equal("^1.9.3");
+        await p.installModules();
         expect(p.getLockedVersion("1.9.3"));
     });
 });

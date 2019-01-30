@@ -121,7 +121,7 @@ export abstract class DeployOpBase extends DeployBase {
 
         this.tasks.add([
             {
-                title: "Validating project",
+                title: "Installing node modules",
                 task: async () => {
                     if (! await fs.pathExists(this.ctx.projectFile)) {
                         this.error(`Project file '${this.flags.rootFile}' does not exist`);
@@ -141,13 +141,6 @@ export abstract class DeployOpBase extends DeployBase {
                     try {
                         if (this.flags.registry) projOpts.registry = this.flags.registry;
                         this.ctx.project = await load(projectRoot, projOpts);
-                        const gen = getGen(this.ctx.project);
-                        if (!gen.matchInfo.matches) {
-                            this.error(cantDeploy +
-                                `The following updates must be made:\n` +
-                                gen.matchInfo.required.map(
-                                    (ui) => "  " + ui.message).join("\n"));
-                        }
                     } catch (err) {
                         if (err.code === "ENOPACKAGEJSON") {
                             this.error(cantDeploy +
@@ -156,19 +149,27 @@ export abstract class DeployOpBase extends DeployBase {
                         }
                         throw err;
                     }
-                },
+
+                    const ret = this.ctx.project.installModules();
+                    if (!ret) return;
+                    return taskObservable(ret.stdout, ret);
+                }
             },
             {
-                title: "Installing node modules",
+                title: "Validating project",
                 task: async () => {
                     const project = this.ctx.project;
                     if (project == null) {
                         throw new Error(`Internal error: project is null`);
                     }
-                    const ret = project.installModules();
-                    if (!ret) return;
 
-                    return taskObservable(ret.stdout, ret);
+                    const gen = getGen(project);
+                    if (!gen.matchInfo.matches) {
+                        this.error(cantDeploy +
+                            `The following updates must be made:\n` +
+                            gen.matchInfo.required.map(
+                                (ui) => "  " + ui.message).join("\n"));
+                    }
                 }
             }
         ]);
