@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import { mkdtmp, ValidationError, withTmpDir, yarn } from "@usys/utils";
+import { mkdtmp, ValidationError, yarn } from "@usys/utils";
 import { UserError } from "../error";
 import {
     AdaptModule,
@@ -64,14 +64,6 @@ function yarnInstallOptions(projOpts: ProjectOptionsComplete, tmpModules?: strin
     };
 }
 
-function yarnListOptions(projOpts: ProjectOptionsComplete, tmpModules?: string): yarn.ListParsedOptions {
-    const yOpts: yarn.ListParsedOptions = yarnCommonOptions(projOpts, tmpModules);
-    return {
-        ...yOpts,
-        production: true,
-    };
-}
-
 export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
     const finalOpts = await finalProjectOptions(projectOpts);
     const session = finalOpts.session;
@@ -91,14 +83,7 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
 
     if (!inPlace) await pacote.extract(projectSpec, session.projectDir, pacoteOpts);
 
-    const tree = await withTmpDir(async (tmpModules) => {
-
-        await yarn.install(yarnInstallOptions(finalOpts, tmpModules));
-        return yarn.listParsed(yarnListOptions(finalOpts, tmpModules));
-
-    }, { prefix: ".adapt-tmp-modules", basedir: session.projectDir });
-
-    return new Project(manifest, tree, finalOpts);
+    return new Project(manifest, session.projectDir, finalOpts);
 }
 
 export async function projectAdaptModule(projectRoot: string): Promise<AdaptModule> {
@@ -120,22 +105,27 @@ export class Project {
     readonly name: string;
     private installed = false;
     constructor(readonly manifest: pacote.Manifest,
-                readonly packageTree: yarn.ListTreeMods,
+                readonly projectDir: string,
                 readonly options: ProjectOptionsComplete) {
         this.name = manifest.name;
     }
 
     getLockedVersion(pkgName: string): VersionString | null {
-        const mods = this.packageTree.get(pkgName);
-        if (!mods) return null;
-        const vList = Object.keys(mods.versions);
-        if (vList.length > 1) {
-            throw new Error(`More than one version of ${pkgName} installed`);
+        if (!this.installed) {
+            throw new Error(`Internal error: must call installModules before checking package versions`);
         }
-        if (vList.length === 0) {
-            throw new Error(`Data error - no version of ${pkgName} installed`);
+        try {
+            const pkgJsonPath = path.join(
+                this.projectDir, "node_modules", pkgName, "package.json");
+            const pkgJson = fs.readJsonSync(pkgJsonPath);
+            const version = pkgJson.version;
+            if (!version || typeof version !== "string") {
+                throw new Error(`Version information for package ${pkgName} is invalid (${version})`);
+            }
+            return version;
+        } catch (err) {
+            return null;
         }
-        return mods.versions[vList[0]].version;
     }
 
     async create(options: CreateOptions): Promise<DeployState> {

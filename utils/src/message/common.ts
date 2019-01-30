@@ -209,7 +209,7 @@ export type TaskListener =
  *   [Event]
  *   [Event]: Some status message
  */
-const taskRegex = /^\[(.+?)\](?::\s*(.+))?$/;
+const taskRegex = /^\[(.+?)\](?::\s*(.+))?$/m;
 
 export function parseTaskContent(content: string) {
     const match = content.match(taskRegex);

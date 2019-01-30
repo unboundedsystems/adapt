@@ -88,6 +88,7 @@ describe("Gen basic tests", () => {
 
     it("Should match genBasic", async () => {
         const proj = await loadProject(basicPackageJson);
+        await proj.installModules();
         const gmatch = _getGen(proj, [genBasic]);
         const mi = gmatch.matchInfo;
         expect(gmatch.gen).equals(genBasic);
@@ -99,6 +100,7 @@ describe("Gen basic tests", () => {
         const bad: any = cloneDeep(basicPackageJson);
         bad.dependencies = {};
         const proj = await loadProject(bad);
+        await proj.installModules();
         const gmatch = _getGen(proj, [genBasic]);
 
         expect(gmatch.gen).equals(genBasic);
@@ -126,6 +128,7 @@ describe("Gen basic tests", () => {
         const newgen = cloneDeep(genBasic);
         newgen.dependencies.typescript.allowed = "2.8.x";
         const proj = await loadProject(bad);
+        await proj.installModules();
         const gmatch = _getGen(proj, [newgen]);
 
         expect(gmatch.gen).equals(newgen);

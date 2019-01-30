@@ -24,6 +24,9 @@ DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=${CTR_CACHE_DIR} -v${HOME}/.cache/yarn:${CTR_
 DOCKER_ARGS+=" -eYARN_MUTEX=file:${CTR_CACHE_DIR}/.yarn-mutex"
 DOCKER_ARGS+=' -eYARN_AUTH_TOKEN="faketoken"'
 
+# Don't print annoying npm upgrade warning
+DOCKER_ARGS+=" -eNO_UPDATE_NOTIFIER=1"
+
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
 
 # Export Docker auth into child containers, either via env or file
