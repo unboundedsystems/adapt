@@ -28,7 +28,7 @@ import {
     popComponentConstructorData,
     pushComponentConstructorData,
     simplifyChildren,
-    WithChildren,
+    WithChildren
 } from "./jsx";
 
 import {
@@ -351,6 +351,9 @@ function ApplyStyle(
 
     return ret;
 }
+//Gross, but we need to provide ApplyStyle to jsx.ts like this to avoid a circular require
+// tslint:disable-next-line:no-var-requires
+require("./jsx").ApplyStyle = ApplyStyle;
 
 function doOverride(
     path: DomPath,
