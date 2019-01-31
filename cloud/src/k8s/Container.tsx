@@ -97,11 +97,13 @@ export function isContainerElement(x: AdaptElement): x is AdaptElement<K8sContai
 }
 
 export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
-    /*
     validate() {
+        if (this.props.image == null || this.props.image === "") {
+            throw new Error("K8sContainer: image is a required value");
+        }
+        return undefined;
         //FIXME(manishv) check if name is legal in k8s
         //FIXME(manishv) check if image string is valid URL
         //FIXME(manishv) check if workDir is valid path
     }
-    */
 }
