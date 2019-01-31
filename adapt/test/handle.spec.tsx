@@ -13,6 +13,7 @@ import Adapt, {
     rule,
     serializeDom,
     Style,
+    useImperativeMethods,
 } from "../src";
 import { reanimateDom } from "../src/internal";
 
@@ -103,7 +104,7 @@ describe("Element Handle", () => {
             </Group>;
         const style =
             <Style>
-                {Empty} {rule((props) => <Anything final="yes" />)}
+                {Empty} {rule((_props) => <Anything final="yes" />)}
             </Style>;
         const { dom, mountedOrig } = await doBuild(orig, style);
         if (dom == null) throw should(dom).not.be.Null();
@@ -135,6 +136,13 @@ describe("Element Handle", () => {
         should(dom.props.children.componentType).equal(Anything);
         should(dom.props.children.props.ref).equal(hand);
         should(dom.props.children.props.ref.target).be.Null();
+    });
+
+    it("Should return undefined for mountedOrig if element is never mounted", async () => {
+        const hand = handle();
+        <Group handle={hand} />;
+        await doBuild(<Group />);
+        should(hand.mountedOrig).Undefined();
     });
 
     it("Should reference other element if component build calls replace", async () => {
@@ -343,5 +351,28 @@ describe("Element Handle", () => {
         if (newDom == null) throw should(newDom).not.be.Null();
 
         should(newDom.props.children.props.ref.target).be.Null();
+    });
+
+    it("Should return instance of first built element in style chain", async () => {
+        //FIXME(manishv)  This is a hack to allow style sheets to provide reasonable semantics
+        //under current operation. We need to reevaluate the sematnics of a style sheet and
+        //implement those better semantics.  This behavior can then fall where it may.
+        const hand = handle();
+        function ReplaceMe1() { return null; }
+        function ReplaceMe2() { return null; }
+        const inst = { field: "Hi there!" };
+        function Final() {
+            useImperativeMethods(() => inst);
+            return null;
+        }
+        const root = <ReplaceMe1 handle={hand} />;
+        const style = <Style>
+            {ReplaceMe1} {Adapt.rule(() => <ReplaceMe2 />)}
+            {ReplaceMe2} {Adapt.rule(() => <Final />)}
+        </Style>;
+        await doBuild(root, style);
+        if (hand.mountedOrig === null) throw should(hand.mountedOrig).not.Null();
+        if (hand.mountedOrig === undefined) throw should(hand.mountedOrig).not.Undefined();
+        should(hand.mountedOrig.instance).eql(inst);
     });
 });

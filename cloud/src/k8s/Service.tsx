@@ -175,6 +175,8 @@ export class Service extends Component<ServiceProps, ServiceState> {
         type: "ClusterIP",
     };
 
+    private lastDeployID: string | undefined;
+
     constructor(props: ServiceProps) {
         if (props.ports && (props.ports.length > 1)) {
             for (const port of props.ports) {
@@ -212,6 +214,7 @@ export class Service extends Component<ServiceProps, ServiceState> {
     build(helpers: BuildHelpers) {
         const manifest = makeSvcManifest(this.props, this.state);
         this.updateState(helpers);
+        this.lastDeployID = helpers.deployID;
         return (
             <Resource
                 key={this.props.key}
@@ -226,6 +229,14 @@ export class Service extends Component<ServiceProps, ServiceState> {
         const succ = buildData.successor;
         if (!succ) return undefined;
         return succ.status();
+    }
+
+    hostname() {
+        const resourceHand = (this.props as BuiltinProps).handle;
+        const resourceElem = resourceHand.target;
+        if (!resourceElem) return undefined;
+        if (!this.lastDeployID) return undefined;
+        return resourceElementToName(resourceElem, this.lastDeployID);
     }
 }
 

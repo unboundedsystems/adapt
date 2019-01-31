@@ -239,6 +239,14 @@ describe("k8s Service Operation Tests", function () {
         should(serviceProps.spec.selector).eql({ adaptName: resourceElementToName(pod, options.deployID) });
     });
 
+    it("Should return the resource name as the hostname", async () => {
+        const svc = <Service key="test" config={kubeconfig} />;
+        const { mountedOrig, dom } = await doBuild(svc, options);
+        if (mountedOrig == null) throw should(mountedOrig).not.Null();
+        const hostname = mountedOrig.instance.hostname();
+        should(hostname).equal(resourceElementToName(dom, options.deployID));
+    });
+
     async function createService(name: string): Promise<AdaptElementOrNull> {
         if (!deployID) throw new Error(`Missing deployID?`);
         const ports: ServicePort[] = [

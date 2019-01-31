@@ -7,6 +7,7 @@ import Adapt, {
 } from "@usys/adapt";
 import fs from "fs-extra";
 import path from "path";
+import { callInstanceMethod, getInstanceValue } from "./hooks";
 import { DockerBuildOptions, ImageInfo, useDockerBuild } from "./LocalDockerBuild";
 
 export interface TypescriptBuildProps extends Partial<BuiltinProps> {
@@ -67,13 +68,14 @@ export function useTypescriptBuild(srcDir: string,
         const buildHand = handle();
 
         setBuildState(async () => {
-            if (buildHand.mountedOrig && buildHand.mountedOrig.instance.buildComplete()) {
-                return buildHand.mountedOrig.instance.image;
+            if (callInstanceMethod(buildHand, false, "buildComplete")) {
+                return getInstanceValue(buildHand, undefined, "image");
             }
             return undefined;
         });
-        return { buildObj:
-            <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} options={opts} />
+        return {
+            buildObj:
+                <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} options={opts} />
         };
     }
 

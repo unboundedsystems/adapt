@@ -142,8 +142,11 @@ class HandleImpl implements HandleInternal {
     }
 
     get mountedOrig(): AdaptMountedElement | null | undefined {
-        return traverseUntil(this,
+        const elem = traverseUntil(this,
             (hand) => isMountedElement(hand.origTarget)) as AdaptMountedElement;
+        if (elem == null) return elem;
+        if (!isMountedElement(elem)) return undefined;
+        return elem;
     }
 
     get target(): AdaptElement | null | undefined {

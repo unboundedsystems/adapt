@@ -16,6 +16,10 @@ import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./s
 import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
 import * as tySup from "./type_support";
 
+//dom.ts needs to set this since a direct import will cause a circular require
+// tslint:disable-next-line:variable-name
+export let ApplyStyle: ComponentType<any>;
+
 //This is broken, why does JSX.ElementClass correspond to both the type
 //a Component construtor has to return and what createElement has to return?
 //I don't think React actually adheres to this constraint.
@@ -393,7 +397,17 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     get componentName() { return this.componentType.name || "anonymous"; }
     get id() { return JSON.stringify(this.stateNamespace); }
     get instance(): GenericInstance {
-        return this.component || this.instanceMethods;
+        const localInstance = this.component || this.instanceMethods;
+        const succ = this.buildData.successor;
+        if (succ == null) return localInstance;
+        if (succ.componentType !== ApplyStyle) return localInstance;
+
+        //This element was replaced by a style sheet, use that instance instead
+        const styleResult = succ.buildData.successor;
+        if (styleResult === undefined) throw new InternalError("Successor of style sheet was undefined");
+        if (styleResult === null) return {};
+        //This will call get instance() recursivley, unless get instance() is overriden
+        return styleResult.instance;
     }
 }
 

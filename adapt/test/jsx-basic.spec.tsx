@@ -171,7 +171,7 @@ describe("JSX cloneElement Tests", () => {
 });
 
 describe("JSX Child Handling Tests", () => {
-    function Test(props: {} & Children<string | number>) {
+    function Test(_props: {} & Children<string | number>) {
         return null;
     }
 
