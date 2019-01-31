@@ -89,12 +89,12 @@ function installKubectl {
         return
     fi
 
-    curl -LO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl || \
+    curl -s -LO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl || \
         { error "Cannot download kubectl" ; return 1; }
     chmod +x ./kubectl
     mv ./kubectl "${KUBECTL}" || \
         { error "Cannot install kubectl" ; return 1; }
-    apt-get install -qq bash-completion
+    apt-get install -qq bash-completion >& /dev/null
     source <(kubectl completion bash)
     . /etc/profile.d/bash_completion.sh
 }
