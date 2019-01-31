@@ -6,7 +6,7 @@ import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
 import { taskObservable } from "../ui";
-import { AdaptBase, createLoggerPair, defaultListrOptions, doLogging } from "./adapt_base";
+import { AdaptBase, createLoggerPair } from "./adapt_base";
 
 import {
     getGen,
@@ -35,6 +35,7 @@ export interface DeployCtx {
 export abstract class DeployBase extends AdaptBase {
 
     static flags = {
+        ...AdaptBase.flags,
         serverUrl: flags.string({
             description: "URL of Adapt server. Defaults to using local system.",
             env: "ADAPT_SERVER_URL",
@@ -47,10 +48,13 @@ export abstract class DeployBase extends AdaptBase {
 
     args?: any;
     flags?: any;
-
-    tasks = new Listr(defaultListrOptions);
-
     ctx: DeployCtx;
+    tasks_?: Listr;
+
+    get tasks(): Listr {
+        if (!this.tasks_) throw new Error(`Internal error: cannot access tasks before init`);
+        return this.tasks_;
+    }
 
     async init() {
         await super.init();
@@ -60,6 +64,8 @@ export abstract class DeployBase extends AdaptBase {
         this.flags = flags;
         this.args = args;
 
+        this.tasks_ = new Listr(this.outputSettings.listrOptions);
+
         let adaptUrl: string;
         if (this.flags.serverUrl) {
             adaptUrl = this.flags.serverUrl;
@@ -68,7 +74,7 @@ export abstract class DeployBase extends AdaptBase {
             adaptUrl = filePathToUrl(dbFile);
         }
 
-        const pair = createLoggerPair("deploy", doLogging);
+        const pair = createLoggerPair("deploy", this.outputSettings.logging);
         this.ctx = {
             adaptUrl,
             debug: this.flags.debug,
