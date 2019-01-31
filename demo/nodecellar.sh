@@ -1,6 +1,7 @@
 DEMO_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 . "${DEMO_DIR}/minikube.sh"
+. "${DEMO_DIR}/commands.sh"
 
 cp -R /src/cli/test_projects/nodecellar /tmp
 cd /tmp/nodecellar
