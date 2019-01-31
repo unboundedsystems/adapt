@@ -406,6 +406,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         const styleResult = succ.buildData.successor;
         if (styleResult === undefined) throw new InternalError("Successor of style sheet was undefined");
         if (styleResult === null) return {};
+        //This will call get instance() recursivley, unless get instance() is overriden
         return styleResult.instance;
     }
 }
