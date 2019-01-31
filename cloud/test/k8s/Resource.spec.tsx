@@ -230,6 +230,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
                 containers: [{
                     name: "container",
                     image: "alpine:3.8",
+                    imagePullPolicy: "IfNotPresent",
                     command,
                 }],
                 terminationGracePeriodSeconds: 0
