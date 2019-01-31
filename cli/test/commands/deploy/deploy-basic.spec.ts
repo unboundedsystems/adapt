@@ -339,8 +339,52 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("✔ Validating project");
         expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces
+        );
+    });
+
+    testBaseTty
+    .do(async () => {
+        await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    })
+    .command(["deploy:create", "--init", "-q", "dev"])
+
+    .it("Should build quietly", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).matches(/^Deployment created successfully. DeployID is: test::dev-[a-z]{4}\n$/m);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces
+        );
+    });
+
+    testBaseTty
+    .do(async () => {
+        await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    })
+    .command(["deploy:create", "--init", "--debug=build", "dev"])
+
+    .it("Should not use update renderer with --debug", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).does.not.contain("✔ Validating project");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
 
         checkPluginStdout(ctx.stdout);
+
+        // Should have debug=build output
+        expect(ctx.stdout).contains("BUILD [start]");
+        expect(ctx.stdout).contains("BUILD [done]");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -377,8 +421,6 @@ describe("Deploy create basic tests", function () {
         // Should have debug=build output
         expect(ctx.stdout).contains("BUILD [start]");
         expect(ctx.stdout).contains("BUILD [done]");
-
-        checkPluginStdout(ctx.stdout);
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
