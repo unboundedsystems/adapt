@@ -1,3 +1,4 @@
+import db from "debug";
 import * as util from "util";
 
 import * as ld from "lodash";
@@ -52,6 +53,8 @@ import { createHookInfo, finishHooks, HookInfo, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 
 export type DomPath = AdaptElement[];
+
+const debugBuild = db("adapt:dom:build");
 
 type CleanupFunc = () => void;
 class BuildResults {
@@ -568,6 +571,8 @@ export async function build(
     styles: AdaptElementOrNull,
     options?: BuildOptions): Promise<BuildOutput> {
 
+    const debugBuildBuild = debugBuild.extend("build");
+    debugBuildBuild(`start`);
     if (buildCount !== 0) {
         throw new InternalError(`Attempt to build multiple DOMs concurrently not supported`);
     }
@@ -583,6 +588,7 @@ export async function build(
         await pathBuild([root], styleList, optionsReq, results);
         return results.toBuildOutput();
     } finally {
+        debugBuildBuild(`done`);
         buildCount--;
     }
 }
@@ -636,22 +642,28 @@ async function pathBuildOnceGuts(
         return;
     }
 
+    const debug = debugBuild.extend(`pathBuildOnceGuts:${results.buildPassStarts}`);
+
+    debug(`start (pass ${results.buildPassStarts})`);
     options.recorder({ type: "start", root });
     results.buildPassReset();
 
     try {
         const once = await realBuildOnce(path, null, styles, options, null);
+        debug(`build finished`);
         once.cleanup();
         results.combine(once);
         results.mountedOrig = once.mountedOrig;
         results.contents = once.contents;
     } catch (error) {
         options.recorder({ type: "error", error });
+        debug(`error: ${error} `);
         throw error;
     }
 
     if (results.buildErr) return;
 
+    debug(`validating`);
     results.builtElements.map((elem) => {
         if (isMountedPrimitiveElement(elem)) {
             let msgs: (Message | Error)[];
@@ -667,6 +679,7 @@ async function pathBuildOnceGuts(
 
     if (results.buildErr) return;
 
+    debug(`postBuild`);
     options.recorder({ type: "done", root: results.contents });
     const updates = results.builtElements.map(async (elem) => {
         if (isElementImpl(elem)) {
@@ -677,6 +690,7 @@ async function pathBuildOnceGuts(
         }
     });
     await Promise.all(updates);
+    debug(`done (stateChanged=${results.stateChanged})`);
 }
 
 function setOrigChildren(predecessor: AdaptElementImpl<AnyProps>, origChildren: any[]) {
@@ -759,6 +773,8 @@ function setSuccessor(predecessor: AdaptMountedElement | null, succ: AdaptMounte
     predecessor.buildData.successor = succ;
 }
 
+let realBuildId = 0;
+
 async function realBuildOnce(
     pathIn: DomPath,
     parentStateNamespace: StateNamespace | null,
@@ -767,126 +783,139 @@ async function realBuildOnce(
     predecessor: AdaptMountedElement | null,
     workingElem?: AdaptElement): Promise<BuildResults> {
 
-    let deferring = false;
-    const atDepthFlag = atDepth(options, pathIn.length);
+    const buildId = ++realBuildId;
+    const debug = debugBuild.extend(`realBuildOnce:${buildId}`);
+    debug(`start (id: ${buildId})`);
 
-    if (options.depth === 0) throw new InternalError("build depth 0 not supported");
+    try {
 
-    if (parentStateNamespace == null) {
-        parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
-    }
+        let deferring = false;
+        const atDepthFlag = atDepth(options, pathIn.length);
 
-    const oldElem = ld.last(pathIn);
-    if (oldElem === undefined) throw new InternalError("realBuild called with empty path");
-    if (oldElem === null) return new BuildResults(options.recorder, null);
-    if (workingElem === undefined) {
-        workingElem = oldElem;
-    }
+        if (options.depth === 0) throw new InternalError("build depth 0 not supported");
 
-    const out = new BuildResults(options.recorder);
-    let mountedElem: AdaptElementOrNull = oldElem;
-    if (!isMountedElement(oldElem)) {
-        const mountOut = mountElement(pathIn, parentStateNamespace, options);
-        if (mountOut.buildErr) return mountOut;
-        out.contents = mountedElem = mountOut.contents;
-        out.combine(mountOut);
-    }
-    if (!isMountedElement(mountedElem)) throw new InternalError("element not mounted after mount");
-    out.mountedOrig = mountedElem;
-    setSuccessor(predecessor, mountedElem);
+        if (parentStateNamespace == null) {
+            parentStateNamespace = stateNamespaceForPath(pathIn.slice(0, -1));
+        }
 
-    if (mountedElem === null) {
-        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
-        return out;
-    }
+        const oldElem = ld.last(pathIn);
+        if (oldElem === undefined) throw new InternalError("realBuild called with empty path");
+        if (oldElem === null) return new BuildResults(options.recorder, null);
+        if (workingElem === undefined) {
+            workingElem = oldElem;
+        }
 
-    //Element is mounted
-    const mountedPath = subLastPathElem(pathIn, mountedElem);
+        const out = new BuildResults(options.recorder);
+        let mountedElem: AdaptElementOrNull = oldElem;
+        if (!isMountedElement(oldElem)) {
+            const mountOut = mountElement(pathIn, parentStateNamespace, options);
+            if (mountOut.buildErr) return mountOut;
+            out.contents = mountedElem = mountOut.contents;
+            out.combine(mountOut);
+        }
+        if (!isMountedElement(mountedElem)) throw new InternalError("element not mounted after mount");
+        out.mountedOrig = mountedElem;
+        setSuccessor(predecessor, mountedElem);
 
-    let newRoot: AdaptElementOrNull | undefined;
-    let newPath = mountedPath;
-    if (!isElementImpl(mountedElem)) {
-        throw new Error("Elements must inherit from ElementImpl:" + util.inspect(newRoot));
-    }
+        if (mountedElem === null) {
+            options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: out.contents });
+            return out;
+        }
 
-    if (!isDeferredElementImpl(mountedElem) || mountedElem.shouldBuild()) {
-        const computeOut = await buildElement(mountedPath, parentStateNamespace, styles, options);
-        out.combine(computeOut);
-        out.contents = newRoot = computeOut.contents;
+        //Element is mounted
+        const mountedPath = subLastPathElem(pathIn, mountedElem);
 
-        if (computeOut.buildErr) return out;
-        if (newRoot !== null) {
-            if (newRoot !== mountedElem) {
-                newPath = subLastPathElem(mountedPath, newRoot);
-                const ret = (await realBuildOnce(
-                    newPath,
-                    mountedElem.stateNamespace,
-                    styles,
-                    options,
-                    mountedElem,
-                    workingElem)).combine(out);
-                ret.mountedOrig = out.mountedOrig;
-                return ret;
-            } else {
-                options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
-                return out;
+        let newRoot: AdaptElementOrNull | undefined;
+        let newPath = mountedPath;
+        if (!isElementImpl(mountedElem)) {
+            throw new Error("Elements must inherit from ElementImpl:" + util.inspect(newRoot));
+        }
+
+        if (!isDeferredElementImpl(mountedElem) || mountedElem.shouldBuild()) {
+            const computeOut = await buildElement(mountedPath, parentStateNamespace, styles, options);
+            out.combine(computeOut);
+            out.contents = newRoot = computeOut.contents;
+
+            if (computeOut.buildErr) return out;
+            if (newRoot !== null) {
+                if (newRoot !== mountedElem) {
+                    newPath = subLastPathElem(mountedPath, newRoot);
+                    const ret = (await realBuildOnce(
+                        newPath,
+                        mountedElem.stateNamespace,
+                        styles,
+                        options,
+                        mountedElem,
+                        workingElem)).combine(out);
+                    ret.mountedOrig = out.mountedOrig;
+                    return ret;
+                } else {
+                    options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
+                    return out;
+                }
+            }
+        } else {
+            deferring = true;
+            mountedElem.deferred();
+            newRoot = mountedElem;
+            out.contents = newRoot;
+        }
+
+        if (newRoot === undefined) {
+            out.error(`Root element undefined after build`);
+            out.contents = null;
+            return out;
+        }
+        if (newRoot === null) {
+            setSuccessor(mountedElem, newRoot);
+            options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: null });
+            return out;
+        }
+
+        //Do not process children of DomError nodes in case they result in more DomError children
+        if (!isDomErrorElement(newRoot)) {
+            if (!atDepthFlag) {
+                const { newChildren, childBldResults } = await buildChildren(newRoot, mountedPath, styles, options);
+                out.combine(childBldResults);
+
+                replaceChildren(newRoot, newChildren);
+            }
+        } else {
+            if (!out.buildErr) {
+                // This could happen if a user instantiates a DomError element.
+                // Treat that as a build error too.
+                out.error("User-created DomError component present in the DOM tree");
             }
         }
-    } else {
-        deferring = true;
-        mountedElem.deferred();
-        newRoot = mountedElem;
-        out.contents = newRoot;
-    }
 
-    if (newRoot === undefined) {
-        out.error(`Root element undefined after build`);
-        out.contents = null;
-        return out;
-    }
-    if (newRoot === null) {
-        setSuccessor(mountedElem, newRoot);
-        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: null });
-        return out;
-    }
-
-    //Do not process children of DomError nodes in case they result in more DomError children
-    if (!isDomErrorElement(newRoot)) {
-        if (!atDepthFlag) {
-            const { newChildren, childBldResults } = await buildChildren(newRoot, mountedPath, styles, options);
-            out.combine(childBldResults);
-
-            replaceChildren(newRoot, newChildren);
+        //We are here either because mountedElem was deferred, or because mountedElem === newRoot
+        if (!deferring || atDepthFlag) {
+            options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
+            return out;
         }
-    } else {
-        if (!out.buildErr) {
-            // This could happen if a user instantiates a DomError element.
-            // Treat that as a build error too.
-            out.error("User-created DomError component present in the DOM tree");
-        }
+
+        //FIXME(manishv)? Should this check be if there were no element children instead of just no children?
+        //No built event in this case since we've exited early
+        if (atDepthFlag && newRoot.props.children === undefined) return out;
+
+        //We must have deferred to get here
+        const deferredRet =
+            (await realBuildOnce(
+                newPath,
+                mountedElem.stateNamespace,
+                styles,
+                options,
+                predecessor,
+                workingElem)).combine(out);
+        deferredRet.mountedOrig = out.mountedOrig;
+        return deferredRet;
+    } catch (err) {
+        debug(`error (id: ${buildId}): ${err}`);
+        throw err;
+
+    } finally {
+        debug(`done (id: ${buildId})`);
     }
-
-    //We are here either because mountedElem was deferred, or because mountedElem === newRoot
-    if (!deferring || atDepthFlag) {
-        options.recorder({ type: "elementBuilt", oldElem: workingElem, newElem: newRoot });
-        return out;
-    }
-
-    //FIXME(manishv)? Should this check be if there were no element children instead of just no children?
-    //No built event in this case since we've exited early
-    if (atDepthFlag && newRoot.props.children === undefined) return out;
-
-    //We must have deferred to get here
-    const deferredRet =
-        (await realBuildOnce(
-            newPath,
-            mountedElem.stateNamespace,
-            styles,
-            options,
-            predecessor,
-            workingElem)).combine(out);
-    deferredRet.mountedOrig = out.mountedOrig;
-    return deferredRet;
 }
 
 function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) {
