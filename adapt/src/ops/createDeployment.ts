@@ -1,3 +1,4 @@
+import { formatUserError } from "@usys/utils";
 import { ProjectRunError } from "../error";
 import { adaptServer, AdaptServer } from "../server";
 import {
@@ -74,8 +75,10 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             });
 
         } catch (err) {
-            const backtrace = err instanceof ProjectRunError ? err.projectStack : err.stack;
-            logger.error(`Error creating deployment: ${err}:\n`, backtrace);
+            const message = err instanceof ProjectRunError ?
+                `${err.message}:\n${err.projectStack}` :
+                formatUserError(err);
+            logger.error(`Error creating deployment: ${message}`);
             ds = {
                 type: "error",
                 messages: logger.messages,

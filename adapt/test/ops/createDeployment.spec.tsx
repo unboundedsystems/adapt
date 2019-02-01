@@ -308,8 +308,8 @@ describe("createDeployment Tests", async function () {
         await createError("ActError", [
             /Error: ActError1/,
             /Error: ActError2/,
-            /Error creating deployment: Error: Errors encountered during plugin action phase/
-        ]);
+            /Error creating deployment: Errors encountered during plugin action phase/
+        ], true);
     });
 
     it("Should report status", async () => {
