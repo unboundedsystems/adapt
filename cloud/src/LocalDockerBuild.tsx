@@ -128,7 +128,7 @@ export function LocalDockerBuild(props: LocalDockerBuildProps) {
 }
 
 export interface DockerBuildStatus {
-    buildObj: AdaptElement<DockerBuildOptions> | null;
+    buildObj: AdaptElement | null;
     image?: ImageInfo;
 }
 

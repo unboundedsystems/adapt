@@ -14,7 +14,7 @@ export interface ContainerSpec {
     workingDir?: string;
 }
 
-export interface K8sContainerProps extends ContainerSpec {}
+export interface K8sContainerProps extends ContainerSpec { }
 
 export interface ContainerPort {
     // Number of port to expose on the pod's IP address. This must be a
@@ -63,10 +63,10 @@ export function k8sContainerProps(abstractProps: ctr.ContainerProps): K8sContain
     };
 
     if (entrypoint != null) {
-        ret.args = Array.isArray(entrypoint) ? entrypoint : [ entrypoint ];
+        ret.args = Array.isArray(entrypoint) ? entrypoint : [entrypoint];
     }
     if (command != null) {
-        ret.command = Array.isArray(command) ? command : [ command ];
+        ret.command = Array.isArray(command) ? command : [command];
     }
     if (environment != null) {
         ret.env = Object.keys(environment).map((name) => {
@@ -97,11 +97,17 @@ export function isContainerElement(x: AdaptElement): x is AdaptElement<K8sContai
 }
 
 export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
-    /*
+    static defaultProps = {
+        imagePullPolicy: "IfNotPresent"
+    };
+
     validate() {
+        if (this.props.image == null || this.props.image === "") {
+            throw new Error("K8sContainer: image is a required value");
+        }
+        return undefined;
         //FIXME(manishv) check if name is legal in k8s
         //FIXME(manishv) check if image string is valid URL
         //FIXME(manishv) check if workDir is valid path
     }
-    */
 }
