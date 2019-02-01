@@ -437,13 +437,6 @@
   dependencies:
     jsonschema "*"
 
-"@types/listr@^0.13.0":
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/@types/listr/-/listr-0.13.0.tgz#6250bc4a04123cafa24fc73d1b880653a6ae6721"
-  integrity sha512-8DOy0JCGwwAf76xmU0sRzSZCWKSPPA9djRcTYTsyqBPnMdGOjZ5tjmNswC4J9mgKZudte2tuTo1l14R1/t5l/g==
-  dependencies:
-    "@types/node" "*"
-
 "@types/lodash@^4.14.108", "@types/lodash@^4.14.109", "@types/lodash@^4.14.110":
   version "4.14.112"
   resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.112.tgz#4a8d8e5716b97a1ac01fe1931ad1e4cba719de5a"
@@ -2912,6 +2905,7 @@ is-plain-object@^2.0.1, is-plain-object@^2.0.3, is-plain-object@^2.0.4:
 is-promise@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/is-promise/-/is-promise-2.1.0.tgz#79a2a9ece7f096e80f36d2b2f3bc16c1ff4bf3fa"
+  integrity sha1-eaKp7OfwlugPNtKy87wWwf9L8/o=
 
 is-retry-allowed@^1.1.0:
   version "1.1.0"
@@ -3303,7 +3297,7 @@ listr-verbose-renderer@unboundedsystems/listr-verbose-renderer:
 
 listr@unboundedsystems/listr:
   version "0.14.3-unb1"
-  resolved "https://codeload.github.com/unboundedsystems/listr/tar.gz/2e877e28b2546b36d06ded401b1edc683ffc0498"
+  resolved "https://codeload.github.com/unboundedsystems/listr/tar.gz/9df89bb5039cb4756273d902927df4800e8d0ac5"
   dependencies:
     "@samverschueren/stream-to-observable" "^0.3.0"
     is-observable "^1.1.0"

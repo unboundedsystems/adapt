@@ -6,7 +6,7 @@ import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
 import { taskObservable } from "../ui";
-import { AdaptBase, createLoggerPair } from "./adapt_base";
+import { AdaptBase, createLoggerPair, HandleResponseOptions } from "./adapt_base";
 
 import {
     getGen,
@@ -181,10 +181,11 @@ export abstract class DeployOpBase extends DeployBase {
         ]);
     }
 
-    isDeploySuccess(response: DeployState): response is DeploySuccess {
+    isDeploySuccess(response: DeployState, options: HandleResponseOptions = {}): response is DeploySuccess {
         return this.isApiSuccess(response, {
-            errorMessage: cantDeploy,
+            errorStart: cantDeploy,
             action: "deploy",
+            ...options,
         });
     }
 

@@ -2,8 +2,8 @@ import { dirname } from "path";
 import * as util from "util";
 import { DeployBase } from "../../base";
 import { projectAdaptModule } from "../../proj";
-import { AdaptModule, DeploymentInfo, ListResponse } from "../../types/adapt_shared";
-import { addDynamicTask } from "../../ui/dynamic_task_mgr";
+import { AdaptModule, DeploymentInfo } from "../../types/adapt_shared";
+import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 
 function formatDeployments(info: DeploymentInfo[]) {
     return info.map((i) => i.deployID).join("\n");
@@ -58,8 +58,6 @@ export default class ListCommand extends DeployBase {
             }
         });
 
-        let infoP: Promise<ListResponse>;
-
         const logger = ctx.logger.createChild("list");
         const loggerId = logger.from;
 
@@ -67,23 +65,14 @@ export default class ListCommand extends DeployBase {
             id: loggerId,
             title: "Listing Deployments",
             adoptable: true,
-            initiate: (_ctx, task) => {
-                infoP = this.adapt.listDeployments({
-                    adaptUrl: ctx.adaptUrl,
-                    client: ctx.client,
-                    logger,
-                    loggerId,
-                }).catch((err) => {
-                    task.fail(err);
-                    throw err;
-                });
-            }
-        });
-
-        this.tasks.add({
-            title: "Checking results",
-            task: async () => {
-                const info = await infoP;
+            initiate: () => this.adapt.listDeployments({
+                adaptUrl: ctx.adaptUrl,
+                client: ctx.client,
+                logger,
+                loggerId,
+            }),
+            onCompleteRoot: async (_ctx, _task, err, prom) => {
+                const info = await waitForInitiate(err, prom);
                 if (!this.isApiSuccess(info, { action: "list" })) return;
                 this.appendOutput(formatDeployments(info.deployments));
             }

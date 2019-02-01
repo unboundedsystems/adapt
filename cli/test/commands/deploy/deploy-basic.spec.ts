@@ -51,6 +51,15 @@ class EchoPlugin implements Plugin<{}> {
     }
     analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
+
+        if (dom != null && dom.componentType.name === "AnalyzeError") {
+            throw new Error("AnalyzeError");
+        }
+        if (dom != null && dom.componentType.name === "ActError") {
+            return [
+                { description: "echo error", act: () => { throw new Error("ActError"); } },
+            ];
+        }
         return [
             { description: "echo action1", act: () => this.doAction("action1") },
             { description: "echo action2", act: () => this.doAction("action2") }
@@ -130,10 +139,13 @@ const basicIndexTsx = `
     import Adapt, { PrimitiveComponent } from "@usys/adapt";
     import "./simple_plugin";
 
-    export class Root extends PrimitiveComponent<{}> { }
+    export class DevStack extends PrimitiveComponent<{}> { }
+    export class ActError extends PrimitiveComponent<{}> {}
+    export class AnalyzeError extends PrimitiveComponent<{}> {}
 
-    const app = <Root />;
-    Adapt.stack("dev", app);
+    Adapt.stack("dev", <DevStack />);
+    Adapt.stack("ActError", <ActError />);
+    Adapt.stack("AnalyzeError", <AnalyzeError />);
 `;
 
 function observerIndexTsx(id1: number, id2: number) {
@@ -142,14 +154,14 @@ function observerIndexTsx(id1: number, id2: number) {
         import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
         import "./simple_plugin";
 
-        export class Root extends PrimitiveComponent<{}> { }
+        export class DevStack extends PrimitiveComponent<{}> { }
 
         const app = <Observer
             observer={MockObserver}
             query={gql\`query { mockById(id: "${id1}") { idSquared } }\`}
             build={(err, props) => {
                 console.log("+++", err, props, "+++");
-                return <Root key="Root" />;
+                return <DevStack key="DevStack" />;
             }}/>;
 
         const app2 = <Observer
@@ -157,7 +169,7 @@ function observerIndexTsx(id1: number, id2: number) {
             query={gql\`query { mockById(id: "${id2}") { idSquared } }\`}
             build={(err, props) => {
                 console.log("***", err, props, "***");
-                return props ? app : <Root key="Root" />;
+                return props ? app : <DevStack key="DevStack" />;
             }}/>;
 
         Adapt.stack("dev", app);
@@ -174,7 +186,7 @@ async function findDeploymentDir(): Promise<string> {
 
 async function findHistoryDir(): Promise<string> {
     const deploymentDir = await findDeploymentDir();
-    const historyDirs = await fs.readdir(deploymentDir);
+    const historyDirs = (await fs.readdir(deploymentDir)).filter((d) => !/preAct/.test(d));
     expect(historyDirs.length).to.be.greaterThan(0);
     return path.join(deploymentDir, last(historyDirs)!);
 }
@@ -183,9 +195,12 @@ async function checkBasicIndexTsxState(
     fileName: string,
     projectRoot: string,
     stackName: string,
-    namespaces: { [stackName: string]: string[] }
+    namespaces: { [stackName: string]: string[] },
+    compName?: string,
+    status = "success"
 ): Promise<void> {
 
+    if (!compName) compName = stackName;
     const historyDir = await findHistoryDir();
     const fileList = await fs.readdir(historyDir);
     expect(fileList).eqls([
@@ -198,13 +213,16 @@ async function checkBasicIndexTsxState(
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
     expect(domXml.toString()).equals(
 `<Adapt>
-  <Root key="Root" xmlns="urn:Adapt:test:1.0.0::index.tsx:Root">
+  <${compName} xmlns="urn:Adapt:test:1.0.0::index.tsx:${compName}">
+    <__props__>
+      <prop name="key">"${compName}"</prop>
+    </__props__>
     <__lifecycle__>
       <field name="stateNamespace">${JSON.stringify(namespaces[stackName])}</field>
-      <field name="keyPath">["Root"]</field>
-      <field name="path">"/Root"</field>
+      <field name="keyPath">["${compName}"]</field>
+      <field name="path">"/${compName}"</field>
     </__lifecycle__>
-  </Root>
+  </${compName}>
 </Adapt>
 `);
     const state = await fs.readJson(path.join(historyDir, stateFilename));
@@ -215,7 +233,7 @@ async function checkBasicIndexTsxState(
         fileName,
         projectRoot,
         stackName,
-        status: "success",
+        status,
         dataDir: path.join(historyDir, dataDirFilename),
     });
 }
@@ -256,8 +274,7 @@ describe("Deploy list tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).contains("Listing Deployments [completed]");
-        expect(ctx.stdout).matches(/Checking results \[completed\]\n\ntest::dev-[a-z]{4}\n/);
+        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).not.contains("using internal adapt module");
     });
 
@@ -270,7 +287,7 @@ describe("Deploy list tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains("Listing Deployments [completed]");
-        expect(ctx.stdout).matches(/Checking results \[completed\]\n\ntest::dev-[a-z]{4}\n/);
+        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
         expect(ctx.stdout).contains("using internal adapt module");
     });
 
@@ -305,7 +322,11 @@ describe("Deploy create basic tests", function () {
     this.timeout(3 * 60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
-    const namespaces = { dev: ["Root"] };
+    const namespaces = {
+        dev: ["DevStack"],
+        ActError: ["ActError"],
+        AnalyzeError: ["AnalyzeError"],
+    };
 
     basicTestChain
     .command(["deploy:create", "--init", "dev"])
@@ -324,7 +345,8 @@ describe("Deploy create basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
-            namespaces
+            namespaces,
+            "DevStack"
         );
 
     });
@@ -345,7 +367,8 @@ describe("Deploy create basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
-            namespaces
+            namespaces,
+            "DevStack"
         );
     });
 
@@ -363,7 +386,8 @@ describe("Deploy create basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
-            namespaces
+            namespaces,
+            "DevStack"
         );
     });
 
@@ -390,7 +414,8 @@ describe("Deploy create basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
-            namespaces
+            namespaces,
+            "DevStack"
         );
     });
 
@@ -427,6 +452,72 @@ describe("Deploy create basic tests", function () {
             process.cwd(),
             "dev",
             namespaces,
+            "DevStack"
+        );
+    });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "AnalyzeError"])
+    .catch((err) => {
+        // Check for error that includes backtrace and source mapping
+        const msgRe = RegExp(
+`^This project cannot be deployed.
+1 error encountered during deploy:
+\\[deploy:create\\] : Error creating deployment: Error: AnalyzeError
+.*simple_plugin/index.ts:(.|\n)*
+Deployment not created due to errors$`);
+// .*simple_plugin/index.ts:.*
+        expect(err.message).matches(msgRe);
+        expect((err as any).oclif.exit).equals(2);
+    })
+
+    .it("Should error before act and not create deployment", async (ctx) => {
+        const stdout = ctx.stdout;
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Analyzing environment [started]");
+        expect(stdout).contains("Analyzing environment [failed]");
+        expect(stdout).contains("Creating new project deployment [failed]");
+
+        expect(ctx.stderr).contains(`[deploy:create] ERROR: Error creating deployment: Error: AnalyzeError\n`);
+        expect(ctx.stderr).contains(`/simple_plugin/index.ts:`);
+
+        const deploymentList = await fs.readdir("deployments");
+        expect(deploymentList).to.be.length(0);
+    });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "ActError"])
+    .catch((err) => {
+        const msgRe = RegExp(
+`^This project cannot be deployed.
+2 errors encountered during deploy:
+\\[deploy:create:deploy:act\\] : --Error during echo error
+Error: ActError
+----------
+\\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
+
+Deployment created but errors occurred in the deploy phase.
+DeployID is: test::ActError-[a-z]{4}$`);
+        expect(err.message).matches(msgRe);
+        expect((err as any).oclif.exit).equals(2);
+    })
+
+    .it("Should error in act and create deployment", async (ctx) => {
+        const stdout = ctx.stdout;
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Applying changes to environment [started]");
+        expect(stdout).contains("Applying changes to environment [failed]");
+        expect(stdout).contains("Creating new project deployment [failed]");
+
+        expect(ctx.stderr).contains("ERROR: --Error during echo error\nError: ActError");
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "ActError",
+            namespaces,
+            "ActError",
+            "failed"
         );
     });
 });
@@ -442,8 +533,8 @@ describe("Observer Needs Data Reporting", function () {
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     const namespaces = {
-        dev: ["Observer", "Root"],
-        devNeedsData: ["Observer", "Observer-Observer", "Root"],
+        dev: ["Observer", "DevStack"],
+        devNeedsData: ["Observer", "Observer-Observer", "DevStack"],
     };
 
     observerTest
@@ -459,7 +550,8 @@ describe("Observer Needs Data Reporting", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
-            namespaces
+            namespaces,
+            "DevStack"
         );
     });
 
@@ -477,7 +569,8 @@ describe("Observer Needs Data Reporting", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "devNeedsData",
-            namespaces
+            namespaces,
+            "DevStack"
         );
     });
 
@@ -498,7 +591,8 @@ describe("Observer Needs Data Reporting", function () {
                 path.join(process.cwd(), "index.tsx"),
                 process.cwd(),
                 "dev",
-                namespaces
+                namespaces,
+                "DevStack"
             );
 
             const matches = ctx.stdout.match(newDeployRegex);
@@ -521,7 +615,8 @@ describe("Observer Needs Data Reporting", function () {
                 path.join(process.cwd(), "index.tsx"),
                 process.cwd(),
                 newStack,
-                namespaces
+                namespaces,
+                "DevStack"
             );
         });
     }
