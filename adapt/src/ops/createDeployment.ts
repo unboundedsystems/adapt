@@ -1,3 +1,4 @@
+import { formatUserError } from "@usys/utils";
 import { ProjectRunError } from "../error";
 import { adaptServer, AdaptServer } from "../server";
 import {
@@ -5,6 +6,7 @@ import {
     Deployment,
     destroyDeployment
 } from "../server/deployment";
+import { HistoryStatus } from "../server/history";
 import { buildAndDeploy } from "./buildAndDeploy";
 import {
     defaultDeployCommonOptions,
@@ -74,17 +76,30 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             });
 
         } catch (err) {
-            const backtrace = err instanceof ProjectRunError ? err.projectStack : err.stack;
-            logger.error(`Error creating deployment: ${err}:\n`, backtrace);
+            const message = err instanceof ProjectRunError ?
+                `${err.message}:\n${err.projectStack}` :
+                formatUserError(err);
+            logger.error(`Error creating deployment: ${message}`);
             ds = {
                 type: "error",
                 messages: logger.messages,
                 summary: logger.summary,
                 domXml: err.domXml,
             };
+            if (deployment) {
+                // NOTE(mark): TS 3.0.3 incorrectly narrows deployment to
+                // null within the catch
+                const dep = deployment as Deployment;
+                // If there's a History entry, the deploy failed during act,
+                // which means there could be a partial deploy.
+                // Give the user the deployID so they can decide what to do.
+                if (await dep.lastEntry(HistoryStatus.complete)) {
+                    ds.deployID = dep.deployID;
+                }
+            }
         }
 
-        if (server && deployment && (finalOptions.dryRun || ds.type === "error")) {
+        if (server && deployment && (finalOptions.dryRun || !ds.deployID)) {
             try {
                 await destroyDeployment(server, deployment.deployID);
             } catch (err) {

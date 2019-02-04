@@ -230,7 +230,7 @@ describe("createDeployment Tests", async function () {
     }
 
     async function createError(stackName: string,
-        expectedErrs: RegExp[]): Promise<DeployError> {
+        expectedErrs: RegExp[], actError = false): Promise<DeployError> {
         const ds = await doCreate(stackName);
         if (isDeploySuccess(ds)) {
             should(isDeploySuccess(ds)).be.False();
@@ -239,7 +239,17 @@ describe("createDeployment Tests", async function () {
         checkErrors(ds, expectedErrs);
 
         const list = await listDeploymentIDs(await server());
-        should(list).have.length(0);
+        // If the error occurred during the act phase, the deployment should
+        // still exist. If it occurred earlier, it should have been destroyed.
+        if (actError) {
+            should(list).have.length(1);
+            should(ds.deployID).not.be.Undefined();
+            should(list[0]).equal(ds.deployID);
+
+        } else {
+            should(list).have.length(0);
+        }
+
         return ds;
     }
 
@@ -308,8 +318,8 @@ describe("createDeployment Tests", async function () {
         await createError("ActError", [
             /Error: ActError1/,
             /Error: ActError2/,
-            /Error creating deployment: Error: Errors encountered during plugin action phase/
-        ]);
+            /Error creating deployment: Errors encountered during plugin action phase/
+        ], true);
     });
 
     it("Should report status", async () => {

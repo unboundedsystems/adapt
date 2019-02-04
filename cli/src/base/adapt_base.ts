@@ -3,6 +3,7 @@ import * as Parser from "@oclif/parser";
 import {
     getErrors,
     getWarnings,
+    isUserError,
     MessageClient,
     MessageLogger,
     MessageStreamClient,
@@ -69,9 +70,15 @@ export function getOutputSettings(theFlags: StandardFlags): OutputSettings {
 }
 
 export interface HandleResponseOptions {
-    errorMessage?: string;
+    errorStart?: string;
+    errorEnding?: string;
     action?: string;
 }
+
+const defaultHandleResponseOptions = {
+    errorStart: "",
+    errorEnding: "",
+};
 
 export abstract class AdaptBase extends Command {
     static flags = {
@@ -96,7 +103,10 @@ export abstract class AdaptBase extends Command {
 
     async finally(err?: Error) {
         await super.finally(err);
-        if (err !== undefined) return;
+        if (err !== undefined) {
+            if (isUserError(err)) return this.error(err.message);
+            return;
+        }
 
         if (this.finalOutput !== "") {
             let cr = "\n";
@@ -126,7 +136,10 @@ export abstract class AdaptBase extends Command {
     }
 
     handleApiResponse(response: ApiResponse, options: HandleResponseOptions = {}): response is ApiSuccess {
-        const errorMessage = options.errorMessage || "";
+        const { errorStart, errorEnding } = {
+            ...defaultHandleResponseOptions,
+            ...options
+        };
         const action = options.action ? ` during ${options.action}` : "";
 
         const nwarn = response.summary.warning;
@@ -139,15 +152,16 @@ export abstract class AdaptBase extends Command {
         const nerr = response.summary.error;
         if (nerr > 0) {
             const errors = nerr === 1 ? "error" : "errors";
-            return this.error(
-                errorMessage +
+            let msg = errorStart +
                 `${nerr} ${errors} encountered${action}:\n` +
-                getErrors(response.messages));
+                getErrors(response.messages);
+            if (errorEnding) msg += "\n" + errorEnding;
+            return this.error(msg);
         }
 
         if (response.type === "error") {
             return this.error(
-                errorMessage + `Internal error: error response received with no error message`);
+                errorStart + `Internal error: error response received with no error message`);
         }
         return true;
     }

@@ -34,6 +34,7 @@ export interface DeploySuccess extends ApiResponse {
 export interface DeployError extends ApiResponse {
     type: "error";
 
+    deployID?: string;  // deployID exists if error occurred in act phase
     domXml?: string;
     stateJson?: string;
 }

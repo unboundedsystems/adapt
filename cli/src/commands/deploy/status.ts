@@ -1,7 +1,6 @@
 import { DeployOpBase } from "../../base";
-import { UserError } from "../../error";
-import { DeployState, StatusOptions } from "../../types/adapt_shared";
-import { addDynamicTask } from "../../ui/dynamic_task_mgr";
+import { StatusOptions } from "../../types/adapt_shared";
+import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 
 export default class StatusCommand extends DeployOpBase {
     static description = "Fetch the status of an existing deployment of an Adapt project";
@@ -43,8 +42,6 @@ an alternate description file, "somefile.tsx":
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        let deployStateP: Promise<DeployState>;
-
         const logger = ctx.logger.createChild("status");
         const loggerId = logger.from;
 
@@ -52,7 +49,7 @@ an alternate description file, "somefile.tsx":
             id: loggerId,
             title: "Fetching status for project deployment",
             adoptable: true,
-            initiate: (_ctx, task) => {
+            initiate: () => {
                 if (ctx.project == null) {
                     throw new Error(`Internal error: project cannot be null`);
                 }
@@ -67,22 +64,11 @@ an alternate description file, "somefile.tsx":
                     loggerId,
                     stackName: ctx.stackName,
                 };
-                deployStateP = ctx.project.status(statusOptions)
-                    .catch((err) => {
-                        if (err instanceof UserError) this.error(err.message);
-                        throw err;
-                    })
-                    .catch((err) => {
-                        task.fail(err);
-                        throw err;
-                    });
-            }
-        });
 
-        this.tasks.add({
-            title: "Checking results",
-            task: async () => {
-                const deployState = await deployStateP;
+                return ctx.project.status(statusOptions);
+            },
+            onCompleteRoot: async (_ctx, _task, err, prom) => {
+                const deployState = await waitForInitiate(err, prom);
                 if (!this.isApiSuccess(deployState, { action: "fetching status" })) return;
 
                 this.deployInformation(deployState);

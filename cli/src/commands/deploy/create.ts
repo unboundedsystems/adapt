@@ -1,9 +1,8 @@
 import { flags } from "@oclif/command";
 
-import { cantDeploy, DeployOpBase } from "../../base";
-import { UserError } from "../../error";
-import { CreateOptions, DeployState } from "../../types/adapt_shared";
-import { addDynamicTask } from "../../ui/dynamic_task_mgr";
+import { DeployOpBase } from "../../base";
+import { CreateOptions } from "../../types/adapt_shared";
+import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 
 export default class CreateCommand extends DeployOpBase {
     static description = "Create a new deployment for an Adapt project";
@@ -38,8 +37,6 @@ export default class CreateCommand extends DeployOpBase {
             throw new Error(`Internal error: ctx cannot be null`);
         }
 
-        let deployStateP: Promise<DeployState>;
-
         const logger = ctx.logger.createChild("create");
         const loggerId = logger.from;
 
@@ -47,7 +44,7 @@ export default class CreateCommand extends DeployOpBase {
             id: loggerId,
             title: "Creating new project deployment",
             adoptable: true,
-            initiate: (_ctx, task) => {
+            initiate: () => {
                 if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
 
                 const createOptions: CreateOptions = {
@@ -62,38 +59,24 @@ export default class CreateCommand extends DeployOpBase {
                     stackName: ctx.stackName,
                     initLocalServer: this.flags.init,
                 };
-                deployStateP = ctx.project.create(createOptions)
-                    .catch((err) => {
-                        if (err.message.match(/No plugins registered/)) {
-                            this.error(cantDeploy +
-                                `The project did not import any Adapt plugins`);
-                        }
-                        if (err instanceof UserError) this.error(err.message);
-                        throw err;
-                    })
-                    .catch((err) => {
-                        task.fail(err);
-                        throw err;
-                    });
-            }
-        });
 
-        this.tasks.add({
-            title: "Checking results",
-            task: async () => {
-                const deployState = await deployStateP;
-                if (!this.isDeploySuccess(deployState)) return;
-                this.deployInformation(deployState);
-
-                if (ctx.dryRun) return;
-
+                return ctx.project.create(createOptions);
+            },
+            onCompleteRoot: async (_ctx, _task, err, prom) => {
+                const deployState = await waitForInitiate(err, prom);
                 const id = deployState.deployID;
+                const errorEnding = (ctx.dryRun || !id) ?
+                    `\nDeployment not created due to errors` :
+                    `\nDeployment created but errors occurred in the deploy phase.\n` +
+                    `DeployID is: ${id}`;
 
+                if (!this.isDeploySuccess(deployState, { errorEnding })) return;
+
+                this.deployInformation(deployState);
                 this.appendOutput(`Deployment created successfully. DeployID is: ${id}`);
             }
         });
 
         await this.tasks.run();
     }
-
 }

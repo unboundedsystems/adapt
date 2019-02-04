@@ -1,5 +1,6 @@
 export * from "./common_types";
 export * from "./crypto";
+export * from "./ensure_error";
 export * from "./env";
 export * from "./in_debugger";
 export * from "./map_map";
@@ -11,6 +12,7 @@ export { createPackageRegistry, PackageRegistry } from "./package_registry";
 export * from "./paths";
 export * from "./sleep";
 export * from "./type_check";
+export * from "./user_error";
 export * from "./wait_for";
 
 import * as npm from "./npm";

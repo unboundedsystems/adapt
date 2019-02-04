@@ -4,6 +4,7 @@ import {
     mapMap,
     MessageLogger,
     TaskObserver,
+    UserError,
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as ld from "lodash";
@@ -167,7 +168,7 @@ class PluginManagerImpl implements PluginManager {
 
     transitionTo(next: PluginManagerState) {
         if (!legalStateTransition(this.state, next)) {
-            throw new Error(`Illegal call to Plugin Manager, attempting to go from ${this.state} to ${next}`);
+            throw new InternalError(`Illegal call to Plugin Manager, attempting to go from ${this.state} to ${next}`);
         }
         this.state = next;
     }
@@ -191,7 +192,7 @@ class PluginManagerImpl implements PluginManager {
         };
         const waitingFor = mapMap(this.plugins, async (key, plugin) => {
             const pMod = this.modules.get(key);
-            if (!pMod) throw new Error(`Internal error: no module found for ${key}`);
+            if (!pMod) throw new InternalError(`no module found for ${key}`);
             const dataDir = pluginDataDir(options.dataDir, pMod);
             await fs.ensureDir(dataDir);
             return plugin.start({
@@ -209,7 +210,7 @@ class PluginManagerImpl implements PluginManager {
         const dom = this.dom;
         const prevDom = this.prevDom;
         if (dom === undefined || prevDom === undefined) {
-            throw new Error("Must call start before observe");
+            throw new InternalError("Must call start before observe");
         }
         const observationsP = mapMap(
             this.plugins,
@@ -230,7 +231,7 @@ class PluginManagerImpl implements PluginManager {
         const dom = this.dom;
         const prevDom = this.prevDom;
         if (dom === undefined || prevDom === undefined) {
-            throw new Error("Must call start before analyze");
+            throw new InternalError("Must call start before analyze");
         }
 
         this.parallelActions = [];
@@ -263,7 +264,7 @@ class PluginManagerImpl implements PluginManager {
         let errored = false;
         this.transitionTo(PluginManagerState.Acting);
         const log = this.logger;
-        if (log == undefined) throw new Error("Must call start before act");
+        if (log == undefined) throw new InternalError("Must call start before act");
 
         const doing = (action: Action) => log.info(`Doing ${action.description}...`);
         const doAction = async (action: Action) => {
@@ -301,7 +302,7 @@ class PluginManagerImpl implements PluginManager {
 
             let results = await Promise.all(pParallel);
             results = results.concat(ld.flatten(await Promise.all(pSeries)));
-            if (errored) throw new Error(`Errors encountered during plugin action phase`);
+            if (errored) throw new UserError(`Errors encountered during plugin action phase`);
             this.transitionTo(PluginManagerState.PreFinish);
             return results;
         }
