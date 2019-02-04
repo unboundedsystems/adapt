@@ -3,6 +3,7 @@ import * as Parser from "@oclif/parser";
 import {
     getErrors,
     getWarnings,
+    isUserError,
     MessageClient,
     MessageLogger,
     MessageStreamClient,
@@ -102,7 +103,10 @@ export abstract class AdaptBase extends Command {
 
     async finally(err?: Error) {
         await super.finally(err);
-        if (err !== undefined) return;
+        if (err !== undefined) {
+            if (isUserError(err)) return this.error(err.message);
+            return;
+        }
 
         if (this.finalOutput !== "") {
             let cr = "\n";
