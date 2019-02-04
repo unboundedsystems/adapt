@@ -65,10 +65,13 @@ export default class CreateCommand extends DeployOpBase {
             onCompleteRoot: async (_ctx, _task, err, prom) => {
                 const deployState = await waitForInitiate(err, prom);
                 const id = deployState.deployID;
-                const errorEnding = (ctx.dryRun || !id) ?
-                    `\nDeployment not created due to errors` :
-                    `\nDeployment created but errors occurred in the deploy phase.\n` +
-                    `DeployID is: ${id}`;
+                const errorEnding =
+                    ctx.dryRun ?
+                        `\nDeployment would not have been created due to errors` :
+                    id ?
+                        `\nDeployment created but errors occurred in the deploy phase.\n` +
+                        `DeployID is: ${id}` :
+                    `\nDeployment not created due to errors`;
 
                 if (!this.isDeploySuccess(deployState, { errorEnding })) return;
 
