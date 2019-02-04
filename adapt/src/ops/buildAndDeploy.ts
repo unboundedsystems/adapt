@@ -275,15 +275,15 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
             await tasks.analyze.complete(() => mgr.analyze());
 
             return await tasks.act.complete(async (): Promise<DeploySuccess> => {
-                /*
-                 * NOTE: There should be no deployment side effects prior to here, but
-                 * once act is called, that is no longer true.
-                 */
                 const observationsJson = stringifyFullObservations({
                     plugin: newPluginObs,
                     observer: parseFullObservationsJson(options.observationsJson).observer
                 });
 
+                /*
+                 * NOTE: There should be no deployment side effects prior to here, but
+                 * once act is called, that is no longer true.
+                 */
                 let status = HistoryStatus.preAct;
                 await commit();
 
@@ -297,7 +297,7 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
 
                     return {
                         type: "success",
-                        deployID: deployment.deployID,
+                        deployID: options.dryRun ? "DRYRUN" : deployment.deployID,
                         domXml: options.domXml,
                         stateJson: options.prevStateJson,
                         //Move data from inner adapt to outer adapt via JSON
