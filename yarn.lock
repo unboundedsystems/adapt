@@ -3295,9 +3295,9 @@ listr-verbose-renderer@unboundedsystems/listr-verbose-renderer:
     date-fns "^1.27.2"
     figures "^2.0.0"
 
-listr@unboundedsystems/listr:
-  version "0.14.3-unb1"
-  resolved "https://codeload.github.com/unboundedsystems/listr/tar.gz/9df89bb5039cb4756273d902927df4800e8d0ac5"
+listr@unboundedsystems/listr#v0.14.3-unb2:
+  version "0.14.3-unb2"
+  resolved "https://codeload.github.com/unboundedsystems/listr/tar.gz/310c593ac8d6e4747920acdb0de1055c6538a225"
   dependencies:
     "@samverschueren/stream-to-observable" "^0.3.0"
     is-observable "^1.1.0"

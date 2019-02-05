@@ -24,7 +24,7 @@
     "decamelize": "^2.0.0",
     "dockerode": "^2.5.5",
     "fs-extra": "^6.0.1",
-    "listr": "unboundedsystems/listr",
+    "listr": "unboundedsystems/listr#v0.14.3-unb2",
     "lodash": "^4.17.10",
     "p-defer": "^1.0.0",
     "pacote": "^8.1.6",
