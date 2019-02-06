@@ -5,6 +5,7 @@ import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
     readonly target: AdaptElement | null | undefined;
+    readonly origTarget: AdaptElement | null | undefined;
     readonly mountedOrig: AdaptMountedElement | null | undefined;
     readonly name?: string;
     replaceTarget(child: AdaptElement | null): void;

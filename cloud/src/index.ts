@@ -21,3 +21,4 @@ export {
     k8s,
 };
 export * from "./hooks";
+export * from "./handles";
