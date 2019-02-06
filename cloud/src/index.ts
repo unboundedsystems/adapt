@@ -4,11 +4,12 @@ export * from "./DockerHost";
 export * from "./LocalCompute";
 export * from "./LocalContainer";
 export * from "./LocalDockerHost";
-export * from "./LocalTypescriptBuild";
 export * from "./LocalDockerBuild";
 export * from "./NetworkService";
 export * from "./ready";
 export * from "./Sequence";
+export * from "./useBuildNodeContainer";
+export * from "./useTypescriptBuild";
 
 import * as ansible from "./ansible";
 import * as aws from "./aws";
