@@ -1,4 +1,12 @@
-import { AdaptElement, AnyProps, Handle, isElement, PrimitiveComponent, WithChildren } from "@usys/adapt";
+import {
+    AdaptElement,
+    AnyProps,
+    Handle,
+    isElement,
+    PrimitiveComponent,
+    WithChildren,
+} from "@usys/adapt";
+import { callNextInstanceMethod } from "./hooks";
 
 export type ServicePort = number | string;
 export type NetworkServiceScope =
@@ -22,6 +30,12 @@ export abstract class NetworkService extends PrimitiveComponent<NetworkServicePr
         protocol: "TCP",
         scope: "cluster-internal",
     };
+
+    hostname() {
+        const hand = this.props.handle;
+        if (!hand) throw new Error(`Internal error: Element props.handle is null`);
+        return callNextInstanceMethod(hand, () => undefined, "hostname");
+    }
 }
 export default NetworkService;
 
