@@ -18,6 +18,7 @@ export {
     AnyState,
     BuildHelpers,
     BuiltinProps,
+    ElementPredicate,
     isElement,
     isMountedElement,
     isDeferredElement,

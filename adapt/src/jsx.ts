@@ -264,6 +264,8 @@ export type GenericComponent = Component<AnyProps, AnyState>;
 
 export type KeyPath = string[];
 
+export type ElementPredicate = (el: AdaptElement) => boolean;
+
 export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
     readonly props: Props & BuiltinProps & WithChildren;
 

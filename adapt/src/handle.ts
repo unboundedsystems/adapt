@@ -1,6 +1,6 @@
 import { sha256hex } from "@usys/utils";
 import { InternalError } from "./error";
-import { AdaptElement, AdaptMountedElement, isMountedElement, KeyPath } from "./jsx";
+import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
@@ -8,6 +8,7 @@ export interface Handle {
     readonly origTarget: AdaptElement | null | undefined;
     readonly mountedOrig: AdaptMountedElement | null | undefined;
     readonly name?: string;
+    nextMounted(pred?: ElementPredicate): AdaptMountedElement | null | undefined;
     replaceTarget(child: AdaptElement | null): void;
 }
 
@@ -143,8 +144,13 @@ class HandleImpl implements HandleInternal {
     }
 
     get mountedOrig(): AdaptMountedElement | null | undefined {
-        const elem = traverseUntil(this,
-            (hand) => isMountedElement(hand.origTarget)) as AdaptMountedElement;
+        return this.nextMounted();
+    }
+
+    nextMounted(pred: ElementPredicate = () => true): AdaptMountedElement | null | undefined {
+        const elem = traverseUntil(this, (hand) => {
+            return isMountedElement(hand.origTarget) && pred(hand.origTarget);
+        }) as AdaptMountedElement;
         if (elem == null) return elem;
         if (!isMountedElement(elem)) return undefined;
         return elem;
