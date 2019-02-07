@@ -17,4 +17,5 @@ export DOCKER_HOST=$(minikubeDockerHost)
 
 echo
 echo adapt deploy:create --init laptop
+echo adapt deploy:create --init k8s
 

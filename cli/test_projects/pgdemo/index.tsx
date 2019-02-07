@@ -1,19 +1,19 @@
-import Adapt, { Group, handle } from "@usys/adapt";
-import { useMethod } from "@usys/cloud";
+import Adapt, { Group } from "@usys/adapt";
+import { handles } from "@usys/cloud";
 import { Postgres } from "./lib";
-import NodeService, { Env } from "./NodeService";
-import { laptopStyle, prodStyle } from "./styles";
+import NodeService from "./NodeService";
+import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {
-    const pgHand = handle();
-    const pgEnv = useMethod<Env>(pgHand, [], "connectEnv");
+    const h = handles();
 
     return <Group key="App">
-        <Postgres handle={pgHand} />
+        <Postgres handle={h.create.pg} />
         <NodeService key="sample-service" srcDir="./code"
-            port={8080} env={pgEnv} deps={pgHand} />
+            port={8080} env={h.pg.connectEnv()} deps={h.pg} />
     </Group>;
 }
 
 Adapt.stack("laptop", <App />, laptopStyle);
 Adapt.stack("prod", <App />, prodStyle);
+Adapt.stack("k8s", <App />, k8sStyle);

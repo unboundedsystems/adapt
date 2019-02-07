@@ -1,78 +1,40 @@
-import Adapt, { Group, handle, Style, useImperativeMethods } from "@usys/adapt";
-import { useMethod } from "@usys/cloud";
+import Adapt, { Style, } from "@usys/adapt";
+import { Service, ServiceProps } from "@usys/cloud";
 // tslint:disable-next-line:no-submodule-imports
-import { K8sContainer, Pod, Service } from "@usys/cloud/k8s";
-import { Postgres, usePreloadedPostgres } from "./lib";
-import { kubeconfig } from "./NodeService";
+import { ServiceDeployment } from "@usys/cloud/k8s";
+import { Postgres } from "./lib";
+import { ProdPostgres, TestPostgres } from "./postgres";
+
+export function kubeconfig() {
+    // tslint:disable-next-line:no-var-requires
+    return require("./kubeconfig.json");
+}
+
+// Terminate containers quickly for demos
+const demoProps = {
+    podProps: { terminationGracePeriodSeconds: 0 }
+};
 
 export const prodStyle =
     <Style>
-        {Group} {Postgres} {Adapt.rule(() => <ProdPostgres />)}
+        {Postgres} {Adapt.rule(() =>
+            <ProdPostgres />)}
+
+        {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
+            <ServiceDeployment config={kubeconfig()} {...props} />)}
     </Style>;
 
 export const laptopStyle =
     <Style>
-        {Group}[key="App"] {Postgres}
+        {Postgres}
             {Adapt.rule(() => <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
     </Style>;
 
-function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {
-    const pod = handle();
-    const svc = handle();
-    const svcHostname = useMethod(svc, undefined, "hostname");
-    const { image, buildObj } = usePreloadedPostgres(props.mockDbName, props.mockDataPath);
+export const k8sStyle =
+    <Style>
+        {Postgres} {Adapt.rule(() =>
+            <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
 
-    useImperativeMethods(() => ({
-        connectEnv: () => {
-            if (svcHostname) {
-                return [
-                    { name: "PGHOST", value: svcHostname },
-                    { name: "PGDATABASE", value: props.mockDbName },
-                    { name: "PGUSER", value: "postgres" },
-                    { name: "PGPASSWORD", value: "hello" }
-                ];
-            }
-            return undefined;
-        }
-    }));
-
-    return <Group>
-        {buildObj}
-        <Service
-            config={kubeconfig()}
-            handle={svc}
-            type="ClusterIP"
-            selector={pod}
-            ports={[{ port: 5432, targetPort: 5432 }]}
-        />
-        {image ?
-            <Pod handle={pod} config={kubeconfig()}>
-                <K8sContainer
-                    name="db"
-                    image={image.nameTag!}
-                    env={[{ name: "POSTGRES_PASSWORD", value: "hello" }]}
-                    imagePullPolicy="Never"
-                />
-            </Pod>
-            : null}
-    </Group>;
-}
-
-function ProdPostgres() {
-    useImperativeMethods(() => ({
-        connectEnv: () => ([
-            { name: "PGHOST", value: "postgres_db" },
-            { name: "PGUSER", value: "postgres" },
-            {
-                name: "PGPASSWORD",
-                valueFrom: {
-                    secretKeyRef: {
-                        name: "postgres_password",
-                        key: "password"
-                    }
-                }
-            }
-        ])
-    }));
-    return null;
-}
+        {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
+            <ServiceDeployment config={kubeconfig()} {...props} {...demoProps} />)}
+    </Style>;
