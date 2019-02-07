@@ -1,4 +1,5 @@
-import { AdaptElement, PrimitiveComponent } from "@usys/adapt";
+import { AdaptElement, BuiltinProps, PrimitiveComponent } from "@usys/adapt";
+import { mapMap } from "@usys/utils";
 import * as ctr from "../Container";
 
 export interface ContainerSpec {
@@ -54,10 +55,67 @@ export interface EnvVarFrom {
     valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
-export function k8sContainerProps(abstractProps: ctr.ContainerProps): K8sContainerProps {
-    const { command, entrypoint, environment, ports, tty, workingDir } = abstractProps;
+export function toK8sEnv(from: EnvVar[] | ctr.Environment | undefined) {
+    if (from == null) return undefined;
+    if (Array.isArray(from)) return from;
+    return Object.keys(from).map((name) => ({
+        name,
+        value: from[name],
+    }));
+}
 
-    const ret: K8sContainerProps = {
+const defaultProtocol = "tcp";
+
+class PortInfo {
+    portMap = new Map<string, ContainerPort>();
+
+    get containerPorts(): ContainerPort[] | undefined {
+        if (this.portMap.size === 0) return undefined;
+        return mapMap(this.portMap, (_, p) => p);
+    }
+
+    addPortMapping(ctrPort: number | string, hostPort?: number) {
+        ctrPort = Number(ctrPort);
+        if (isNaN(ctrPort)) {
+            throw new Error(`Non-numeric port description not implemented`);
+        }
+        const e = this.entry(ctrPort);
+        if (hostPort !== undefined) e.hostPort = hostPort;
+    }
+
+    entry(containerPort: number) {
+        const key = this.makeKey(containerPort);
+        let e = this.portMap.get(key);
+        if (e === undefined) {
+            e = { containerPort };
+            this.portMap.set(key, e);
+        }
+        return e;
+    }
+
+    makeKey(ctrPort: number, protocol = defaultProtocol): string {
+        return `${protocol}/${ctrPort}`;
+    }
+}
+
+export function toK8sPorts(abstractProps: ctr.ContainerProps): ContainerPort[] | undefined {
+    const { ports, portBindings } = abstractProps;
+    const pInfo = new PortInfo();
+
+    if (ports != null) ports.forEach((p) => pInfo.addPortMapping(p));
+
+    if (portBindings != null) {
+        Object.keys(portBindings).forEach((ctrPort) =>
+            pInfo.addPortMapping(ctrPort, portBindings[ctrPort]));
+    }
+    return pInfo.containerPorts;
+}
+
+export function k8sContainerProps(abstractProps: ctr.ContainerProps & BuiltinProps): K8sContainerProps {
+    const { command, entrypoint, environment, tty, workingDir } = abstractProps;
+
+    const ret: K8sContainerProps & Partial<BuiltinProps> = {
+        key: abstractProps.key,
         name: abstractProps.name,
         image: abstractProps.image,
     };
@@ -68,24 +126,8 @@ export function k8sContainerProps(abstractProps: ctr.ContainerProps): K8sContain
     if (command != null) {
         ret.command = Array.isArray(command) ? command : [command];
     }
-    if (environment != null) {
-        ret.env = Object.keys(environment).map((name) => {
-            return {
-                name,
-                value: environment[name],
-            };
-        });
-    }
-    if (ports != null) {
-        ret.ports = ports.map((desc) => {
-            if (typeof desc === "string") {
-                throw new Error(`String port description not implemented`);
-            }
-            return {
-                containerPort: desc,
-            };
-        });
-    }
+    ret.env = toK8sEnv(environment);
+    ret.ports = toK8sPorts(abstractProps);
     if (tty != null) ret.tty = tty;
     if (workingDir != null) ret.workingDir = workingDir;
 

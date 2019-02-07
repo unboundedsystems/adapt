@@ -113,7 +113,6 @@ describe("k8s Pod Component Tests", () => {
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
       "name": "one",
-      "ports": [],
       "tty": false
     },
     {
@@ -121,7 +120,6 @@ describe("k8s Pod Component Tests", () => {
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
       "name": "two",
-      "ports": [],
       "tty": false
     }
   ],

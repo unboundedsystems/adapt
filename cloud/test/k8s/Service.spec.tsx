@@ -78,7 +78,7 @@ describe("k8s Service Component Tests", () => {
   <Resource kind="Service">
     <__props__>
       <prop name="config">{}</prop>
-      <prop name="key">"NetworkService-Service"</prop>
+      <prop name="key">"NetworkService"</prop>
       <prop name="metadata">{}</prop>
       <prop name="spec">{
   "sessionAffinity": "None",
