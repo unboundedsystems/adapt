@@ -29,7 +29,6 @@ function proxyToHandle(hand: Handle, prop: string | number | symbol) {
     const proto = Object.getPrototypeOf(hand);
     const protoPropDesc = Object.getOwnPropertyDescriptor(proto, prop);
     if (protoPropDesc && protoPropDesc.get) return true;
-    if (hand.origTarget === undefined) return true;
     return false;
 }
 
@@ -44,7 +43,15 @@ export function extendedHandle() {
     return new Proxy(wrap, {
         get: (hand, prop, _rx) => {
             if (proxyToHandle(hand, prop)) return (hand as any)[prop];
-            if (!ld.isString(prop)) return (hand as any)[prop];
+            if (!ld.isString(prop)) {
+                throw new Error(`Internal error. Non-string property should ` +
+                `have been proxied to Handle`);
+            }
+
+            if (hand.origTarget === undefined) {
+                throw new Error(`Cannot access method '${prop}' on Handle ` +
+                    `because the Handle has not been associated to any Element`);
+            }
 
             const defVal = computeDefault(hand.origTarget, prop);
             return (...args: any[]) => {
