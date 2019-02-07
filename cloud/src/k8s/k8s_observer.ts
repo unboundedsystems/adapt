@@ -13,35 +13,10 @@ import jsonStableStringify = require("json-stable-stringify");
 import fetch from "node-fetch";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
+import { Kubeconfig } from "./common";
 
 // tslint:disable-next-line:no-var-requires
 const swaggerClient = require("swagger-client");
-
-export interface Kubeconfig {
-    kind: "Config";
-    "current-context": string;
-    contexts: [{
-        name: string,
-        context: {
-            cluster: string,
-            user: string
-        }
-    }];
-    clusters: [{
-        name: string,
-        cluster: {
-            "certificate-authority-data": string;
-            server: string;
-        };
-    }];
-    users: [{
-        name: string,
-        user: {
-            "client-certificate-data": string,
-            "client-key-data": string
-        }
-    }];
-}
 
 export function getK8sConnectInfo(kubeconfig: Kubeconfig) {
     function byName(name: string) { return (x: { name: string }) => x.name === name; }

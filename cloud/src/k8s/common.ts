@@ -40,3 +40,29 @@ export function computeNamespaceFromMetadata(metadata?: Metadata) {
     if (!metadata.namespace) return "default";
     return metadata.namespace;
 }
+
+export interface Kubeconfig {
+    kind: "Config";
+    "current-context": string;
+    contexts: [{
+        name: string,
+        context: {
+            cluster: string,
+            user: string
+        }
+    }];
+    clusters: [{
+        name: string,
+        cluster: {
+            "certificate-authority-data": string;
+            server: string;
+        };
+    }];
+    users: [{
+        name: string,
+        user: {
+            "client-certificate-data": string,
+            "client-key-data": string
+        }
+    }];
+}
