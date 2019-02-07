@@ -18,6 +18,7 @@
   "repository": "mongo",
   "tag": "3.1"
 }</prop>
+        <prop name="imagePullPolicy">"IfNotPresent"</prop>
         <prop name="key">"MongoContainer-Container"</prop>
         <prop name="links">{}</prop>
         <prop name="portBindings">{
@@ -44,6 +45,7 @@
         <prop name="image">{
   "repository": "uric/nodecellar"
 }</prop>
+        <prop name="imagePullPolicy">"IfNotPresent"</prop>
         <prop name="key">"AppContainer-Container"</prop>
         <prop name="links">{
   "mongod": "mongo"
