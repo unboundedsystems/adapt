@@ -112,15 +112,13 @@ describe("k8s Pod Component Tests", () => {
       "env": [],
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
-      "name": "one",
-      "tty": false
+      "name": "one"
     },
     {
       "env": [],
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
-      "name": "two",
-      "tty": false
+      "name": "two"
     }
   ],
   "terminationGracePeriodSeconds": 30

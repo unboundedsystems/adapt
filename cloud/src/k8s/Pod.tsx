@@ -40,13 +40,24 @@ function dups<T>(data: T[]): T[] {
     return ld.uniq(ld.flatten(filtered));
 }
 
+function defaultize(spec: ContainerSpec): ContainerSpec {
+    spec = { ...spec };
+    if (spec.tty !== true) delete spec.tty;
+    if (spec.ports && spec.ports.length === 0) delete spec.ports;
+    if (spec.ports) {
+        spec.ports = spec.ports.map(
+            (p) => p.protocol ? p : { ...p, protocol: "TCP" });
+    }
+    return spec;
+}
+
 function makePodManifest(props: PodProps) {
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isContainerElement(c) ? c : null));
 
     const spec: PodSpec = {
-        containers: containers.map((c) => removeUndef({
+        containers: containers.map((c) => ({
             args: c.props.args,
             command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
             env: c.props.env,
@@ -56,7 +67,9 @@ function makePodManifest(props: PodProps) {
             ports: c.props.ports,
             tty: c.props.tty,
             workingDir: c.props.workingDir,
-        })),
+        }))
+        .map(defaultize)
+        .map(removeUndef),
         terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
     };
 
