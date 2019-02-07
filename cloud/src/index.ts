@@ -7,6 +7,7 @@ export * from "./LocalDockerHost";
 export * from "./LocalDockerBuild";
 export * from "./NetworkService";
 export * from "./ready";
+export * from "./Service";
 export * from "./Sequence";
 export * from "./useBuildNodeContainer";
 export * from "./useTypescriptBuild";
