@@ -146,7 +146,21 @@ export interface ServicePort {
     targetPort?: number | string;
 }
 
-export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): ServiceSpec {
+function toServiceType(scope: abs.NetworkServiceScope | undefined) {
+    switch (scope) {
+        case "cluster-internal":
+        case undefined:
+            return "ClusterIP";
+        case "cluster-public":
+            return "NodePort";
+        case "external":
+            return "LoadBalancer";
+        default:
+            throw new Error(`Service: NetworkService scope '${scope}' not mapped to a Kubernetes service type`);
+    }
+}
+
+export function k8sServiceProps(abstractProps: abs.NetworkServiceProps & BuiltinProps): ServiceSpec {
     if (typeof abstractProps.port !== "number") throw new Error(`Service: Port string not yet implemented`);
     if (abstractProps.ip != null) throw new Error(`Service: IP not yet implemented`);
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
@@ -157,9 +171,11 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps): Service
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 
-    const ret: ServiceSpec = {
+    const ret: ServiceSpec & Partial<BuiltinProps> = {
+        key: abstractProps.key,
         ports: [port],
-        selector: abstractProps.endpoint
+        selector: abstractProps.endpoint,
+        type: toServiceType(abstractProps.scope),
     };
 
     return ret;
