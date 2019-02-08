@@ -1,6 +1,6 @@
 import Adapt, { Component, ObserveForStatus } from "@usys/adapt";
 import { FIXME_NeedsProperType, removeUndef } from "@usys/utils";
-import { ContainerProps, Links, PortBinding, PortBindingString } from "../Container";
+import { Container, ContainerProps, Links, PortBinding } from "../Container";
 import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
@@ -97,6 +97,8 @@ interface ContainerConfig {
 }
 
 export class AnsibleContainer extends Component<AnsibleContainerProps> {
+    static defaultProps = Container.defaultProps;
+
     build() {
         const config: ContainerConfig = {
             name: this.props.name,
@@ -148,7 +150,7 @@ export default AnsibleContainer;
 function translatePorts(bindings: PortBinding | undefined): string[] | undefined {
     if (!bindings) return undefined;
     return Object.keys(bindings).map(
-        (ctrPort) => `${(bindings as PortBindingString)[ctrPort]}:${ctrPort}`
+        (ctrPort) => `${bindings[ctrPort]}:${ctrPort}`
     );
 }
 

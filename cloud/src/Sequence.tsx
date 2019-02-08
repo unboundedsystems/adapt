@@ -9,10 +9,11 @@ import Adapt, {
     isElement,
     isHandle
 } from "@usys/adapt";
+import { notNull } from "@usys/utils";
 import * as util from "util";
 import { isReady } from "./ready";
 
-export interface SequenceProps extends Children<Handle | AdaptElement> { }
+export interface SequenceProps extends Children<Handle | AdaptElement | null> { }
 
 interface SequenceState {
     stage: number;
@@ -32,7 +33,7 @@ export abstract class Sequence extends Component<SequenceProps, SequenceState> {
 
     build(h: BuildHelpers) {
         if (this.props.children === undefined) return null;
-        const stages = childrenToArray(this.props.children) as (AdaptElement | Handle)[];
+        const stages = childrenToArray(this.props.children).filter(notNull);
         checkChildren(stages);
 
         this.setState(async (prev) => {

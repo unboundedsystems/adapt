@@ -40,7 +40,7 @@ import {
     createObserverManagerDeployment, isObserverNeedsData, ObserverManagerDeployment
 } from "./observers";
 
-import { Message, MessageType, removeUndef } from "@usys/utils";
+import { Message, MessageType, notNull, removeUndef } from "@usys/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {
@@ -517,10 +517,6 @@ function constructComponent<P extends object = {}>(
     } finally {
         popComponentConstructorData();
     }
-}
-
-function notNull(x: any): boolean {
-    return x != null;
 }
 
 export interface BuildOptions {

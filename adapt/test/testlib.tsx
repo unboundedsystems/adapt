@@ -1,6 +1,6 @@
 import { findPackageDirs } from "@usys/utils";
 import should from "should";
-import Adapt, { AdaptElement, build, buildPrinter, StateStore } from "../src";
+import Adapt, { AdaptElement, AdaptMountedElement, build, buildPrinter, StateStore } from "../src";
 import * as jsx from "../src/jsx";
 
 import { makeObserverManagerDeployment } from "../src/observers";
@@ -82,15 +82,32 @@ export interface DoBuildOpts {
     debug?: boolean;
     style?: AdaptElement | null;
 }
+export interface DoBuildOptsNullOk extends DoBuildOpts {
+    nullDomOk: true;
+}
+
+export interface DoBuild {
+    mountedOrig: AdaptMountedElement;
+    dom: AdaptMountedElement;
+}
+export interface DoBuildNullOk {
+    mountedOrig: AdaptMountedElement | null;
+    dom: AdaptMountedElement | null;
+}
 
 const doBuildDefaults = {
     deployID: "<none>",
     debug: false,
     style: null,
+    nullDomOk: false,
 };
 
-export async function doBuild(elem: AdaptElement, options: DoBuildOpts = {}) {
-    const { deployID, stateStore, debug, style } = { ...doBuildDefaults, ...options };
+export async function doBuild(elem: AdaptElement, options?: DoBuildOpts): Promise<DoBuild>;
+export async function doBuild(elem: AdaptElement, options: DoBuildOptsNullOk): Promise<DoBuildNullOk>;
+export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial<DoBuildNullOk> = {}
+    ): Promise<DoBuild | DoBuildNullOk>  {
+
+    const { deployID, nullDomOk, stateStore, debug, style } = { ...doBuildDefaults, ...options };
     const buildOpts = {
         recorder: debug ? buildPrinter() : undefined,
         deployID,
@@ -98,7 +115,7 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts = {}) {
     };
     const { mountedOrig, contents: dom, messages } = await build(elem, style, buildOpts);
     should(messages).have.length(0);
-    if (dom == null) {
+    if (!nullDomOk && dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
         throw new Error("Unreachable");

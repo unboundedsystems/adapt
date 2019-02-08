@@ -6,22 +6,29 @@ import Adapt, {
     useState
 } from "@usys/adapt";
 import fs from "fs-extra";
+import { isArray, isString } from "lodash";
 import path from "path";
 import { callInstanceMethod, getInstanceValue } from "./hooks";
 import { DockerBuildOptions, ImageInfo, useDockerBuild } from "./LocalDockerBuild";
 
-export interface TypescriptBuildProps extends Partial<BuiltinProps> {
+export interface BuildLocalNodeContainerProps extends Partial<BuiltinProps> {
     srcDir: string;
-    options?: TypescriptBuildOptions;
+    options?: NodeContainerBuildOptions;
 }
 
-function LocalTypescriptBuild(props: TypescriptBuildProps) {
+export function BuildLocalNodeContainer(props: BuildLocalNodeContainerProps) {
     const { image, buildObj } = useDockerBuild(
         async () => {
             const srcDir = path.resolve(props.srcDir);
             if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
             const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
             const main = pkgInfo.main ? pkgInfo.main : "index.js";
+            const runNpmScripts = props.options && props.options.runNpmScripts;
+            const scripts =
+                isArray(runNpmScripts) ? runNpmScripts :
+                isString(runNpmScripts) ?  [ runNpmScripts ] :
+                [];
+            const runCommands = scripts.map((s) => `RUN npm run ${s}`).join("\n");
             return {
                 dockerfile: "Dockerfile",
                 contextDir: srcDir,
@@ -32,7 +39,7 @@ function LocalTypescriptBuild(props: TypescriptBuildProps) {
 WORKDIR /app
 ADD . /app
 RUN npm install
-RUN npm run build
+${runCommands}
 CMD ["node", "${main}"]`
                 }]
             };
@@ -46,22 +53,24 @@ CMD ["node", "${main}"]`
     return buildObj;
 }
 
-export interface TypescriptBuildOptions extends DockerBuildOptions { }
+export interface NodeContainerBuildOptions extends DockerBuildOptions {
+    runNpmScripts?: string | string[];
+}
 
-const defaultLocalTsBuildOptions = {
-    imageName: "tsservice",
+const defaultContainerBuildOptions = {
+    imageName: "node-service",
     uniqueTag: true,
 };
 
-export interface TypescriptBuildStatus {
-    buildObj: AdaptElement<TypescriptBuildOptions> | null;
+export interface NodeContainerBuildStatus {
+    buildObj: AdaptElement<NodeContainerBuildOptions> | null;
     image?: ImageInfo;
 }
 
-export function useTypescriptBuild(srcDir: string,
-    options: TypescriptBuildOptions = {}): TypescriptBuildStatus {
+export function useBuildNodeContainer(srcDir: string,
+    options: NodeContainerBuildOptions = {}): NodeContainerBuildStatus {
 
-    const opts = { ...defaultLocalTsBuildOptions, ...options };
+    const opts = { ...defaultContainerBuildOptions, ...options };
     const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
 
     if (!buildState) {
@@ -75,7 +84,7 @@ export function useTypescriptBuild(srcDir: string,
         });
         return {
             buildObj:
-                <LocalTypescriptBuild handle={buildHand} srcDir={srcDir} options={opts} />
+                <BuildLocalNodeContainer handle={buildHand} srcDir={srcDir} options={opts} />
         };
     }
 

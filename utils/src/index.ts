@@ -7,6 +7,7 @@ export * from "./map_map";
 export * from "./message";
 export * from "./mkdtmp";
 export * from "./multi_error";
+export * from "./not_null";
 export * from "./object_set";
 export { createPackageRegistry, PackageRegistry } from "./package_registry";
 export * from "./paths";

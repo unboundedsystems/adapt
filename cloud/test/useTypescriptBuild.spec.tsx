@@ -7,9 +7,8 @@ import { doBuild } from "./testlib";
 
 import {
     TypescriptBuildOptions,
-    TypescriptBuildProps,
     useTypescriptBuild,
-} from "../src/LocalTypescriptBuild";
+} from "../src/useTypescriptBuild";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);
@@ -41,6 +40,11 @@ describe("useTypescriptBuild tests", function () {
             uniq(imageIds).map((id) => execa("docker", ["rmi", "-f", id]))
         );
     });
+
+    interface TypescriptBuildProps {
+        srcDir: string;
+        options?: TypescriptBuildOptions;
+    }
 
     function TypescriptProject(props: TypescriptBuildProps) {
         const { image, buildObj } = useTypescriptBuild(props.srcDir, props.options);

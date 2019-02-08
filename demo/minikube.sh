@@ -1,3 +1,10 @@
+# Capture DOCKER_HOST before we possibly change it to point to minikube later
+export ORIG_DOCKER_HOST=${ORIG_DOCKER_HOST:-${DOCKER_HOST:-unix:///var/run/docker.sock}}
+
+function outerDocker {
+    docker -H "${ORIG_DOCKER_HOST}" "$@"
+}
+
 function error {
     echo "$*" >&2
 }
@@ -25,7 +32,7 @@ function containerNetworks {
         error containerNetworks: No container name provided
         return 1
     fi
-    local NETWORKS=$(docker inspect  --format='{{range $name,$_ := .NetworkSettings.Networks}}{{$name}}{{end}}' $1)
+    local NETWORKS=$(outerDocker inspect  --format='{{range $name,$_ := .NetworkSettings.Networks}}{{$name}}{{end}}' $1)
     if [ -z "${NETWORKS}" ]; then
         error Cannot find network for container $1
         return 1
@@ -38,7 +45,7 @@ function containerIP {
         error containerIP: No container name provided
         return 1
     fi
-    local ADDR=$(docker inspect  --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1)
+    local ADDR=$(outerDocker inspect  --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $1)
     if [ -z "${ADDR}" ]; then
         error Cannot find IP address for container $1
         return 1
@@ -47,7 +54,7 @@ function containerIP {
 }
 
 function kubeconfig {
-    docker exec $(minikubeContainer) cat /kubeconfig
+    outerDocker exec $(minikubeContainer) cat /kubeconfig
 }
 
 function toJson {
@@ -64,7 +71,7 @@ function minikubeConnect {
     NETWORK=$(containerNetworks ${MK}) || return 1
     MK_IP=$(containerIP ${MK}) || return 1
 
-    docker network connect ${NETWORK} ${SELF}
+    outerDocker network connect ${NETWORK} ${SELF}
 
     if [ ! -f ~/.kube/config ]; then
         mkdir ~/.kube || \
@@ -97,5 +104,9 @@ function installKubectl {
     apt-get install -qq bash-completion >& /dev/null
     source <(kubectl completion bash)
     . /etc/profile.d/bash_completion.sh
+}
+
+function minikubeDockerHost {
+    containerIP $(minikubeContainer)
 }
 

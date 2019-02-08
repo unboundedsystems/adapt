@@ -28,11 +28,11 @@ describe("Handles Tests", async () => {
             const testHandle = h.create.test;
             should(testHandle).not.Undefined();
             should(h.test).not.Undefined();
+            const elem = <Group handle={testHandle} />;
             should(testHandle).equal(h.test);
             should(isHandle(h.test)).True();
             should(isHandle(testHandle)).True();
 
-            const elem = <Group handle={testHandle} />;
             should(testHandle.origTarget).equal(elem);
             should(h.test.origTarget).equal(elem);
             return <Dummy />;

@@ -1,4 +1,4 @@
-import { Component, } from "@usys/adapt";
+import { AdaptElement, PrimitiveComponent, } from "@usys/adapt";
 import { FIXME_NeedsProperType, } from "@usys/utils";
 
 export type PortDescription = string | number;
@@ -11,13 +11,10 @@ export interface Environment {
     [key: string]: string;
 }
 
-export interface PortBindingString {
+export interface PortBinding {
+    [ctrPort: number]: number;
     [ctrPort: string]: number;
 }
-export interface PortBindingNumber {
-    [ctrPort: number]: number;
-}
-export type PortBinding = PortBindingString | PortBindingNumber;
 
 export interface Links {
     [internalName: string]: string;
@@ -39,6 +36,7 @@ export interface ContainerProps {
     links?: Links;
     entrypoint?: Command;
     workingDir?: string;
+    imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
 
 export interface ContainerState {
@@ -82,8 +80,9 @@ export interface ContainerStatus {
     NetworkSettings: FIXME_NeedsProperType;
 }
 
-export abstract class Container extends Component<ContainerProps, {}> {
+export abstract class Container extends PrimitiveComponent<ContainerProps> {
     static defaultProps = {
+        dockerHost: "unix:///var/run/docker.sock",
         autoRemove: true,
         ports: [],
         stdinOpen: false,
@@ -91,6 +90,11 @@ export abstract class Container extends Component<ContainerProps, {}> {
         portBindings: {},
         environment: {},
         links: {},
+        imagePullPolicy: "IfNotPresent",
     };
 }
 export default Container;
+
+export function isContainerElement(el: AdaptElement): el is AdaptElement<ContainerProps> {
+    return el.componentType as any === Container;
+}

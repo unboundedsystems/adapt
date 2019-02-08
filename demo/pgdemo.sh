@@ -1,4 +1,4 @@
-DEMO_NAME=tshello
+DEMO_NAME=pgdemo
 DEMO_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 . "${DEMO_DIR}/minikube.sh"
@@ -16,5 +16,6 @@ cat ~/.kube/config | toJson > ./kubeconfig.json || \
 export DOCKER_HOST=$(minikubeDockerHost)
 
 echo
-echo adapt deploy:create --init prod
+echo adapt deploy:create --init laptop
+echo adapt deploy:create --init k8s
 
