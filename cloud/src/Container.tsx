@@ -22,7 +22,7 @@ export interface Links {
 
 export interface ContainerProps {
     name: string;
-    dockerHost?: string;
+    dockerHost: string;
     image: ImageId;
 
     autoRemove?: boolean;

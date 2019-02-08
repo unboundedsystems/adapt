@@ -105,7 +105,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
 
             auto_remove: this.props.autoRemove,
             command: this.props.command,
-            docker_host: translateDockerHost(this.props.dockerHost!),
+            docker_host: translateDockerHost(this.props.dockerHost),
             env: this.props.environment,
             image: this.props.image,
             interactive: this.props.stdinOpen,
@@ -142,7 +142,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
     }
 
     async status(observe: ObserveForStatus) {
-        return containerStatus(observe, this.props.name, this.props.dockerHost!);
+        return containerStatus(observe, this.props.name, this.props.dockerHost);
     }
 }
 export default AnsibleContainer;

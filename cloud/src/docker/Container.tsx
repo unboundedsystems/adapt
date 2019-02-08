@@ -11,7 +11,7 @@ export abstract class DockerContainer extends Component<DockerContainerProps, {}
     static defaultProps = Container.defaultProps;
 
     async status(observe: ObserveForStatus) {
-        return containerStatus(observe, this.props.name, this.props.dockerHost!);
+        return containerStatus(observe, this.props.name, this.props.dockerHost);
     }
 }
 export default DockerContainer;
