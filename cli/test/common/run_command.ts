@@ -20,7 +20,7 @@ async function withEnv<Ret>(env: Env, func: () => Ret | Promise<Ret>): Promise<R
     }
 }
 
-async function withStdMock(func: () => void) {
+async function withStdMock(func: () => void | Promise<void>) {
     try {
         stdMock.stdout.start();
         stdMock.stderr.start();

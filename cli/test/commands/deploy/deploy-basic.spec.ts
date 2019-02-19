@@ -1,11 +1,11 @@
 import { mochaTmpdir } from "@usys/testutils";
-import { filePathToUrl } from "@usys/utils";
+import { filePathToUrl, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
-import { last } from "lodash";
+import { cloneDeep, last } from "lodash";
 import * as path from "path";
 import { clitest, expect } from "../../common/fancy";
 import { cliLocalRegistry } from "../../common/start-local-registry";
-import { getNewDeployID } from "../../common/testlib";
+import { destroyAll, getNewDeployID } from "../../common/testlib";
 
 const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
@@ -113,14 +113,15 @@ const testCommonNoEnv =
     .stdout()
     .stderr();
 
+// This is a function in order to capture cwd at usage time
+const commonEnv = () => ({
+    ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
+    ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
+});
+
 const testCommon =
     testCommonNoEnv
-    .delayedenv(() => {
-        return {
-            ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
-            ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
-        };
-    });
+    .delayedenv(commonEnv);
 
 const testBase =
     testCommon
@@ -518,6 +519,95 @@ DeployID is: test::ActError-[a-z]{4}$`);
             namespaces,
             "ActError",
             "failed"
+        );
+    });
+});
+
+describe("Deploy create with single project dir", function () {
+    this.slow(30 * 1000);
+    this.timeout(3 * 60 * 1000);
+
+    mochaTmpdir.all("adapt-cli-test-deploy");
+
+    afterEach(async function destroyDeployment() {
+        this.timeout(10 * 1000);
+        await destroyAll({ env: commonEnv() });
+    });
+
+    const namespaces = {
+        dev: ["DevStack"],
+        ActError: ["ActError"],
+        AnalyzeError: ["AnalyzeError"],
+    };
+
+    async function updateTSVersion(version: string) {
+        const pkgJ = cloneDeep(basicPackageJson);
+        pkgJ.dependencies.typescript = version;
+
+        await fs.writeJson("package.json", pkgJ, {spaces: 2});
+    }
+
+    basicTestChain
+    .do(async () => {
+        await updateTSVersion("3.0.3");
+    })
+    .command(["deploy:create", "--init", "dev"])
+
+    .it("Should deploy with TS 3.0.3", async (ctx) => {
+        // Make sure the right TS was installed
+        const modList = await yarn.listParsed({ depth: 0 });
+        const tsMod = modList.get("typescript");
+        if (tsMod == null) throw expect(tsMod).is.not.undefined;
+        expect(tsMod.name).equals("typescript");
+        expect(Object.keys(tsMod.versions)).eql(["3.0.3"]);
+
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+
+        // Should not have debug=build output
+        expect(ctx.stdout).does.not.contain("BUILD [start]");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces,
+            "DevStack"
+        );
+    });
+
+    basicTestChain
+    .do(async () => {
+        await updateTSVersion("3.3.3");
+    })
+    .command(["deploy:create", "--init", "dev"])
+
+    .it("Should deploy with TS 3.3.3", async (ctx) => {
+        // Make sure the right TS was installed
+        const modList = await yarn.listParsed({ depth: 0 });
+        const tsMod = modList.get("typescript");
+        if (tsMod == null) throw expect(tsMod).is.not.undefined;
+        expect(tsMod.name).equals("typescript");
+        expect(Object.keys(tsMod.versions)).eql(["3.3.3"]);
+
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+
+        // Should not have debug=build output
+        expect(ctx.stdout).does.not.contain("BUILD [start]");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces,
+            "DevStack"
         );
     });
 });
