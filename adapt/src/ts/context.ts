@@ -106,7 +106,7 @@ export class VmModule {
     }
 
     @tracef(debugVm)
-    requireResolve(request: string, options?: RequireResolve) {
+    requireResolve(request: string, options?: { paths?: string[] }) {
         if (options) {
             throw new Error("require.resolve options not supported yet.");
         }
