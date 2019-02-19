@@ -26,7 +26,7 @@ const simplePackageJson = {
         "source-map-support": "^0.5.5",
         "@types/node": "^8.10.20",
         "@usys/adapt": "0.0.1",
-        "typescript": "^2.9.2",
+        "typescript": "^3.0.3",
     }
 };
 

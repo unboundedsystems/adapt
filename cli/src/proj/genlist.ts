@@ -13,7 +13,7 @@ const gen0: Gen = {
         "@usys/adapt": { allowed: "*", preferred: "*" },
         "@types/node": { allowed: "^8", preferred: "^8"},
         "source-map-support": { allowed: "^0.5.6", preferred: "^0.5.6" },
-        "typescript": { allowed: ">=2.9", preferred: "^2.9.2" },
+        "typescript": { allowed: ">=3.0", preferred: "^3.0.3" },
     },
 };
 

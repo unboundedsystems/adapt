@@ -25,7 +25,7 @@ const basicPackageJson = {
         "@types/node": "^8.10",
         "@usys/adapt": "0.0.1",
         "source-map-support": "^0.5.6",
-        "typescript": "^2.8.3",
+        "typescript": "^3.0.3",
     },
 };
 
