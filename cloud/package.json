@@ -16,7 +16,6 @@
     "coverage": "nyc mocha --opts mocha.opts",
     "lint": "tslint -e **/*.json --project .",
     "lint-and-fix": "tslint -e **/*.json --project . --fix",
-    "postinstall": "postinstall-build --only-as-dependency dist",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },
@@ -45,7 +44,6 @@
     "kubernetes-client": "^5.3.1",
     "lodash": "^4.17.10",
     "node-fetch": "^2.2.0",
-    "postinstall-build": "^5.0.1",
     "randomstring": "^1.1.5",
     "swagger-client": "^3.8.21",
     "tmp": "^0.0.33",
