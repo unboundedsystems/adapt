@@ -1,11 +1,11 @@
 import { mochaTmpdir } from "@usys/testutils";
-import { filePathToUrl } from "@usys/utils";
+import { filePathToUrl, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
-import { last } from "lodash";
+import { cloneDeep, last } from "lodash";
 import * as path from "path";
 import { clitest, expect } from "../../common/fancy";
 import { cliLocalRegistry } from "../../common/start-local-registry";
-import { getNewDeployID } from "../../common/testlib";
+import { destroyAll, getNewDeployID } from "../../common/testlib";
 
 const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
@@ -25,7 +25,7 @@ const basicPackageJson = {
         "@types/node": "^8.10",
         "@usys/adapt": "0.0.1",
         "source-map-support": "^0.5.6",
-        "typescript": "^2.8.3",
+        "typescript": "^3.0.3",
     },
 };
 
@@ -113,14 +113,15 @@ const testCommonNoEnv =
     .stdout()
     .stderr();
 
+// This is a function in order to capture cwd at usage time
+const commonEnv = () => ({
+    ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
+    ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
+});
+
 const testCommon =
     testCommonNoEnv
-    .delayedenv(() => {
-        return {
-            ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
-            ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
-        };
-    });
+    .delayedenv(commonEnv);
 
 const testBase =
     testCommon
@@ -317,7 +318,7 @@ describe("Deploy destroy tests", function () {
     });
 });
 
-describe("Deploy create basic tests", function () {
+describe("Deploy create tests - fresh install", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
@@ -350,6 +351,96 @@ describe("Deploy create basic tests", function () {
         );
 
     });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "AnalyzeError"])
+    .catch((err) => {
+        // Check for error that includes backtrace and source mapping
+        const msgRe = RegExp(
+`^This project cannot be deployed.
+1 error encountered during deploy:
+\\[deploy:create\\] : Error creating deployment: Error: AnalyzeError
+.*simple_plugin/index.ts:(.|\n)*
+Deployment not created due to errors$`);
+// .*simple_plugin/index.ts:.*
+        expect(err.message).matches(msgRe);
+        expect((err as any).oclif.exit).equals(2);
+    })
+
+    .it("Should error before act and not create deployment", async (ctx) => {
+        const stdout = ctx.stdout;
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Analyzing environment [started]");
+        expect(stdout).contains("Analyzing environment [failed]");
+        expect(stdout).contains("Creating new project deployment [failed]");
+
+        expect(ctx.stderr).contains(`[deploy:create] ERROR: Error creating deployment: Error: AnalyzeError\n`);
+        expect(ctx.stderr).contains(`/simple_plugin/index.ts:`);
+
+        const deploymentList = await fs.readdir("deployments");
+        expect(deploymentList).to.be.length(0);
+    });
+
+    basicTestChain
+    .command(["deploy:create", "--init", "ActError"])
+    .catch((err) => {
+        const msgRe = RegExp(
+`^This project cannot be deployed.
+2 errors encountered during deploy:
+\\[deploy:create:deploy:act\\] : --Error during echo error
+Error: ActError
+----------
+\\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
+
+Deployment created but errors occurred in the deploy phase.
+DeployID is: test::ActError-[a-z]{4}$`);
+        expect(err.message).matches(msgRe);
+        expect((err as any).oclif.exit).equals(2);
+    })
+
+    .it("Should error in act and create deployment", async (ctx) => {
+        const stdout = ctx.stdout;
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Applying changes to environment [started]");
+        expect(stdout).contains("Applying changes to environment [failed]");
+        expect(stdout).contains("Creating new project deployment [failed]");
+
+        expect(ctx.stderr).contains("ERROR: --Error during echo error\nError: ActError");
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "ActError",
+            namespaces,
+            "ActError",
+            "failed"
+        );
+    });
+});
+
+describe("Deploy create basic tests", function () {
+    this.slow(30 * 1000);
+    this.timeout(3 * 60 * 1000);
+
+    mochaTmpdir.all("adapt-cli-test-deploy");
+
+    afterEach(async function destroyDeployment() {
+        this.timeout(10 * 1000);
+        await destroyAll({ env: commonEnv() });
+    });
+
+    const namespaces = {
+        dev: ["DevStack"],
+        ActError: ["ActError"],
+        AnalyzeError: ["AnalyzeError"],
+    };
+
+    async function updateTSVersion(version: string) {
+        const pkgJ = cloneDeep(basicPackageJson);
+        pkgJ.dependencies.typescript = version;
+
+        await fs.writeJson("package.json", pkgJ, {spaces: 2});
+    }
 
     testBaseTty
     .do(async () => {
@@ -457,67 +548,66 @@ describe("Deploy create basic tests", function () {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "AnalyzeError"])
-    .catch((err) => {
-        // Check for error that includes backtrace and source mapping
-        const msgRe = RegExp(
-`^This project cannot be deployed.
-1 error encountered during deploy:
-\\[deploy:create\\] : Error creating deployment: Error: AnalyzeError
-.*simple_plugin/index.ts:(.|\n)*
-Deployment not created due to errors$`);
-// .*simple_plugin/index.ts:.*
-        expect(err.message).matches(msgRe);
-        expect((err as any).oclif.exit).equals(2);
+    .do(async () => {
+        await updateTSVersion("3.0.3");
     })
+    .command(["deploy:create", "--init", "dev"])
 
-    .it("Should error before act and not create deployment", async (ctx) => {
-        const stdout = ctx.stdout;
-        expect(stdout).contains("Validating project [completed]");
-        expect(stdout).contains("Analyzing environment [started]");
-        expect(stdout).contains("Analyzing environment [failed]");
-        expect(stdout).contains("Creating new project deployment [failed]");
+    .it("Should deploy with TS 3.0.3", async (ctx) => {
+        // Make sure the right TS was installed
+        const modList = await yarn.listParsed({ depth: 0 });
+        const tsMod = modList.get("typescript");
+        if (tsMod == null) throw expect(tsMod).is.not.undefined;
+        expect(tsMod.name).equals("typescript");
+        expect(Object.keys(tsMod.versions)).eql(["3.0.3"]);
 
-        expect(ctx.stderr).contains(`[deploy:create] ERROR: Error creating deployment: Error: AnalyzeError\n`);
-        expect(ctx.stderr).contains(`/simple_plugin/index.ts:`);
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
-        const deploymentList = await fs.readdir("deployments");
-        expect(deploymentList).to.be.length(0);
-    });
+        // Should not have debug=build output
+        expect(ctx.stdout).does.not.contain("BUILD [start]");
 
-    basicTestChain
-    .command(["deploy:create", "--init", "ActError"])
-    .catch((err) => {
-        const msgRe = RegExp(
-`^This project cannot be deployed.
-2 errors encountered during deploy:
-\\[deploy:create:deploy:act\\] : --Error during echo error
-Error: ActError
-----------
-\\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
-
-Deployment created but errors occurred in the deploy phase.
-DeployID is: test::ActError-[a-z]{4}$`);
-        expect(err.message).matches(msgRe);
-        expect((err as any).oclif.exit).equals(2);
-    })
-
-    .it("Should error in act and create deployment", async (ctx) => {
-        const stdout = ctx.stdout;
-        expect(stdout).contains("Validating project [completed]");
-        expect(stdout).contains("Applying changes to environment [started]");
-        expect(stdout).contains("Applying changes to environment [failed]");
-        expect(stdout).contains("Creating new project deployment [failed]");
-
-        expect(ctx.stderr).contains("ERROR: --Error during echo error\nError: ActError");
+        checkPluginStdout(ctx.stdout);
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
-            "ActError",
+            "dev",
             namespaces,
-            "ActError",
-            "failed"
+            "DevStack"
+        );
+    });
+
+    basicTestChain
+    .do(async () => {
+        await updateTSVersion("3.3.3");
+    })
+    .command(["deploy:create", "--init", "dev"])
+
+    .it("Should deploy with TS 3.3.3", async (ctx) => {
+        // Make sure the right TS was installed
+        const modList = await yarn.listParsed({ depth: 0 });
+        const tsMod = modList.get("typescript");
+        if (tsMod == null) throw expect(tsMod).is.not.undefined;
+        expect(tsMod.name).equals("typescript");
+        expect(Object.keys(tsMod.versions)).eql(["3.3.3"]);
+
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+
+        // Should not have debug=build output
+        expect(ctx.stdout).does.not.contain("BUILD [start]");
+
+        checkPluginStdout(ctx.stdout);
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "dev",
+            namespaces,
+            "DevStack"
         );
     });
 });

@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as ts from "typescript";
+import { InternalError } from "../error";
 import { trace, tracef } from "../utils";
 import { ChainableHost } from "./hosts";
 
@@ -94,12 +95,15 @@ export class ModuleResolver extends ChainableHost {
 function resolveJS(modName: string, containingFile: string,
                    host: ts.ModuleResolutionHost
 ): ts.ResolvedModuleFull | null {
-    // The function is exported, but marked @internal
-    const tsResolve = (ts as any).resolveJavaScriptModule;
+    // The function that the TS compiler uses to resolve JS modules is
+    // exported, but marked @internal. They also changed the name of the
+    // function somewhere in the 3.x series.
+    const tsResolve =
+        (ts as any).resolveJSModule ||       // > 3.x name
+        (ts as any).resolveJavaScriptModule; // < 3.x name
     if (!tsResolve) {
-        trace(debugModuleResolution,
-            `No resolveJavaScriptModule function available`);
-        return null;
+        throw new InternalError(`Unable to locate the Javascript resolver ` +
+            `function from the TypeScript library`);
     }
 
     const jsFile = tsResolve(modName, path.dirname(containingFile), host);

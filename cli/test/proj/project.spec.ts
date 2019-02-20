@@ -18,7 +18,7 @@ const basicPackageJson = {
     author: "",
     license: "UNLICENSED",
     dependencies: {
-        typescript: "^2.9.2"
+        typescript: "^3.0.3"
     },
 };
 
@@ -42,7 +42,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.name).equal("test");
         expect(p.manifest.version).equal("1.0.0");
         expect(p.manifest._resolved).equal(projDir);
-        expect(p.manifest.dependencies.typescript).equal("^2.9.2");
+        expect(p.manifest.dependencies.typescript).equal("^3.0.3");
     });
 
     it("Should open a local relative directory", async () => {
@@ -56,7 +56,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.name).equal("test");
         expect(p.manifest.version).equal("1.0.0");
         expect(p.manifest._resolved).equal(projDir);
-        expect(p.manifest.dependencies.typescript).equal("^2.9.2");
+        expect(p.manifest.dependencies.typescript).equal("^3.0.3");
     });
 
     it("Should get a registry package", async function () {
@@ -81,7 +81,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.name).equal("test-tar");
         expect(p.manifest.version).equal("1.0.1");
         expect(p.manifest._resolved).equal(tgzFile);
-        expect(p.manifest.dependencies.typescript).equal("^2.9.2");
+        expect(p.manifest.dependencies.typescript).equal("^3.0.0");
     });
 
     it("Should get a github package", async function () {
