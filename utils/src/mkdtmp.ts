@@ -3,12 +3,27 @@ import graceful from "node-graceful";
 import * as os from "os";
 import * as path from "path";
 
-export async function mkdtmp(prefix: string, basedir = os.tmpdir()): Promise<string> {
-    return fs.mkdtemp(path.join(basedir, prefix + "-"))
-        .then((newDir) => {
-            graceful.on("exit", () => fs.removeSync(newDir), true);
+export interface MkdtmpPromise extends Promise<string> {
+    remove(): Promise<void>;
+}
+
+export function mkdtmp(prefix: string, basedir = os.tmpdir()): MkdtmpPromise {
+    let newDir: string | undefined;
+    let removeOnExit: () => void | undefined;
+
+    const retP = fs.mkdtemp(path.join(basedir, prefix + "-"))
+        .then((dir) => {
+            newDir = dir;
+            removeOnExit = graceful.on("exit", remove, true);
             return newDir;
         });
+    // tslint:disable-next-line:prefer-object-spread
+    return Object.assign(retP, { remove });
+
+    async function remove() {
+        if (newDir) await fs.remove(newDir);
+        if (removeOnExit) removeOnExit();
+    }
 }
 
 export interface WithTmpDirOpts {
@@ -27,10 +42,11 @@ export async function withTmpDir<T>(
 
     const { basedir, prefix } = { ...withTmpDirDefaults, ...options };
 
-    const tmpDir = await mkdtmp(prefix, basedir);
+    const tmpDirP = mkdtmp(prefix, basedir);
     try {
+        const tmpDir = await tmpDirP;
         return await f(tmpDir);
     } finally {
-        await fs.remove(tmpDir);
+        await tmpDirP.remove();
     }
 }
