@@ -1,6 +1,7 @@
 {
     "packages": [
-        "dom-parser"
+        "dom-parser",
+        "utils"
     ],
     "npmClient": "yarn",
     "useWorkspaces": true,
