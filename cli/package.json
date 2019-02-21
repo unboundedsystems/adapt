@@ -87,7 +87,6 @@
       "@oclif/plugin-help"
     ]
   },
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
@@ -104,5 +103,8 @@
     "pretest": "make build",
     "test": "mocha --opts mocha.opts",
     "version": "oclif-dev readme && git add README.md"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }

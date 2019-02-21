@@ -93,5 +93,8 @@
     "type-name": "^2.0.2",
     "urn-lib": "^1.1.2",
     "xmlbuilder": "^10.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
