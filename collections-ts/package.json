@@ -1,5 +1,5 @@
 {
-    "name": "collections-ts",
+    "name": "@usys/collections-ts",
     "version": "0.0.1",
     "description": "TypeScript wrapper for collections.js",
     "main": "index.js",
@@ -8,5 +8,8 @@
     "license": "MIT",
     "dependencies": {
         "collections": "^5.1.5"
+    },
+    "publishConfig": {
+      "access": "public"
     }
 }

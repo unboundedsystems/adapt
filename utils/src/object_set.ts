@@ -1,7 +1,7 @@
 // tslint:disable:no-submodule-imports
 
-import { ConstructorValues, ForEachCallback } from "collections-ts/common";
-import Set = require("collections-ts/set");
+import { ConstructorValues, ForEachCallback } from "@usys/collections-ts/common";
+import Set = require("@usys/collections-ts/set");
 import stringify from "json-stable-stringify";
 
 function equals<T>(a: T, b: T): boolean {
