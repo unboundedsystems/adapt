@@ -84,7 +84,6 @@ export const config: Config = {
         "@usys/*": {
             access: "$all",
             publish: "$all",
-            proxy: "npmjs",
         },
         "**": {
             access: "$all",
