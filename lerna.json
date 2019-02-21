@@ -1,8 +1,13 @@
 {
     "packages": [
+        "adapt",
+        "cloud",
+        "cli",
         "collections-ts",
         "dom-parser",
-        "mocha-slow-options"
+        "mocha-slow-options",
+        "testutils",
+        "utils"
     ],
     "command": {
         "version": {
