@@ -13,7 +13,7 @@ import * as path from "path";
 import { expect } from "../common/fancy";
 import { findDeploymentDir, findHistoryDirs } from "../common/local_server";
 import { mkInstance } from "../common/start-minikube";
-import { projectsRoot, systemTestChain } from "./common";
+import { curlOptions, projectsRoot, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 const {
@@ -105,10 +105,16 @@ describeLong("Nodecellar system tests", function () {
         const nc = docker.getContainer("nodecellar");
         const ncIP = (await nc.inspect()).NetworkSettings.IPAddress;
 
-        let ret = await execa("curl", [ `http://${ncIP}:8080/` ]);
+        let ret = await execa("curl", [
+            ...curlOptions,
+            `http://${ncIP}:8080/`
+        ]);
         expect(ret.stdout).contains("<title>Node Cellar</title>");
 
-        ret = await execa("curl", [ `http://${ncIP}:8080/wines` ]);
+        ret = await execa("curl", [
+            ...curlOptions,
+            `http://${ncIP}:8080/wines`
+        ]);
         expect(ret.stdout).contains("Though dense and chewy, this wine does not overpower");
     });
 

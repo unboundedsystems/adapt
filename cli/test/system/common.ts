@@ -23,3 +23,8 @@ export const systemTestChain =
     });
 
 export const projectsRoot = path.join(pkgRootDir, "test_projects");
+
+export const curlOptions = [
+    "--silent", "--show-error", // No progress, just errors
+    "--max-time", "1",
+];
