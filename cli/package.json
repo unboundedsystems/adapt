@@ -87,7 +87,6 @@
       "@oclif/plugin-help"
     ]
   },
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
