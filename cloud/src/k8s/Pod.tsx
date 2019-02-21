@@ -10,11 +10,11 @@ import Adapt, {
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
-import { computeNamespaceFromMetadata, Kind } from "./common";
+import { computeNamespaceFromMetadata, ResourceProps } from "./common";
 import { ContainerSpec, isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
-import { resourceIdToName } from "./k8s_plugin";
-import { Resource, ResourceProps } from "./Resource";
+import { registerResourceKind, resourceIdToName } from "./k8s_plugin";
+import { Resource } from "./Resource";
 
 export interface PodProps {
     config: any; //Legal configuration loaded from kubeconfig
@@ -106,7 +106,7 @@ export class Pod extends DeferredComponent<PodProps> {
         return (<Resource
             key={this.props.key}
             config={this.props.config}
-            kind={Kind.pod}
+            kind="Pod"
             metadata={manifest.metadata}
             spec={manifest.spec} />);
     }
@@ -160,7 +160,7 @@ function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
 }
 
 export const podResourceInfo = {
-    kind: Kind.pod,
+    kind: "Pod",
     apiName: "pods",
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
@@ -179,3 +179,5 @@ export const podResourceInfo = {
     },
     specsEqual: podSpecsEqual,
 };
+
+registerResourceKind(podResourceInfo);

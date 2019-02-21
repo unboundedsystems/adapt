@@ -17,11 +17,8 @@ import { sha256hex } from "@usys/utils";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 
-import { Kind, Metadata, ResourceBase, Spec } from "./common";
-import { isResourceElement, Resource, ResourceProps } from "./Resource";
-
-import { podResourceInfo } from "./Pod";
-import { serviceResourceInfo } from "./Service";
+import { Kind, Metadata, ResourceBase, ResourceProps, Spec } from "./common";
+import { isResourceElement, Resource } from "./Resource";
 
 // Typings are for deprecated API :(
 // tslint:disable-next-line:no-var-requires
@@ -72,14 +69,18 @@ export interface ResourceInfo {
     specsEqual(actual: Spec, element: Spec): boolean;
 }
 
-const resourceInfo = {
-    [Kind.pod]: podResourceInfo,
-    [Kind.service]: serviceResourceInfo,
-    // NOTE: ResourceAdd
-};
+const resourceInfo = new Map<string, ResourceInfo>();
 
-export function getResourceInfo(kind: keyof typeof resourceInfo): ResourceInfo {
-    return resourceInfo[kind];
+export function getResourceInfo(kind: string): ResourceInfo {
+    const info = resourceInfo.get(kind);
+    if (!info) throw new Error(`Request for ResourceInfo for unknown kind: ${kind}`);
+    return info;
+}
+
+export function registerResourceKind(info: ResourceInfo) {
+    const old = resourceInfo.get(info.kind);
+    if (old !== undefined) throw new Error(`Attempt to register duplicate kind "${info.kind}"`);
+    resourceInfo.set(info.kind, info);
 }
 
 async function getClientForConfigJSON(
@@ -136,11 +137,8 @@ async function getResources(client: Client, namespaces: string[], deployID: stri
     namespaces = ld.uniq(namespaces);
     if (namespaces.length === 0) namespaces = ["default"];
 
-    for (const kind in Kind) {
-        if (!Kind.hasOwnProperty(kind)) continue;
-        const rs = await getResourcesByKind(client, namespaces,
-                                            //why is the "as Kind" needed?
-                                            Kind[kind] as Kind, deployID);
+    for (const kind of resourceInfo.keys()) {
+        const rs = await getResourcesByKind(client, namespaces, kind, deployID);
         ret.push(...rs);
     }
     return ret;

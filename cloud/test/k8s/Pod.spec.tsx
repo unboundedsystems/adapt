@@ -21,7 +21,6 @@ import {
     K8sContainer,
     k8sContainerProps,
     K8sPlugin,
-    Kind,
     Pod,
     resourceElementToName
 } from "../../src/k8s";
@@ -198,7 +197,7 @@ describe("k8s Pod Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const mockObservation = {
-            kind: Kind.pod,
+            kind: "Pod",
             metadata: {
                 name: resourceElementToName(dom, deployID),
                 namespace: "default",

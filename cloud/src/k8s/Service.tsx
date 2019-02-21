@@ -17,10 +17,10 @@ import { removeUndef } from "@usys/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
-import { computeNamespaceFromMetadata, Kind, Kubeconfig, ResourceService } from "./common";
+import { computeNamespaceFromMetadata, Kubeconfig, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { resourceElementToName, resourceIdToName } from "./k8s_plugin";
-import { Resource, ResourceProps } from "./Resource";
+import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
+import { Resource } from "./Resource";
 
 // FIXME(mark): Remove comment when working
 // CLI that exposes a port
@@ -225,7 +225,7 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
             throw new Error(`Cannot handle k8s.Service endpoint of type ${ep.target.componentType.name}`);
         }
         const epProps: ResourceProps = ep.target.props as AnyProps as ResourceProps;
-        if (epProps.kind !== Kind.pod) {
+        if (epProps.kind !== "Pod") {
             throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
         }
         return removeUndef({
@@ -385,7 +385,7 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: M
     }
 
     return {
-        kind: Kind.service,
+        kind: "Service",
         metadata: {},
         spec: { ...spec, selector: isHandle(spec.selector) ? options.endpointSelector : spec.selector },
         config,
@@ -393,7 +393,7 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: M
 }
 
 export const serviceResourceInfo = {
-    kind: Kind.service,
+    kind: "Service",
     apiName: "services",
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
@@ -412,3 +412,5 @@ export const serviceResourceInfo = {
     },
     specsEqual: serviceSpecsEqual,
 };
+
+registerResourceKind(serviceResourceInfo);

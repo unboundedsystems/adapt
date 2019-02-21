@@ -20,7 +20,6 @@ import {
     K8sContainer,
     K8sPlugin,
     k8sServiceProps,
-    Kind,
     Kubeconfig,
     Pod,
     Resource,
@@ -188,7 +187,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const mockObservation = {
-            kind: Kind.service,
+            kind: "Service",
             metadata: {
                 name: resourceElementToName(dom, options.deployID),
                 namespace: "default",

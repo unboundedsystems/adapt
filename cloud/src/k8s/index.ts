@@ -8,5 +8,6 @@ export * from "./common";
 export {
     K8sPlugin,
     createK8sPlugin,
-    resourceElementToName
+    resourceElementToName,
+    registerResourceKind
 } from "./k8s_plugin";
