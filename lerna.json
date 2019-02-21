@@ -1,6 +1,7 @@
 {
     "packages": [
-        "collections-ts"
+        "collections-ts",
+        "mocha-slow-options"
     ],
     "command": {
         "publish": {
