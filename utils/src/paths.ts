@@ -68,7 +68,6 @@ export const repoDirs = {
     "dom-parser": path.join(repoRootDir, "dom-parser"),
     "testutils": path.join(repoRootDir, "testutils"),
     "utils": path.join(repoRootDir, "utils"),
-    "verdaccio": path.join(repoRootDir, "verdaccio"),
 };
 
 /**
