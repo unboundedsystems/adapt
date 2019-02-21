@@ -16,6 +16,9 @@
             "**/@types/chai",
             "**/@types/chai-as-promised"
         ]
-    }
+    },
+    "devDependencies": {
+        "lerna": "^3.13.0"
+    },
+    "name": "src"
 }
-

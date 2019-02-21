@@ -104,5 +104,8 @@
     "pretest": "make build",
     "test": "mocha --opts mocha.opts",
     "version": "oclif-dev readme && git add README.md"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
