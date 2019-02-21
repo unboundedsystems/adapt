@@ -6,12 +6,10 @@
     "command": {
         "publish": {
             "registry": "https://npm-proxy.fury.io/unboundedsystems/",
-            "allow-branch": "lerna",
-            "git-remote": "fork"
         },
         "version": {
-            "allow-branch": "lerna",
-            "git-remote": "fork"
+            "allowBranch": "lerna",
+            "gitRemote": "fork"
         }
     },
     "npmClient": "yarn",
