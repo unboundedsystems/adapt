@@ -1,4 +1,10 @@
-import { mochaLocalRegistry, mochaTmpdir, Package, writePackage } from "@usys/testutils";
+import {
+    mochaLocalRegistry,
+    mochaTmpdir,
+    Package,
+    repoVersions,
+    writePackage,
+} from "@usys/testutils";
 import {
     Constructor,
     repoDirs,
@@ -28,7 +34,7 @@ import * as firstLateExport from "./test_lateExport";
 import { isLiving } from "./test_living";
 import * as firstVictim from "./test_victim";
 
-const currentAdaptVersion = "0.0.1";
+const currentAdaptVersion = repoVersions.adapt;
 
 const curMod = {
     victim: firstVictim,
@@ -424,7 +430,7 @@ const reanimatePackage: Package = {
     pkgJson: {
         name: "@usys/reanimate",
         dependencies: {
-            "@usys/utils": "0.0.1",
+            "@usys/utils": repoVersions.utils,
             "callsites": "2.0.0",
             "json-stable-stringify": "1.0.1",
             "read-pkg-up": "4.0.0",
