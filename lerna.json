@@ -1,7 +1,6 @@
 {
     "packages": [
-        "dom-parser",
-        "utils"
+        "collections-ts"
     ],
     "command": {
         "publish": {
@@ -13,6 +12,5 @@
         }
     },
     "npmClient": "yarn",
-    "useWorkspaces": true,
     "version": "independent"
 }
