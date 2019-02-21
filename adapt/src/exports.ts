@@ -27,7 +27,9 @@ export {
     isPrimitiveElement,
     WithChildren,
     PropsType,
-    SFC
+    SFC,
+    SFCBuildProps,
+    SFCDeclProps,
 } from "./jsx";
 
 export {

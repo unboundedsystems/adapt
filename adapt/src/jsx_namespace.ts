@@ -1,7 +1,7 @@
 import { OptionalPropertiesT, RequiredPropertiesT } from "type-ops";
 import { AdaptElement, AnyProps, AnyState, BuiltinProps, Component } from "./jsx";
 
-type Defaultize<Props, Defaults> =
+export type Defaultize<Props, Defaults> =
     & {[K in Extract<keyof Props, keyof Defaults>]?: Props[K]}
     & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
     & {[K in Exclude<OptionalPropertiesT<Props>, keyof Defaults>]?: Props[K]};
