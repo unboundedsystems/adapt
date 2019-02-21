@@ -245,7 +245,12 @@ async function computeContentsFromElement<P extends object>(
         return ret;
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
-        if (!isClassConstructorError(e)) throw e;
+        if (!isClassConstructorError(e)) {
+            if (isError(e)) {
+                return buildDone(new Error(`SFC build failed: ${e.message}`));
+            }
+            throw e;
+        }
         // element.componentType is a class, not a function. Fall through.
     } finally {
         finishHooks();
@@ -277,6 +282,9 @@ async function computeContentsFromElement<P extends object>(
 
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
+        if (isError(e)) {
+            return buildDone(new Error(`Component build failed: ${e.message}`));
+        }
         throw e;
     }
 
