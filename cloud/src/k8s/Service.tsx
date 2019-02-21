@@ -1,20 +1,23 @@
 import Adapt, {
     AnyProps,
     BuildData,
-    BuildHelpers,
     BuiltinProps,
-    Component,
     gql,
     Handle,
     isHandle,
     isMountedElement,
-    ObserveForStatus
+    ObserveForStatus,
+    SFCBuildProps,
+    SFCDeclProps,
+    useBuildHelpers,
+    useImperativeMethods,
+    useState
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, pick } from "lodash";
 import * as abs from "../NetworkService";
-import { computeNamespaceFromMetadata, Kind, ResourceService } from "./common";
+import { computeNamespaceFromMetadata, Kind, Kubeconfig, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { resourceElementToName, resourceIdToName } from "./k8s_plugin";
 import { Resource, ResourceProps } from "./Resource";
@@ -25,7 +28,7 @@ import { Resource, ResourceProps } from "./Resource";
 // kubectl expose pod fixme-manishv-nodecellar.nodecellar-compute.nodecellar-compute0 --port 8080 --target-port 8080 --name nodecellar
 
 export interface ServiceProps extends ServiceSpec {
-    config: any; //Legal configuration loaded from kubeconfig
+    config: Kubeconfig; //Legal configuration loaded from kubeconfig
     selector?: Handle | object;
 }
 
@@ -181,80 +184,72 @@ export function k8sServiceProps(abstractProps: abs.NetworkServiceProps & Builtin
     return ret;
 }
 
-interface ServiceState {
-    endpointSelector?: { [key: string]: string };
+interface EndpointSelector {
+    [key: string]: string;
 }
 
-export class Service extends Component<ServiceProps, ServiceState> {
-    static defaultProps = {
-        sessionAffinity: "None",
-        type: "ClusterIP",
-    };
+const defaultProps = {
+    sessionAffinity: "None",
+    type: "ClusterIP",
+};
 
-    private lastDeployID: string | undefined;
+export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>) {
+    const props = propsIn as SFCBuildProps<ServiceProps, typeof defaultProps>;
+    const helpers = useBuildHelpers();
+    const deployID = helpers.deployID;
 
-    constructor(props: ServiceProps) {
-        if (props.ports && (props.ports.length > 1)) {
-            for (const port of props.ports) {
-                if (port.name === undefined) throw new Error("Service with multiple ports but no name on port");
-            }
+    if (props.ports && (props.ports.length > 1)) {
+        for (const port of props.ports) {
+            if (port.name === undefined) throw new Error("Service with multiple ports but no name on port");
         }
-        super(props);
     }
 
-    initialState() { return {}; }
+    useImperativeMethods(() => ({
+        hostname: () => {
+            const resourceHand = props.handle;
+            const resourceElem = resourceHand.target;
+            if (!resourceElem) return undefined;
+            return resourceElementToName(resourceElem, deployID);
+        }
+    }));
 
-    updateState(helpers: BuildHelpers) {
-        const deployID = helpers.deployID;
-        this.setState((_prev, props) => {
-            const { selector: ep } = props as ServiceProps & BuiltinProps;
-            if (!isHandle(ep)) return {};
-            if (!ep.target) return {};
-            if (!isMountedElement(ep.target)) return {};
+    const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
+    const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
+    updateSelector(async () => {
+        const { selector: ep } = props;
+        if (!isHandle(ep)) return {};
+        if (!ep.target) return {};
+        if (!isMountedElement(ep.target)) return {};
 
-            if (ep.target.componentType !== Resource) {
-                throw new Error(`Cannot handle k8s.Service endpoint of type ${ep.target.componentType.name}`);
-            }
-            const epProps: ResourceProps = ep.target.props as AnyProps as ResourceProps;
-            if (epProps.kind !== Kind.pod) {
-                throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
-            }
-            return {
-                endpointSelector: {
-                    adaptName: resourceElementToName(ep.target, deployID)
-                }
-            };
+        if (ep.target.componentType !== Resource) {
+            throw new Error(`Cannot handle k8s.Service endpoint of type ${ep.target.componentType.name}`);
+        }
+        const epProps: ResourceProps = ep.target.props as AnyProps as ResourceProps;
+        if (epProps.kind !== Kind.pod) {
+            throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
+        }
+        return removeUndef({
+            adaptName: resourceElementToName(ep.target, deployID)
         });
-    }
+    });
 
-    build(helpers: BuildHelpers) {
-        const manifest = makeSvcManifest(this.props, this.state);
-        this.updateState(helpers);
-        this.lastDeployID = helpers.deployID;
-        return (
-            <Resource
-                key={this.props.key}
-                config={this.props.config}
-                kind={manifest.kind}
-                metadata={manifest.metadata}
-                spec={manifest.spec}
-            />);
-    }
-
-    async status(_observe: ObserveForStatus, buildData: BuildData) {
-        const succ = buildData.successor;
-        if (!succ) return undefined;
-        return succ.status();
-    }
-
-    hostname() {
-        const resourceHand = (this.props as BuiltinProps).handle;
-        const resourceElem = resourceHand.target;
-        if (!resourceElem) return undefined;
-        if (!this.lastDeployID) return undefined;
-        return resourceElementToName(resourceElem, this.lastDeployID);
-    }
+    return (
+        <Resource
+            key={props.key}
+            config={props.config}
+            kind={manifest.kind}
+            metadata={manifest.metadata}
+            spec={manifest.spec}
+        />);
 }
+(Service as any).defaultProps = defaultProps;
+(Service as any).status = async (_props: ServiceProps & BuiltinProps,
+    _observe: ObserveForStatus,
+    buildData: BuildData) => {
+    const succ = buildData.successor;
+    if (!succ) return undefined;
+    return succ.status();
+};
 
 /*
  * Plugin info
@@ -370,7 +365,11 @@ function serviceSpecsEqual(actual: ServiceSpec, element: ServiceSpec) {
     return nodePortsEqual(actual, element);
 }
 
-function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, state: ServiceState): ResourceService {
+interface MakeManifestOptions {
+    endpointSelector?: EndpointSelector;
+}
+
+function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: MakeManifestOptions): ResourceService {
     const { config, key, handle, ...spec } = props;
 
     // Explicit default for ports.protocol
@@ -388,7 +387,7 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, state: Ser
     return {
         kind: Kind.service,
         metadata: {},
-        spec: { ...spec, selector: isHandle(spec.selector) ? state.endpointSelector : spec.selector },
+        spec: { ...spec, selector: isHandle(spec.selector) ? options.endpointSelector : spec.selector },
         config,
     };
 }
