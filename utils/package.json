@@ -60,5 +60,8 @@
     "lint-and-fix": "tslint --project . --fix",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }
