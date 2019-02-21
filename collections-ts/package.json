@@ -1,6 +1,6 @@
 {
     "name": "collections-ts",
-    "version": "0.0.1",
+    "version": "0.0.2-alpha.0",
     "description": "TypeScript wrapper for collections.js",
     "main": "index.js",
     "scripts": {},
