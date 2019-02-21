@@ -1,6 +1,3 @@
 [submodule "containit"]
 	path = containit
 	url = https://github.com/unboundedsystems/containit.git
-[submodule "fork-require"]
-	path = fork-require
-	url = https://github.com/unboundedsystems/fork-require.git

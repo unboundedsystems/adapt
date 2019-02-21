@@ -81,6 +81,14 @@ export const config: Config = {
         }
     },
     packages: {
+        // Packages from @usys that are not part of our repo workspaces
+        "@usys/fork-require": {
+            access: "$all",
+            publish: "$all",
+            proxy: "npmjs"
+        },
+        // We don't proxy the remaining @usys packages so we can locally
+        // publish the same versions as are on npmjs.
         "@usys/*": {
             access: "$all",
             publish: "$all",

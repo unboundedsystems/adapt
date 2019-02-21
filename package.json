@@ -9,8 +9,7 @@
             "utils",
             "testutils",
             "mocha-slow-options",
-            "collections-ts",
-            "fork-require"
+            "collections-ts"
         ],
         "nohoist": [
             "**/@types/chai",
