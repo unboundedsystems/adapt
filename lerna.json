@@ -8,6 +8,7 @@
         },
         "version": {
             "allowBranch": "lerna",
+            "exact": true,
             "gitRemote": "fork"
         }
     },
