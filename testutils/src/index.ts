@@ -2,6 +2,7 @@ export * from "./install";
 export * from "./long_tests";
 export * from "./mocklogger";
 export * from "./package_maker";
+export * from "./repo_versions";
 
 import * as awsutils from "./awsutils";
 import * as dockerMocha from "./docker-mocha";

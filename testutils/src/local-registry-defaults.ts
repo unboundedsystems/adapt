@@ -1,4 +1,4 @@
-import { repoDirs, repoRootDir, yarn } from "@usys/utils";
+import { repoRootDir, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -15,6 +15,7 @@ export const yarnLocalProxyOpts = {
 };
 
 const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
+const verdaccioDir = path.join(repoRootDir, "verdaccio");
 
 export const defaultPublishList =
     topLevelPackageJson.workspaces.packages
@@ -58,13 +59,13 @@ function setupDefault(): Promise<void> {
     return setupLocalRegistry(defaultPublishList);
 }
 
-export const configPath = path.join(repoDirs.verdaccio, "config.yaml");
+export const configPath = path.join(verdaccioDir, "config.yaml");
 export const config: Config = {
     // Standard verdaccio config items
-    storage: path.join(repoDirs.verdaccio, "storage"),
+    storage: path.join(verdaccioDir, "storage"),
     auth: {
         htpasswd: {
-            file: path.join(repoDirs.verdaccio, "htpasswd")
+            file: path.join(verdaccioDir, "htpasswd")
         }
     },
     uplinks: {
