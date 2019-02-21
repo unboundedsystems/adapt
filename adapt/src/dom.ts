@@ -236,9 +236,10 @@ async function computeContentsFromElement<P extends object>(
     element: AdaptMountedElement<P & WithChildren>,
     options: BuildOptionsInternal): Promise<BuildResults> {
     const ret = new BuildResults(options.recorder, element);
+    const helpers = buildHelpers(options);
 
     try {
-        startHooks({ element, options });
+        startHooks({ element, options, helpers });
         ret.contents =
             (element.componentType as FunctionComponentTyp<P>)(element.props);
         return ret;
@@ -268,7 +269,7 @@ async function computeContentsFromElement<P extends object>(
         if (!ld.isFunction(component.build)) {
             throw new BuildNotImplemented(`build is not a function, build = ${util.inspect(component.build)}`);
         }
-        ret.contents = await component.build(buildHelpers(options));
+        ret.contents = await component.build(helpers);
         if (component.cleanup) {
             ret.cleanups.push(component.cleanup.bind(component));
         }

@@ -1,10 +1,11 @@
 import { last } from "lodash";
 import * as dom from "../dom"; // types only
-import { AdaptMountedElement } from "../jsx";
+import { AdaptMountedElement, BuildHelpers } from "../jsx";
 
 export interface BuildContext {
     element: AdaptMountedElement;
     options: dom.BuildOptionsInternal;
+    helpers: BuildHelpers;
 }
 
 export type StateInfo = Map<AdaptMountedElement, number>;
