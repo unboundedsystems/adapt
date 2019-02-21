@@ -71,7 +71,7 @@
   "peerDependencies": {},
   "files": [
     "/bin",
-    "/dist",
+    "/dist/src",
     "/oclif.manifest.json"
   ],
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
@@ -81,9 +81,7 @@
     "commands": "./dist/src/commands",
     "description": "Command line interface for Adapt",
     "dirname": "adapt",
-    "hooks": {
-      "init": "./dist/src/hooks/init"
-    },
+    "hooks": {},
     "plugins": [
       "@oclif/plugin-help"
     ]
