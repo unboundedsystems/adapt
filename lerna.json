@@ -1,6 +1,7 @@
 {
     "packages": [
         "collections-ts",
+        "dom-parser",
         "mocha-slow-options"
     ],
     "command": {
