@@ -3,6 +3,15 @@
         "dom-parser",
         "utils"
     ],
+    "command": {
+        "publish": {
+            "registry": "https://npm-proxy.fury.io/unboundedsystems/"
+        },
+        "version": {
+            "allow-branch": "lerna",
+            "git-remote": "fork"
+        }
+    },
     "npmClient": "yarn",
     "useWorkspaces": true,
     "version": "independent"
