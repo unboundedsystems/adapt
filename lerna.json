@@ -1,0 +1,15 @@
+{
+    "packages": [
+        "collections-ts",
+        "mocha-slow-options"
+    ],
+    "command": {
+        "version": {
+            "allowBranch": "master",
+            "exact": true,
+            "gitRemote": "fork"
+        }
+    },
+    "npmClient": "yarn",
+    "version": "independent"
+}
