@@ -5,7 +5,7 @@
     ],
     "command": {
         "publish": {
-            "registry": "https://npm-proxy.fury.io/unboundedsystems/"
+            "registry": "https://npm.fury.io/unboundedsystems/"
         },
         "version": {
             "allowBranch": "lerna",
