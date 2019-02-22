@@ -9,7 +9,7 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@usys/collections-ts": "^0.0.1",
+    "@usys/collections-ts": "^0.0.2",
     "decamelize": "^2.0.0",
     "eventemitter2": "^5.0.1",
     "execa": "^0.10.0",

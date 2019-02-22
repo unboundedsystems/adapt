@@ -8,8 +8,7 @@
             "dom-parser",
             "utils",
             "testutils",
-            "mocha-slow-options",
-            "collections-ts"
+            "mocha-slow-options"
         ],
         "nohoist": [
             "**/@types/chai",

@@ -64,7 +64,6 @@ export const repoDirs = {
     "adapt": path.join(repoRootDir, "adapt"),
     "cli": path.join(repoRootDir, "cli"),
     "cloud": path.join(repoRootDir, "cloud"),
-    "collections-ts": path.join(repoRootDir, "collections-ts"),
     "dom-parser": path.join(repoRootDir, "dom-parser"),
     "testutils": path.join(repoRootDir, "testutils"),
     "utils": path.join(repoRootDir, "utils"),
