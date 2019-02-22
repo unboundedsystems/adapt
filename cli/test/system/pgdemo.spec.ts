@@ -10,7 +10,7 @@ import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { projectsRoot, systemTestChain } from "./common";
+import { curlOptions, projectsRoot, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -84,7 +84,7 @@ describeLong("pgdemo system tests", function () {
 
         await waitForNoThrow(5, 5, async () => {
             const resp = await execa.stdout("curl", [
-                "--connect-timeout", "5",
+                ...curlOptions,
                 `http://${dockerHost}:8080/`
             ]);
             expect(resp).equals(`Hello World! The first movie is "The Incredibles"!`);

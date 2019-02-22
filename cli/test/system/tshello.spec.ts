@@ -10,7 +10,7 @@ import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { projectsRoot, systemTestChain } from "./common";
+import { curlOptions, projectsRoot, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -87,7 +87,10 @@ describeLong("tshello system tests", function () {
         }
         if (i <= 0) throw new Error(`Pods did not become ready`);
 
-        const ret = await execa("curl", [ `http://${dockerHost}:8080/` ]);
+        const ret = await execa("curl", [
+            ...curlOptions,
+            `http://${dockerHost}:8080/`
+        ]);
         expect(ret.stdout).equals("Hello World! via TypeScript");
     });
 });
