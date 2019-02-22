@@ -1,6 +1,6 @@
 {
   "name": "@usys/utils",
-  "version": "0.0.1",
+  "version": "0.0.2-next.0",
   "description": "Unbounded Adapt Utilities Library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -42,7 +42,6 @@
     "stream-buffers": "^3.0.2",
     "typescript": "^3.0.3"
   },
-  "peerDependencies": {},
   "files": [
     "/dist/src"
   ],

@@ -1,6 +1,6 @@
 {
   "name": "@usys/testutils",
-  "version": "0.0.1",
+  "version": "0.0.2-next.0",
   "description": "Unbounded Adapt Test Utilities Library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -9,7 +9,7 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@usys/utils": "0.0.1",
+    "@usys/utils": "0.0.2-next.0",
     "aws-sdk": "^2.302.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.5",
@@ -49,7 +49,6 @@
     "source-map-support": "^0.5.6",
     "typescript": "^3.0.3"
   },
-  "peerDependencies": {},
   "files": [
     "/dist/src"
   ],
