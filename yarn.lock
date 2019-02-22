@@ -5075,6 +5075,13 @@ mocha-nock@^0.2.5:
     mkdirp "^0.5.0"
     nock "^10.0"
 
+mocha-slow-options@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/mocha-slow-options/-/mocha-slow-options-0.0.2.tgz#df1d93958328c15f14ff4c8d6002d0c5dd66e07c"
+  integrity sha512-UfPI4NLFycBIQ0nFpHT/Y+fij+J3PWA7z78igGhffRosaIdOwBgxqcpjKYClWOcRmOxG6mDD7uQXzv0RkY0+Gg==
+  dependencies:
+    mocha "^5.1.1"
+
 mocha@^5.1.1, mocha@^5.2.0:
   version "5.2.0"
   resolved "https://registry.yarnpkg.com/mocha/-/mocha-5.2.0.tgz#6d8ae508f59167f940f2b5b3c4a612ae50c90ae6"
