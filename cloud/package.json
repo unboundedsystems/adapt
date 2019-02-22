@@ -1,6 +1,6 @@
 {
   "name": "@usys/cloud",
-  "version": "0.0.2-next.0",
+  "version": "0.0.0-next.1",
   "description": "Unbounded Adapt cloud component library",
   "main": "./dist/src/index.js",
   "typings": "./dist/src/index.d.ts",
@@ -30,7 +30,7 @@
   },
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
   "dependencies": {
-    "@usys/adapt": "0.0.2-next.0",
+    "@usys/adapt": "0.0.0-next.1",
     "aws-sdk": "^2.302.0",
     "debug": "^4.1.0",
     "execa": "^0.10.0",
@@ -67,8 +67,8 @@
     "@types/node-fetch": "^2.1.2",
     "@types/randomstring": "^1.1.6",
     "@types/tmp": "^0.0.33",
-    "@usys/testutils": "0.0.2-next.0",
-    "@usys/utils": "0.0.2-next.0",
+    "@usys/testutils": "0.0.0-next.1",
+    "@usys/utils": "0.0.0-next.1",
     "aws-sdk-mock": "^4.1.0",
     "dockerode": "^2.5.5",
     "express": "^4.16.4",
