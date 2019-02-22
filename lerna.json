@@ -3,7 +3,6 @@
         "adapt",
         "cloud",
         "cli",
-        "collections-ts",
         "dom-parser",
         "mocha-slow-options",
         "testutils",

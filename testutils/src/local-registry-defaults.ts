@@ -83,6 +83,11 @@ export const config: Config = {
     },
     packages: {
         // Packages from @usys that are not part of our repo workspaces
+        "@usys/collections-ts": {
+            access: "$all",
+            publish: "$all",
+            proxy: "npmjs"
+        },
         "@usys/fork-require": {
             access: "$all",
             publish: "$all",

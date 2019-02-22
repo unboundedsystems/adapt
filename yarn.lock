@@ -1176,6 +1176,13 @@
   version "0.0.32"
   resolved "https://registry.yarnpkg.com/@types/xmlbuilder/-/xmlbuilder-0.0.32.tgz#f3107c16a05311ed117af1051c061cfbd8178309"
 
+"@usys/collections-ts@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@usys/collections-ts/-/collections-ts-0.0.2.tgz#11a6144654743603d6395ceba21a63bbce3a319c"
+  integrity sha512-DV/8naszTbt/wDB3SGptMTK2aOjxlcLJP83Ft+mAItinfojyJajEfL9Y1FFhFBv8hcHTC+irlzzHueWXbKEBBw==
+  dependencies:
+    collections "^5.1.5"
+
 "@usys/fork-require@1.0.9-unb1":
   version "1.0.9-unb1"
   resolved "https://registry.yarnpkg.com/@usys/fork-require/-/fork-require-1.0.9-unb1.tgz#79864dfd19c21ff2284f04c5c202f02d6abe4ef8"
