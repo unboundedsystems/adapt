@@ -9,7 +9,10 @@
     ],
     "command": {
         "version": {
-            "allowBranch": "master",
+            "allowBranch": [
+                "master",
+                "next"
+            ],
             "exact": true,
             "gitRemote": "fork"
         }
