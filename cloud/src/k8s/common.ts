@@ -1,22 +1,34 @@
+import { BuildData, ObserveForStatus } from "@usys/adapt";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
-export enum Kind {
-    pod = "Pod",
-    service = "Service",
-    // NOTE: ResourceAdd
+export type Kind = string;
+
+export interface CRSpec {
+    [key: string]: any;
 }
 
 export type Spec =
     PodSpec |
-    ServiceSpec
-    // NOTE: ResourceAdd
-    ;
+    ServiceSpec |
+    CRSpec;
 
 export interface Metadata {
     namespace?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
+}
+
+export type ResourceProps =
+    ResourcePod |
+    ResourceService |
+    ResourceCR;
+
+export interface ResourceInfo {
+    kind: Kind;
+    apiName: string;
+    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown | Promise<unknown>;
+    specsEqual(actual: Spec, element: Spec): boolean;
 }
 
 export interface ResourceBase {
@@ -26,13 +38,18 @@ export interface ResourceBase {
 }
 
 export interface ResourcePod extends ResourceBase {
-    kind: Kind.pod;
+    kind: "Pod";
     spec: PodSpec;
 }
 
 export interface ResourceService extends ResourceBase {
-    kind: Kind.service;
+    kind: "Service";
     spec: ServiceSpec;
+}
+
+export interface ResourceCR extends ResourceBase {
+    kind: string;
+    spec: CRSpec;
 }
 
 export function computeNamespaceFromMetadata(metadata?: Metadata) {

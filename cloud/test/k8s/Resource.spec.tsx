@@ -5,7 +5,12 @@ import { k8sutils } from "@usys/testutils";
 import { sleep } from "@usys/utils";
 import { Console } from "console";
 import { WritableStreamBuffer } from "stream-buffers";
-import { createK8sPlugin, K8sPlugin, Kind, Resource, resourceElementToName } from "../../src/k8s";
+import {
+    createK8sPlugin,
+    K8sPlugin,
+    Resource,
+    resourceElementToName
+} from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
 import { act, doBuild, randomName } from "../testlib";
@@ -16,7 +21,7 @@ const { deleteAll, getAll } = k8sutils;
 describe("k8s Resource Component Tests", () => {
     it("Should Instantiate Resource", () => {
         const resElem =
-            <Resource key="test" kind={Kind.pod} config={{}} spec={{
+            <Resource key="test" kind="Pod" config={{}} spec={{
                 containers: [{
                     name: "test",
                     image: "dummy-image",
@@ -28,7 +33,7 @@ describe("k8s Resource Component Tests", () => {
     });
 });
 
-describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
+describe("k8s Plugin Tests (Resource, Pod)", function () {
     this.timeout(10 * 1000);
 
     let plugin: K8sPlugin;
@@ -67,7 +72,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
 
     it("Should compute actions with no resources from k8s", async () => {
         const resElem =
-            <Resource key="test" config={kubeconfig} kind={Kind.pod} spec={{
+            <Resource key="test" config={kubeconfig} kind="Pod" spec={{
                 containers: [{
                     name: "container",
                     image: "alpine:latest"
@@ -88,7 +93,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
 
     it("Should distinguish between replace and create actions", async () => {
         const resElem =
-            <Resource key="test" config={kubeconfig} kind={Kind.pod} spec={{
+            <Resource key="test" config={kubeconfig} kind="Pod" spec={{
                 containers: [{
                     name: "container",
                     image: "alpine:3.8"
@@ -104,7 +109,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const mockObservation = {
-            kind: Kind.pod,
+            kind: "Pod",
             metadata: {
                 name: resourceElementToName(dom, options.deployID),
                 namespace: "default",
@@ -134,7 +139,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const resElem =
             <Resource key={name}
                 config={kubeconfig}
-                kind={Kind.pod}
+                kind="Pod"
                 spec={{
                     containers: [{
                         name: "container",
@@ -187,7 +192,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const command = ["sleep", "5s"];
         const resElem = <Resource key="test"
             config={kubeconfig}
-            kind={Kind.pod}
+            kind="Pod"
             spec={{
                 containers: [{
                     name: "container",
@@ -225,7 +230,7 @@ describe("k8s Plugin Tests (Resource, Kind.pod)", function () {
         const command = ["sleep", "3s"];
         const resElem = <Resource key="test"
             config={kubeconfig}
-            kind={Kind.pod}
+            kind="Pod"
             spec={{
                 containers: [{
                     name: "container",

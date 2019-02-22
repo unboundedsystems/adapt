@@ -8,21 +8,8 @@ import Adapt, {
 } from "@usys/adapt";
 import * as ld from "lodash";
 
-/*
- * To add a new Resource, search for comments containing ResourceAdd
- * in this directory. That should show all the places that will need
- * modified, in addition to a new .tsx file, patterned after Pod or
- * Service.
- */
-
-import { ResourcePod, ResourceService } from "./common";
+import { ResourceProps } from "./common";
 import { getResourceInfo } from "./k8s_plugin";
-
-export type ResourceProps =
-    ResourcePod |
-    ResourceService
-    // NOTE: ResourceAdd
-    ;
 
 export function isResourceElement(e: AdaptElement): e is AdaptElement<ResourceProps & Adapt.BuiltinProps> {
     return e.componentType === Resource;

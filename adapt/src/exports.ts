@@ -1,4 +1,5 @@
 export {
+    useBuildHelpers,
     useImperativeMethods,
     useState,
 } from "./hooks";
@@ -26,7 +27,9 @@ export {
     isPrimitiveElement,
     WithChildren,
     PropsType,
-    SFC
+    SFC,
+    SFCBuildProps,
+    SFCDeclProps,
 } from "./jsx";
 
 export {

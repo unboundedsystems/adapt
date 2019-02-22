@@ -1,12 +1,14 @@
 import * as util from "util";
 
 import * as ld from "lodash";
+import { OptionalPropertiesT, RequiredPropertiesT } from "type-ops";
 
 import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandleInternal } from "./handle";
+import { Defaultize } from "./jsx_namespace";
 import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
 import { adaptGqlExecute } from "./observers/query_transforms";
@@ -217,6 +219,14 @@ export interface SFC<Props extends object = AnyProps> {
     defaultProps?: Partial<Props>;
     status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
+
+export type SFCDeclProps<Props, Defaults> = Defaultize<Props, Defaults> & Partial<BuiltinProps>;
+
+export type SFCBuildProps<Props, Defaults> =
+    & {[K in Extract<keyof Props, keyof Defaults>]: Props[K]}
+    & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
+    & {[K in Exclude<OptionalPropertiesT<Props>, keyof Defaults>]?: Props[K]}
+    & BuiltinProps;
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {

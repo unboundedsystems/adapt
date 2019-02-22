@@ -20,7 +20,7 @@ import {
     K8sContainer,
     K8sPlugin,
     k8sServiceProps,
-    Kind,
+    Kubeconfig,
     Pod,
     Resource,
     resourceElementToName,
@@ -33,11 +33,13 @@ import { act, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
+// tslint:disable-next-line:no-object-literal-type-assertion
+const dummyConfig = {} as Kubeconfig;
 
 describe("k8s Service Component Tests", () => {
     it("Should Instantiate Service", () => {
         const svc =
-            <Service key="test" config={{}}></Service>;
+            <Service key="test" config={dummyConfig}></Service>;
 
         should(svc).not.Undefined();
     });
@@ -48,7 +50,7 @@ describe("k8s Service Component Tests", () => {
             { port: 8001, targetPort: 81 },
         ];
         const svc =
-            <Service key="test" ports={ports} config={{}} />;
+            <Service key="test" ports={ports} config={dummyConfig} />;
 
         const { messages } = await Adapt.build(svc, null);
         should(messages).length(1);
@@ -61,7 +63,7 @@ describe("k8s Service Component Tests", () => {
         const style =
             <Style>
                 {abs.NetworkService} {rule<abs.NetworkServiceProps>((props) => (
-                    <Service {...k8sServiceProps(props)} config={{}} />
+                    <Service {...k8sServiceProps(props)} config={dummyConfig} />
                 ))}
             </Style>;
         const result = await Adapt.build(absDom, style);
@@ -101,7 +103,7 @@ describe("k8s Service Component Tests", () => {
     it("Should resolve handle selectors", async () => {
         const hand = handle();
         const root = <Group>
-            <Service ports={[{ port: 8000, targetPort: 8080 }]} selector={hand} />
+            <Service config={dummyConfig} ports={[{ port: 8000, targetPort: 8080 }]} selector={hand} />
             <Pod handle={hand} config={{}}>
                 <K8sContainer name="foo" image="alpine:3.1"></K8sContainer>
             </Pod>
@@ -122,14 +124,14 @@ describe("k8s Service Operation Tests", function () {
     let plugin: K8sPlugin;
     let logs: WritableStreamBuffer;
     let options: PluginOptions;
-    let kubeconfig: k8sutils.KubeConfig;
+    let kubeconfig: Kubeconfig;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
         this.slow(20 * 1000);
-        kubeconfig = await mkInstance.kubeconfig;
+        kubeconfig = await mkInstance.kubeconfig as Kubeconfig;
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
     });
@@ -185,7 +187,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const mockObservation = {
-            kind: Kind.service,
+            kind: "Service",
             metadata: {
                 name: resourceElementToName(dom, options.deployID),
                 namespace: "default",
