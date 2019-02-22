@@ -29,7 +29,7 @@
     "p-defer": "^1.0.0",
     "pacote": "^8.1.6",
     "rxjs": "^6.3.3",
-    "semver": "^5.5.0",
+    "semver": "^5.6.0",
     "source-map-support": "^0.5.6",
     "split": "^1.0.1",
     "ts-custom-error": "^2.2.1",

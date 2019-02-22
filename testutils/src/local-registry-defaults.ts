@@ -8,10 +8,12 @@ export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;
 
 export interface YarnProxyOpts {
     registry?: string;
+    tag?: string;
 }
 
 export const yarnLocalProxyOpts = {
     registry: localRegistryUrl,
+    tag: "unit-tests",
 };
 
 const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
@@ -30,13 +32,13 @@ export const defaultPublishList =
         })
         .map((p: string) => path.join(repoRootDir, p));
 
-export async function setupLocalRegistry(publishList: string[], opts: YarnProxyOpts = {}): Promise<void> {
-    opts = { ...yarnLocalProxyOpts, ...opts };
+export async function setupLocalRegistry(publishList: string[], options: YarnProxyOpts = {}): Promise<void> {
+    const { tag, ...opts } = { ...yarnLocalProxyOpts, ...options };
     try {
         for (const modDir of publishList) {
             const pkgJson = await fs.readJson(path.join(modDir, "package.json"));
             const modName = pkgJson.name;
-            await yarn.publish(modDir, opts);
+            await yarn.publish(modDir, { tag, ...opts });
             // Always clean yarn's cache when publishing a package which
             // might be the same name/version, but with different bits.
             await yarn.cacheClean(modName, opts);

@@ -1,6 +1,18 @@
 import { satisfies, validRange } from "semver";
 import { Project } from "./project";
 
+// NOTE(mark): Types are not yet available for semver@5.6, which added
+// a new options parameter that we need to use, so this is a workaround
+// until "someone" updates @types/semver.
+declare module "semver" {
+    interface Options {
+        loose?: boolean;
+        includePrerelease?: boolean;
+    }
+    function satisfies(version: string | SemVer, range: string | Range,
+        options?: Options): boolean;
+}
+
 export interface Gen {
     name: string;
     dependencies: DependencyInfo;
@@ -51,7 +63,7 @@ export function checkDependencies(deps: DependencyInfo, proj: Project): MatchInf
         }
 
         const dep = deps[pkg];
-        if (satisfies(hasVer, dep.allowed)) {
+        if (satisfies(hasVer, dep.allowed, { includePrerelease: true })) {
             ok.push({
                 name: pkg,
                 message: `Package '${pkg}': installed version ${hasVer} ok`
