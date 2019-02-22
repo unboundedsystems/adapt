@@ -150,8 +150,10 @@ describe("k8s Service Operation Tests", function () {
     afterEach(async function () {
         this.timeout(20 * 1000);
         if (client) {
-            await deleteAll("pods", { client, deployID });
-            await deleteAll("services", { client, deployID });
+            await Promise.all([
+                deleteAll("pods", { client, deployID }),
+                deleteAll("services", { client, deployID })
+            ]);
         }
     });
 
@@ -336,7 +338,7 @@ describe("k8s Service Operation Tests", function () {
 
             return <Group>
                 <Service key={"test"} type="LoadBalancer" ports={ports} config={kubeconfig} selector={hand} />
-                <Pod handle={hand} config={kubeconfig}>
+                <Pod handle={hand} config={kubeconfig} terminationGracePeriodSeconds={0}>
                     <K8sContainer name="foo" image="alpine:3.1" />
                 </Pod>
             </Group>;
