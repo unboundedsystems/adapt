@@ -4,7 +4,6 @@
         "cloud",
         "cli",
         "dom-parser",
-        "mocha-slow-options",
         "testutils",
         "utils"
     ],

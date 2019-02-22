@@ -43,7 +43,7 @@
     "@types/p-defer": "^1.0.3",
     "@types/randomstring": "^1.1.6",
     "mocha": "^5.2.0",
-    "mocha-slow-options": "0.0.2-alpha-0",
+    "mocha-slow-options": "^0.0.2",
     "nyc": "^12.0.2",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",

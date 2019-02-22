@@ -23,7 +23,6 @@ export const defaultPublishList =
             switch (path.basename(p)) {
                 case "cli":
                 case "testutils":
-                case "mocha-slow-options":
                     return false;
                 default:
                     return true;

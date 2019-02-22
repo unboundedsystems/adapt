@@ -7,8 +7,7 @@
             "cli",
             "dom-parser",
             "utils",
-            "testutils",
-            "mocha-slow-options"
+            "testutils"
         ],
         "nohoist": [
             "**/@types/chai",
