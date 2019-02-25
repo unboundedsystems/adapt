@@ -15,9 +15,9 @@
     "@oclif/command": "^1.5.4",
     "@oclif/config": "^1.8.8",
     "@oclif/parser": "^3.6.1",
-    "@oclif/plugin-autocomplete": "^0.1.0",
     "@oclif/plugin-help": "^2.1.3",
     "@samverschueren/stream-to-observable": "^0.3.0",
+    "@unboundedsystems/plugin-autocomplete": "0.1.0-unb2",
     "@usys/adapt": "0.0.2-next.1",
     "@usys/utils": "0.0.2-next.1",
     "chalk": "^2.4.1",
@@ -43,7 +43,6 @@
     "@oclif/tslint": "^3.1.1",
     "@types/chai": "^4.1.3",
     "@types/chai-as-promised": "^7.1.0",
-    "@types/chalk": "^2.2.0",
     "@types/debug": "^0.0.31",
     "@types/decamelize": "^1.2.0",
     "@types/dockerode": "^2.5.5",
@@ -83,7 +82,7 @@
     "dirname": "adapt",
     "hooks": {},
     "plugins": [
-      "@oclif/plugin-autocomplete",
+      "@unboundedsystems/plugin-autocomplete",
       "@oclif/plugin-help"
     ]
   },
