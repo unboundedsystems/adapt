@@ -127,9 +127,17 @@ async function waitForMiniKube(container: Docker.Container) {
             }
 
             const accts = await dockerExec(container, ["kubectl", "get", "serviceaccounts"]);
-            if (/^default\s/m.test(accts)) {
-                return true;
-            }
+            if (! /^default\s/m.test(accts))  return false;
+
+            const systemPods = await dockerExec(container, [
+                "kubectl", "get", "pods", "--namespace=kube-system",
+            ]);
+            if (!systemPods) return false;
+            const lines = systemPods.split("\n");
+            // header + 3 pods + newline
+            if (lines.length !== 5) return false;
+
+            return true;
         } catch (err) {
             if (! /exited with error/.test(err.message)) throw err;
         }
