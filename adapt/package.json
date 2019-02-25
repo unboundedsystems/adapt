@@ -1,6 +1,6 @@
 {
   "name": "@usys/adapt",
-  "version": "0.0.2-next.2",
+  "version": "0.0.2-next.3",
   "description": "Unbounded Adapt core library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
