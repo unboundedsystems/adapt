@@ -12,9 +12,19 @@ locally on your system with minikube.
 
 ## System requirements
 
-You'll need a system that has Docker installed and running.
+You'll need a Linux system that has Docker installed and running.
 
-## Setup
+## Setup Adapt and an example app
+
+1. Run a NodeJS container
+
+    To keep everything self contained and easy to try out, we'll do everything
+    inside of containers.
+
+    ```
+    docker network create minikube
+    docker run --rm -it --network minikube -v/var/run/docker.sock:/var/run/docker.sock unboundedsystems/node-testimg bash
+    ```
 
 1. Log into NPM
 
@@ -32,19 +42,25 @@ You'll need a system that has Docker installed and running.
     npm install -g @usys/cli@next
     ```
 
-1. Get the example app
+1. Get an example app
 
     Clone the example app repo to your local system.
     ```
     git clone https://gitlab.com/unboundedsystems/adapt-examples/pg-app.git
+    ```
+
+    You'll need to enter your credentials. Then change to the new directory.
+
+    ```
     cd pg-app
     ```
+
+## Setup Minikube
 
 1. Create a minikube cluster
 
     This creates a self-contained Docker-in-Docker minikube cluster.
     ```
-    docker network create minikube
     docker run --rm --privileged -d --name minikube --network minikube --network-alias kubernetes unboundedsystems/minikube-dind
     ```
 
@@ -65,10 +81,17 @@ You'll need a system that has Docker installed and running.
     ...
     ```
 
-1. Deploy the app!
+## Deploy!
 
-    This creates a new deployment, using the "k8s" style sheet.
+1. Create the deployment
+
+    This creates a new deployment in minikube, using the "k8s" style sheet.
     ```
-    adapt deploy:create --init k8s
+    DOCKER_HOST=minikube adapt deploy:create --init k8s
     ```
 
+1. Check that the app is running in minikube
+
+    ```
+    docker exec -it minikube kubectl get all
+    ```
