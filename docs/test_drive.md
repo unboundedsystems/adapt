@@ -1,14 +1,16 @@
-# Getting Started with Adapt
-
-## A simple demo app
+# Adapt Test Drive
+## A Hello World! app with a database deployed to Kubernetes
 
 This guide shows you how to build and deploy a simple app that consists of
 a NodeJS HTTP server and a PostgreSQL database.
 
 Adapt can deploy to many different kinds of infrastructure, whether in a
-public or private cloud, on your own data center, or even to your laptop.
-In this guide, we'll illustrate deploying to a Kubernetes cluster running
+public or private cloud, in your own data center, or even to your laptop.
+For this test drive, we'll illustrate deploying to a Kubernetes cluster running
 locally on your system with minikube.
+
+To keep everything self contained and easy to install and clean up, we'll do
+everything inside of containers.
 
 ## System requirements
 
@@ -18,13 +20,14 @@ You'll need a Linux system that has Docker installed and running.
 
 1. Run a NodeJS container
 
-    To keep everything self contained and easy to try out, we'll do everything
-    inside of containers.
 
     ```
     docker network create minikube
     docker run --rm -it --network minikube -v/var/run/docker.sock:/var/run/docker.sock unboundedsystems/node-testimg bash
     ```
+
+    **NOTE:** This starts a bash shell in a container. All the commands below
+    should be executed in this bash shell.
 
 1. Log into NPM
 
@@ -90,8 +93,35 @@ You'll need a Linux system that has Docker installed and running.
     DOCKER_HOST=minikube adapt deploy:create --init k8s
     ```
 
-1. Check that the app is running in minikube
+1. Connect to the web app
+
+    The web app is available on minikube's IP address. This will print the
+    URL to use in your web browser on your Linux system (outside the node
+    container).
+    ```
+    echo http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minikube):8080
+    ```
+    If you open this URL in your browser, you should see the web app show
+    the first movie title from the Postgres database.
+
+    You can also check the app status directly in minikube.
 
     ```
-    docker exec -it minikube kubectl get all
+    docker exec minikube kubectl get all
     ```
+
+## Cleaning up
+
+When you're done, exit the NodeJS container bash shell:
+```
+exit
+```
+Now stop minikube and remove the network we created.
+```
+docker stop minikube
+docker network rm minikube
+```
+You may also want to remove the container images.
+```
+docker rmi unboundedsystems/node-testimg unboundedsystems/minikube-dind
+```
