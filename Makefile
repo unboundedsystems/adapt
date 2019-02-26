@@ -38,7 +38,7 @@ $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 #
 # User-friendly targets: build, test, clean, etc.
 #
-build: $(build_submakes)
+build: $(build_submakes) .docs-updated
 $(build_submakes): setup $(NODE_INSTALL_DONE)
 
 test: $(test_submakes)
@@ -78,6 +78,11 @@ testutils-build: utils-build
 setup: $(SETUP_TARGETS)
 .PHONY: setup
 
+DOCS_FILES := $(shell find docs/ -type f -name '*.md')
+.docs-updated: docs/*.md setup $(NODE_INSTALL_DONE)
+	echo $(DOCS_FILES)
+	doctoc --gitlab --title '## Table of Contents' docs
+	touch .docs-updated
 
 endif # IN_DOCKER
 

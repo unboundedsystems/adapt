@@ -5,6 +5,7 @@
 .nyc_output
 \#*
 \.\#*
+.docs-updated
 dist
 generated
 node_modules

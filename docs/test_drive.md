@@ -12,6 +12,18 @@ locally on your system with minikube.
 To keep everything self contained and easy to install and clean up, we'll do
 everything inside of containers.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+## Table of Contents
+
+- [System requirements](#system-requirements)
+- [Setup Adapt and an example app](#setup-adapt-and-an-example-app)
+- [Setup Minikube](#setup-minikube)
+- [Deploy!](#deploy)
+- [Cleaning up](#cleaning-up)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## System requirements
 
 You'll need a Linux system that has Docker installed and running.
