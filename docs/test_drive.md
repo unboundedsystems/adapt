@@ -28,6 +28,9 @@ everything inside of containers.
 
 You'll need a Linux system that has Docker installed and running.
 
+**NOTE:** These instructions do not currently work on MacOS. See issue
+unboundedsystems/adapt#30
+
 ## Setup Adapt and an example app
 
 1. Run a NodeJS container

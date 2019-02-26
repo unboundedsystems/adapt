@@ -24,4 +24,7 @@ system, check out the [Adapt Test Drive](docs/test_drive.md).
 
 You'll need a Linux system that has Docker installed and running.
 
+**NOTE:** These instructions do not currently work on MacOS. See issue
+unboundedsystems/adapt#30
+
 **[First Step: Install Prerequisites](docs/gsg/prerequisites.md)**
