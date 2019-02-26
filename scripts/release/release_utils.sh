@@ -1,10 +1,14 @@
+function error {
+    echo "$*" >&2
+}
+
 function currentBranch {
     git symbolic-ref --short HEAD
 }
 
 function isReleaseBranch {
     case $(currentBranch) in
-        master|next)
+        master|release-*)
             return 0
             ;;
         *)
@@ -16,11 +20,11 @@ function isReleaseBranch {
 function prereleaseId {
     local BRANCH=$(currentBranch)
     case ${BRANCH} in
-        master)
+        release-*)
             # No preid
             ;;
-        next)
-            echo ${BRANCH}
+        master)
+            echo next
             ;;
         *)
             echo dev-${BRANCH}

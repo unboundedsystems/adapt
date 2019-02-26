@@ -18,9 +18,17 @@ function usage {
 }
 
 if [[ $# -ne 1 ]]; then
+    error ERROR: Incorrect number of arguments
     usage
     exit 1
 fi
+
+case "$1" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+esac
 
 VERSION=$1
 PREID=$(prereleaseId)
@@ -29,8 +37,10 @@ if [ -n "${PREID}" ]; then
     VERSION="${VERSION}-${PREID}.0"
 fi
 
-LERNA_ARGS="version --no-git-tag-version --no-push ${VERSION}"
+LERNA_ARGS="version --no-push ${VERSION}"
 echo "Running:  lerna ${LERNA_ARGS}"
-"${REPO_ROOT}/node_modules/.bin/lerna" ${LERNA_ARGS}
+"${REPO_ROOT}/node_modules/.bin/lerna" ${LERNA_ARGS} || exit 1
 
+echo
+echo "Complete. Branch and tag may now be pushed if desired."
  

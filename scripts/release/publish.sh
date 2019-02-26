@@ -13,8 +13,8 @@ function usage {
     echo
     echo "  VERSION_TYPE:"
     echo "      One of: major, minor, or patch"
-    echo "      For master, the default VERSION_TYPE is patch."
-    echo "      For a pre-release branch, VERSION_TYPE is ignored and always"
+    echo "      For a release branch, the default VERSION_TYPE is patch."
+    echo "      For any other branch, VERSION_TYPE is ignored and always"
     echo "      set to prerelease."
     echo
     echo "Example:"
@@ -37,35 +37,45 @@ function preidArgs {
 }
 
 function versionType {
-    if [[ $(currentBranch) != "master" ]]; then
+    if [[ ! ( $(currentBranch) =~ ^release- ) ]]; then
         echo prerelease
         return
     fi
-    if [[ $# -eq 0 ]]; then
+    if [ -z "$1" ]; then
         echo patch
         return
     fi
-    case $1 in
+    case "$1" in
         major|minor|patch)
             echo $1
             ;;
         *)
-            echo ERROR: Unsupported version type: $1
-            exit 1
+            error ERROR: Unsupported version type: $1
+            return 1
             ;;
     esac
 }
 
 if [[ $# -ne 0 && $# -ne 1 ]]; then
+    error ERROR: Incorrect number of arguments
     usage
     exit 1
 fi
+
+case "$1" in
+    -h|--help)
+        usage
+        exit 0
+        ;;
+esac
 
 if ! $(isReleaseBranch) ; then
     echo ERROR: Publishing not permitted from branch $(currentBranch)
     exit 1
 fi
 
-LERNA_ARGS="publish $(preidArgs) $(publishTagArgs) $(versionType)"
+VERSION_TYPE=$(versionType "$1") || exit 1
+
+LERNA_ARGS="publish $(preidArgs) $(publishTagArgs) ${VERSION_TYPE}"
 echo "Running: lerna ${LERNA_ARGS}"
 "${REPO_ROOT}/node_modules/.bin/lerna" ${LERNA_ARGS}

@@ -11,7 +11,7 @@
         "version": {
             "allowBranch": [
                 "master",
-                "next"
+                "release-*"
             ],
             "exact": true,
             "gitRemote": "fork"
