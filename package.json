@@ -7,15 +7,19 @@
             "cli",
             "dom-parser",
             "utils",
-            "testutils",
-            "mocha-slow-options",
-            "collections-ts",
-            "fork-require"
+            "testutils"
         ],
         "nohoist": [
             "**/@types/chai",
             "**/@types/chai-as-promised"
         ]
+    },
+    "devDependencies": {
+        "doctoc": "^1.4.0",
+        "lerna": "^3.13.0"
+    },
+    "name": "adapt-root",
+    "scripts": {
+        "prepublishOnly": "make build"
     }
 }
-

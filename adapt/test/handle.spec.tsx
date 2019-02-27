@@ -1,3 +1,4 @@
+import { repoVersions } from "@usys/testutils";
 import should from "should";
 import Adapt, {
     AdaptElement,
@@ -17,6 +18,8 @@ import Adapt, {
 import { reanimateDom } from "../src/internal";
 
 import { Empty, MakeEmpty } from "./testlib";
+
+const aVer = repoVersions.adapt;
 
 class Anything extends PrimitiveComponent<AnyProps> {
 }
@@ -244,7 +247,7 @@ describe("Element Handle", () => {
     "Group",
     "MakeEmpty-Empty"
   ],
-  "urn": "urn:Adapt:@usys/adapt:0.0.1:$adaptExports:handle.js:HandleImpl"
+  "urn": "urn:Adapt:@usys/adapt:${aVer}:$adaptExports:handle.js:HandleImpl"
 }</prop>
       </__props__>
     </Anything>
@@ -267,8 +270,8 @@ describe("Element Handle", () => {
         const domXml = serializeDom(dom, true);
         should(domXml).equal(
             `<Adapt>
-  <Group key="Group" xmlns="urn:Adapt:@usys/adapt:0.0.1::builtin_components.js:Group">
-    <Empty id="1" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/testlib.js:Empty">
+  <Group key="Group" xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components.js:Group">
+    <Empty id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/testlib.js:Empty">
       <__props__>
         <prop name="key">"MakeEmpty-Empty"</prop>
       </__props__>
@@ -278,7 +281,7 @@ describe("Element Handle", () => {
         <field name="path">"/Group/Empty"</field>
       </__lifecycle__>
     </Empty>
-    <Anything xmlns="urn:Adapt:@usys/adapt:0.0.1:$adaptExports:../test/handle.spec.js:Anything">
+    <Anything xmlns="urn:Adapt:@usys/adapt:${aVer}:$adaptExports:../test/handle.spec.js:Anything">
       <__props__>
         <prop name="key">"Anything"</prop>
         <prop name="ref">{
@@ -290,7 +293,7 @@ describe("Element Handle", () => {
           "Group",
           "MakeEmpty-Empty"
         ],
-        "urn": "urn:Adapt:@usys/adapt:0.0.1:$adaptExports:handle.js:HandleImpl"
+        "urn": "urn:Adapt:@usys/adapt:${aVer}:$adaptExports:handle.js:HandleImpl"
       }
     }
   ]

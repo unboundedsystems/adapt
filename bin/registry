@@ -106,6 +106,9 @@ exec 3<&0 0<&-
 PATH=\${PATH}:"${CTR_ADD_PATH}"
 export PATH
 
+adapt autocomplete bash > /dev/null
+printf "\$(adapt autocomplete:script bash)\\n" >> ~/.bashrc
+
 node /src/testutils/bin/run-local-registry.js &
 sleep 3
 

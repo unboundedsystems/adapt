@@ -1,4 +1,4 @@
-import { repoDirs, repoRootDir, yarn } from "@usys/utils";
+import { repoRootDir, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -8,13 +8,16 @@ export const localRegistryUrl = `http://127.0.0.1:${localRegistryPort}`;
 
 export interface YarnProxyOpts {
     registry?: string;
+    tag?: string;
 }
 
 export const yarnLocalProxyOpts = {
     registry: localRegistryUrl,
+    tag: "unit-tests",
 };
 
 const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
+const verdaccioDir = path.join(repoRootDir, "verdaccio");
 
 export const defaultPublishList =
     topLevelPackageJson.workspaces.packages
@@ -22,7 +25,6 @@ export const defaultPublishList =
             switch (path.basename(p)) {
                 case "cli":
                 case "testutils":
-                case "mocha-slow-options":
                     return false;
                 default:
                     return true;
@@ -30,13 +32,13 @@ export const defaultPublishList =
         })
         .map((p: string) => path.join(repoRootDir, p));
 
-export async function setupLocalRegistry(publishList: string[], opts: YarnProxyOpts = {}): Promise<void> {
-    opts = { ...yarnLocalProxyOpts, ...opts };
+export async function setupLocalRegistry(publishList: string[], options: YarnProxyOpts = {}): Promise<void> {
+    const { tag, ...opts } = { ...yarnLocalProxyOpts, ...options };
     try {
         for (const modDir of publishList) {
             const pkgJson = await fs.readJson(path.join(modDir, "package.json"));
             const modName = pkgJson.name;
-            await yarn.publish(modDir, opts);
+            await yarn.publish(modDir, { tag, ...opts });
             // Always clean yarn's cache when publishing a package which
             // might be the same name/version, but with different bits.
             await yarn.cacheClean(modName, opts);
@@ -58,13 +60,13 @@ function setupDefault(): Promise<void> {
     return setupLocalRegistry(defaultPublishList);
 }
 
-export const configPath = path.join(repoDirs.verdaccio, "config.yaml");
+export const configPath = path.join(verdaccioDir, "config.yaml");
 export const config: Config = {
     // Standard verdaccio config items
-    storage: path.join(repoDirs.verdaccio, "storage"),
+    storage: path.join(verdaccioDir, "storage"),
     auth: {
         htpasswd: {
-            file: path.join(repoDirs.verdaccio, "htpasswd")
+            file: path.join(verdaccioDir, "htpasswd")
         }
     },
     uplinks: {
@@ -81,10 +83,22 @@ export const config: Config = {
         }
     },
     packages: {
+        // Packages from @usys that are not part of our repo workspaces
+        "@usys/collections-ts": {
+            access: "$all",
+            publish: "$all",
+            proxy: "npmjs"
+        },
+        "@usys/fork-require": {
+            access: "$all",
+            publish: "$all",
+            proxy: "npmjs"
+        },
+        // We don't proxy the remaining @usys packages so we can locally
+        // publish the same versions as are on npmjs.
         "@usys/*": {
             access: "$all",
             publish: "$all",
-            proxy: "npmjs",
         },
         "**": {
             access: "$all",

@@ -1,6 +1,6 @@
 {
   "name": "@usys/testutils",
-  "version": "0.0.1",
+  "version": "0.0.2-next.1",
   "description": "Unbounded Adapt Test Utilities Library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -9,7 +9,7 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@usys/utils": "0.0.1",
+    "@usys/utils": "0.0.2-next.1",
     "aws-sdk": "^2.302.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.5",
@@ -43,12 +43,12 @@
     "@types/p-defer": "^1.0.3",
     "@types/randomstring": "^1.1.6",
     "mocha": "^5.2.0",
+    "mocha-slow-options": "^0.0.2",
     "nyc": "^12.0.2",
     "should": "^13.2.1",
     "source-map-support": "^0.5.6",
     "typescript": "^3.0.3"
   },
-  "peerDependencies": {},
   "files": [
     "/dist/src"
   ],
@@ -67,5 +67,8 @@
     "lint-and-fix": "tslint --project . --fix",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
+  },
+  "publishConfig": {
+    "access": "restricted"
   }
 }

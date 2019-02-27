@@ -1,0 +1,22 @@
+{
+    "packages": [
+        "adapt",
+        "cli",
+        "cloud",
+        "dom-parser",
+        "testutils",
+        "utils"
+    ],
+    "command": {
+        "version": {
+            "allowBranch": [
+                "master",
+                "release-*"
+            ],
+            "exact": true,
+            "gitRemote": "fork"
+        }
+    },
+    "npmClient": "yarn",
+    "version": "0.0.2-next.3"
+}

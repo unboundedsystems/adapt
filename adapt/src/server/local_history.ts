@@ -22,14 +22,16 @@ interface DirInfo {
 // 1 day if in the debugger, otherwise 10 sec
 const lockStaleTime = inDebugger() ? 24 * 60 * 60 * 1000 : 10 * 1000;
 
+// Example dirName: 00000-preAct-2018-11-15T22:20:46+00:00
+const dirNameRegEx = /^(\d{5})-([^-]+)-(.*)$/;
+
 function dirStatus(dirName: string): HistoryStatus {
-    // Example dirName: 00000-preAct-2018-11-15T22:20:46+00:00
-    const fields = dirName.split("-");
-    const status = fields[1];
-    if (fields.length !== 5 || !isHistoryStatus(status)) {
-        throw new Error(`History directory '${dirName}' unrecognized format`);
+    const m = dirName.match(dirNameRegEx);
+    if (m) {
+        const status = m[2];
+        if (isHistoryStatus(status)) return status;
     }
-    return status;
+    throw new Error(`History directory '${dirName}' unrecognized format`);
 }
 
 function dirStatusMatches(dirName: string, expected: HistoryStatus | undefined) {

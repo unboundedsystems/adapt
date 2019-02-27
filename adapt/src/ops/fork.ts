@@ -1,7 +1,7 @@
 import { isMessageClient, MessageStreamClient } from "@usys/utils";
 import db from "debug";
 // tslint:disable-next-line:no-var-requires
-const forkRequire = require("fork-require");
+const forkRequire = require("@usys/fork-require");
 import { InternalError } from "../error";
 import { WithLogger } from "./common";
 

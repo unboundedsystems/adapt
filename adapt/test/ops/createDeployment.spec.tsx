@@ -4,6 +4,7 @@ import {
     mochaLocalRegistry,
     mochaTmpdir as tmpdir,
     MockLoggerClient,
+    repoVersions,
 } from "@usys/testutils";
 import {
     messagesToString,
@@ -25,7 +26,7 @@ const simplePackageJson = {
     dependencies: {
         "source-map-support": "^0.5.5",
         "@types/node": "^8.10.20",
-        "@usys/adapt": "0.0.1",
+        "@usys/adapt": repoVersions.adapt,
         "typescript": "^3.0.3",
     }
 };

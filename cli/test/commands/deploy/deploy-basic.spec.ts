@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir, repoVersions  } from "@usys/testutils";
 import { filePathToUrl, yarn } from "@usys/utils";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
@@ -23,7 +23,7 @@ const basicPackageJson = {
     license: "UNLICENSED",
     dependencies: {
         "@types/node": "^8.10",
-        "@usys/adapt": "0.0.1",
+        "@usys/adapt": repoVersions.adapt,
         "source-map-support": "^0.5.6",
         "typescript": "^3.0.3",
     },

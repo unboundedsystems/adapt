@@ -1,6 +1,9 @@
+import { repoVersions } from "@usys/testutils";
 import * as Adapt from "../src";
 
 import should from "should";
+
+const aVer = repoVersions.adapt;
 
 export class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 
@@ -129,9 +132,9 @@ describe("DOM Reanimateable Serialization", () => {
     it("Should serialize component reanimation info", () => {
         const ser = Adapt.serializeDom(<Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>, true);
         should(ser).equal(`<Adapt>
-  <Group xmlns="urn:Adapt:@usys/adapt:0.0.1::builtin_components.js:Group">
-    <Flex id="1" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/dom_serializer.spec.js:Flex"/>
-    <Flex id="2" xmlns="urn:Adapt:@usys/adapt:0.0.1::../test/dom_serializer.spec.js:Flex"/>
+  <Group xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components.js:Group">
+    <Flex id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
+    <Flex id="2" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
   </Group>
 </Adapt>
 `);

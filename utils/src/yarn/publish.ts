@@ -1,7 +1,9 @@
 import { CommonOptions, run } from "./common";
 
 export interface PublishOptions extends CommonOptions {
+    access?: "public" | "restricted";
     nonInteractive?: boolean;
+    tag?: string;
 }
 const boolNoArgOptions = [
     "nonInteractive",

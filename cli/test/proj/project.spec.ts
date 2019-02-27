@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir, repoVersions } from "@usys/testutils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -114,13 +114,10 @@ describe("Project basic tests", function () {
         this.slow(20 * 1000);
         this.timeout(50 * 1000);
         const opts = { ...cliLocalRegistry.yarnProxyOpts, ...projOpts };
-        // FIXME(mark): Once we actually publish @usys/dom-parser publicly, this
-        // test is no longer a great test. Change the package to something
-        // that we know is definitely only present in the local registry.
-        const p = await proj.load("@usys/dom-parser@0.0.1", opts);
+        const p = await proj.load("@usys/dom-parser@unit-tests", opts);
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("@usys/dom-parser");
-        expect(p.manifest.version).equal("0.0.1");
+        expect(p.manifest.version).equal(repoVersions["dom-parser"]);
         expect(p.manifest.dependencies.tslib).equal("^1.9.3");
         await p.installModules();
         expect(p.getLockedVersion("1.9.3"));

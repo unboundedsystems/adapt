@@ -38,9 +38,13 @@ async function dockerBuild(
     const opts = { ...defaultDockerBuildOptions, ...options };
     let nameTag: string | undefined;
 
-    const args = ["build", "-f", dockerfile];
+    // Certain "global" docker args go before the command
+    const globalArgs = [];
+    if (opts.dockerHost) globalArgs.push("-H", opts.dockerHost);
+
+    const args = [...globalArgs];
+    args.push("build", "-f", dockerfile);
     if (opts.forceRm) args.push("--force-rm");
-    if (opts.dockerHost) args.push("-H", opts.dockerHost);
     if (opts.imageName) {
         const tag = createTag(opts.imageTag, opts.uniqueTag);
         nameTag = tag ? `${opts.imageName}:${tag}` : opts.imageName;
@@ -51,7 +55,8 @@ async function dockerBuild(
     const { stdout, stderr } = await execa("docker", args);
     const match = /^Successfully built ([0-9a-zA-Z]+)$/mg.exec(stdout);
     if (!match || !match[1]) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
-    const inspectOut = await execa.stdout("docker", ["inspect", match[1]]);
+
+    const inspectOut = await execa.stdout("docker", [...globalArgs, "inspect", match[1]]);
     try {
         const inspect = JSON.parse(inspectOut);
         if (!Array.isArray(inspect)) throw new Error(`Image inspect result is not an array`);

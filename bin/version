@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+. "${TOP_DIR}/scripts/release/version.sh"
+
