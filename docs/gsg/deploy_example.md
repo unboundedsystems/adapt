@@ -37,9 +37,15 @@ cd pg-app
 
 1. Create a minikube cluster
 
-    This creates a self-contained Docker-in-Docker minikube cluster.
+    This creates a self-contained Docker-in-Docker minikube cluster. It
+    exposes three ports from the container, making them available on the host
+    system:
+    * Port 31000: Inner Docker instance API
+    * Port 8443: Kubernetes API
+    * Port 8080: Our example app's web port
+
     ```
-    docker run --rm --privileged -d --name minikube unboundedsystems/minikube-dind
+    docker run --rm --privileged -d --name minikube -p 31000:2375 -p 8443:8443 -p 8080:8080 unboundedsystems/minikube-dind
     ```
 
 1. Get the kubeconfig from minikube
@@ -47,7 +53,7 @@ cd pg-app
     In order to connect to the minikube cluster, we need a copy of its
     kubeconfig.
     ```
-    docker exec minikube kubectl config view -o json --merge=true --flatten=true > kubeconfig.json
+    docker exec minikube kubectl config view -o json --merge=true --flatten=true | sed 's/https:\/\/.*:8443/https:\/\/localhost:8443/' > kubeconfig.json
     ```
     Sometimes, minikube can take a little while to start. Take a look at the
     resulting kubeconfig.json to confirm the command completed successfully.
@@ -59,46 +65,50 @@ cd pg-app
     ...
     ```
 
-1. Get minikube's IP address
-
-    This stores the IP address off minikube for use in later steps:
-    ```
-    MK_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minikube)
-    ```
-
 ## Deploy!
 
 1. Create the deployment
 
     This creates a new deployment in minikube, using the "k8s" style sheet.
     ```
-    DOCKER_HOST=$MK_HOST adapt deploy:create --init k8s
+    DOCKER_HOST=localhost:31000 adapt deploy:create --init k8s
     ```
+    When the deployment is complete, Adapt prints the DeployID. Take note
+    of this for when you're ready to delete the deployment. It should look
+    similar to this:
 
-1. Connect to the web app
+    > Deployment created successfully. DeployID is: **pg-app::k8s-aphe**
 
-    The web app is available on minikube's IP address. This will print the
-    URL to use in your web browser on your Linux system (outside the node
-    container).
-    ```
-    echo http://${MK_HOST}:8080
-    ```
+1. Connect to the example app
+
+    Once the app is deployed into Kubernetes, it will be available at:
+
+    [http://localhost:8080](http://localhost:8080)
+
     If you open this URL in your browser or use curl to fetch it, you should
-    see the web app show the first movie title from the Postgres database.
+    see the example app show the first movie title from the Postgres database:
 
-    You can also check the app status directly in minikube.
+    > Hello World! The first movie is "The Incredibles"!
 
+    You can also check the app status directly in minikube:
     ```
     docker exec minikube kubectl get all
     ```
 
 ## Cleaning up
 
-When you're done, you may want to stop minikube:
-```
-docker stop minikube
-```
-You may also want to remove the minikube container image.
-```
-docker rmi unboundedsystems/minikube-dind
-```
+1. Destroy the deployment
+
+    When you're done, destroy the app deployment using the DeployID you got
+    from running `adapt deploy:create` earlier.
+    ```
+    adapt deploy:destroy YOUR_DEPLOY_ID
+    ```
+
+1. Stop minikube
+
+    You may also want to stop minikube and remove the minikube container image:
+    ```
+    docker stop minikube
+    docker rmi unboundedsystems/minikube-dind
+    ```

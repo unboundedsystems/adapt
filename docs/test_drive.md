@@ -26,16 +26,23 @@ everything inside of containers.
 
 ## System requirements
 
-You'll need a Linux system that has Docker installed and running.
+You'll need either:
+* A Linux system that has [Docker](https://docs.docker.com/install/)
+installed and running.
+* A MacOS system that has
+[Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/)
+installed and running.
 
-**NOTE:** These instructions do not currently work on MacOS. See issue
-unboundedsystems/adapt#30
+Platforms not currently tested with this guide:
+* Windows
+* Running inside Docker Desktop for Windows
+* Docker Toolbox for Mac
 
 ## Setup Adapt and an example app
 
 1. Run a NodeJS container
 
-
+    This container image has NodeJS 10 and Docker client pre-installed.
     ```
     docker network create minikube
     docker run --rm -it --network minikube -v/var/run/docker.sock:/var/run/docker.sock unboundedsystems/node-testimg bash
@@ -77,9 +84,10 @@ unboundedsystems/adapt#30
 
 1. Create a minikube cluster
 
-    This creates a self-contained Docker-in-Docker minikube cluster.
+    This creates a self-contained Docker-in-Docker minikube cluster and exposes
+    our example app's port, 8080.
     ```
-    docker run --rm --privileged -d --name minikube --network minikube --network-alias kubernetes unboundedsystems/minikube-dind
+    docker run --rm --privileged -d --name minikube --network minikube -p 8080:8080 unboundedsystems/minikube-dind
     ```
 
 1. Get the kubeconfig from minikube
@@ -108,16 +116,17 @@ unboundedsystems/adapt#30
     DOCKER_HOST=minikube adapt deploy:create --init k8s
     ```
 
-1. Connect to the web app
+1. Connect to the example app
 
-    The web app is available on minikube's IP address. This will print the
-    URL to use in your web browser on your Linux system (outside the node
-    container).
-    ```
-    echo http://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' minikube):8080
-    ```
-    If you open this URL in your browser, you should see the web app show
-    the first movie title from the Postgres database.
+    Once the app is deployed into Kubernetes, it will be available from
+    **outside** the NodeJS container at:
+
+    [http://localhost:8080](http://localhost:8080)
+
+    If you open this URL in your browser or use curl to fetch it, you should
+    see the example app show the first movie title from the Postgres database:
+
+    > Hello World! The first movie is "The Incredibles"!
 
     You can also check the app status directly in minikube.
 
