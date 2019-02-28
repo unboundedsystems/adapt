@@ -22,9 +22,16 @@ system, check out the [Adapt Test Drive](docs/test_drive.md).
 
 ## System Requirements
 
-You'll need a Linux system that has Docker installed and running.
+You'll need either:
+* A Linux system that has [Docker](https://docs.docker.com/install/)
+installed and running.
+* A MacOS system that has
+[Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/)
+installed and running.
 
-**NOTE:** These instructions do not currently work on MacOS. See issue
-unboundedsystems/adapt#30
+Platforms not currently tested with this guide:
+* Windows
+* Running inside Docker Desktop for Windows
+* Docker Toolbox for Mac
 
 **[First Step: Install Prerequisites](docs/gsg/prerequisites.md)**
