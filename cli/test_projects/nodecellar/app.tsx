@@ -4,10 +4,10 @@ import { Compute, DockerHost, NetworkService } from "@usys/cloud";
 import { AppContainer, MongoContainer } from "./containers";
 
 interface Props {
-    webPort?: number;
-    webStatusPort?: number;
-    mongoHostname?: string;
-    mongoPort?: number;
+    webPort: number;
+    webStatusPort: number;
+    mongoHostname: string;
+    mongoPort: number;
     dockerHost?: string;
 }
 
