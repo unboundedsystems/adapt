@@ -1,5 +1,6 @@
 import { repoVersions } from "@usys/testutils";
 import * as Adapt from "../src";
+import { doBuild } from "./testlib";
 
 import should from "should";
 
@@ -130,7 +131,10 @@ describe("DOM Child Serialization", () => {
 
 describe("DOM Reanimateable Serialization", () => {
     it("Should serialize component reanimation info", () => {
-        const ser = Adapt.serializeDom(<Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>, true);
+        const ser = Adapt.serializeDom(
+            <Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>,
+            { reanimateable: true }
+        );
         should(ser).equal(`<Adapt>
   <Group xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components.js:Group">
     <Flex id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
@@ -139,5 +143,35 @@ describe("DOM Reanimateable Serialization", () => {
 </Adapt>
 `);
 
+    });
+});
+
+describe("DOM Serialization Options", () => {
+    let dom: Adapt.AdaptElement;
+    before(async () => {
+        const out = await doBuild(<Adapt.Group><Flex id={1} /><Flex id={2} /></Adapt.Group>);
+        dom = out.dom;
+    });
+
+    it("Should serialize props=none", () => {
+        const ser = Adapt.serializeDom(dom, { props: "none" });
+        should(ser).equal(`<Adapt>
+  <Group>
+    <Flex/>
+    <Flex/>
+  </Group>
+</Adapt>
+`);
+    });
+
+    it("Should serialize props=key only", () => {
+        const ser = Adapt.serializeDom(dom, { props: ["key"] });
+        should(ser).equal(`<Adapt>
+  <Group key="Group">
+    <Flex key="Flex"/>
+    <Flex key="Flex1"/>
+  </Group>
+</Adapt>
+`);
     });
 });

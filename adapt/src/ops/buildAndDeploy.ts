@@ -168,7 +168,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         return {
             ...options,
             ctx,
-            domXml: inAdapt.serializeDom(newDom, true),
+            domXml: inAdapt.serializeDom(newDom, { reanimateable: true }),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
                 podify(await mountedOrig.status()) : { noStatus: true },
             needsData,
