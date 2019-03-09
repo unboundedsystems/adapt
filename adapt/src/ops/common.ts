@@ -1,5 +1,6 @@
 import {
     createTaskObserver,
+    formatUserError,
     isMessageClient,
     isMessageLogger,
     Message,
@@ -131,7 +132,7 @@ export async function withOpsSetup<T extends ApiResponse>(
         return ret;
 
     } catch (err) {
-        const msg = `Error ${options.description}: ${err.message}`;
+        const msg = `Error ${options.description}: ${formatUserError(err)}`;
         logger.error(msg);
         taskObserver.failed(msg);
         const ret: ApiResponse = {
