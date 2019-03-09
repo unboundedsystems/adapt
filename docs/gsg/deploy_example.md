@@ -71,7 +71,7 @@ cd pg-app
 
     This creates a new deployment in minikube, using the "k8s" style sheet.
     ```
-    DOCKER_HOST=localhost:31000 adapt deploy:create --init k8s
+    DOCKER_HOST=localhost:31000 adapt deploy:create k8s
     ```
     When the deployment is complete, Adapt prints the DeployID. Take note
     of this for when you're ready to delete the deployment. It should look

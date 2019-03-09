@@ -113,7 +113,7 @@ Platforms not currently tested with this guide:
 
     This creates a new deployment in minikube, using the "k8s" style sheet.
     ```
-    DOCKER_HOST=minikube adapt deploy:create --init k8s
+    DOCKER_HOST=minikube adapt deploy:create k8s
     ```
 
 1. Connect to the example app
