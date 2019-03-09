@@ -41,6 +41,7 @@ import { DeployState, DeploySuccess, parseDebugString } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 const debugAction = db("adapt:ops:action");
+const debugDeployDom = db("adapt:ops:deploydom");
 
 export interface BuildOptions {
     debug: string;
@@ -261,6 +262,8 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
                     newDom: await inAdapt.internal.reanimateDom(options.domXml),
                 };
             });
+
+            debugDeployDom(inAdapt.serializeDom(newDom, { props: [ "key" ] }));
 
             const newPluginObs = await tasks.observe.complete(async () => {
                 await mgr.start(prevDom, newDom, {
