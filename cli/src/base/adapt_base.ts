@@ -80,6 +80,11 @@ const defaultHandleResponseOptions = {
     errorEnding: "",
 };
 
+export interface OutputBlob {
+    text: string;
+    outputOnError: boolean;  // Still output this text even if there's an error?
+}
+
 export abstract class AdaptBase extends Command {
     static flags = {
         quiet: flags.boolean({
@@ -91,7 +96,7 @@ export abstract class AdaptBase extends Command {
         }),
     };
 
-    finalOutput = "";
+    finalOutput: OutputBlob[] = [];
     outputSettings_?: OutputSettings;
 
     get outputSettings(): OutputSettings {
@@ -103,16 +108,20 @@ export abstract class AdaptBase extends Command {
 
     async finally(err?: Error) {
         await super.finally(err);
-        if (err !== undefined) {
-            if (isUserError(err)) return this.error(err.message);
-            return;
+
+        let output = this.finalOutput
+            .filter((o) => (err === undefined) || o.outputOnError)
+            .map((o) => o.text)
+            .join("\n");
+        if (output) {
+            if (this.outputSettings_ && this.outputSettings_.statusOutput === true) {
+                output = "\n" + output;
+            }
+            if (err !== undefined) output += "\n";
+            this.log(output);
         }
 
-        if (this.finalOutput !== "") {
-            let cr = "\n";
-            if (this.outputSettings_ && this.outputSettings_.statusOutput === false) cr = "";
-            this.log(cr + this.finalOutput);
-        }
+        if (isUserError(err)) return this.error(err.userError);
     }
 
     about(theFlags: StandardFlags) {
@@ -126,8 +135,8 @@ export abstract class AdaptBase extends Command {
         this.log(`${bright("Adapt")} by ${company("Unbounded Systems")} ${ver(version)}\n`);
     }
 
-    appendOutput(s: string) {
-        this.finalOutput += s;
+    appendOutput(text: string, outputOnError = false) {
+        this.finalOutput.push({ text, outputOnError });
     }
 
     /* Synonym for handleApiResponse */
@@ -146,7 +155,7 @@ export abstract class AdaptBase extends Command {
         if (nwarn > 0) {
             const warns = nwarn === 1 ? "warning" : "warnings";
             this.appendOutput(`${nwarn} ${warns} encountered${action}:\n` +
-                getWarnings(response.messages));
+                getWarnings(response.messages), true);
         }
 
         const nerr = response.summary.error;
