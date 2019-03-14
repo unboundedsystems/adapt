@@ -41,6 +41,7 @@ import { DeployState, DeploySuccess, parseDebugString } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 const debugAction = db("adapt:ops:action");
+const debugDeployDom = db("adapt:ops:deploydom");
 
 export interface BuildOptions {
     debug: string;
@@ -168,7 +169,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         return {
             ...options,
             ctx,
-            domXml: inAdapt.serializeDom(newDom, true),
+            domXml: inAdapt.serializeDom(newDom, { reanimateable: true }),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
                 podify(await mountedOrig.status()) : { noStatus: true },
             needsData,
@@ -261,6 +262,8 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
                     newDom: await inAdapt.internal.reanimateDom(options.domXml),
                 };
             });
+
+            debugDeployDom(inAdapt.serializeDom(newDom, { props: [ "key" ] }));
 
             const newPluginObs = await tasks.observe.complete(async () => {
                 await mgr.start(prevDom, newDom, {

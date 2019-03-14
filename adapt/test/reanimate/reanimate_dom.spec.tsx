@@ -17,7 +17,7 @@ describe("Reanimate DOM basic tests", () => {
     componentConstructorDataFixture();
 
     async function roundTrip(origDom: AdaptElement, eql = true) {
-        const xmlString = serializeDom(origDom, true);
+        const xmlString = serializeDom(origDom, { reanimateable: true });
         const newDom = await reanimateDom(xmlString);
 
         if (eql) should(newDom).eql(origDom);

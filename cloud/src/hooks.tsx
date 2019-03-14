@@ -39,8 +39,8 @@ export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: st
         methodName, notReplacedByStyle());
     const mountedOrig = hand.mountedOrig;
     if (!ld.isFunction(method)) {
-        throw new Error(`${methodName} exists but is not a function on handle instance:\n`
-            + ((mountedOrig != null) ? serializeDom(mountedOrig, false) : `mountedOrig is ${mountedOrig}`));
+        throw new Error(`${methodName} exists but is not a function on handle instance:\n` +
+            ((mountedOrig != null) ? serializeDom(mountedOrig) : `mountedOrig is ${mountedOrig}`));
     }
     return method(...args);
 }
@@ -68,8 +68,8 @@ export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName
         methodName, hasInstanceMethod(methodName, hand.mountedOrig));
     const mountedOrig = hand.mountedOrig;
     if (!ld.isFunction(method)) {
-        throw new Error(`${methodName} exists but is not a function on handle instance:\n`
-            + ((mountedOrig != null) ? serializeDom(mountedOrig, false) : `mountedOrig is ${mountedOrig}`));
+        throw new Error(`${methodName} exists but is not a function on handle instance:\n` +
+            ((mountedOrig != null) ? serializeDom(mountedOrig) : `mountedOrig is ${mountedOrig}`));
     }
     return method(...args);
 }
@@ -84,7 +84,7 @@ export function getInstanceValue<T = any>(hand: Handle, def: T | undefined, fiel
         throw new Error(`Element is mounted but instance is ${elem.instance}`);
     }
     if (!(field in elem.instance)) {
-        throw new Error(`${field} does not exist on handle instance:\n` + serializeDom(elem, false));
+        throw new Error(`${field} does not exist on handle instance:\n` + serializeDom(elem));
     }
     const val = elem.instance[field];
     if (ld.isFunction(val)) {

@@ -16,5 +16,5 @@ cat ~/.kube/config | toJson > ./kubeconfig.json || \
 export DOCKER_HOST=$(minikubeDockerHost)
 
 echo
-echo adapt deploy:create --init prod
+echo adapt deploy:create prod
 

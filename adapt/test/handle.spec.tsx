@@ -267,7 +267,7 @@ describe("Element Handle", () => {
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
-        const domXml = serializeDom(dom, true);
+        const domXml = serializeDom(dom, { reanimateable: true });
         should(domXml).equal(
             `<Adapt>
   <Group key="Group" xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components.js:Group">
@@ -326,7 +326,7 @@ describe("Element Handle", () => {
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
-        const domXml = serializeDom(dom, true);
+        const domXml = serializeDom(dom, { reanimateable: true });
         const newDom = await reanimateDom(domXml);
 
         if (newDom == null) throw should(newDom).not.be.Null();
@@ -347,7 +347,7 @@ describe("Element Handle", () => {
 
         should(hand.target).be.Null();
 
-        const domXml = serializeDom(dom, true);
+        const domXml = serializeDom(dom, { reanimateable: true });
         const newDom = await reanimateDom(domXml);
 
         if (newDom == null) throw should(newDom).not.be.Null();

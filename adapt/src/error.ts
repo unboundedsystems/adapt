@@ -1,3 +1,4 @@
+import { UserError } from "@usys/utils";
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
 
@@ -7,7 +8,7 @@ export class BuildNotImplemented extends CustomError {
     }
 }
 
-export class ProjectBuildError extends CustomError {
+export class ProjectBuildError extends UserError {
     constructor(public domXml: string) {
         super(`Error building Adapt project`);
     }

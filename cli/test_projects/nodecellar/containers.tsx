@@ -6,10 +6,10 @@ export interface AppProps {
     mongoPort: number;
     dockerHost: string;
 
-    name?: string;
-    ctrPort?: number;
-    port?: number;
-    image?: cloud.ImageId;
+    name: string;
+    ctrPort: number;
+    port: number;
+    image: cloud.ImageId;
 }
 
 export class AppContainer extends Adapt.Component<AppProps, {}> {
@@ -25,16 +25,16 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
 
         return (
             <cloud.Container
-                name={props.name!}
+                name={props.name}
                 autoRemove={true}
-                dockerHost={props.dockerHost!}
-                image={props.image!}
-                ports={[ props.ctrPort! ]}
+                dockerHost={props.dockerHost}
+                image={props.image}
+                ports={[ props.ctrPort ]}
                 stdinOpen={true}
                 tty={true}
                 command={["nodejs", "server.js"]}
                 environment={{
-                    NODECELLAR_PORT: props.ctrPort!.toString(),
+                    NODECELLAR_PORT: props.ctrPort.toString(),
                     MONGO_PORT: props.mongoPort.toString(),
                     MONGO_HOST: props.mongoHostname,
                 }}
@@ -43,7 +43,7 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
                 }}
                 portBindings={{
                     // ctr port : host port
-                    [props.ctrPort!]: props.port!,
+                    [props.ctrPort]: props.port,
                 }}
             />
         );
@@ -52,12 +52,12 @@ export class AppContainer extends Adapt.Component<AppProps, {}> {
 
 export interface MongoProps {
     dockerHost: string;
-    name?: string;
-    mongoCtrPort?: number;
-    webStatusCtrPort?: number;
-    mongoPort?: number;
-    webStatusPort?: number;
-    image?: cloud.ImageId;
+    name: string;
+    mongoCtrPort: number;
+    webStatusCtrPort: number;
+    mongoPort: number;
+    webStatusPort: number;
+    image: cloud.ImageId;
 }
 
 export class MongoContainer extends Adapt.Component<MongoProps, {}> {
@@ -75,18 +75,18 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
 
         return (
             <cloud.Container
-                name={props.name!}
+                name={props.name}
                 autoRemove={true}
                 dockerHost={props.dockerHost}
-                image={props.image!}
-                ports={[props.mongoCtrPort!, props.webStatusCtrPort!]}
+                image={props.image}
+                ports={[props.mongoCtrPort, props.webStatusCtrPort]}
                 stdinOpen={true}
                 tty={true}
                 command={["mongod", "--rest", "--httpinterface", "--smallfiles"]}
                 portBindings={{
                     // ctr port : host port
-                    [props.mongoCtrPort!]: props.mongoPort!,
-                    [props.webStatusCtrPort!]: props.webStatusPort!
+                    [props.mongoCtrPort]: props.mongoPort,
+                    [props.webStatusCtrPort]: props.webStatusPort
                 }}
             />
         );

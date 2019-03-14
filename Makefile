@@ -79,8 +79,7 @@ setup: $(SETUP_TARGETS)
 .PHONY: setup
 
 DOCS_FILES := $(shell find docs/ -type f -name '*.md')
-.docs-updated: docs/*.md setup $(NODE_INSTALL_DONE)
-	echo $(DOCS_FILES)
+.docs-updated: $(NODE_INSTALL_DONE) $(DOCS_FILES)
 	doctoc --gitlab --title '## Table of Contents' docs
 	touch .docs-updated
 

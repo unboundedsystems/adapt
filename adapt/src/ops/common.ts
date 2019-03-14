@@ -1,5 +1,6 @@
 import {
     createTaskObserver,
+    formatUserError,
     isMessageClient,
     isMessageLogger,
     Message,
@@ -75,7 +76,7 @@ async function setupLogger(options: WithLogger): Promise<MessageLogger> {
         });
     }
 
-    if (isMessageLogger(options.client)) return options.client;
+    if (isMessageLogger(options.logger)) return options.logger;
     if (isMessageClient(options.client)) {
         if (!options.client.fromStream) {
             throw new Error(`MessageClient does not support fromStream`);
@@ -131,7 +132,7 @@ export async function withOpsSetup<T extends ApiResponse>(
         return ret;
 
     } catch (err) {
-        const msg = `Error ${options.description}: ${err.message}`;
+        const msg = `Error ${options.description}: ${formatUserError(err)}`;
         logger.error(msg);
         taskObserver.failed(msg);
         const ret: ApiResponse = {

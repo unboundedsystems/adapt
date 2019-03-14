@@ -66,7 +66,7 @@ describeLong("pgdemo system tests", function () {
 
     systemTestChain
     .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
-    .command(["deploy:create", "--init", "k8s"])
+    .command(["deploy:create", "k8s"])
 
     .it("Should deploy pgdemo to k8s", async ({ stdout, stderr }) => {
         expect(stderr).equals("");

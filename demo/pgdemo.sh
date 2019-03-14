@@ -16,6 +16,6 @@ cat ~/.kube/config | toJson > ./kubeconfig.json || \
 export DOCKER_HOST=$(minikubeDockerHost)
 
 echo
-echo adapt deploy:create --init laptop
-echo adapt deploy:create --init k8s
+echo adapt deploy:create laptop
+echo adapt deploy:create k8s
 

@@ -1,5 +1,3 @@
-import { flags } from "@oclif/command";
-
 import { DeployOpBase } from "../../base";
 import { CreateOptions } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
@@ -14,12 +12,7 @@ export default class CreateCommand extends DeployOpBase {
     $ adapt deploy:create --rootFile somefile.tsx dev`,
     ];
 
-    static flags = {
-        ...DeployOpBase.flags,
-        init: flags.boolean({
-            description: "Initialize a new local deployment server if it doesn't exist",
-        }),
-    };
+    static flags = DeployOpBase.flags;
 
     static args = [
         {
@@ -29,9 +22,6 @@ export default class CreateCommand extends DeployOpBase {
     ];
 
     async run() {
-        // NOTE(mark): Why doesn't oclif set the boolean flags to false?
-        if (this.flags.init === undefined) this.flags.init = false;
-
         const ctx = this.ctx;
         if (ctx == null) {
             throw new Error(`Internal error: ctx cannot be null`);
@@ -57,7 +47,7 @@ export default class CreateCommand extends DeployOpBase {
                     loggerId,
                     projectName: ctx.project.name,
                     stackName: ctx.stackName,
-                    initLocalServer: this.flags.init,
+                    initLocalServer: true,
                 };
 
                 return ctx.project.create(createOptions);

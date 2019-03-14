@@ -268,7 +268,7 @@ describe("Deploy list tests", function () {
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
     .command(["deploy:list"])
 
     .it("Should list deployments", async (ctx) => {
@@ -280,7 +280,7 @@ describe("Deploy list tests", function () {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
     .do(() => process.chdir("/"))
     .command(["deploy:list"])
     .it("Should list deployments from non-project", async (ctx) => {
@@ -301,7 +301,7 @@ describe("Deploy destroy tests", function () {
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     basicTestChain
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
     .do((ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
@@ -330,7 +330,7 @@ describe("Deploy create tests - fresh install", function () {
     };
 
     basicTestChain
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
 
     .it("Should build basic default filename", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -353,7 +353,7 @@ describe("Deploy create tests - fresh install", function () {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "AnalyzeError"])
+    .command(["deploy:create", "AnalyzeError"])
     .catch((err) => {
         // Check for error that includes backtrace and source mapping
         const msgRe = RegExp(
@@ -382,7 +382,7 @@ Deployment not created due to errors$`);
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "ActError"])
+    .command(["deploy:create", "ActError"])
     .catch((err) => {
         const msgRe = RegExp(
 `^This project cannot be deployed.
@@ -446,7 +446,7 @@ describe("Deploy create basic tests", function () {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -467,7 +467,7 @@ describe("Deploy create basic tests", function () {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .command(["deploy:create", "--init", "-q", "dev"])
+    .command(["deploy:create", "-q", "dev"])
 
     .it("Should build quietly", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -486,7 +486,7 @@ describe("Deploy create basic tests", function () {
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
     })
-    .command(["deploy:create", "--init", "--debug=build", "dev"])
+    .command(["deploy:create", "--debug=build", "dev"])
 
     .it("Should not use update renderer with --debug", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -511,7 +511,7 @@ describe("Deploy create basic tests", function () {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "--dryRun", "dev"])
+    .command(["deploy:create", "--dryRun", "dev"])
 
     .it("Should not modify anything with --dryRun", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -525,7 +525,7 @@ describe("Deploy create basic tests", function () {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "--debug=build", "dev"])
+    .command(["deploy:create", "--debug=build", "dev"])
 
     .it("Should show build recorder output with --debug=build", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -551,7 +551,7 @@ describe("Deploy create basic tests", function () {
     .do(async () => {
         await updateTSVersion("3.0.3");
     })
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
 
     .it("Should deploy with TS 3.0.3", async (ctx) => {
         // Make sure the right TS was installed
@@ -583,7 +583,7 @@ describe("Deploy create basic tests", function () {
     .do(async () => {
         await updateTSVersion("3.3.3");
     })
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
 
     .it("Should deploy with TS 3.3.3", async (ctx) => {
         // Make sure the right TS was installed
@@ -628,7 +628,7 @@ describe("Observer Needs Data Reporting", function () {
     };
 
     observerTest
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
     .it("Should deploy and not have any observers that need data", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
@@ -646,7 +646,7 @@ describe("Observer Needs Data Reporting", function () {
     });
 
     observerTest
-    .command(["deploy:create", "--init", "devNeedsData"])
+    .command(["deploy:create", "devNeedsData"])
     .it("Should deploy and report that observers need data", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
@@ -668,7 +668,7 @@ describe("Observer Needs Data Reporting", function () {
         let deployID = "NOTFOUND";
         const newStack = shouldNeed ? "devNeedsData" : "dev";
         return observerTest
-        .command(["deploy:create", "--init", "dev"])
+        .command(["deploy:create", "dev"])
         .do(async (ctx) => {
             expect(ctx.stderr).equals("");
             expect(ctx.stdout).contains("Validating project [completed]");
@@ -811,7 +811,7 @@ describe("Deploy update basic tests", function () {
     .timeout(20 * 1000)
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })")))
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
 
     .it("Should create initial state", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -889,7 +889,7 @@ describe("Build negative tests", () => {
     .do(() => {
         return fs.ensureFile(path.join(process.cwd(), "test.ts"));
     })
-    .command(["deploy:create", "--rootFile", "test.ts", "--init", "dev"])
+    .command(["deploy:create", "--rootFile", "test.ts", "dev"])
     .catch((err: any) => {
         expect(err.oclif).is.an("object");
         expect(err.oclif.exit).equals(2);
@@ -904,7 +904,7 @@ describe("Build negative tests", () => {
     });
 
     basicTestChain
-    .command(["deploy:create", "--init", "dev"])
+    .command(["deploy:create", "dev"])
     .command(["deploy:update", "abc123", "dev"])
     .catch((err: any) => {
         expect(err.message).contains(
