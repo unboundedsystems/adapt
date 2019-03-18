@@ -1,10 +1,13 @@
+import db from "debug";
 import * as util from "util";
 
 import * as ld from "lodash";
 
-import { removeUndef } from "@usys/utils";
+import { diffObjects, removeUndef } from "@usys/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
+
+const debugState = db("adapt:state");
 
 export interface StateStore {
     setElementState(elem: StateNamespace, data: AnyState | undefined): void;
@@ -56,6 +59,13 @@ class StateStoreImpl implements StateStore {
 
     setElementState(elem: StateNamespace, data: AnyState | undefined) {
         const key = namespaceToKey(elem);
+
+        if (debugState.enabled) {
+            const prev = this.states.get(key);
+            const diff = diffObjects(prev, data);
+            if (diff) debugState(`State change for ${elem}:\n${diff}`);
+        }
+
         if (data === undefined) {
             this.states.delete(key);
         } else {

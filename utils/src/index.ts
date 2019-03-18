@@ -1,5 +1,6 @@
 export * from "./common_types";
 export * from "./crypto";
+export * from "./diff_objects";
 export * from "./ensure_error";
 export * from "./env";
 export * from "./in_debugger";
