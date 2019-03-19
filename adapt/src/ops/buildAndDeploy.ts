@@ -25,13 +25,13 @@ import AdaptDontUse, {
 let Adapt: never;
 
 import { immediatePromise, TaskObserver } from "@usys/utils";
+import { createPluginManager } from "../deploy/plugin_support";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement } from "../jsx";
 import {
     ExecutedQuery,
 } from "../observers";
-import { createPluginManager } from "../plugin_support";
 import { Deployment } from "../server/deployment";
 import { HistoryStatus } from "../server/history";
 import { createStateStore, StateStore } from "../state";
