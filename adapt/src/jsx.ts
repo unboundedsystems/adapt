@@ -3,7 +3,14 @@ import * as util from "util";
 import * as ld from "lodash";
 import { OptionalPropertiesT, RequiredPropertiesT } from "type-ops";
 
-import { Constructor, ExcludeInterface, Message, MessageType } from "@usys/utils";
+import {
+    Constructor,
+    ExcludeInterface,
+    isInstance,
+    Message,
+    MessageType,
+    tagConstructor,
+} from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
@@ -34,7 +41,7 @@ export interface AdaptElement<P extends object = AnyProps> {
     readonly componentName: string;
 }
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
-    return val instanceof AdaptElementImpl;
+    return isInstance(val, AdaptElementImpl, "adapt");
 }
 export function isElementImpl<P extends object = AnyProps>(val: any): val is AdaptElementImpl<P> {
     return isElement(val);
@@ -69,7 +76,7 @@ export function isDeferredElement<P extends object = AnyProps>(val: AdaptElement
 
 export function isDeferredElementImpl<P extends object = AnyProps>(val: AdaptElement<P>):
     val is AdaptDeferredElementImpl<P> {
-    return val instanceof AdaptDeferredElementImpl;
+    return isInstance(val, AdaptDeferredElementImpl, "adapt");
 }
 
 export interface AdaptPrimitiveElement<P extends object = AnyProps> extends AdaptDeferredElement<P> {
@@ -189,6 +196,7 @@ export abstract class Component<Props extends object = {}, State extends object 
         return defaultStatus(this.props, observeForStatus, buildData);
     }
 }
+tagConstructor(Component, "adapt");
 
 export type PropsType<Comp extends Constructor<Component<any, any>>> =
     Comp extends Constructor<Component<infer CProps, any>> ? CProps :
@@ -196,10 +204,11 @@ export type PropsType<Comp extends Constructor<Component<any, any>>> =
 
 export abstract class DeferredComponent<Props extends object = {}, State extends object = {}>
     extends Component<Props, State> { }
+tagConstructor(DeferredComponent, "adapt");
 
 export function isDeferred<P extends object, S extends object>(component: Component<P, S>):
     component is DeferredComponent<P, S> {
-    return component instanceof DeferredComponent;
+    return isInstance(component, DeferredComponent, "adapt");
 }
 
 export abstract class PrimitiveComponent<Props extends object = {}, State extends object = {}>
@@ -208,10 +217,11 @@ export abstract class PrimitiveComponent<Props extends object = {}, State extend
     build(): AdaptElementOrNull { throw new BuildNotImplemented(); }
     validate(): string | string[] | undefined { return; }
 }
+tagConstructor(PrimitiveComponent, "adapt");
 
 export function isPrimitive<P extends object>(component: Component<P>):
     component is PrimitiveComponent<P> {
-    return component instanceof PrimitiveComponent;
+    return isInstance(component, PrimitiveComponent, "adapt");
 }
 
 export interface SFC<Props extends object = AnyProps> {
@@ -230,7 +240,7 @@ export type SFCBuildProps<Props, Defaults> =
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
-    return func instanceof Component;
+    return isInstance(func, Component, "adapt");
 }
 
 export interface ComponentStatic<P> {
@@ -415,6 +425,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return this.component || this.instanceMethods;
     }
 }
+tagConstructor(AdaptElementImpl, "adapt");
 
 enum DeferredState {
     initial = "initial",
@@ -437,6 +448,7 @@ export class AdaptDeferredElementImpl<Props extends object> extends AdaptElement
         return this.state === DeferredState.deferred; //Build if we've deferred once
     }
 }
+tagConstructor(AdaptDeferredElementImpl, "adapt");
 
 export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferredElementImpl<Props> {
     component: PrimitiveComponent<Props> | null;
@@ -476,6 +488,7 @@ export class AdaptPrimitiveElementImpl<Props extends object> extends AdaptDeferr
         }));
     }
 }
+tagConstructor(AdaptPrimitiveElementImpl, "adapt");
 
 export function createElement<Props extends object>(
     ctor: string |
