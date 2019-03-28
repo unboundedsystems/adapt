@@ -61,6 +61,7 @@ export {
 } from "./dom_serialize";
 
 export * from "./dom_build_data_recorder";
+export * from "./dom_utils";
 export {
     BuildNotImplemented,
     ProjectBuildError,

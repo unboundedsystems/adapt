@@ -52,9 +52,12 @@ export interface GenericInstance {
     [key: string]: any;
 }
 
+// Unique ID for an element. Currently AdaptElement.id.
+export type ElementID = string;
+
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly props: P & Required<BuiltinProps>;
-    readonly id: string;
+    readonly id: ElementID;
     readonly path: string;
     readonly keyPath: KeyPath;
     readonly buildData: BuildData;
