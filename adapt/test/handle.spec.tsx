@@ -1,10 +1,7 @@
 import { repoVersions } from "@usys/testutils";
 import should from "should";
 import Adapt, {
-    AdaptElement,
-    AdaptElementOrNull,
     AnyProps,
-    build,
     Component,
     Group,
     handle,
@@ -17,7 +14,7 @@ import Adapt, {
 } from "../src";
 import { reanimateDom } from "../src/internal";
 
-import { Empty, MakeEmpty } from "./testlib";
+import { doBuild, Empty, MakeEmpty } from "./testlib";
 
 const aVer = repoVersions.adapt;
 
@@ -43,12 +40,6 @@ class CallReplace extends Component<{}> {
             </Group>
         );
     }
-}
-
-async function doBuild(orig: AdaptElement, style: AdaptElementOrNull = null) {
-    const { contents: dom, mountedOrig, messages } = await build(orig, style);
-    should(messages).have.length(0);
-    return { dom, mountedOrig };
 }
 
 describe("Element Handle", () => {
@@ -108,7 +99,7 @@ describe("Element Handle", () => {
             <Style>
                 {Empty} {rule((_props) => <Anything final="yes" />)}
             </Style>;
-        const { dom, mountedOrig } = await doBuild(orig, style);
+        const { dom, mountedOrig } = await doBuild(orig, { style });
         if (dom == null) throw should(dom).not.be.Null();
 
         should(dom.props.children).have.length(2);
@@ -200,7 +191,7 @@ describe("Element Handle", () => {
                     );
                 })}
             </Style>;
-        const { dom } = await doBuild(orig, style);
+        const { dom } = await doBuild(orig, { style });
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).have.length(2);
 
