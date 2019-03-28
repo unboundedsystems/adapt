@@ -54,7 +54,7 @@ class ObserverToSimple extends Component<{ observer: { observerName: string } }>
             observer={this.props.observer}
             query={ gql\`query { mockById(id: "1") { idSquared } }\` }
             build={ (err, props)=>{
-                        console.log("Props:", props, err);
+                        console.log("Props:", JSON.stringify(props), err);
                         return <Simple key="Simple" />;
             } } />;
     }
@@ -410,7 +410,7 @@ describe("createDeployment Tests", async function () {
 
         let lstdout = client.stdout;
         should(lstdout).match(/Props: undefined null/);
-        should(lstdout).match(/Props: { mockById: { idSquared: 1 } } null/);
+        should(lstdout).match(/Props: {"mockById":{"idSquared":1}} null/);
 
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
@@ -438,7 +438,7 @@ describe("createDeployment Tests", async function () {
 
         lstdout = client.stdout;
         should(lstdout).not.match(/Props: undefined null/);
-        should(lstdout).match(/Props: { mockById: { idSquared: 1 } } null/);
+        should(lstdout).match(/Props: {"mockById":{"idSquared":1}} null/);
 
     });
 

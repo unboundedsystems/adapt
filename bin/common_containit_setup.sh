@@ -19,6 +19,9 @@ if [ $? -ne 0 ]; then
 fi
 DOCKER_ARGS+=" --dns ${DNS_IP}"
 
+# Add ability to modify resource limits. Needed for ulimit -n for docker setup.
+DOCKER_ARGS+=" --cap-add=SYS_RESOURCE"
+
 CTR_CACHE_DIR="/root/.cache/yarn"
 DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=${CTR_CACHE_DIR} -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}"
 DOCKER_ARGS+=" -eYARN_MUTEX=file:${CTR_CACHE_DIR}/.yarn-mutex"
