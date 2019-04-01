@@ -1,0 +1,48 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #404040;
+  min-height: 110vh;
+}
+
+.App-logo {
+  pointer-events: none;
+  height: 20vmin;
+  margin-bottom: 3vmin;
+}
+
+.Title {
+  font-size: 5vmin;
+  font-weight: bold;
+  margin-bottom: 10vmin;
+}
+
+.Form * {
+  margin: 1vmin;
+  font-size: 3.5vmin;
+}
+
+.Form {
+  margin-bottom: 5vmin;
+}
+
+.Error {
+  color: red;
+  font-size: 4vmin;
+  font-weight: bold;
+}
+
+.MovieSearch {
+  min-height: 50vh;
+}
+
+.Movies .rt-tbody {
+  font-size: 3.5vmin;
+}
+
+.Movies .rt-thead {
+  font-size: 4vmin;
+  font-weight: bold;
+}
