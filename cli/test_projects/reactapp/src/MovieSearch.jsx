@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState } from 'react';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 
@@ -24,54 +24,41 @@ const tableParams = {
   minRows: 0,
 }
 
-export default class MovieSearch extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      search: '',
-      result: [],
-      error: null
-    };
-  }
+export default function MovieSearch(props) {
+  const [ search, setSearch ] = useState('');
+  const [ result, setResult ] = useState([]);
+  const [ error, setError ] = useState(null);
 
-  handleChange = (event) => {
-    this.setState({search: event.target.value});
-    if (!event.target.value) this.setState({
-      result: [],
-      error: null
-    });
+  const update = (res, err) => {
+    setResult(res);
+    setError(err);
   };
 
-  handleSubmit = (event) => {
-    event.preventDefault();
-    if (!this.state.search) return;
+  const handleChange = (event) => {
+    const newSearch = event.target.value;
+    setSearch(newSearch);
 
-    findMovie(this.state.search)
-      .then(rows => this.setState({ result: rows, error: null }))
-      .catch(err => {
-        const error = err.message === "No movies found" ? err.message :
-          `Error searching for '${this.state.search}': ${err.message}`;
-        this.setState({ result: [], error });
-      });
+    if (!newSearch) return update([], null);
+
+    findMovie(newSearch)
+      .then(rows => update(rows, null))
+      .catch(err => update([], err.message === "No movies found" ? err.message :
+        `Error searching for '${newSearch}': ${err.message}`));
   };
 
-  render() {
-    return (
-      <div className="text-center MovieSearch">
-        <form className="form-inline Form" onSubmit={this.handleSubmit}>
-          <div className="form-group">
-            <label>Search for movies:</label>
-            <input value={this.state.search} onChange={this.handleChange} className="form-control"/>
-            <button type="submit" className="btn btn-primary">Search</button>
-          </div>
-        </form>
+  return (
+    <div className="text-center MovieSearch">
+      <form className="form-inline Form" onSubmit={e => e.preventDefault()}>
+        <div className="form-group">
+          <label>Search for movies:</label>
+          <input value={search} onChange={handleChange} className="form-control"/>
+        </div>
+      </form>
 
+      { result.length === 0 ? null :
+        <ReactTable className="Movies" data={result} {...tableParams} /> }
 
-        {this.state.result.length === 0 ? null :
-          <ReactTable className="Movies" data={this.state.result} {...tableParams} />}
-
-        {this.state.error && <div className="Error">{this.state.error}</div> }
-      </div>
-    );
-  }
+      { error && <div className="Error">{error}</div> }
+    </div>
+  );
 }
