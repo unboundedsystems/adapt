@@ -3,6 +3,7 @@
   "description": "Demo app: Unbounded Movie Database",
   "version": "0.1.0",
   "private": true,
+  "main": "backend/index.js",
   "dependencies": {
     "pg": "^7.9.0",
     "react": "^16.8.6",
