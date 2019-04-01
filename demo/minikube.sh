@@ -17,6 +17,10 @@ function minikubeContainer {
     fi
 }
 
+function minikube {
+    outerDocker exec $(minikubeContainer) minikube "$@"
+}
+
 function selfContainer {
     local SELF_CTR=$(head -1 /proc/self/cgroup | cut -d/ -f 3)
 
