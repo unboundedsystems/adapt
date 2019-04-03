@@ -39,6 +39,11 @@ COPY public.movies (title, released) FROM stdin;
 The Incredibles	2004-11-05
 V for Vendetta	2006-03-17
 The Usual Suspects	1995-08-16
+Batman	1989-06-23
+Batman Returns	1992-06-19
+The Lego Batman Movie	2017-02-10
+Batman Begins	2005-06-15
+Batman & Robin	1997-06-20
 \.
 
 
