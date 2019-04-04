@@ -8,8 +8,8 @@ import {
     Logger,
     Plugin,
     PluginOptions,
-} from ".";
-import { InternalError } from "./error";
+} from "..";
+import { InternalError } from "../error";
 
 export interface WidgetPair<E extends AdaptElement, O extends object> {
     queryDomainKey: QueryDomainKey;

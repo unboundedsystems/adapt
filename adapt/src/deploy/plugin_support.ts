@@ -10,10 +10,10 @@ import * as fs from "fs-extra";
 import * as ld from "lodash";
 import pMapSeries from "p-map-series";
 import * as path from "path";
-import { InternalError } from "./error";
-import { AdaptElementOrNull } from "./jsx";
-import { findPackageInfo } from "./packageinfo";
-import { getAdaptContext } from "./ts";
+import { InternalError } from "../error";
+import { AdaptElementOrNull } from "../jsx";
+import { findPackageInfo } from "../packageinfo";
+import { getAdaptContext } from "../ts";
 
 type PluginKey = string;
 type PluginInstances = Map<PluginKey, Plugin>;

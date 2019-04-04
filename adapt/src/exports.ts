@@ -61,6 +61,7 @@ export {
 } from "./dom_serialize";
 
 export * from "./dom_build_data_recorder";
+export * from "./dom_utils";
 export {
     BuildNotImplemented,
     ProjectBuildError,
@@ -103,7 +104,7 @@ export {
     PluginOptions,
     registerPlugin,
     PluginRegistration,
-} from "./plugin_support";
+} from "./deploy/plugin_support";
 
 export {
     defaultChildStatus,
@@ -124,7 +125,7 @@ export {
     QueryDomain,
     WidgetPair,
     UpdateType,
-} from "./widget_plugin";
+} from "./deploy/widget_plugin";
 
 export {
     Constructor,

@@ -1,12 +1,12 @@
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
+import { PluginObservations } from "../deploy/plugin_support";
 import { Observations } from "../observers";
 import {
     prepareAllObservationsForJson,
     PreparedObservations,
     reconstituteAllObservations
 } from "../observers/serialize";
-import { PluginObservations } from "../plugin_support";
 
 export interface FullObservations {
     plugin?: PluginObservations;

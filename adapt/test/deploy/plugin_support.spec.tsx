@@ -12,10 +12,10 @@ import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
-import Adapt, { AdaptElementOrNull, Group } from "../src";
-import * as pluginSupport from "../src/plugin_support";
-import { MockAdaptContext, mockAdaptContext } from "../src/ts";
-import { packageDirs } from "./testlib";
+import Adapt, { AdaptElementOrNull, Group } from "../../src";
+import * as pluginSupport from "../../src/deploy/plugin_support";
+import { MockAdaptContext, mockAdaptContext } from "../../src/ts";
+import { packageDirs } from "../testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));

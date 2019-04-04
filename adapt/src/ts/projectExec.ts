@@ -1,8 +1,8 @@
 import * as path from "path";
 
+import { PluginModule } from "../deploy/plugin_support";
 import { InternalError } from "../error";
 import { ObserverManagerDeployment } from "../observers";
-import { PluginModule } from "../plugin_support";
 import { nullStack, Stack, Stacks } from "../stack";
 import { exec } from "./exec";
 import { MemFileHost } from "./hosts";

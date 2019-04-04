@@ -17,7 +17,7 @@ system, check out the [Adapt Test Drive](docs/test_drive.md).
 ## Overview
 
 * [Install Prerequisites](docs/gsg/prerequisites.md)
-* [Install Adapt](docs/gsg/installing.md)
+* [Install Adapt](docs/gsg/install_adapt.md)
 * [Deploy An Example App](docs/gsg/deploy_example.md)
 
 ## System Requirements
