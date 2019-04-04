@@ -1,6 +1,6 @@
 import * as path from "path";
 
-import { PluginModule } from "../deploy/plugin_support";
+import { PluginModule } from "../deploy";
 import { InternalError } from "../error";
 import { ObserverManagerDeployment } from "../observers";
 import { nullStack, Stack, Stacks } from "../stack";

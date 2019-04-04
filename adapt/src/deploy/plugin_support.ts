@@ -11,105 +11,27 @@ import * as ld from "lodash";
 import pMapSeries from "p-map-series";
 import * as path from "path";
 import { InternalError } from "../error";
-import { AdaptElementOrNull, AdaptPrimitiveElement } from "../jsx";
+import {
+    AdaptElementOrNull,
+} from "../jsx";
 import { findPackageInfo } from "../packageinfo";
+import { Deployment } from "../server/deployment";
 import { getAdaptContext } from "../ts";
 
-type PluginKey = string;
-type PluginInstances = Map<PluginKey, Plugin>;
-type PluginModules = Map<PluginKey, PluginModule>;
-
-export interface PluginRegistration {
-    name: string;
-    module: NodeModule;
-    create(): Plugin;
-}
-
-export interface PluginModule extends PluginRegistration {
-    packageName: string;
-    version: string;
-}
-
-export interface PluginConfig {
-    plugins: PluginInstances;
-    modules: PluginModules;
-}
-
-export enum ChangeType {
-    none = "none",
-    create = "create",
-    delete = "delete",
-    modify = "modify",
-    replace = "replace",
-}
-
-/**
- * Describes the effect an Action has on an Element
- * type and detail here explain how the Action affects this specific
- * element, which may or may not be different than the action. For example,
- * an Action that performs a modify on a CloudFormation stack may cause
- * certain Elements to be created and deleted within that Action.
- */
-export interface ActionChange {
-    type: ChangeType;
-    element: AdaptPrimitiveElement;
-    detail: string;
-}
-
-/**
- * Describes the overall effect that an Action is performing.
- * type and detail here explain what the Action is doing overall, not how it
- * affects any particular Element.
- */
-export interface ActionInfo {
-    type: ChangeType;
-    detail: string;
-    changes: ActionChange[];
-}
-
-export interface Action extends ActionInfo {
-    act(): Promise<void>;
-}
-
-export interface PluginOptions {
-    deployID: string;
-    log: Logger;
-    dataDir: string;
-}
-
-export interface PluginObservations {
-    [pluginKey: string]: object;
-}
-
-export interface Plugin<Observations extends object = object> {
-    seriesActions?: boolean;
-    start(options: PluginOptions): Promise<void>;
-    observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
-    analyze(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Action[];
-    finish(): Promise<void>;
-}
-
-export interface PluginManagerStartOptions {
-    deployID: string;
-    logger: MessageLogger;
-    dataDir: string;
-    taskObserver?: TaskObserver;
-}
-
-export interface ActionResult {
-    action: Action;
-    err?: any;
-}
-
-export interface PluginManager {
-    taskObserver: TaskObserver;
-    start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-        options: PluginManagerStartOptions): Promise<void>;
-    observe(): Promise<PluginObservations>;
-    analyze(): Action[];
-    act(dryRun: boolean): Promise<ActionResult[]>;
-    finish(): Promise<void>;
-}
+import {
+    Action,
+    ActionResult,
+    Plugin,
+    PluginConfig,
+    PluginInstances,
+    PluginKey,
+    PluginManager,
+    PluginManagerStartOptions,
+    PluginModule,
+    PluginModules,
+    PluginObservations,
+    PluginRegistration,
+} from "./deploy_types";
 
 export function createPluginManager(modules: PluginModules): PluginManager {
     const config = createPluginConfig(modules);
@@ -173,6 +95,7 @@ interface AnyObservation {
 class PluginManagerImpl implements PluginManager {
     plugins: PluginInstances;
     modules: PluginModules;
+    deployment?: Deployment;
     dom?: AdaptElementOrNull;
     prevDom?: AdaptElementOrNull;
     parallelActions: Action[] = [];
@@ -211,6 +134,7 @@ class PluginManagerImpl implements PluginManager {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.prevDom = prevDom;
+        this.deployment = options.deployment;
         this.logger = options.logger;
         this.observations = {};
         this.taskObserver_ = options.taskObserver ||
@@ -220,7 +144,7 @@ class PluginManagerImpl implements PluginManager {
             });
 
         const loptions = {
-            deployID: options.deployID,
+            deployID: options.deployment.deployID,
             log: options.logger.info, //FIXME(manishv) have a per-plugin log here
         };
         const waitingFor = mapMap(this.plugins, async (key, plugin) => {

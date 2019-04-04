@@ -1,8 +1,9 @@
 import Adapt, {
     AdaptElement,
-    AdaptPrimitiveElement,
     BuildData,
+    BuiltDomElement,
     childrenToArray,
+    isBuiltDomElement,
     noStatusOnError,
     ObserveForStatus,
     PrimitiveComponent
@@ -12,8 +13,9 @@ import * as ld from "lodash";
 import { ResourceProps } from "./common";
 import { getResourceInfo } from "./k8s_plugin";
 
-export function isResourceElement(e: AdaptElement): e is AdaptPrimitiveElement<ResourceProps & Adapt.BuiltinProps> {
-    return e.componentType === Resource;
+export function isResourceBuiltElement(e: AdaptElement):
+    e is BuiltDomElement<ResourceProps & Adapt.BuiltinProps> {
+    return isBuiltDomElement(e) && e.componentType === Resource;
 }
 
 export class Resource extends PrimitiveComponent<ResourceProps> {

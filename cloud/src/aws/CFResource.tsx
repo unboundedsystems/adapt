@@ -1,6 +1,6 @@
 import {
-    AdaptPrimitiveElement,
-    isPrimitiveElement,
+    BuiltDomElement,
+    isBuiltDomElement,
     PrimitiveComponent
 } from "@usys/adapt";
 
@@ -23,6 +23,6 @@ export class CFResource extends PrimitiveComponent<CFResourceProps> {
 
 }
 
-export function isCFResourceElement(val: any): val is AdaptPrimitiveElement<CFResourceProps> {
-    return isPrimitiveElement(val) && val.componentType === CFResource;
+export function isCFResourceElement(val: any): val is BuiltDomElement<CFResourceProps> {
+    return isBuiltDomElement(val) && val.componentType === CFResource;
 }

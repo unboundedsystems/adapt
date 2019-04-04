@@ -1,11 +1,11 @@
 import Adapt, {
     ActionInfo,
     AdaptElementOrNull,
-    AdaptPrimitiveElement,
     build,
+    BuiltDomElement,
     ChangeType,
     findElementsInDom,
-    isMountedElement,
+    isBuiltDomElement,
     QueryDomain,
     registerPlugin,
     Style,
@@ -26,46 +26,46 @@ import {
     AnsibleGroup,
     AnsibleGroupProps,
     getGroups,
-    isAnsibleGroupElement,
+    isAnsibleGroupBuiltElement,
 } from "./AnsibleGroup";
 import {
     AnsibleImplicitPlaybook,
     AnsiblePlaybook,
     AnsiblePlaybookProps,
-    isAnsibleImplicitPlaybookElement,
-    isAnsiblePlaybookElement,
+    isAnsibleImplicitPlaybookBuiltElement,
+    isAnsiblePlaybookBuiltElement,
 } from "./AnsiblePlaybook";
 import {
     AnsibleRole,
     AnsibleRoleProps,
-    isAnsibleRoleElement,
+    isAnsibleRoleBuiltElement,
     roleName,
 } from "./AnsibleRole";
 
 interface PlaybookObs { }
 
 type AnsibleQueryDomain = QueryDomain<null, null>;
-type PlaybookElement = AdaptPrimitiveElement<AnsiblePlaybookProps>;
+type PlaybookElement = BuiltDomElement<AnsiblePlaybookProps>;
 type PlaybookPair = WidgetPair<PlaybookElement, PlaybookObs>;
-type RoleElement = AdaptPrimitiveElement<AnsibleRoleProps>;
-type GroupElement = AdaptPrimitiveElement<AnsibleGroupProps>;
+type RoleElement = BuiltDomElement<AnsibleRoleProps>;
+type GroupElement = BuiltDomElement<AnsibleGroupProps>;
 
 export function findPlaybookElems(dom: AdaptElementOrNull): PlaybookElement[] {
     const rules = <Style>{AnsiblePlaybook},{AnsibleImplicitPlaybook} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsiblePlaybookElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsiblePlaybookBuiltElement(e) ? e : null));
 }
 
 export function findRoleElems(dom: AdaptElementOrNull): RoleElement[] {
     const rules = <Style>{AnsibleRole} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsibleRoleElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsibleRoleBuiltElement(e) ? e : null));
 }
 
 export function findGroupElems(dom: AdaptElementOrNull): GroupElement[] {
     const rules = <Style>{AnsibleGroup} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsibleGroupElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsibleGroupBuiltElement(e) ? e : null));
 }
 
 // QueryDomain for Ansible is always local
@@ -216,7 +216,7 @@ function implicitPlaybookFile(pluginDir: string) {
 }
 
 function playbookElementId(el: PlaybookElement) {
-    if (!isMountedElement(el)) {
+    if (!isBuiltDomElement(el)) {
         throw new Error(`Internal error: can only compute name of mounted elements`);
     }
     return sha256hex(el.id).slice(0, 16);
@@ -295,7 +295,7 @@ async function implicitPlaybook(pluginDir: string): Promise<PlaybookElement> {
     if (built.messages.length !== 0) {
         throw new Error(`Internal Error: Build of implicit playbook failed: ${inspect(built.messages)}`);
     }
-    if (!isAnsibleImplicitPlaybookElement(built.contents)) throw new Error(`Internal error`);
+    if (!isAnsibleImplicitPlaybookBuiltElement(built.contents)) throw new Error(`Internal error`);
     return built.contents;
 }
 
@@ -388,8 +388,8 @@ export class AnsiblePluginImpl
     }
 
     computeChanges = (change: WidgetChange<PlaybookElement>, obs: PlaybookObs | undefined): ActionInfo => {
-        const changes = new Set<AdaptPrimitiveElement>();
-        const addChanges = (els: AdaptPrimitiveElement[] | undefined) => {
+        const changes = new Set<BuiltDomElement>();
+        const addChanges = (els: BuiltDomElement[] | undefined) => {
             if (els) els.forEach((el) => changes.add(el));
         };
         const actionInfo = (type: ChangeType, detail: string) => {

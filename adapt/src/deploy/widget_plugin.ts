@@ -13,7 +13,7 @@ import {
     ChangeType,
     Plugin,
     PluginOptions,
-} from "./plugin_support";
+} from "./deploy_types";
 
 export interface WidgetPair<E extends AdaptElement, O extends object> {
     queryDomainKey: QueryDomainKey;

@@ -1,7 +1,8 @@
 import { cloneDeep, isError } from "lodash";
 import * as randomstring from "randomstring";
-import { DeployStatus, ElementID } from "../deploy";
+import { DeployStatus } from "../deploy";
 import { InternalError } from "../error";
+import { ElementID } from "../jsx";
 import { DeploymentInfo } from "../ops/listDeployments";
 import {
     DeploymentSequence,

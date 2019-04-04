@@ -113,6 +113,17 @@ export function isSFCElement<P extends object = AnyProps>(val: any): val is Adap
     return isElement(val) && !isComponentElement(val);
 }
 
+/*
+ * Type info for the Elements returned from dom.build. These types are
+ * intended to convey semantic meaning--that whomever uses these types is
+ * intending to deal with a built DOM. They also add a level of indirection,
+ * should we choose to modify the types somehow in the future.
+ */
+export type BuiltDomElement<P extends object = AnyProps> = AdaptMountedPrimitiveElement<P>;
+export type PartiallyBuiltDomElement<P extends object = AnyProps> = AdaptMountedElement<P>;
+export const isBuiltDomElement = isMountedPrimitiveElement;
+export const isPartiallyBuiltDomElement = isMountedElement;
+
 export function componentStateNow<
     C extends Component<P, S>,
     P extends object,

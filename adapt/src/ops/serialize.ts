@@ -1,6 +1,6 @@
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
-import { PluginObservations } from "../deploy/plugin_support";
+import { PluginObservations } from "../deploy";
 import { Observations } from "../observers";
 import {
     prepareAllObservationsForJson,

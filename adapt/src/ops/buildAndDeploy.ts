@@ -268,7 +268,7 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
             const newPluginObs = await tasks.observe.complete(async () => {
                 await mgr.start(prevDom, newDom, {
                     dataDir: path.join(dataDir, "plugins"),
-                    deployID: deployment.deployID,
+                    deployment,
                     logger: tasks.act.logger,
                     taskObserver: tasks.act,
                 });

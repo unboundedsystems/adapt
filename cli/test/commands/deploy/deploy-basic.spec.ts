@@ -32,7 +32,8 @@ const basicPackageJson = {
 const simplePluginTs = `
 import {
     Action,
-    AdaptPrimitiveElement,
+    ActionChange,
+    BuiltDomElement,
     ChangeType,
     Plugin,
     PluginOptions,
@@ -58,12 +59,13 @@ class EchoPlugin implements Plugin<{}> {
     }
     analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
-        const info = (detail: string) => ({
-            type: ChangeType.create,
-            detail,
-            changes: [{
-                type: ChangeType.create,
-                element: dom as AdaptPrimitiveElement,
+        if (oldDom == null && dom == null) return [];
+
+        const diff = domDiff(oldDom, dom);
+        const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string): ActionChange[] =>
+            [...diff[key]].map((element) => ({
+                type,
+                element: element as BuiltDomElement,
                 detail
             }]
         });

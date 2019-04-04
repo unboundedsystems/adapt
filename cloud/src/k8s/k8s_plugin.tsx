@@ -2,9 +2,9 @@ import Adapt, {
     ActionInfo,
     AdaptElement,
     AdaptElementOrNull,
-    AdaptPrimitiveElement,
     AnyProps,
     BuildData,
+    BuiltDomElement,
     ChangeType,
     findElementsInDom,
     isMountedElement,
@@ -21,7 +21,7 @@ import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 
 import { Kind, Metadata, ResourceBase, ResourceProps, Spec } from "./common";
-import { isResourceElement, Resource } from "./Resource";
+import { isResourceBuiltElement, Resource } from "./Resource";
 
 // Typings are for deprecated API :(
 // tslint:disable-next-line:no-var-requires
@@ -151,7 +151,7 @@ const rules = <Style>{Resource} {Adapt.rule()}</Style>;
 
 function findResourceElems(dom: AdaptElementOrNull): ResourceElement[] {
     const candidateElems = findElementsInDom(rules, dom);
-    return ld.compact(candidateElems.map((e) => isResourceElement(e) ? e : null));
+    return ld.compact(candidateElems.map((e) => isResourceBuiltElement(e) ? e : null));
 }
 
 interface Manifest {
@@ -169,7 +169,7 @@ export function resourceElementToName(
     elem: Adapt.AdaptElement<AnyProps>,
     deployID: string
 ): string {
-    if (!isResourceElement(elem)) throw new Error("Can only compute name of Resource elements");
+    if (!isResourceBuiltElement(elem)) throw new Error("Can only compute name of Resource elements");
     if (!isMountedElement(elem)) throw new Error("Can only compute name of mounted elements");
     return resourceIdToName(elem.id, deployID);
 }
@@ -203,7 +203,7 @@ class Connections {
         let config = elemOrConfig;
         if (Adapt.isElement(elemOrConfig)) {
             const res = elemOrConfig;
-            if (!isResourceElement(res)) throw new Error("Cannot lookup connection for non-resource elements");
+            if (!isResourceBuiltElement(res)) throw new Error("Cannot lookup connection for non-resource elements");
             config = res.props.config;
         }
 
@@ -311,7 +311,7 @@ function notUndef(x: string | undefined): x is string {
 
 // NOTE(mark): Where is auth information stored for k8s? In kubeconfig?
 type K8sQueryDomain = QueryDomain<ResourceBase["config"], null>;
-type ResourceElement = AdaptPrimitiveElement<ResourceProps>;
+type ResourceElement = BuiltDomElement<ResourceProps>;
 type K8sPair = WidgetPair<ResourceElement, ResourceObject>;
 
 class K8sPluginImpl

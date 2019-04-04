@@ -12,10 +12,20 @@ import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
-import Adapt, { AdaptElementOrNull, AdaptPrimitiveElement, Group } from "../../src";
+import Adapt, { AdaptElementOrNull, AdaptMountedElement, BuiltDomElement, Group } from "../../src";
+import {
+    Action,
+    ChangeType,
+    Plugin,
+    PluginManager,
+    PluginManagerStartOptions,
+    PluginModule,
+    PluginOptions,
+} from "../../src/deploy";
 import * as pluginSupport from "../../src/deploy/plugin_support";
 import { MockAdaptContext, mockAdaptContext } from "../../src/ts";
-import { packageDirs } from "../testlib";
+import { createMockDeployment } from "../server/mocks";
+import { doBuild, packageDirs } from "../testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -26,10 +36,10 @@ async function doAction(name: string, cb: (op: string) => void) {
     cb(name);
 }
 
-class TestPlugin implements pluginSupport.Plugin<{}> {
+class TestPlugin implements Plugin<{}> {
     constructor(readonly spy: sinon.SinonSpy) { }
 
-    async start(options: pluginSupport.PluginOptions) {
+    async start(options: PluginOptions) {
         this.spy("start", options);
     }
     async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
@@ -38,14 +48,14 @@ class TestPlugin implements pluginSupport.Plugin<{}> {
         return obs;
     }
 
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): pluginSupport.Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): Action[] {
         this.spy("analyze", dom, obs);
         const info = (detail: string) => ({
-            type: pluginSupport.ChangeType.create,
+            type: ChangeType.create,
             detail,
             changes: [{
-                type: pluginSupport.ChangeType.create,
-                element: dom as AdaptPrimitiveElement,
+                type: ChangeType.create,
+                element: dom as BuiltDomElement,
                 detail
             }]
         });
@@ -60,21 +70,23 @@ class TestPlugin implements pluginSupport.Plugin<{}> {
 }
 
 describe("Plugin Support Basic Tests", () => {
-    let mgr: pluginSupport.PluginManager;
+    let mgr: PluginManager;
     let spy: sinon.SinonSpy;
     let logger: MockLogger;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     let dataDir: string;
     let taskObserver: TaskObserver;
-    const dom = <Group><Group /></Group>;
+    let dom: AdaptMountedElement;
+    const orig = <Group><Group /></Group>;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        dom = (await doBuild(orig)).dom;
         spy = sinon.spy();
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
-        const registered = new Map<string, pluginSupport.PluginModule>();
+        const registered = new Map<string, PluginModule>();
         registered.set("TestPlugin", {
             name: "TestPlugin",
             module,
@@ -87,7 +99,7 @@ describe("Plugin Support Basic Tests", () => {
         dataDir = path.join(process.cwd(), "pluginData");
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
             taskObserver,
         };
@@ -287,7 +299,7 @@ class Concurrent {
     }
 }
 
-class SlowPlugin implements pluginSupport.Plugin<{}> {
+class SlowPlugin implements Plugin<{}> {
     local = new Concurrent();
 
     constructor(
@@ -296,7 +308,7 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
         public shared: Concurrent,
         ) { }
 
-    async start(options: pluginSupport.PluginOptions) {/**/}
+    async start(options: PluginOptions) {/**/}
     async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
         return {};
     }
@@ -309,13 +321,13 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
         this.local.dec();
         this.shared.dec();
     }
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): pluginSupport.Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
         const info = {
-            type: pluginSupport.ChangeType.create,
+            type: ChangeType.create,
             detail: "action detail",
             changes: [{
-                type: pluginSupport.ChangeType.create,
-                element: dom as AdaptPrimitiveElement,
+                type: ChangeType.create,
+                element: dom as BuiltDomElement,
                 detail: "change detail"
             }]
         };
@@ -331,25 +343,27 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
 }
 
 describe("Plugin concurrency", () => {
-    let mgr: pluginSupport.PluginManager;
+    let mgr: PluginManager;
     let logger: MockLogger;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     let dataDir: string;
-    let registered: Map<string, pluginSupport.PluginModule>;
+    let registered: Map<string, PluginModule>;
     let shared: Concurrent;
-    const dom = <Group />;
+    let dom: AdaptMountedElement;
+    const orig = <Group />;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        dom = (await doBuild(orig)).dom;
         logger = createMockLogger();
-        registered = new Map<string, pluginSupport.PluginModule>();
+        registered = new Map<string, PluginModule>();
         shared = new Concurrent();
 
         dataDir = path.join(process.cwd(), "pluginData");
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
         };
     });
@@ -480,16 +494,16 @@ function outputLines(logger: MockLogger): string[] {
 describe("Plugin register and deploy", () => {
     let logger: MockLogger;
     let mockContext: MockAdaptContext;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     const dom = <Group />;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         cleanupTestPlugins();
         mockContext = mockAdaptContext();
         logger = createMockLogger();
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir: "/tmp/fakeDataDir",
         };
     });
