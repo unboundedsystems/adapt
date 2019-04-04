@@ -18,10 +18,10 @@ class MockLoggerImpl extends MessageStreamer implements MockLogger {
         });
     }
     get stdout() {
-        return this.outStream.getContentsAsString();
+        return this.outStream.getContentsAsString() || "";
     }
     get stderr() {
-        return this.errStream.getContentsAsString();
+        return this.errStream.getContentsAsString() || "";
     }
 }
 
@@ -46,10 +46,10 @@ class MockLoggerClientImpl extends MessageStreamClient implements MockLoggerClie
         });
     }
     get stdout() {
-        return this.outStream.getContentsAsString();
+        return this.outStream.getContentsAsString() || "";
     }
     get stderr() {
-        return this.errStream.getContentsAsString();
+        return this.errStream.getContentsAsString() || "";
     }
 }
 
