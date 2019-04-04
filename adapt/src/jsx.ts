@@ -89,12 +89,10 @@ export function isPrimitiveElement<P extends object>(elem: AdaptElement<P>): ele
 }
 
 export interface AdaptMountedPrimitiveElement<P extends object = AnyProps>
-    extends AdaptPrimitiveElement<P> {
-    readonly id: string;
-    readonly path: string;
-    readonly keyPath: KeyPath;
+    extends AdaptPrimitiveElement<P>, AdaptMountedElement<P> {
+    readonly props: P & Required<BuiltinProps>;
+    readonly componentType: PrimitiveClassComponentTyp<P>;
 
-    status<T extends Status>(): Promise<T>;
     validate(): Message[];
 }
 export function isMountedPrimitiveElement<P extends object>(elem: AdaptElement<P>):
