@@ -10,9 +10,12 @@ import * as fs from "fs-extra";
 import * as ld from "lodash";
 import pMapSeries from "p-map-series";
 import * as path from "path";
+import { domDiff, logElements } from "../dom_utils";
 import { InternalError } from "../error";
 import {
     AdaptElementOrNull,
+    AdaptMountedElement,
+    isMountedElement,
 } from "../jsx";
 import { findPackageInfo } from "../packageinfo";
 import { Deployment } from "../server/deployment";
@@ -85,6 +88,61 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
             return next === PluginManagerState.Finishing;
         case PluginManagerState.Finishing:
             return next === PluginManagerState.Initial;
+    }
+}
+
+export function checkPrimitiveActions(
+    oldDom: AdaptElementOrNull,
+    newDom: AdaptElementOrNull,
+    actions: Action[]) {
+
+    if (oldDom && !isMountedElement(oldDom)) {
+        throw new InternalError(`oldDom is not Mounted`);
+    }
+    if (newDom && !isMountedElement(newDom)) {
+        throw new InternalError(`newDom is not Mounted`);
+    }
+    const hasPlugin = (el: AdaptMountedElement) => !el.componentType.noPlugin;
+    const changes = ld.flatten(actions.map((a) => a.changes));
+    const done = new Set<AdaptMountedElement>();
+    const diff = domDiff(oldDom, newDom);
+
+    // The set of elements that should be claimed by plugins (i.e. referenced
+    // in a change) is all elements in the new DOM (added+commonNew) and
+    // all elements deleted from the old DOM, then filtered by the noPlugin
+    // flag.
+    const newEls = new Set([...diff.added, ...diff.commonNew].filter(hasPlugin));
+    const deleted = new Set([...diff.deleted].filter(hasPlugin));
+
+    changes.forEach((c) => {
+        const el = c.element;
+        if (!isMountedElement(el)) throw new InternalError(`Element is not mounted`);
+        if (!hasPlugin(el)) return;
+
+        // Only check each el once to avoid triggering warning if el is in
+        // more than one change.
+        if (done.has(el)) return;
+        done.add(el);
+
+        if (!newEls.delete(el) && !deleted.delete(el)) {
+            logElements(`WARNING: Element was specified as affected by a ` +
+                `plugin action but was not found in old or new DOM as expected:\n` +
+                // tslint:disable-next-line: no-console
+                `(change: ${c.detail}): `, [el], console.log);
+        }
+    });
+
+    if (newEls.size > 0) {
+        logElements(`WARNING: The following new or updated elements were ` +
+            `not claimed by any deployment plugin and will probably not be ` +
+            // tslint:disable-next-line: no-console
+            `correctly deployed:\n`, [...newEls], console.log);
+    }
+    if (deleted.size > 0) {
+        logElements(`WARNING: The following deleted elements were ` +
+            `not claimed by any deployment plugin and will probably not be ` +
+            // tslint:disable-next-line: no-console
+            `correctly deleted:\n`, [...deleted], console.log);
     }
 }
 
@@ -200,6 +258,8 @@ class PluginManagerImpl implements PluginManager {
             this.createTasks(name, actions);
             this.addActions(actions, plugin);
         }
+
+        checkPrimitiveActions(prevDom, dom, this.actions);
 
         this.transitionTo(PluginManagerState.PreAct);
         return this.actions;

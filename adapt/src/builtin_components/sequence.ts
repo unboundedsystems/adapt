@@ -29,6 +29,8 @@ function checkChildren(kids: unknown[]) {
 }
 
 export abstract class Sequence extends Component<SequenceProps, SequenceState> {
+    static noPlugin = true;
+
     initialState() { return { stage: 0 }; }
 
     build(h: BuildHelpers): AdaptElement | null {

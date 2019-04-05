@@ -1,4 +1,6 @@
+import { Logger } from "@usys/utils";
 import {
+    AdaptElement,
     AdaptMountedElement,
     childrenToArray,
     ElementID,
@@ -50,4 +52,17 @@ export function domDiff(
     byId.forEach((el) => deleted.add(el));
 
     return { added, deleted, commonOld, commonNew };
+}
+
+export function logElements(msg: string, elements: AdaptElement[], logger: Logger) {
+    const els = elements.map((el) => {
+        let path = "[not mounted]";
+        let id = "[not mounted]";
+        if (isMountedElement(el)) {
+            path = el.path;
+            id = el.id;
+        }
+        return `${el.componentName} (key=${el.props.key})\n  path: ${path}\n  ID: ${id}`;
+    });
+    logger(msg + els.join("\n"));
 }

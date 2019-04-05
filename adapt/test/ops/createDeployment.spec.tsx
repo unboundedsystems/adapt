@@ -121,8 +121,10 @@ class EchoPlugin implements Plugin<{}> {
         this.log("observe");
         return {};
     }
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
+    analyze(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
         this.log("analyze");
+        if (oldDom == null && dom == null) return [];
+
         const info = (detail: string) => ({
             type: ChangeType.create,
             detail,
@@ -379,8 +381,8 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
-        should(lstdout).match(/action1/);
-        should(lstdout).match(/action2/);
+        should(lstdout).not.match(/action1/);
+        should(lstdout).not.match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
 
         // Now update the deployment
@@ -414,8 +416,8 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
-        should(lstdout).match(/action1/);
-        should(lstdout).match(/action2/);
+        should(lstdout).not.match(/action1/);
+        should(lstdout).not.match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
 
     });

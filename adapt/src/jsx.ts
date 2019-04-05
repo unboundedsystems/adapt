@@ -259,6 +259,7 @@ export function isComponent<P extends object, S extends object>(func: SFC | Comp
 
 export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
+    noPlugin?: boolean;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
