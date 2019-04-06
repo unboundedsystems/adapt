@@ -8,6 +8,12 @@ export class BuildNotImplemented extends CustomError {
     }
 }
 
+export class ElementNotInDom extends CustomError {
+    public constructor(message?: string) {
+        super(message);
+    }
+}
+
 export class ProjectBuildError extends UserError {
     constructor(public domXml: string) {
         super(`Error building Adapt project`);

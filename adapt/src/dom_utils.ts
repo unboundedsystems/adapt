@@ -54,6 +54,25 @@ export function domDiff(
     return { added, deleted, commonOld, commonNew };
 }
 
+/**
+ * Given a DomDiff, generated from an old and new DOM, returns an Array of
+ * the Elements that will be active if this DomDiff is deployed. That means
+ * all of the Elements in the new DOM plus the deleted Elements from the
+ * old DOM.
+ */
+export function domActiveElems(diff: DomDiff): AdaptMountedElement[] {
+    // This implementation (with Array.from & concat) may seem slightly
+    // odd to look at, but if we have really large DOMs, it avoids the
+    // JS arg length hard limits that could happen when using the spread
+    // operator or apply.
+    const a: AdaptMountedElement[] = [];
+    return a.concat(
+        Array.from(diff.added),
+        Array.from(diff.commonNew),
+        Array.from(diff.deleted),
+    );
+}
+
 export function logElements(msg: string, elements: AdaptElement[], logger: Logger) {
     const els = elements.map((el) => {
         let path = "[not mounted]";

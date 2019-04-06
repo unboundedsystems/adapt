@@ -236,14 +236,21 @@ function recordDomError(
     return { domError, message };
 }
 
-function buildHelpers(options: BuildOptionsInternal): BuildHelpers {
+export interface BuildHelpersOptions {
+    observerManager?: ObserverManagerDeployment;
+    deployID: string;
+}
+
+export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
     return {
         async elementStatus(handle: Handle) {
             const elem = handle.mountedOrig;
             if (elem == null) return { noStatus: true };
             if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
             try {
-                return await elem.statusWithMgr(options.observerManager);
+                return await (options.observerManager ?
+                    elem.statusWithMgr(options.observerManager) :
+                    elem.status());
             } catch (e) {
                 if (!isObserverNeedsData(e)) throw e;
                 return undefined;
