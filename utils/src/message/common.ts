@@ -144,6 +144,7 @@ export enum TaskState {
 }
 
 export enum TaskStatus {
+    Description = "Description",
     Status = "Status",
     ChildGroup = "ChildGroup",
 }
@@ -164,6 +165,7 @@ function isTaskEvent(event: unknown): event is TaskEvent {
         case TaskEvent.Complete:
         case TaskEvent.Skipped:
         case TaskEvent.Failed:
+        case TaskEvent.Description:
         case TaskEvent.Status:
         case TaskEvent.ChildGroup:
             return true;

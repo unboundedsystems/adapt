@@ -92,19 +92,42 @@ function parent(id: string) {
     return lastColon > 0 ? id.slice(0, lastColon) : "";
 }
 
+function updateStoredEvent(
+    taskStatus: ListrTaskStatus, event: TaskEvent | undefined): TaskEvent {
+    switch (event) {
+        case undefined:
+            return taskStatus.event;
+        case TaskEvent.ChildGroup:
+        case TaskEvent.Status:
+        case TaskEvent.Description:
+            // Filter out TaskEvents that are not TaskStates
+            break;
+        default:
+            taskStatus.event = event;
+    }
+    return event;
+}
+
+function updateStoredStatus(
+    taskStatus: ListrTaskStatus, event: TaskEvent, status: string | undefined) {
+    switch (event) {
+        case TaskEvent.ChildGroup:
+        case TaskEvent.Description:
+            break;
+        default:
+            if (status == null) status = taskStatus.status;
+            else taskStatus.status = status;
+    }
+    return status;
+}
+
 function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, status?: string) {
     const taskStatus = registry.get(id);
     if (!taskStatus) throw new Error(`Task ${id} got event ${event} but was never created`);
 
     const task = taskStatus.task;
-
-    if (event == null) event = taskStatus.event;
-    else if (event !== TaskEvent.ChildGroup && event !== TaskEvent.Status) {
-        taskStatus.event = event;
-    }
-
-    if (status == null) status = taskStatus.status;
-    else if (event !== TaskEvent.ChildGroup) taskStatus.status = status;
+    event = updateStoredEvent(taskStatus, event);
+    status = updateStoredStatus(taskStatus, event, status);
 
     switch (event) {
         case TaskEvent.Complete:
@@ -123,6 +146,9 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
             break;
         case TaskEvent.Status:
             if (task) task.output = status;
+            break;
+        case TaskEvent.Description:
+            if (task && status) task.title = status;
             break;
         case TaskEvent.Created:
         case TaskEvent.Started:

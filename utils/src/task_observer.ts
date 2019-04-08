@@ -40,8 +40,8 @@ const defaultTaskGroupOptions = {
 };
 
 export interface TaskObserver {
+    description: string;
     readonly name: string;
-    readonly description: string;
     readonly logger: MessageLogger;
     readonly options: TaskObserverOptions;
     readonly state: TaskState;
@@ -65,10 +65,10 @@ export function createTaskObserver(name: string, options: TaskObserverOptions = 
 }
 
 class TaskObserverImpl implements TaskObserver {
-    readonly description: string;
     readonly logger: MessageLogger;
     readonly options: Required<TaskObserverOptions>;
     startTime?: number;
+    private description_: string;
     private state_ = TaskState.Created;
     private childGroup_?: TaskGroupImpl;
 
@@ -78,12 +78,20 @@ class TaskObserverImpl implements TaskObserver {
         if (description == null) description = name;
 
         this.logger = logger;
-        this.description = description;
+        this.description_ = description;
         this.options = {
             logger,
             description,
         };
-        this.log(this.state_, this.description);
+        this.log(this.state_, this.description_);
+    }
+
+    get description() {
+        return this.description_;
+    }
+    set description(newDesc: string) {
+        this.log(TaskStatus.Description, newDesc);
+        this.description_ = newDesc;
     }
 
     get state() {
