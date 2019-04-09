@@ -23,7 +23,6 @@ export const defaultPublishList =
     topLevelPackageJson.workspaces.packages
         .filter((p: string) => {
             switch (path.basename(p)) {
-                case "cli":
                 case "testutils":
                     return false;
                 default:
