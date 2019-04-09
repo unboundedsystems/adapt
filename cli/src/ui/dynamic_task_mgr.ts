@@ -234,22 +234,28 @@ function createTask<Ret>(registry: TaskRegistry, taskDef: DynamicTaskInternal<Re
 
     const listrTask: ListrTask = {
         title,
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
             const cur = registry.get(id);
             if (!cur) throw new Error(`Cannot find task ${id}`);
             if (cur.task) throw new Error(`Task ${id} already has a task object`);
             cur.task = task;
             updateTask(registry, id);
 
-            if (initiate) returnHolder.value = initiate(ctx, task);
+            if (initiate) {
+                returnHolder.value = initiate(ctx, task).catch((err) => {
+                    cur.dPromise.reject(err);
+                    throw err;
+                });
+            }
             return cur.dPromise.promise;
         },
     };
 
-    if (onComplete) {
-        listrTask.onComplete =
-            (err, ctx, task) => onComplete(err, ctx, task, returnHolder.value);
-    }
+    listrTask.onComplete = async (ctx, task, err) => {
+        if (onComplete) return onComplete(ctx, task, err, returnHolder.value);
+        if (err) throw err;
+        if (returnHolder.value) await returnHolder.value;
+    };
 
     registry.getParentListr(id).add(listrTask);
 
