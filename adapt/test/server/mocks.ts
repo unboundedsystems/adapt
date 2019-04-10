@@ -1,14 +1,23 @@
+import db from "debug";
 import { get, has, set, unset } from "lodash";
 import { CustomError } from "ts-custom-error";
 import { createDeployment, Deployment } from "../../src/server/deployment";
 import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "../../src/server/history";
-import { AdaptServer, SetOptions } from "../../src/server/server";
+import {
+    AdaptServer,
+    DeleteOptions,
+    GetOptions,
+    SetOptions,
+} from "../../src/server/server";
+import { ServerBase } from "../../src/server/server_base";
 
 export class DataError extends CustomError {
     public constructor(message?: string) {
         super(message);
     }
 }
+
+const debugServer = db("adapt:server");
 
 const mockDeploymentDefaults = {
     projectName: "mock",
@@ -34,28 +43,39 @@ const toLpath = (p: string) => {
     return p.slice(1).replace(RegExp("/", "g"), ".");
 };
 
-export class MockServer implements AdaptServer {
+export class MockServer extends ServerBase implements AdaptServer {
     data = {};
 
-    async init(): Promise<void> { /* */}
-    async destroy(): Promise<void> { /**/}
+    async init(): Promise<void> {/**/}
+    async destroy(): Promise<void> {/**/}
 
-    async set(dataPath: string, val: any, options?: SetOptions): Promise<void> {
-        const lpath = toLpath(dataPath);
-        if (options && options.mustCreate === true && has(this.data, lpath)) {
-            throw new Error(`Path '${dataPath}' already exists`);
-        }
-        set(this.data, lpath, val);
+    async set(dataPath: string, val: any, options: SetOptions = {}): Promise<void> {
+        return this.withLock(options, async () => {
+            const lpath = toLpath(dataPath);
+            if (options && options.mustCreate === true && has(this.data, lpath)) {
+                throw new Error(`Path '${dataPath}' already exists`);
+            }
+            debugServer(`SET ${options.lock ? "(L) " : ""}${dataPath} = ${val}`);
+            set(this.data, lpath, val);
+        });
     }
-    async get(dataPath: string): Promise<any> {
-        const lpath = toLpath(dataPath);
-        if (!has(this.data, lpath)) throw new DataError(`Path '${dataPath}' not found`);
-        return get(this.data, lpath);
+    async get(dataPath: string, options: GetOptions = {}): Promise<any> {
+        return this.withLock(options, async () => {
+            const lpath = toLpath(dataPath);
+            if (!has(this.data, lpath)) throw new DataError(`Path '${dataPath}' not found`);
+
+            const val = get(this.data, lpath);
+            debugServer(`GET ${options.lock ? "(L) " : ""}${dataPath} = ${val}`);
+            return val;
+        });
     }
-    async delete(dataPath: string): Promise<void> {
-        const lpath = toLpath(dataPath);
-        if (!has(this.data, lpath)) throw new DataError(`Path '${dataPath}' not found`);
-        unset(this.data, lpath);
+    async delete(dataPath: string, options: DeleteOptions = {}): Promise<void> {
+        return this.withLock(options, async () => {
+            const lpath = toLpath(dataPath);
+            if (!has(this.data, lpath)) throw new DataError(`Path '${dataPath}' not found`);
+            debugServer(`DEL ${options.lock ? "(L) " : ""}${dataPath}`);
+            unset(this.data, lpath);
+        });
     }
     async historyStore(dataPath: string, init: boolean): Promise<HistoryStore> {
         return new MockHistoryStore();

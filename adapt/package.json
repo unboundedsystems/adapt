@@ -30,6 +30,7 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "devDependencies": {
+    "@types/async-lock": "^1.1.1",
     "@types/callsites": "^2.0.0",
     "@types/debug": "^0.0.31",
     "@types/execa": "^0.9.0",
@@ -43,6 +44,7 @@
     "@types/mocha": "^5.2.0",
     "@types/moment": "^2.13.0",
     "@types/node": "^10.11.7",
+    "@types/p-defer": "^1.0.3",
     "@types/p-map-series": "^1.0.1",
     "@types/p-settle": "^2.0.1",
     "@types/proper-lockfile": "^3.0.0",
@@ -70,6 +72,7 @@
     "@usys/dom-parser": "0.0.2-next.1",
     "@usys/fork-require": "1.0.9-unb1",
     "@usys/utils": "0.0.2-next.1",
+    "async-lock": "^1.2.0",
     "callsites": "^2.0.0",
     "css-what": "^2.1.0",
     "debug": "^4.1.0",
@@ -84,6 +87,7 @@
     "mkdirp": "^0.5.1",
     "moment": "^2.22.2",
     "node-json-db": "0.9.2",
+    "p-defer": "^1.0.0",
     "p-map-series": "^1.0.0",
     "p-settle": "^2.1.0",
     "proper-lockfile": "^3.0.2",

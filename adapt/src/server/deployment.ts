@@ -11,7 +11,7 @@ import {
     SequenceInfo,
 } from "./deployment_data";
 import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "./history";
-import { AdaptServer } from "./server";
+import { AdaptServer, ServerLock, withLock } from "./server";
 
 export interface Deployment {
     readonly deployID: string;
@@ -184,10 +184,12 @@ class DeploymentImpl implements Deployment {
         const path = `${this.basePath_}/sequenceInfo/${sequence}`;
         if (info !== undefined) {
             // Set
-            await this.assertCurrent(sequence);
-            const cur = await this.server.get(path);
-            await this.server.set(path, { ...cur, ...info });
-            return;
+            return withLock(this.server, async (lock) => {
+                await this.assertCurrent(sequence, lock);
+                const cur = await this.server.get(path, { lock });
+                await this.server.set(path, { ...cur, ...info }, { lock });
+                return;
+            });
         }
 
         // Get
@@ -207,47 +209,52 @@ class DeploymentImpl implements Deployment {
 
         const path = `${this.basePath_}/sequenceInfo/${sequence}/elementStatus`;
 
-        // Get
-        if (typeof idOrMap === "string") {
-            await this.currentSequence(); // Throws if currentSequence===null
+        return withLock(this.server, async (lock) => {
+            // Get
+            if (typeof idOrMap === "string") {
+                await this.currentSequence(lock); // Throws if currentSequence===null
+                try {
+                    return await this.server.get(`${path}/${idOrMap}`, { lock });
+                } catch (err) {
+                    if (!isPathNotFound(err)) throw err;
+                    throw new Error(`ElementID '${idOrMap}' not found`);
+                }
+            }
+
+            // Set
+            await this.assertCurrent(sequence, lock);
+            let old: ElementStatusMap = {};
             try {
-                return await this.server.get(`${path}/${idOrMap}`);
+                old = await this.server.get(path, { lock });
             } catch (err) {
                 if (!isPathNotFound(err)) throw err;
-                throw new Error(`ElementID '${idOrMap}' not found`);
+                // Fall through
             }
-        }
-
-        // Set
-        await this.assertCurrent(sequence);
-        let old: ElementStatusMap = {};
-        try {
-            old = await this.server.get(path);
-        } catch (err) {
-            if (!isPathNotFound(err)) throw err;
-            // Fall through
-        }
-        await this.server.set(path, { ...old, ...idOrMap });
+            await this.server.set(path, { ...old, ...idOrMap }, { lock });
+        });
     }
 
     async newSequence(): Promise<DeploymentSequence> {
-        const curPath = this.basePath_ + "/currentSequence";
-        const cur: DeploymentStored["currentSequence"] = await this.server.get(curPath);
-        const next = cur == null ? 0 : cur + 1;
+        return withLock(this.server, async (lock) => {
+            const curPath = this.basePath_ + "/currentSequence";
+            const cur: DeploymentStored["currentSequence"] =
+                await this.server.get(curPath, { lock });
+            const next = cur == null ? 0 : cur + 1;
 
-        const info: SequenceInfo = {
-            deployStatus: DeployStatus.Initial,
-            goalStatus: DeployStatus.Initial,
-            elementStatus: {},
-        };
-        await this.server.set(`${this.basePath_}/sequenceInfo/${next}`, info);
-        await this.server.set(curPath, next);
-        return next;
+            const info: SequenceInfo = {
+                deployStatus: DeployStatus.Initial,
+                goalStatus: DeployStatus.Initial,
+                elementStatus: {},
+            };
+            await this.server.set(`${this.basePath_}/sequenceInfo/${next}`, info, { lock });
+            await this.server.set(curPath, next, { lock });
+            return next;
+        });
     }
 
-    async currentSequence(): Promise<DeploymentSequence> {
+    async currentSequence(lock?: ServerLock): Promise<DeploymentSequence> {
         const path = this.basePath_ + "/currentSequence";
-        const cur: DeploymentStored["currentSequence"] = await this.server.get(path);
+        const cur: DeploymentStored["currentSequence"] = await this.server.get(path, { lock });
         if (cur == null) {
             throw new Error(`This deployment is not yet active. ` +
                 `(Sequence 0 has not been deployed)`);
@@ -260,8 +267,8 @@ class DeploymentImpl implements Deployment {
         return this.historyStore_;
     }
 
-    private async assertCurrent(sequence: DeploymentSequence) {
-        const current = await this.currentSequence();
+    private async assertCurrent(sequence: DeploymentSequence, lock: ServerLock) {
+        const current = await this.currentSequence(lock);
         if (sequence !== current) {
             throw new Error(`Requested sequence (${sequence}) is not current (${current})`);
         }

@@ -4,12 +4,41 @@ import JsonDB from "node-json-db";
 import * as path from "path";
 import { URL } from "url";
 
+import { lock } from "../utils/lockfile";
 import { HistoryStore } from "./history";
 import { createLocalHistoryStore } from "./local_history";
-import { AdaptServer, ServerOptions, SetOptions } from "./server";
+import {
+    $serverLock,
+    AdaptServer,
+    DeleteOptions,
+    GetOptions,
+    ServerLock,
+    ServerOptions,
+    SetOptions,
+} from "./server";
+import { Locker, ServerBase } from "./server_base";
 
 export interface LocalServerOptions extends ServerOptions {
     init?: boolean;
+}
+
+export interface FileLock extends ServerLock {
+    release: () => Promise<void>;
+}
+
+export class FileLocker implements Locker<FileLock> {
+    constructor (public filename: string) {}
+
+    async lock(): Promise<FileLock> {
+        return {
+            release: await lock(this.filename),
+            [$serverLock]: true,
+        };
+    }
+
+    async unlock(l: FileLock): Promise<void> {
+        await l.release();
+    }
 }
 
 // Exported for testing only
@@ -23,17 +52,22 @@ const currentVersion = 0;
 
 const openDbs = new Map<string, JsonDB>();
 
-export class LocalServer implements AdaptServer {
+export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
     static urlMatch = /^file:/;
     private db: JsonDB;
     private rootDir: string;
     private filename: string;
     private options: LocalServerOptions;
-    private historyStores = new Map<string, HistoryStore>();
+    private historyStores: Map<string, HistoryStore>;
 
     constructor(url: URL, options: Partial<LocalServerOptions>) {
-        this.rootDir = path.resolve(url.pathname);
-        this.filename = path.join(this.rootDir, dbFilename);
+        const rootDir = path.resolve(url.pathname);
+        const filename = path.join(rootDir, dbFilename);
+
+        super(new FileLocker(filename));
+        this.rootDir = rootDir;
+        this.filename = filename;
+        this.historyStores = new Map<string, HistoryStore>();
         this.options = {...defaultOptions, ...options};
     }
 
@@ -89,26 +123,35 @@ export class LocalServer implements AdaptServer {
         await Promise.all(promises);
     }
 
-    async set(dataPath: string, val: any, options?: SetOptions): Promise<void> {
-        if (options != null && options.mustCreate === true) {
-            try {
-                this.db.reload();
-                this.db.getData(dataPath);
-                throw new Error(`Local server: path '${dataPath}' already exists`);
-            } catch (err) {
-                if (err.name !== "DataError") throw err;
+    async set(dataPath: string, val: any, options: SetOptions = {}): Promise<void> {
+        await this.withLock(options, async () => {
+            this.db.reload();
+
+            if (options.mustCreate) {
+                try {
+                    this.db.getData(dataPath);
+                    throw new Error(`Local server: path '${dataPath}' already exists`);
+                } catch (err) {
+                    if (err.name !== "DataError") throw err;
+                }
             }
-        }
-        this.db.push(dataPath, val);
+
+            this.db.push(dataPath, val);
+        });
     }
 
-    async get(dataPath: string): Promise<any> {
-        this.db.reload();
-        return this.db.getData(dataPath);
+    async get(dataPath: string, options: GetOptions = {}): Promise<any> {
+        return this.withLock(options, () => {
+            this.db.reload();
+            return this.db.getData(dataPath);
+        });
     }
 
-    async delete(dataPath: string): Promise<void> {
-        this.db.delete(dataPath);
+    async delete(dataPath: string, options: DeleteOptions = {}): Promise<void> {
+        await this.withLock(options, async () => {
+            this.db.reload();
+            this.db.delete(dataPath);
+        });
     }
 
     async historyStore(dataPath: string, init: boolean): Promise<HistoryStore> {
@@ -127,4 +170,5 @@ export class LocalServer implements AdaptServer {
         this.historyStores.set(dataPath, store);
         return store;
     }
+
 }
