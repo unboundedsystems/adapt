@@ -94,7 +94,15 @@ function defaultDomXmlOutput(namespace: string[]) {
 }
 
 const simplePluginTs = `
-import { Action, AdaptElementOrNull, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+import {
+    Action,
+    AdaptElementOrNull,
+    AdaptPrimitiveElement,
+    ChangeType,
+    Plugin,
+    PluginOptions,
+    registerPlugin,
+} from "@usys/adapt";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -115,6 +123,16 @@ class EchoPlugin implements Plugin<{}> {
     }
     analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
         this.log("analyze");
+        const info = (detail: string) => ({
+            type: ChangeType.create,
+            detail,
+            changes: [{
+                type: ChangeType.create,
+                element: dom as AdaptPrimitiveElement,
+                detail
+            }]
+        });
+
         if (dom != null && dom.componentType.name === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
@@ -122,15 +140,15 @@ class EchoPlugin implements Plugin<{}> {
             return [
                 // First action is purposely NOT returning a promise and doing
                 // a synchronous throw
-                { description: "echo error", act: () => { throw new Error("ActError1"); } },
+                { ...info("echo error"), act: () => { throw new Error("ActError1"); } },
                 // Second action is correctly implemented as an async function
                 // so will return a rejected promise.
-                { description: "echo error", act: async () => { throw new Error("ActError2"); } }
+                { ...info("echo error"), act: async () => { throw new Error("ActError2"); } }
             ];
         }
         return [
-            { description: "echo action1", act: () => this.doAction("action1") },
-            { description: "echo action2", act: () => this.doAction("action2") }
+            { ...info("echo action1"), act: () => this.doAction("action1") },
+            { ...info("echo action2"), act: () => this.doAction("action2") }
         ];
     }
     async finish() {

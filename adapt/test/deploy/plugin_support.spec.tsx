@@ -12,7 +12,7 @@ import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
-import Adapt, { AdaptElementOrNull, Group } from "../../src";
+import Adapt, { AdaptElementOrNull, AdaptPrimitiveElement, Group } from "../../src";
 import * as pluginSupport from "../../src/deploy/plugin_support";
 import { MockAdaptContext, mockAdaptContext } from "../../src/ts";
 import { packageDirs } from "../testlib";
@@ -40,9 +40,18 @@ class TestPlugin implements pluginSupport.Plugin<{}> {
 
     analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): pluginSupport.Action[] {
         this.spy("analyze", dom, obs);
+        const info = (detail: string) => ({
+            type: pluginSupport.ChangeType.create,
+            detail,
+            changes: [{
+                type: pluginSupport.ChangeType.create,
+                element: dom as AdaptPrimitiveElement,
+                detail
+            }]
+        });
         return [
-            { description: "action1", act: () => doAction("action1", this.spy) },
-            { description: "action2", act: () => doAction("action2", this.spy) }
+            { act: () => doAction("action1", this.spy), ...info("action1") },
+            { act: () => doAction("action2", this.spy), ...info("action2") },
         ];
     }
     async finish() {
@@ -57,7 +66,7 @@ describe("Plugin Support Basic Tests", () => {
     let options: pluginSupport.PluginManagerStartOptions;
     let dataDir: string;
     let taskObserver: TaskObserver;
-    const dom = <Group />;
+    const dom = <Group><Group /></Group>;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
@@ -132,7 +141,7 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep(["TestPlugin.0.0", "TestPlugin.1.0"]);
         should(taskNames.map((n) => tasks[n]!.description))
             .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
@@ -160,7 +169,7 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep(["TestPlugin.0.0", "TestPlugin.1.0"]);
         should(taskNames.map((n) => tasks[n]!.description))
             .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
@@ -186,7 +195,7 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep(["TestPlugin.0.0", "TestPlugin.1.0"]);
         should(taskNames.map((n) => tasks[n]!.description))
             .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
@@ -236,7 +245,7 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         let taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep(["TestPlugin.0.0", "TestPlugin.1.0"]);
         should(taskNames.map((n) => tasks[n]!.description))
             .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
@@ -257,7 +266,7 @@ describe("Plugin Support Basic Tests", () => {
         should(newTasks).not.equal(tasks);
         taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep(["TestPlugin.0.0", "TestPlugin.1.0"]);
         should(taskNames.map((n) => newTasks[n]!.description))
             .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => newTasks[n]!.state))
@@ -300,11 +309,20 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
         this.local.dec();
         this.shared.dec();
     }
-    analyze(_oldDom: AdaptElementOrNull, _dom: AdaptElementOrNull, _obs: {}): pluginSupport.Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): pluginSupport.Action[] {
+        const info = {
+            type: pluginSupport.ChangeType.create,
+            detail: "action detail",
+            changes: [{
+                type: pluginSupport.ChangeType.create,
+                element: dom as AdaptPrimitiveElement,
+                detail: "change detail"
+            }]
+        };
         return [
-            { description: "action1", act: this.act },
-            { description: "action2", act: this.act },
-            { description: "action3", act: this.act },
+            { ...info, act: this.act },
+            { ...info, act: this.act },
+            { ...info, act: this.act },
         ];
     }
     async finish() {

@@ -1,5 +1,6 @@
 import Adapt, {
     AdaptElement,
+    AdaptPrimitiveElement,
     BuildData,
     childrenToArray,
     noStatusOnError,
@@ -11,7 +12,7 @@ import * as ld from "lodash";
 import { ResourceProps } from "./common";
 import { getResourceInfo } from "./k8s_plugin";
 
-export function isResourceElement(e: AdaptElement): e is AdaptElement<ResourceProps & Adapt.BuiltinProps> {
+export function isResourceElement(e: AdaptElement): e is AdaptPrimitiveElement<ResourceProps & Adapt.BuiltinProps> {
     return e.componentType === Resource;
 }
 

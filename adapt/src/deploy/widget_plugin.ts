@@ -1,18 +1,23 @@
+import { Logger } from "@usys/utils";
 import stringify from "json-stable-stringify";
+import { InternalError } from "../error";
 import {
-    Action,
     AdaptElement,
     AdaptElementOrNull,
     AnyProps,
     isMountedElement,
-    Logger,
+} from "../jsx";
+import {
+    Action,
+    ActionInfo,
+    ChangeType,
     Plugin,
     PluginOptions,
-} from "..";
-import { InternalError } from "../error";
+} from "./plugin_support";
 
 export interface WidgetPair<E extends AdaptElement, O extends object> {
     queryDomainKey: QueryDomainKey;
+    actionInfo: ActionInfo;
     element?: E;
     observed?: O;
 }
@@ -30,21 +35,25 @@ export interface QueryDomain<Id, Secret> {
 }
 type QueryDomainKey = string;
 
+export type WidgetId = string;
+
+export interface WidgetChange<E extends AdaptElement> {
+    id: WidgetId;
+    from?: E;
+    to?: E;
+}
+
 interface Expected<E extends AdaptElement> {
-    [ queryDomainKey: string ]: E[];
+    [ queryDomainKey: string ]: WidgetChange<E>[];
 }
 export interface Observed<O extends object> {
     [ queryDomainKey: string ]: O[];
 }
 
-type GetId<T extends object> = (o: T) => string;
+type GetId<T extends object> = (o: T) => WidgetId;
 
-export enum UpdateType {
-    none = "none",
-    modify = "modify",
-    replace = "replace",
-}
-type NeedsUpdate<E extends AdaptElement, O extends object> = (e: E, o: O) => UpdateType;
+type ComputeChanges<E extends AdaptElement, O extends object> =
+    (e: WidgetChange<E>, o: O | undefined) => ActionInfo;
 type TranslateAction<
     QD extends QueryDomain<any, any>,
     E extends AdaptElement,
@@ -70,13 +79,13 @@ export abstract class WidgetPlugin<
     getElemQueryDomain: (el: WidgetElem) => QDomain;
     getWidgetTypeFromElem: (el: WidgetElem) => string;
     getWidgetTypeFromObs: (obs: WidgetObs) => string;
-    getWidgetIdFromElem: (el: WidgetElem) => string;
-    getWidgetIdFromObs: (obs: WidgetObs) => string;
-    needsUpdate: (el: WidgetElem, obs: WidgetObs) => UpdateType;
+    getWidgetIdFromElem: (el: WidgetElem) => WidgetId;
+    getWidgetIdFromObs: (obs: WidgetObs) => WidgetId;
+    computeChanges: ComputeChanges<WidgetElem, WidgetObs>;
     getObservations: (
         domain: QDomain,
         deployID: string,
-        elemsInQDomain: WidgetElem[]) => Promise<WidgetObs[]>;
+        elemsInQDomain: WidgetChange<WidgetElem>[]) => Promise<WidgetObs[]>;
 
     createWidget: (
         domain: QDomain, deployID: string,
@@ -98,25 +107,44 @@ export abstract class WidgetPlugin<
         this.dataDir_ = options.dataDir;
     }
 
+    createExpected(
+        oldDom: AdaptElementOrNull,
+        newDom: AdaptElementOrNull,
+        createQueryDomains = false): Expected<WidgetElem> {
+
+        const ret: Expected<WidgetElem> = {};
+        const changes = new Map<WidgetId, WidgetChange<WidgetElem>>();
+
+        const addElems = (dom: AdaptElementOrNull, type: "from" | "to") => {
+            this.findElems(dom).forEach((el) => {
+                const id = this.getWidgetIdFromElem(el);
+                let change = changes.get(id);
+                if (change) {
+                    change[type] = el;
+                    return;
+                }
+                change = { id, [type]: el };
+                changes.set(id, change);
+
+                const domain = this.getElemQueryDomain(el);
+                const qdKey = makeQueryDomainKey(domain);
+                const qdChangeList = ret[qdKey] || [];
+                ret[qdKey] = qdChangeList;
+                qdChangeList.push(change);
+
+                if (createQueryDomains && this.queryDomains.get(qdKey) == null) {
+                    this.queryDomains.set(qdKey, domain);
+                }
+            });
+        };
+
+        addElems(oldDom, "from");
+        addElems(newDom, "to");
+        return ret;
+    }
+
     async observe(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observed<WidgetObs>> {
-        let elems = this.findElems(dom);
-        elems = elems.concat(this.findElems(oldDom));
-
-        const elemsInQDomain: Expected<WidgetElem> = {};
-        for (const el of elems) {
-            const domain = this.getElemQueryDomain(el);
-            const key = makeQueryDomainKey(domain);
-            let list = elemsInQDomain[key];
-            if (list == null) {
-                list = [];
-                elemsInQDomain[key] = list;
-            }
-            list.push(el);
-
-            if (this.queryDomains.get(key) == null) {
-                this.queryDomains.set(key, domain);
-            }
-        }
+        const elemsInQDomain = this.createExpected(oldDom, dom, true);
 
         const obs: Observed<WidgetObs> = {};
         for (const [ key, domain ] of this.queryDomains.entries()) {
@@ -126,23 +154,15 @@ export abstract class WidgetPlugin<
         return obs;
     }
 
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observed<WidgetObs>): Action[] {
+    analyze(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observed<WidgetObs>): Action[] {
         const deployID = this.deployID;
-        const elems = this.findElems(dom);
 
-        const expected: Expected<WidgetElem> = {};
-        for (const e of elems) {
-            const key = makeQueryDomainKey(this.getElemQueryDomain(e));
-            if (expected[key] == null) expected[key] = [];
-            expected[key].push(e);
-        }
-
+        const expected = this.createExpected(oldDom, dom);
         const actions = diffObservations<WidgetElem, WidgetObs>(
             expected,
             obs,
-            (el) => this.getWidgetIdFromElem(el),
             (o) => this.getWidgetIdFromObs(o),
-            (el, o) => this.needsUpdate(el, o)
+            (el, o) => this.computeChanges(el, o)
         );
         const ret: Action[] = [];
 
@@ -192,7 +212,7 @@ export abstract class WidgetPlugin<
 
     widgetInfo(pair: WidgetPair<WidgetElem, WidgetObs>) {
         let type: string;
-        let id: string;
+        let id: WidgetId;
         let key: string | undefined;
         const el = pair.element;
         if (el != null) {
@@ -226,7 +246,7 @@ export abstract class WidgetPlugin<
             const domain = this.queryDomain(p.queryDomainKey);
             if (domain == null) throw new InternalError(`domain null`);
             actions.push({
-                description,
+                ...p.actionInfo,
                 act: async () => {
                     try {
                         await action(domain, p);
@@ -255,47 +275,51 @@ function makeQueryDomainKey(queryDomain: QueryDomain<any, any>): QueryDomainKey 
 
 function diffArrays<E extends AdaptElement, O extends object>(
     queryDomainKey: QueryDomainKey,
-    expected: E[],
+    expected: WidgetChange<E>[],
     observed: O[],
-    expectedId: GetId<E>,
     observedId: GetId<O>,
-    needsUpdate: NeedsUpdate<E, O>,
+    computeChanges: ComputeChanges<E, O>,
     actions: WidgetActions<E, O>,
 ): void {
 
     const obsMap = new Map(observed.map((o) => [observedId(o), o] as [string, O]));
+    let actionInfo: ActionInfo;
 
     for (const e of expected) {
-        const eId = expectedId(e);
-        const o = obsMap.get(eId);
-        if (o === undefined) {
-            actions.toCreate.push({queryDomainKey, element: e});
-            continue;
-        }
-        obsMap.delete(eId);
-        switch (needsUpdate(e, o)) {
-            case UpdateType.modify:
-                actions.toModify.push({queryDomainKey, element: e, observed: o});
+        const o = obsMap.get(e.id);
+        if (o !== undefined) obsMap.delete(e.id);
+
+        actionInfo = computeChanges(e, o);
+        const pair = { queryDomainKey, actionInfo };
+        switch (actionInfo.type) {
+            case ChangeType.create:
+                actions.toCreate.push({...pair, element: e.to});
                 break;
-            case UpdateType.replace:
-                actions.toReplace.push({queryDomainKey, element: e, observed: o});
+            case ChangeType.delete:
+                actions.toDestroy.push({...pair, observed: o});
                 break;
-            case UpdateType.none:
+            case ChangeType.modify:
+                actions.toModify.push({...pair, element: e.to, observed: o});
+                break;
+            case ChangeType.replace:
+                actions.toReplace.push({...pair, element: e.to, observed: o});
+                break;
+            case ChangeType.none:
                 break;
         }
     }
 
-    for (const entry of obsMap) {
-        actions.toDestroy.push({queryDomainKey, observed: entry[1]});
+    for (const [id, o] of obsMap) {
+        actionInfo = computeChanges({id}, o);
+        actions.toDestroy.push({queryDomainKey, actionInfo, observed: o});
     }
 }
 
 function diffObservations<E extends AdaptElement, O extends object>(
     expected: Expected<E>,
     observed: Observed<O>,
-    expectedId: GetId<E>,
     observedId: GetId<O>,
-    needsUpdate: NeedsUpdate<E, O>,
+    computeChanges: ComputeChanges<E, O>,
 ): WidgetActions<E, O> {
     const actions: WidgetActions<E, O> = {
         toCreate: [],
@@ -307,13 +331,13 @@ function diffObservations<E extends AdaptElement, O extends object>(
     observed = {...observed};
 
     for (const key of Object.keys(expected)) {
-        diffArrays(key, expected[key], observed[key] || [], expectedId,
-                   observedId, needsUpdate, actions);
+        diffArrays(key, expected[key], observed[key] || [],
+                   observedId, computeChanges, actions);
         delete observed[key];
     }
     for (const key of Object.keys(observed)) {
-        diffArrays(key, [], observed[key], expectedId, observedId,
-                   needsUpdate, actions);
+        diffArrays(key, [], observed[key],
+                   observedId, computeChanges, actions);
     }
     return actions;
 }

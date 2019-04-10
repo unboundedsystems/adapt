@@ -30,7 +30,14 @@ const basicPackageJson = {
 };
 
 const simplePluginTs = `
-import { Action, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+import {
+    Action,
+    AdaptPrimitiveElement,
+    ChangeType,
+    Plugin,
+    PluginOptions,
+    registerPlugin
+} from "@usys/adapt";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -51,18 +58,27 @@ class EchoPlugin implements Plugin<{}> {
     }
     analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
+        const info = (detail: string) => ({
+            type: ChangeType.create,
+            detail,
+            changes: [{
+                type: ChangeType.create,
+                element: dom as AdaptPrimitiveElement,
+                detail
+            }]
+        });
 
         if (dom != null && dom.componentType.name === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
         if (dom != null && dom.componentType.name === "ActError") {
             return [
-                { description: "echo error", act: () => { throw new Error("ActError"); } },
+                { ...info("echo error"), act: () => { throw new Error("ActError"); } },
             ];
         }
         return [
-            { description: "echo action1", act: () => this.doAction("action1") },
-            { description: "echo action2", act: () => this.doAction("action2") }
+            { ...info("echo action1"), act: () => this.doAction("action1") },
+            { ...info("echo action2"), act: () => this.doAction("action2") }
         ];
     }
     async finish() {
@@ -387,7 +403,7 @@ Deployment not created due to errors$`);
         const msgRe = RegExp(
 `^This project cannot be deployed.
 2 errors encountered during deploy:
-\\[deploy:create:deploy:act\\] : --Error during echo error
+\\[deploy:create:deploy:act\\] : --Error while echo error
 Error: ActError
 ----------
 \\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
@@ -405,7 +421,7 @@ DeployID is: test::ActError-[a-z]{4}$`);
         expect(stdout).contains("Applying changes to environment [failed]");
         expect(stdout).contains("Creating new project deployment [failed]");
 
-        expect(ctx.stderr).contains("ERROR: --Error during echo error\nError: ActError");
+        expect(ctx.stderr).contains("ERROR: --Error while echo error\nError: ActError");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),

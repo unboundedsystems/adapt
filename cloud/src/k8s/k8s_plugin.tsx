@@ -1,15 +1,18 @@
 import Adapt, {
+    ActionInfo,
     AdaptElement,
     AdaptElementOrNull,
+    AdaptPrimitiveElement,
     AnyProps,
     BuildData,
+    ChangeType,
     findElementsInDom,
     isMountedElement,
     ObserveForStatus,
     QueryDomain,
     registerPlugin,
     Style,
-    UpdateType,
+    WidgetChange,
     WidgetPair,
     WidgetPlugin
 } from "@usys/adapt";
@@ -146,7 +149,7 @@ async function getResources(client: Client, namespaces: string[], deployID: stri
 
 const rules = <Style>{Resource} {Adapt.rule()}</Style>;
 
-function findResourceElems(dom: AdaptElementOrNull): AdaptElement<ResourceProps>[] {
+function findResourceElems(dom: AdaptElementOrNull): ResourceElement[] {
     const candidateElems = findElementsInDom(rules, dom);
     return ld.compact(candidateElems.map((e) => isResourceElement(e) ? e : null));
 }
@@ -232,20 +235,45 @@ function getResourceElementNamespace(elem: AdaptElement<ResourceProps>) {
     return ns;
 }
 
-function compareResource(
-    el: AdaptElement<ResourceProps>,
-    actual: ResourceObject,
+function computeResourceChanges(
+    change: WidgetChange<ResourceElement>,
+    actual: ResourceObject | undefined,
     deployID: string
-): UpdateType {
-    const info = getResourceInfo(el.props.kind);
-    if (info == null) {
-        throw new Error(`Cannot create action for unknown kind ${el.props.kind}`);
+): ActionInfo {
+    const { to, from } = change;
+    const kind = (to && to.props.kind) || (from && from.props.kind) || "Unknown Resource Kind";
+
+    // TODO: Ask K8S for detail on resource changes
+    const actionInfo = (type: ChangeType, detail: string) => {
+        const element = to || from;
+        return element ?
+            { type, detail, changes: [{ type, element, detail }] } :
+            { type, detail, changes: [] };
+    };
+
+    if (from == null && to == null) {
+        return actionInfo(ChangeType.delete, "Destroying unrecognized Resource");
     }
 
-    const expected = makeManifest(el, deployID);
-    if (info.specsEqual(actual.spec, expected.spec)) return UpdateType.none;
+    if (to == null) {
+        return actionInfo(ChangeType.delete, `Destroying removed ${kind}`);
+    }
 
-    return UpdateType.replace;
+    if (actual == null) {
+        return actionInfo(ChangeType.create, `Creating ${kind}`);
+    }
+
+    const info = getResourceInfo(to.props.kind);
+    if (info == null) {
+        throw new Error(`Cannot create action for unknown kind ${kind}`);
+    }
+
+    const expected = makeManifest(to, deployID);
+    if (info.specsEqual(actual.spec, expected.spec)) {
+        return actionInfo(ChangeType.none, "No changes required");
+    }
+
+    return actionInfo(ChangeType.replace, `Replacing ${kind}`);
 }
 
 async function createResource(
@@ -283,15 +311,15 @@ function notUndef(x: string | undefined): x is string {
 
 // NOTE(mark): Where is auth information stored for k8s? In kubeconfig?
 type K8sQueryDomain = QueryDomain<ResourceBase["config"], null>;
-type ResourceElement = AdaptElement<ResourceProps>;
-type K8sPair = WidgetPair<AdaptElement<ResourceProps>, ResourceObject>;
+type ResourceElement = AdaptPrimitiveElement<ResourceProps>;
+type K8sPair = WidgetPair<ResourceElement, ResourceObject>;
 
 class K8sPluginImpl
     extends WidgetPlugin<ResourceElement, ResourceObject, K8sQueryDomain> {
 
     connCache: Connections = new Connections();
 
-    findElems = (dom: AdaptElementOrNull) => {
+    findElems = (dom: AdaptElementOrNull)  => {
         return findResourceElems(dom);
     }
     getElemQueryDomain = (el: ResourceElement) => {
@@ -310,20 +338,22 @@ class K8sPluginImpl
         return resourceElementToName(el, this.deployID);
     }
 
-    needsUpdate = (el: ResourceElement, obs: ResourceObject): UpdateType => {
-        return compareResource(el, obs, this.deployID);
+    computeChanges =
+        (change: WidgetChange<ResourceElement>, obs: ResourceObject | undefined): ActionInfo => {
+        return computeResourceChanges(change, obs, this.deployID);
     }
 
     getObservations = async (
         domain: K8sQueryDomain,
         deployID: string,
-        clusterElems: ResourceElement[]
+        clusterElems: WidgetChange<ResourceElement>[]
     ): Promise<ResourceObject[]> => {
 
         const client = await this.getClient(domain);
-        const namespaces = ld.filter(
-            clusterElems.map((e) => e.props.metadata && e.props.metadata.namespace),
-            notUndef);
+        const namespaces = clusterElems
+            .map((change) => change.to || change.from)
+            .map((e) => e && e.props.metadata && e.props.metadata.namespace)
+            .filter(notUndef);
         return getResources(client, namespaces, deployID);
     }
 

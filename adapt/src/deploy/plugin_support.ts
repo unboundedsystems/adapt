@@ -11,7 +11,7 @@ import * as ld from "lodash";
 import pMapSeries from "p-map-series";
 import * as path from "path";
 import { InternalError } from "../error";
-import { AdaptElementOrNull } from "../jsx";
+import { AdaptElementOrNull, AdaptPrimitiveElement } from "../jsx";
 import { findPackageInfo } from "../packageinfo";
 import { getAdaptContext } from "../ts";
 
@@ -35,8 +35,39 @@ export interface PluginConfig {
     modules: PluginModules;
 }
 
-export interface Action {
-    description: string;
+export enum ChangeType {
+    none = "none",
+    create = "create",
+    delete = "delete",
+    modify = "modify",
+    replace = "replace",
+}
+
+/**
+ * Describes the effect an Action has on an Element
+ * type and detail here explain how the Action affects this specific
+ * element, which may or may not be different than the action. For example,
+ * an Action that performs a modify on a CloudFormation stack may cause
+ * certain Elements to be created and deleted within that Action.
+ */
+export interface ActionChange {
+    type: ChangeType;
+    element: AdaptPrimitiveElement;
+    detail: string;
+}
+
+/**
+ * Describes the overall effect that an Action is performing.
+ * type and detail here explain what the Action is doing overall, not how it
+ * affects any particular Element.
+ */
+export interface ActionInfo {
+    type: ChangeType;
+    detail: string;
+    changes: ActionChange[];
+}
+
+export interface Action extends ActionInfo {
     act(): Promise<void>;
 }
 
@@ -86,7 +117,9 @@ export function createPluginManager(modules: PluginModules): PluginManager {
 }
 
 function logError(action: Action, err: any, logger: Logger) {
-    logger(`--Error during ${action.description}\n${err}\n----------`);
+    action.changes.forEach((c) => {
+        logger(`--Error while ${c.detail}\n${err}\n----------`);
+    });
 }
 
 enum PluginManagerState {
@@ -148,7 +181,7 @@ class PluginManagerImpl implements PluginManager {
     state: PluginManagerState;
     observations: AnyObservation;
     taskObserver_?: TaskObserver;
-    tasks = new WeakMap<Action, TaskObserver>();
+    tasks = new WeakMap<Action, TaskObserver[]>();
 
     constructor(config: PluginConfig) {
         this.plugins = new Map(config.plugins);
@@ -266,15 +299,21 @@ class PluginManagerImpl implements PluginManager {
         const log = this.logger;
         if (log == undefined) throw new InternalError("Must call start before act");
 
-        const doing = (action: Action) => log.info(`Doing ${action.description}...`);
+        const doing = (action: Action) => {
+            action.changes.forEach((c) => log.info(`Doing ${c.detail}`));
+        };
         const doAction = async (action: Action) => {
+            const tlist = this.getTaskList(action);
             try {
                 doing(action);
-                await this.getTask(action).complete(action.act);
+                tlist.forEach((t) => t.started());
+                await action.act();
+                tlist.forEach((t) => t.complete());
                 return { action };
             } catch (err) {
                 errored = true;
                 logError(action, err, (m) => log.error(m));
+                tlist.forEach((t) => t.failed(err));
                 return { action, err };
             }
         };
@@ -283,7 +322,7 @@ class PluginManagerImpl implements PluginManager {
             const actions = this.actions;
             actions.forEach((action) => {
                 doing(action);
-                this.getTask(action).skipped();
+                this.getTaskList(action).forEach((o) => o.skipped());
             });
             this.transitionTo(PluginManagerState.PreAct);
             // Can only use a taskObserver once
@@ -325,12 +364,10 @@ class PluginManagerImpl implements PluginManager {
         return this.parallelActions.concat(ld.flatten(this.seriesActions));
     }
 
-    private getTask(action: Action): TaskObserver {
-        const task = this.tasks.get(action);
-        if (!task) {
-            throw new InternalError(`Unable to find task for action ${action.description}`);
-        }
-        return task;
+    private getTaskList(action: Action): TaskObserver[] {
+        const list = this.tasks.get(action);
+        if (!list) throw new InternalError(`Unable to find task for Action`);
+        return list;
     }
 
     private createTasks(pluginName?: string, actions?: Action[]) {
@@ -338,15 +375,20 @@ class PluginManagerImpl implements PluginManager {
         if (aList.length === 0) return;
 
         let taskId = 0;
-        const taskName = pluginName ?
-            (a: Action) => `${pluginName}.${taskId++}` :
-            (a: Action) => this.getTask(a).name; // Get the already assigned name
+        const taskName = (a: Action, i: number) => {
+            if (pluginName) return `${pluginName}.${taskId++}.${i}`;
+            // Get the already assigned name
+            return this.getTaskList(a)[i].name;
+        };
 
         const tGroup = this.taskObserver.childGroup({ serial: false });
         for (const a of aList) {
-            const name = taskName(a);
-            const task = tGroup.add({ [name]: a.description });
-            this.tasks.set(a, task[name]);
+            const tlist = a.changes.map((c, i) => {
+                const name = taskName(a, i);
+                const task = tGroup.add({ [name]: c.detail });
+                return task[name];
+            });
+            this.tasks.set(a, tlist);
         }
     }
 }

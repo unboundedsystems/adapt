@@ -1,7 +1,9 @@
 import Adapt, {
+    Action,
     AdaptElement,
     AdaptMountedElement,
     build,
+    ChangeType,
     createStateStore,
     Group,
     rule,
@@ -42,7 +44,7 @@ describe("Container component", () => {
         await deleteContainer(docker, name);
     });
 
-    async function runPlugin(dom: AdaptElement) {
+    async function runPlugin(dom: AdaptElement, checkActions: (actions: Action[]) => void) {
         const dataDir = path.join(process.cwd(), "pluginData");
         const plugin = createAnsiblePlugin();
         const logger = createMockLogger();
@@ -57,6 +59,7 @@ describe("Container component", () => {
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
         await act(actions);
+        checkActions(actions);
         await plugin.finish();
     }
 
@@ -96,7 +99,27 @@ describe("Container component", () => {
         let ctrStatus = await getContainerStatus(mountedOrig);
         should(ctrStatus).eql({ noStatus: `No such container: ${name}` });
 
-        await runPlugin(dom);
+        await runPlugin(dom, (actions) => {
+            should(actions.length).equal(2);
+
+            should(actions[0].detail).equal("Executing Playbook");
+            should(actions[0].changes).have.length(1);
+            should(actions[0].changes[0].type).equal(ChangeType.create);
+            should(actions[0].changes[0].detail).equal("Executing Playbook");
+            should(actions[0].changes[0].element.componentName).equal("AnsiblePlaybook");
+
+            should(actions[1].detail).equal("Executing Playbook");
+            should(actions[1].changes).have.length(3);
+            should(actions[1].changes[0].type).equal(ChangeType.create);
+            should(actions[1].changes[0].detail).equal("Executing Playbook");
+            should(actions[1].changes[0].element.componentName).equal("AnsibleImplicitPlaybook");
+            should(actions[1].changes[1].type).equal(ChangeType.create);
+            should(actions[1].changes[1].detail).equal("Executing Playbook");
+            should(actions[1].changes[1].element.componentName).equal("AnsibleRole");
+            should(actions[1].changes[2].type).equal(ChangeType.create);
+            should(actions[1].changes[2].detail).equal("Executing Playbook");
+            should(actions[1].changes[2].element.componentName).equal("AnsibleRole");
+        });
 
         ctrStatus = await getContainerStatus(mountedOrig);
         should(ctrStatus).be.type("object");

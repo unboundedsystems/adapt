@@ -30,7 +30,7 @@ export {
 } from "./jsx";
 
 export * from "./builtin_components";
-
+export * from "./deploy";
 export {
     build,
     BuildData,
@@ -92,14 +92,6 @@ export {
 } from "./observers";
 
 export {
-    Action,
-    Plugin,
-    PluginOptions,
-    registerPlugin,
-    PluginRegistration,
-} from "./deploy/plugin_support";
-
-export {
     defaultChildStatus,
     mergeDefaultChildStatus,
     NoStatus,
@@ -111,14 +103,6 @@ export {
 export {
     Children
 } from "./type_support";
-
-export {
-    Observed,
-    WidgetPlugin,
-    QueryDomain,
-    WidgetPair,
-    UpdateType,
-} from "./deploy/widget_plugin";
 
 export {
     Constructor,
