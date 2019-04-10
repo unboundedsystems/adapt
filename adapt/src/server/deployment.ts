@@ -67,25 +67,25 @@ export async function createDeployment(server: AdaptServer, projectName: string,
     stackName: string, options: DeploymentOptions = {}): Promise<Deployment> {
     const baseName = `${projectName}::${stackName}`;
 
-    let deployID = options.fixedDeployID;
-    if (!deployID) {
-        deployID = baseName;
+    let deployID = "";
 
-        for (let i = 0; i < maxTries; i++) {
-            deployID = makeName(baseName);
-            const deployData: DeploymentStored = {
-                deployID,
-                currentSequence: null,
-                sequenceInfo: {},
-                stateDirs: [],
-            };
-            try {
-                await server.set(dpath(deployID), deployData, { mustCreate: true });
-                break;
-            } catch (err) {
-                if (!isPathNotFound(err)) throw err;
-                // continue
+    for (let i = 0; i < maxTries; i++) {
+        deployID = options.fixedDeployID || makeName(baseName);
+        const deployData: DeploymentStored = {
+            deployID,
+            currentSequence: null,
+            sequenceInfo: {},
+            stateDirs: [],
+        };
+        try {
+            await server.set(dpath(deployID), deployData, { mustCreate: true });
+            break;
+        } catch (err) {
+            if (!isPathNotFound(err)) throw err;
+            if (options.fixedDeployID) {
+                throw new Error(`Fixed deployID '${deployID}' already exists`);
             }
+            // continue
         }
     }
 
