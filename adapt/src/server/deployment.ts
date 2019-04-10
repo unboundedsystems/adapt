@@ -59,25 +59,33 @@ function isPathNotFound(err: any) {
     return isError(err) && err.name === "DataError";
 }
 
-export async function createDeployment(server: AdaptServer, projectName: string,
-    stackName: string): Promise<Deployment> {
-    const baseName = `${projectName}::${stackName}`;
-    let deployID = baseName;
+export interface DeploymentOptions {
+    fixedDeployID?: string; // For use with unit testing
+}
 
-    for (let i = 0; i < maxTries; i++) {
-        deployID = makeName(baseName);
-        const deployData: DeploymentStored = {
-            deployID,
-            currentSequence: null,
-            sequenceInfo: {},
-            stateDirs: [],
-        };
-        try {
-            await server.set(dpath(deployID), deployData, { mustCreate: true });
-            break;
-        } catch (err) {
-            if (!isPathNotFound(err)) throw err;
-            // continue
+export async function createDeployment(server: AdaptServer, projectName: string,
+    stackName: string, options: DeploymentOptions = {}): Promise<Deployment> {
+    const baseName = `${projectName}::${stackName}`;
+
+    let deployID = options.fixedDeployID;
+    if (!deployID) {
+        deployID = baseName;
+
+        for (let i = 0; i < maxTries; i++) {
+            deployID = makeName(baseName);
+            const deployData: DeploymentStored = {
+                deployID,
+                currentSequence: null,
+                sequenceInfo: {},
+                stateDirs: [],
+            };
+            try {
+                await server.set(dpath(deployID), deployData, { mustCreate: true });
+                break;
+            } catch (err) {
+                if (!isPathNotFound(err)) throw err;
+                // continue
+            }
         }
     }
 
