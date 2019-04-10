@@ -1,3 +1,4 @@
+export * from "./deploy_types";
 export {
     Action,
     ActionChange,
