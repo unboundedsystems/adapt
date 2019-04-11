@@ -4,6 +4,7 @@ import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, 
 import { findMummyUrn, registerObject } from "./reanimate";
 
 export interface Handle {
+    readonly associated: boolean;
     readonly target: AdaptElement | null | undefined;
     readonly origTarget: AdaptElement | null | undefined;
     readonly mountedOrig: AdaptMountedElement | null | undefined;
@@ -117,6 +118,10 @@ class HandleImpl implements HandleInternal {
                 `second association element type ${el && el.componentName}`);
         }
         this[origElement] = el;
+    }
+
+    get associated(): boolean {
+        return this[origElement] !== undefined;
     }
 
     replaceTarget = (el: AdaptElement | null) => {
