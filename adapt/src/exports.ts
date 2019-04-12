@@ -97,6 +97,8 @@ export {
 
 export {
     defaultChildStatus,
+    errorToNoStatus,
+    gqlGetOriginalErrors,
     mergeDefaultChildStatus,
     NoStatus,
     noStatusOnError,
