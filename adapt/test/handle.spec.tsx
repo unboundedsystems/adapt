@@ -318,7 +318,7 @@ describe("Element Handle", () => {
         should(dom.props.children).have.length(2);
 
         const domXml = serializeDom(dom, { reanimateable: true });
-        const newDom = await reanimateDom(domXml);
+        const newDom = await reanimateDom(domXml, "deploy123");
 
         if (newDom == null) throw should(newDom).not.be.Null();
 
@@ -339,7 +339,7 @@ describe("Element Handle", () => {
         should(hand.target).be.Null();
 
         const domXml = serializeDom(dom, { reanimateable: true });
-        const newDom = await reanimateDom(domXml);
+        const newDom = await reanimateDom(domXml, "deploy123");
 
         if (newDom == null) throw should(newDom).not.be.Null();
 

@@ -238,6 +238,7 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
         act: "Applying changes to environment",
     });
     const logger = taskObserver.logger;
+    const deployID = deployment.deployID;
 
     return withContext(options, async (ctx: AdaptContext): Promise<DeploySuccess> => {
         try {
@@ -252,14 +253,14 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
             });
 
             const prevDom = await tasks.reanimatePrev.complete(async () => {
-                return prev ? inAdapt.internal.reanimateDom(prev.domXml) : null;
+                return prev ? inAdapt.internal.reanimateDom(prev.domXml, deployID) : null;
             });
 
             const { dataDir, newDom } = await tasks.reanimateCur.complete(async () => {
                 // This grabs a lock on the deployment's uncommitted data dir
                 return {
                     dataDir: await deployment.getDataDir(HistoryStatus.complete),
-                    newDom: await inAdapt.internal.reanimateDom(options.domXml),
+                    newDom: await inAdapt.internal.reanimateDom(options.domXml, deployID),
                 };
             });
 

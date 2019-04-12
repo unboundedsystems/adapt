@@ -18,7 +18,7 @@ describe("Reanimate DOM basic tests", () => {
 
     async function roundTrip(origDom: AdaptElement, eql = true) {
         const xmlString = serializeDom(origDom, { reanimateable: true });
-        const newDom = await reanimateDom(xmlString);
+        const newDom = await reanimateDom(xmlString, "deploy123");
 
         if (eql) should(newDom).eql(origDom);
         return newDom;

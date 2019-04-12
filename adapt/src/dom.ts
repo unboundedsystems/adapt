@@ -463,11 +463,10 @@ function mountElement(
 
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
-        domPathToKeyPath(finalPath));
+        domPathToKeyPath(finalPath), options.deployID);
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
-    elem.buildData.deployID = options.deployID;
     return out;
 }
 

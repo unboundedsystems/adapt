@@ -344,7 +344,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath) {
+    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath, deployID: string) {
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -358,6 +358,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.keyPath = keyPath;
         this.mounted = true;
         this.buildData.id = this.id;
+        this.buildData.deployID = deployID;
     }
 
     setState = (stateUpdate: StateUpdater<Props, AnyState>): void => {
