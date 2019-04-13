@@ -9,11 +9,11 @@ import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
     AdaptMountedElement,
-    BuildHelpers,
     BuiltDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeploymentSequence } from "../server/deployment_data";
+import { Status } from "../status";
 
 export enum DeployStatus {
     Initial = "Initial",
@@ -131,7 +131,7 @@ export interface PluginManagerStartOptions {
 export interface ActOptions {
     concurrency?: number;
     dryRun?: boolean;
-    goalStatus?: DeployStatus;
+    goalStatus?: DeployStatus.Deployed;
     taskObserver: TaskObserver;
     timeoutMs?: number;
     sequence: DeploymentSequence;
@@ -142,12 +142,14 @@ export interface ActionResult {
     err?: any;
 }
 
+export type Dependency = Handle | DependsOn;
+
 export interface DependsOn {
     description: string;
-    status: () => WaitStatus;
+    status: (this: this, helpers: DeployHelpers) => WaitStatus | Promise<WaitStatus>;
 
-    action?: () => Promise<void>;
-    dependsOn?: (Handle | WaitInfo)[];
+    action?: (this: this, helpers: DeployHelpers) => void | Promise<void>;
+    dependsOn?: Dependency[];
 }
 
 export function isDependsOn(v: any): v is DependsOn {
@@ -184,6 +186,11 @@ export interface DoneWaiting {
 
 export type WaitStatus = Waiting | DoneWaiting;
 
+export interface DeployHelpers {
+    elementStatus: <S extends Status = Status>(handle: Handle) => Promise<S | Status | undefined>;
+    isDeployed: (dep: Dependency) => boolean;
+}
+
 export interface PluginManager {
     start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
         options: PluginManagerStartOptions): Promise<void>;
@@ -196,7 +203,7 @@ export interface PluginManager {
 export interface ExecutionPlanOptions {
     actions: Action[];
     diff: DomDiff;
-    helpers: BuildHelpers;
+    goalStatus: DeployStatus.Deployed;
     seriesActions?: Action[][];
 }
 
@@ -208,12 +215,17 @@ export interface ExecuteOptions {
     concurrency?: number;
     deployment: Deployment;
     dryRun?: boolean;
-    goalStatus: DeployStatus;
     logger: MessageLogger;
     plan: ExecutionPlan;
+    pollDelayMs?: number;
     sequence: DeploymentSequence;
     taskObserver: TaskObserver;
     timeoutMs?: number;
+}
+
+export interface ExecutePassOptions extends Required<ExecuteOptions> {
+    nodeStatus: StatusTracker;
+    timeoutTime: number;
 }
 
 export interface ExecuteComplete {
@@ -233,3 +245,37 @@ export interface EPNodeWI {
 export type EPNode = EPNodeEl | EPNodeWI;
 export type EPObject = EPNode | AdaptMountedElement | WaitInfo;
 export type EPNodeId = string;
+
+export interface StatusTracker {
+    readonly deployment: Deployment;
+    readonly dryRun: boolean;
+    readonly nodeStatus: Record<DeployStatus, number>;
+    readonly primStatus: Record<DeployStatus, number>;
+    readonly statMap: Map<EPNode, DeployStatusExt>;
+    readonly taskMap: Map<EPNode, TaskObserver>;
+    readonly sequence: DeploymentSequence;
+    get(n: EPNode): DeployStatusExt;
+    set(n: EPNode, statExt: DeployStatusExt, err: Error | undefined,
+        description?: string): Promise<boolean>;
+    isFinal(n: EPNode): boolean;
+    isActive(n: EPNode): boolean;
+    output(n: EPNode, s: string): void;
+    complete(): Promise<ExecuteComplete>;
+    debug(getId: (n: EPNode) => string): string;
+}
+
+export enum InternalStatus {
+    ProxyDeploying = "ProxyDeploying",
+}
+
+export type DeployStatusExt = DeployStatus | InternalStatus;
+// tslint:disable-next-line: variable-name
+export const DeployStatusExt = { ...DeployStatus, ...InternalStatus };
+
+export function isFinalStatusExt(stat: DeployStatusExt) {
+    return isDeployStatus(stat) && isFinalStatus(stat);
+}
+
+export function toDeployStatus(stat: DeployStatusExt): DeployStatus {
+    return stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying : stat;
+}

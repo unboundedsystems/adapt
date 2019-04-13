@@ -12,6 +12,7 @@ import {
     tagConstructor,
 } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
+import { DependsOn, DeployStatus } from "./deploy/deploy_types";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandle, isHandleInternal } from "./handle";
@@ -48,7 +49,11 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 }
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
-export interface GenericInstance {
+export interface GenericInstanceMethods {
+    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
+}
+
+export interface GenericInstance extends GenericInstanceMethods {
     [key: string]: any;
 }
 
@@ -64,6 +69,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly instance: GenericInstance;
 
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
+    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -140,7 +146,10 @@ export interface BuildHelpers {
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
-export abstract class Component<Props extends object = {}, State extends object = {}> {
+export abstract class Component<Props extends object = {}, State extends object = {}>
+    implements GenericInstanceMethods {
+
+    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
 
     // cleanup gets called after build of this component's
     // subtree has completed.
@@ -434,6 +443,15 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             return result.data;
         };
         return this.statusCommon(o || observeForStatus);
+    }
+
+    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined {
+        if (!this.mounted) {
+            throw new InternalError(`dependsOn requested but element is not mounted`);
+        }
+        const dependsOnMethod = this.instance.dependsOn;
+        if (!dependsOnMethod) return undefined;
+        return dependsOnMethod(goalStatus);
     }
 
     get componentName() { return this.componentType.name || "anonymous"; }

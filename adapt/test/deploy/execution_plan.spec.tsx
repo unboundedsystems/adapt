@@ -7,7 +7,6 @@ import sinon from "sinon";
 import Adapt, {
     Action,
     AdaptMountedElement,
-    BuildHelpers,
     BuiltDomElement,
     ChangeType,
     DeployStatus,
@@ -20,7 +19,6 @@ import {
     execute,
     ExecutionPlanImpl,
 } from "../../src/deploy/execution_plan";
-import { buildHelpers } from "../../src/dom";
 import { domDiff } from "../../src/dom_utils";
 import { Deployment } from "../../src/server/deployment";
 import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
@@ -39,9 +37,7 @@ interface DependProps {
 }
 
 class DependPrim extends Adapt.PrimitiveComponent<DependProps> {
-    dependsOn(h: BuildHelpers): WaitInfo {
-        return this.props.dep(this.props.id);
-    }
+    dependsOn = () => this.props.dep(this.props.id);
 }
 
 /*
@@ -59,21 +55,13 @@ function spyArgs(spy: sinon.SinonSpy, argNum?: number) {
 }
 
 describe("Execution plan", () => {
-    let deployment: Deployment;
-    let helpers: BuildHelpers;
-
-    beforeEach(async () => {
-        deployment = await createMockDeployment();
-        helpers = buildHelpers(deployment);
-    });
-
     it("Should create a plan", async () => {
         const d = <Empty id={1}/>;
         const { dom } = await doBuild(d);
         const plan = await createExecutionPlan({
             actions: [],
             diff: domDiff(null, dom),
-            helpers,
+            goalStatus: DeployStatus.Deployed,
         });
         should(plan).not.be.Null();
 
@@ -111,7 +99,7 @@ describe("Execution plan", () => {
             actions: [],
             seriesActions,
             diff: domDiff(null, dom),
-            helpers,
+            goalStatus: DeployStatus.Deployed,
         });
 
         if (!(plan instanceof ExecutionPlanImpl)) {
@@ -181,7 +169,6 @@ function checkElemStatus(
 
 describe("ExecutionPlanImpl", () => {
     let deployment: Deployment;
-    let helpers: BuildHelpers;
     let logger: MockLogger;
     let sequence: DeploymentSequence;
     let taskObserver: TaskObserver;
@@ -189,7 +176,6 @@ describe("ExecutionPlanImpl", () => {
     beforeEach(async () => {
         deployment = await createMockDeployment();
         sequence = await deployment.newSequence();
-        helpers = buildHelpers({ deployID: "deploy123" });
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
     });
@@ -200,7 +186,8 @@ describe("ExecutionPlanImpl", () => {
 
     async function checkFinalSimple(
         plan: ExecutionPlanImpl, ret: ExecuteComplete, expDeploy: DeployStatus,
-        expTask: TaskState, expElems: AdaptMountedElement[], expTaskNames: string[]) {
+        expTask: TaskState, expElems: AdaptMountedElement[], numNodes: number,
+        expTaskNames: string[]) {
 
         // All Status keys should have zero except for the expStatus
         const makeNodeStatus = (count: number) => {
@@ -212,8 +199,12 @@ describe("ExecutionPlanImpl", () => {
         };
 
         should(ret.deploymentStatus).equal(expDeploy);
-        should(ret.nodeStatus).eql(makeNodeStatus(plan.nodes.length));
-        should(ret.primStatus).eql(makeNodeStatus(plan.elems.length));
+        should(ret.nodeStatus).eql(makeNodeStatus(numNodes));
+        should(ret.primStatus).eql(makeNodeStatus(expElems.length));
+
+        // All plan nodes should be removed upon successful deploy
+        should(plan.nodes).have.length(0);
+        should(plan.elems).have.length(0);
 
         const { deployStatus, goalStatus, elementStatus } =
             await deployment.status(sequence);
@@ -231,7 +222,7 @@ describe("ExecutionPlanImpl", () => {
     }
 
     it("Should execute elements and actions", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -264,7 +255,8 @@ describe("ExecutionPlanImpl", () => {
         }));
         actions.forEach((a) => plan.addAction(a));
 
-        should(plan.nodes).have.length(7);
+        const expNodes = 7;
+        should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(4);
 
@@ -272,14 +264,13 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
-            TaskState.Complete, elems,
+            TaskState.Complete, elems, expNodes,
             ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
 
         const { stdout, stderr } = logger;
@@ -299,7 +290,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should wait for all dependencies", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -342,7 +333,8 @@ describe("ExecutionPlanImpl", () => {
         plan.addDep(waits[1], waits[2]);
         plan.addDep(waits[2], waits[3]);
 
-        should(plan.nodes).have.length(9);
+        const expNodes = 9;
+        should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(5);
         should(plan.leaves).have.length(1);
 
@@ -350,14 +342,13 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
-            TaskState.Complete, elems,
+            TaskState.Complete, elems, expNodes,
             ["Prim", "Prim", "Prim", "Prim", "Group"]);
 
         const { stdout, stderr } = logger;
@@ -378,7 +369,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should fail with simple cycle", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig = <Group/>;
         const { dom } = await doBuild(orig);
 
@@ -402,7 +393,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should fail with larger cycles", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -440,7 +431,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should fail dependents on error", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -486,7 +477,6 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
@@ -544,7 +534,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should time out", async () => {
         const timeoutMs = 100;
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -592,7 +582,6 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             timeoutMs,
@@ -645,7 +634,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should not run actions or modify state on dryRun", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -690,7 +679,6 @@ describe("ExecutionPlanImpl", () => {
             deployment,
             dryRun: true,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
@@ -733,7 +721,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should mark elements Deploying while actions run", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -804,7 +792,8 @@ describe("ExecutionPlanImpl", () => {
         plan.addDep(waits[1], waits[0]);
         plan.addDep(waits[0], waits[2]);
 
-        should(plan.nodes).have.length(7);
+        const expNodes = 7;
+        should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(2);
 
@@ -812,14 +801,13 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
-            TaskState.Complete, elems,
+            TaskState.Complete, elems, expNodes,
             ["Creating Action0", "Creating Action1", "Creating Action2", "Group"]);
 
         const { stdout, stderr } = logger;
@@ -838,7 +826,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should give unassociated handle error", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const h = handle();
         const w: WaitInfo = {
             description: `desc`,
@@ -857,14 +845,14 @@ describe("ExecutionPlanImpl", () => {
         plan.addElem(dom.props.children);
 
         const errRE = RegExp(
-            `A Component dependsOn method returned a WaitInfo ` +
+            `A Component dependsOn method returned a DependsOn ` +
             `object 'desc' that contains ` +
             `a Handle that is not associated with any Element`);
         should(() => plan.updateElemDepends()).throwError(errRE);
     });
 
     it("Should check primitive element dependsOn", async () => {
-        const plan = new ExecutionPlanImpl(helpers);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
         const spy = sinon.spy();
         const hands = [ handle(), handle(), handle() ];
         const waits = hands.map<WaitInfo>((_h, i) => ({
@@ -906,7 +894,8 @@ describe("ExecutionPlanImpl", () => {
         }));
         actions.forEach((a) => plan.addAction(a));
 
-        should(plan.nodes).have.length(7);
+        const expNodes = 7;
+        should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(4);
 
@@ -921,14 +910,13 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({
             deployment,
             logger,
-            goalStatus: DeployStatus.Deployed,
             plan,
             sequence,
             taskObserver,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
-            TaskState.Complete, elems,
+            TaskState.Complete, elems, expNodes,
             ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
 
         const { stdout, stderr } = logger;

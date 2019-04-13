@@ -7,7 +7,6 @@ import {
 import * as fs from "fs-extra";
 import * as ld from "lodash";
 import * as path from "path";
-import { buildHelpers } from "../dom";
 import { domDiff, DomDiff, logElements } from "../dom_utils";
 import { InternalError } from "../error";
 import {
@@ -133,7 +132,7 @@ interface AnyObservation {
     [name: string]: any;
 }
 
-const defaultActOptions = {
+const defaultActOptions: { dryRun: boolean; goalStatus: DeployStatus.Deployed } = {
     dryRun: false,
     goalStatus: DeployStatus.Deployed,
 };
@@ -252,7 +251,7 @@ class PluginManagerImpl implements PluginManager {
     }
 
     async act(options: ActOptions) {
-        const opts = { ...defaultActOptions, ...options };
+        const { goalStatus, ...opts } = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
         const { deployment, diff, logger } = this;
 
@@ -267,7 +266,7 @@ class PluginManagerImpl implements PluginManager {
         const plan = await createExecutionPlan({
             actions: this.parallelActions,
             diff,
-            helpers: buildHelpers(deployment),
+            goalStatus,
             seriesActions: this.seriesActions
         });
         plan.check();
@@ -280,7 +279,7 @@ class PluginManagerImpl implements PluginManager {
             logger,
             plan,
         });
-        if (result.deploymentStatus !== opts.goalStatus) {
+        if (result.deploymentStatus !== goalStatus) {
             throw new UserError(`Errors encountered during plugin action phase`);
         }
 

@@ -1,43 +1,44 @@
-import { ensureError, notNull, UserError } from "@usys/utils";
+import { ensureError, notNull, sleep, UserError } from "@usys/utils";
 import AsyncLock from "async-lock";
+import db from "debug";
 import { alg, Graph } from "graphlib";
 import { isError, isObject } from "lodash";
 import PQueue from "p-queue";
 import pTimeout from "p-timeout";
 import { inspect } from "util";
+import { buildHelpers } from "../dom";
 import { domActiveElems } from "../dom_utils";
 import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
-import { AdaptElement, AdaptMountedElement, BuildHelpers, isMountedElement } from "../jsx";
+import { AdaptElement, AdaptMountedElement, isMountedElement } from "../jsx";
 import {
     Action,
+    Dependency,
+    DependsOn,
+    DeployHelpers,
     DeployStatus,
+    DeployStatusExt,
     EPNode,
     EPNodeId,
     EPObject,
     ExecuteComplete,
     ExecuteOptions,
+    ExecutePassOptions,
     ExecutionPlan,
     ExecutionPlanOptions,
+    isFinalStatusExt,
     isWaitInfo,
     WaitInfo,
 } from "./deploy_types";
-import {
-    DeployStatusExt,
-    isFinalStatusExt,
-    StatusTracker,
-} from "./status_tracker";
+import { createStatusTracker } from "./status_tracker";
 
-//DEBUG
-import db from "debug";
 const debugExecute = db("adapt:deploy:execute");
-//DEBUG
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
-    const { actions, diff, helpers, seriesActions } = options;
+    const { actions, diff, seriesActions } = options;
 
     const elems = domActiveElems(diff);
-    const plan = new ExecutionPlanImpl(helpers);
+    const plan = new ExecutionPlanImpl(options.goalStatus);
 
     elems.forEach((e) => plan.addElem(e));
     actions.forEach((a) => plan.addAction(a));
@@ -56,14 +57,15 @@ export async function createExecutionPlan(options: ExecutionPlanOptions): Promis
     return plan;
 }
 
-export function getDependsOn(h: BuildHelpers, e: AdaptElement | Handle): WaitInfo | undefined {
+export function getDependsOn(goalStatus: DeployStatus.Deployed,
+    e: AdaptElement | Handle): WaitInfo | undefined {
+
     const hand = isHandle(e) ? e : e.props.handle;
     const elem = hand.mountedOrig;
     if (elem === undefined) throw new InternalError("element has no mountedOrig!");
     if (elem === null) throw new ElementNotInDom();
 
-    if (!elem.instance.dependsOn) return undefined;
-    const dep = elem.instance.dependsOn(h);
+    const dep = elem.dependsOn(goalStatus);
     if (dep === undefined) return undefined;
 
     if (!isWaitInfo(dep)) {
@@ -79,7 +81,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     protected nextWaitId = 0;
     protected waitInfoIds = new WeakMap<WaitInfo, string>();
 
-    constructor(public helpers: BuildHelpers) {}
+    constructor(readonly goalStatus: DeployStatus.Deployed) {}
 
     /*
      * Public interfaces
@@ -139,7 +141,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                         // TODO: Add info about the handle, like traceback for
                         // where it was created.
                         throw new UserError(
-                            `A Component dependsOn method returned a WaitInfo ` +
+                            `A Component dependsOn method returned a DependsOn ` +
                             `object '${waitInfo.description}' that contains ` +
                             `a Handle that is not associated with any Element`);
                     }
@@ -152,7 +154,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                     this.addDep(node, n);
                 } else {
                     throw new UserError(
-                        `A Component dependsOn method returned a WaitInfo ` +
+                        `A Component dependsOn method returned a DependsOn ` +
                         `object '${waitInfo.description}' that contains ` +
                         `an invalid dependency: ${inspect(d)}`);
                 }
@@ -163,7 +165,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     updateElemDepends() {
         this.elems.forEach((el) => {
-            const wi = getDependsOn(this.helpers, el);
+            const wi = getDependsOn(this.goalStatus, el);
             if (wi == null) return;
             this.addWaitInfo(wi, el);
         });
@@ -176,6 +178,10 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     addDep(obj: EPObject, dependsOn: EPObject) {
         this.graph.setEdge(this.getId(obj), this.getId(dependsOn));
+    }
+
+    removeNode(node: EPNode) {
+        this.graph.removeNode(this.getId(node));
     }
 
     predecessors(n: EPNode): EPNode[] {
@@ -218,6 +224,23 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     hasNode = (idOrObj: EPNodeId | EPObject): boolean => {
         return this.getNodeInternal(idOrObj) != null;
+    }
+
+    print() {
+        const succs = (id: string) => {
+            const list = this.graph.successors(id);
+            if (!list || list.length === 0) return "  <none>";
+            return list.map((s) => "  " + name(s)).join("\n");
+        };
+        const name = (id: string) => {
+            const w = this.getNode(id).waitInfo;
+            if (w) id += " : " + w.description;
+            return id;
+        };
+
+        return alg.topsort(this.graph)
+            .map((id) => `${name(id)}\n${succs(id)}`)
+            .join("\n");
     }
 
     /*
@@ -263,24 +286,80 @@ function debugExecId(id: string, ...args: any[]) {
 const defaultExecuteOptions = {
     concurrency: Infinity,
     dryRun: false,
+    pollDelayMs: 1000,
+    timeoutMs: 0,
 };
 
 export async function execute(options: ExecuteOptions): Promise<ExecuteComplete> {
     const opts = { ...defaultExecuteOptions, ...options };
-    const { dryRun, deployment, goalStatus, logger, plan, sequence, taskObserver } = opts;
+    const plan = opts.plan;
+    const timeoutTime = opts.timeoutMs ? Date.now() + opts.timeoutMs : 0;
+    let loopNum = 0;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
 
+    const nodeStatus = await createStatusTracker({
+        dryRun: opts.dryRun,
+        deployment: opts.deployment,
+        goalStatus: plan.goalStatus,
+        nodes: plan.nodes,
+        sequence: opts.sequence,
+        taskObserver: opts.taskObserver,
+    });
+
+    try {
+        while (true) {
+            debugExecute(`\n\n-----------------------------\n\n**** Starting execution pass ${++loopNum}`);
+
+            const ret = await executePass({ ...opts, nodeStatus, timeoutTime });
+
+            debugExecute(`**** execution pass ${loopNum} status: ${ret.deploymentStatus}\nSummary:`,
+                inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
+            if (isFinalStatusExt(ret.deploymentStatus)) {
+                debugExecute(`**** Execution completed`);
+                return ret;
+            }
+            await sleep(opts.pollDelayMs);
+        }
+
+    } catch (err) {
+        err = ensureError(err);
+        opts.logger.error(`Deploy operation failed: ${err.message}`);
+
+        debugExecute(`**** Execution failed:`, inspect(err));
+        if (err.name === "TimeoutError") {
+            //TODO : Mark all un-deployed as timed out
+            for (const n of plan.nodes) {
+                await nodeStatus.set(n, DeployStatus.Failed, err);
+            }
+            return nodeStatus.complete();
+
+        } else {
+            throw err;
+        }
+    }
+}
+
+export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComplete> {
+    const { dryRun, deployment, logger, nodeStatus, plan } = opts;
+
+    if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
+
+    //TODO: Remove
+    debugExecute(plan.print());
+
     const locks = new AsyncLock();
     const queue = new PQueue({ concurrency: opts.concurrency });
-    const nodeStatus = new StatusTracker({
-        dryRun,
-        deployment,
-        nodes: plan.nodes,
-        sequence,
-        taskObserver,
-    });
     let stopExecuting = false;
+
+    const bHelpers = buildHelpers(deployment);
+    const helpers: DeployHelpers = {
+        elementStatus: bHelpers.elementStatus,
+        isDeployed: (d: Dependency) => {
+            const stat = nodeStatus.get(plan.getNode(toElemOrWaitInfo(d)));
+            return stat === plan.goalStatus;
+        }
+    };
 
     // If an action is on behalf of some Elements, those nodes take on
     // the status of the action in certain cases.
@@ -317,7 +396,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             // TODO: use logger
             const stat = nodeStatus.get(n);
             if (isFinalStatusExt(stat)) return debugExecId(id, `Already complete`);
-            if (!isWaiting(stat)) {
+            if (!(isWaiting(stat) || stat === DeployStatus.Deploying)) {
                 throw new InternalError(`Unexpected node status ${stat}: ${id}`);
             }
 
@@ -340,17 +419,20 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
                     debugExecId(id, `ACTION: Doing ${w.description}`);
                     if (w.logAction) logger.info(`Doing ${w.description}`);
                     try {
-                        if (!dryRun) await w.action();
+                        if (!dryRun) await w.action(helpers);
                     } catch (err) {
                         logger.error(`--Error while ${w.description}\n${err}\n----------`);
                         throw err;
                     }
                 }
-                const wStat = w.status();
-                if (wStat.done) debugExecId(id, `COMPLETE: ${w.description}`);
-                else debugExecId(id, `NOT COMPLETE: ${w.description}`);
+                const wStat = await w.status(helpers);
+                if (!wStat.done) {
+                    debugExecId(id, `NOT COMPLETE: ${w.description}: ${wStat.status}`);
+                    nodeStatus.output(n, wStat.status);
+                    return;
+                }
+                debugExecId(id, `COMPLETE: ${w.description}`);
 
-                if (!wStat.done) return;
             } else {
                 debugExecId(id, `  No wait info`);
                 // Go through normal state transition to Deploying to
@@ -358,6 +440,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
                 await updateStatus(n, DeployStatus.Deploying);
             }
             await updateStatus(n, DeployStatus.Deployed);
+            plan.removeNode(n);
 
         } catch (err) {
             debugExecId(id, `FAILED: ${err}`);
@@ -426,42 +509,23 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
      * Main execute code path
      */
     try {
-        await nodeStatus.initDeploymentStatus(goalStatus);
-
-        debugExecute(`\n\n-----------------------------\n\n**** Starting execution`);
         // Queue the leaf nodes that have no dependencies
         plan.leaves.forEach(queueRun);
 
         // Then wait for all promises to resolve
         let pIdle = queue.onIdle();
-        if (opts.timeoutMs) {
+        if (opts.timeoutMs && opts.timeoutTime) {
             const msg = `Deploy operation timed out after ${opts.timeoutMs / 1000} seconds`;
-            pIdle = pTimeout(pIdle, opts.timeoutMs, msg);
+            pIdle = pTimeout(pIdle, opts.timeoutTime - Date.now(), msg);
         }
         await pIdle;
 
-        debugExecute(`**** Execution completed`);
+        return await nodeStatus.complete();
 
     } catch (err) {
         stopExecuting = true;
-        err = ensureError(err);
-        logger.error(`Deploy operation failed: ${err.message}`);
-
-        debugExecute(`**** Execution failed:`, inspect(err));
-        if (err.name === "TimeoutError") {
-            //TODO : Mark all un-deployed as timed out
-            for (const n of plan.nodes) {
-                await nodeStatus.set(n, DeployStatus.Failed, err);
-            }
-        } else {
-            throw err;
-        }
+        throw err;
     }
-
-    const ret = await nodeStatus.complete();
-    debugExecute(`**** ExecuteComplete:`, inspect(ret), nodeStatus.debug(plan.getId),
-        "\n-----------------------------\n\n");
-    return ret;
 }
 
 function shouldNotifyActingFor(status: DeployStatusExt) {
@@ -484,4 +548,15 @@ function printCycleGroups(group: string[]) {
     if (group.length < 1) throw new InternalError(`Cycle group with no members`);
     const c = [...group, group[0]];
     return "  " + c.join(" -> ");
+}
+
+function toElemOrWaitInfo(val: Handle | AdaptMountedElement | DependsOn): AdaptMountedElement | WaitInfo {
+    if (isMountedElement(val) || isWaitInfo(val)) return val;
+    if (!isHandle(val)) {
+        throw new Error(`Attempt to convert an invalid object to Element or WaitInfo: ${inspect(val)}`);
+    }
+    const elem = val.mountedOrig;
+    if (elem === undefined) throw new InternalError("element has no mountedOrig!");
+    if (elem === null) throw new ElementNotInDom();
+    return elem;
 }

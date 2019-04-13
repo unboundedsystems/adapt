@@ -6,37 +6,30 @@ import { Deployment } from "../server/deployment";
 import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/deployment_data";
 import {
     DeployStatus,
+    DeployStatusExt,
     EPNode,
     ExecuteComplete,
-    isDeployStatus,
-    isFinalStatus,
+    isFinalStatusExt,
+    StatusTracker,
+    toDeployStatus,
 } from "./deploy_types";
 
 export interface StatusTrackerOptions {
     deployment: Deployment;
     dryRun: boolean;
+    goalStatus: DeployStatus;
     nodes: EPNode[];
     sequence: DeploymentSequence;
     taskObserver: TaskObserver;
 }
 
-export enum InternalStatus {
-    ProxyDeploying = "ProxyDeploying",
+export async function createStatusTracker(options: StatusTrackerOptions): Promise<StatusTracker> {
+    const tracker = new StatusTrackerImpl(options);
+    await tracker.initDeploymentStatus(options.goalStatus);
+    return tracker;
 }
 
-export type DeployStatusExt = DeployStatus | InternalStatus;
-// tslint:disable-next-line: variable-name
-export const DeployStatusExt = { ...DeployStatus, ...InternalStatus };
-
-export function isFinalStatusExt(stat: DeployStatusExt) {
-    return isDeployStatus(stat) && isFinalStatus(stat);
-}
-
-export function toDeployStatus(stat: DeployStatusExt): DeployStatus {
-    return stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying : stat;
-}
-
-export class StatusTracker {
+export class StatusTrackerImpl implements StatusTracker {
     readonly deployment: Deployment;
     readonly dryRun: boolean;
     readonly nodeStatus: Record<DeployStatus, number>;
@@ -144,12 +137,16 @@ export class StatusTracker {
         return !isFinalStatusExt(this.get(n));
     }
 
+    output(n: EPNode, s: string) {
+        if (!n.element) return;
+        const task = this.taskMap.get(n);
+        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
+        task.updateStatus(s);
+    }
+
     async complete(): Promise<ExecuteComplete> {
         if (this.nodeStatus.Initial > 0) {
             throw new InternalError(`Nodes should not be in Initial state ${JSON.stringify(this.nodeStatus)}`);
-        }
-        if (this.nodeStatus.Deploying > 0) {
-            throw new InternalError(`Nodes should not be in Deploying state ${JSON.stringify(this.nodeStatus)}`);
         }
 
         const deploymentStatus =
