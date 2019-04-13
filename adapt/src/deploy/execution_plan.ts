@@ -113,7 +113,10 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         };
         this.addNode(node);
 
-        action.changes.forEach((c) => this.addDep(c.element, node));
+        action.changes.forEach((c) => {
+            this.addElem(c.element);
+            this.addDep(c.element, node);
+        });
         return node;
     }
 

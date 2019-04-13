@@ -126,7 +126,15 @@ export interface PluginManagerStartOptions {
     deployment: Deployment;
     logger: MessageLogger;
     dataDir: string;
-    taskObserver?: TaskObserver;
+}
+
+export interface ActOptions {
+    concurrency?: number;
+    dryRun?: boolean;
+    goalStatus?: DeployStatus;
+    taskObserver: TaskObserver;
+    timeoutMs?: number;
+    sequence: DeploymentSequence;
 }
 
 export interface ActionResult {
@@ -177,12 +185,11 @@ export interface DoneWaiting {
 export type WaitStatus = Waiting | DoneWaiting;
 
 export interface PluginManager {
-    taskObserver: TaskObserver;
     start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
         options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<PluginObservations>;
     analyze(): Action[];
-    act(dryRun: boolean): Promise<ActionResult[]>;
+    act(options: ActOptions): Promise<void>;
     finish(): Promise<void>;
 }
 

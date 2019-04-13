@@ -337,8 +337,8 @@ describe("createDeployment Tests", async function () {
 
     it("Should log error on action", async () => {
         await createError("ActError", [
-            /Error: ActError1/,
-            /Error: ActError2/,
+            /Error: ActError[12]/,
+            /Error: ActError[12]/,
             /Error creating deployment: Errors encountered during plugin action phase/
         ], true);
     });

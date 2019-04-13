@@ -1144,10 +1144,6 @@
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/@types/p-defer/-/p-defer-1.0.3.tgz#786ce79c86f779fcd9e9bec4f1fbd1167aeac064"
 
-"@types/p-map-series@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@types/p-map-series/-/p-map-series-1.0.1.tgz#2fbd18ac08db2528b57f944e0dee4ba4f2027e4e"
-
 "@types/p-settle@^2.0.1":
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/@types/p-settle/-/p-settle-2.0.1.tgz#06f4f681e8504c54789e0d3397a75b4d4d8a3692"
