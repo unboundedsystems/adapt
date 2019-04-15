@@ -9,7 +9,7 @@ import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
     AdaptMountedElement,
-    BuiltDomElement,
+    FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeploymentSequence } from "../server/deployment_data";
@@ -85,7 +85,7 @@ export enum ChangeType {
  */
 export interface ActionChange {
     type: ChangeType;
-    element: BuiltDomElement;
+    element: FinalDomElement;
     detail: string;
 }
 

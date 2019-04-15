@@ -1,8 +1,8 @@
 import Adapt, {
     ActionInfo,
     AdaptElementOrNull,
-    BuiltDomElement,
     ChangeType,
+    FinalDomElement,
     findElementsInDom,
     Handle,
     isHandle,
@@ -25,7 +25,7 @@ import {
 import {
     CFStackPrimitive,
     CFStackPrimitiveProps,
-    isCFStackPrimitiveBuiltElement,
+    isCFStackPrimitiveFinalElement,
 } from "./CFStack";
 import {
     adaptDeployIdTag,
@@ -183,7 +183,7 @@ function findResourceElems(dom: AdaptElementOrNull) {
 export function findStackElems(dom: AdaptElementOrNull): StackElement[] {
     const rules = <Style>{CFStackPrimitive} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isCFStackPrimitiveBuiltElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isCFStackPrimitiveFinalElement(e) ? e : null));
 }
 
 export function stacksWithDeployID(stacks: StackObs[] | undefined, deployID: string): StackObs[] {
@@ -255,9 +255,9 @@ export function computeStackChanges(
     const { to, from } = change;
 
     const getElems = () => {
-        const els: BuiltDomElement[] = [];
+        const els: FinalDomElement[] = [];
         const root = to || from || null;
-        if (root) els.push(root as BuiltDomElement);
+        if (root) els.push(root as FinalDomElement);
         return els.concat(findResourceElems(root));
     };
 
@@ -319,7 +319,7 @@ export function computeStackChanges(
 }
 
 type AwsQueryDomain = QueryDomain<AwsRegion, AwsSecret>;
-type StackElement = BuiltDomElement<CFStackPrimitiveProps>;
+type StackElement = FinalDomElement<CFStackPrimitiveProps>;
 type StackPair = WidgetPair<StackElement, StackObs>;
 
 // Exported for testing

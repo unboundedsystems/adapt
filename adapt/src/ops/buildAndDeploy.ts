@@ -28,7 +28,7 @@ import { createPluginManager } from "../deploy/plugin_support";
 import { isBuildOutputPartial } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
-import { AdaptMountedElement, BuiltDomElement } from "../jsx";
+import { AdaptMountedElement, FinalDomElement } from "../jsx";
 import {
     ExecutedQuery,
 } from "../observers";
@@ -109,7 +109,7 @@ export interface BuildResults extends FullBuildOptions {
     mountedOrigStatus: Status;
     executedQueries: ExecutedQueries;
     needsData: ExecutedQueries;
-    newDom: BuiltDomElement | null;
+    newDom: FinalDomElement | null;
 }
 
 function podify<T>(x: T): T {
@@ -145,7 +145,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         }
 
         let mountedOrig: AdaptMountedElement | null = null;
-        let newDom: BuiltDomElement | null = null;
+        let newDom: FinalDomElement | null = null;
         let buildMessages: Message[] = [];
         let executedQueries: ExecutedQueries = {};
 

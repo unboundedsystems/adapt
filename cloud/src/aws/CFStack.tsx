@@ -2,12 +2,12 @@ import aws from "aws-sdk";
 
 import Adapt, {
     BuildData,
-    BuiltDomElement,
     childrenToArray,
     Component,
+    FinalDomElement,
     gql,
-    isBuiltDomElement,
     isElement,
+    isFinalDomElement,
     mergeDefaultChildStatus,
     ObserveForStatus,
     PrimitiveComponent,
@@ -115,7 +115,7 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
     // don't currently have parent info in validate.
     validateChildren(children: any) {
         for (const k of childrenToArray(children)) {
-            if (isCFStackPrimitiveBuiltElement(k)) throw new Error(`Stack within stack`);
+            if (isCFStackPrimitiveFinalElement(k)) throw new Error(`Stack within stack`);
             if (isElement<WithChildren>(k)) this.validateChildren(k.props.children);
         }
     }
@@ -185,8 +185,8 @@ export class CFStackBase extends Component<CFStackProps, CFStackState> {
     }
 }
 
-export function isCFStackPrimitiveBuiltElement(val: any): val is BuiltDomElement<CFStackPrimitiveProps> {
-    return isBuiltDomElement(val) && val.componentType === CFStackPrimitive;
+export function isCFStackPrimitiveFinalElement(val: any): val is FinalDomElement<CFStackPrimitiveProps> {
+    return isFinalDomElement(val) && val.componentType === CFStackPrimitive;
 }
 
 // tslint:disable-next-line:variable-name

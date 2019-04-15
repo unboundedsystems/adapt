@@ -1,4 +1,4 @@
-import { Action, BuiltDomElement, ChangeType, Plugin, PluginOptions, registerPlugin } from "../../src";
+import { Action, ChangeType, FinalDomElement, Plugin, PluginOptions, registerPlugin } from "../../src";
 
 export class EchoPlugin implements Plugin<{}> {
     log_?: PluginOptions["log"];
@@ -26,7 +26,7 @@ export class EchoPlugin implements Plugin<{}> {
                 detail: "echo action1 Action",
                 changes: [{
                         type: ChangeType.create,
-                        element: dom as BuiltDomElement,
+                        element: dom as FinalDomElement,
                         detail: "echo action1 Change"
                 }]
             },
@@ -36,7 +36,7 @@ export class EchoPlugin implements Plugin<{}> {
                 detail: "echo action2 Action",
                 changes: [{
                         type: ChangeType.create,
-                        element: dom as BuiltDomElement,
+                        element: dom as FinalDomElement,
                         detail: "echo action2 Change"
                 }]
             },

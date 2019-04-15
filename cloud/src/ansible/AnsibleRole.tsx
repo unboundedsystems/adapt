@@ -1,6 +1,6 @@
 import {
-    BuiltDomElement,
-    isBuiltDomElement,
+    FinalDomElement,
+    isFinalDomElement,
     PrimitiveComponent,
 } from "@usys/adapt";
 import { AnsibleHost } from "./ansible_host";
@@ -19,7 +19,7 @@ export function roleName(props: AnsibleRoleProps): string | undefined {
 export class AnsibleRole extends PrimitiveComponent<AnsibleRoleProps> { }
 export default AnsibleRole;
 
-export function isAnsibleRoleBuiltElement(
-    val: any): val is BuiltDomElement<AnsibleRoleProps> {
-    return isBuiltDomElement(val) && val.componentType === AnsibleRole;
+export function isAnsibleRoleFinalElement(
+    val: any): val is FinalDomElement<AnsibleRoleProps> {
+    return isFinalDomElement(val) && val.componentType === AnsibleRole;
 }

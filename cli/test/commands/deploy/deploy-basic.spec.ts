@@ -33,7 +33,7 @@ const simplePluginTs = `
 import {
     Action,
     ActionChange,
-    BuiltDomElement,
+    FinalDomElement,
     ChangeType,
     domDiff,
     DomDiff,
@@ -67,7 +67,7 @@ class EchoPlugin implements Plugin<{}> {
         const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string): ActionChange[] =>
             [...diff[key]].map((element) => ({
                 type,
-                element: element as BuiltDomElement,
+                element: element as FinalDomElement,
                 detail
             }));
 

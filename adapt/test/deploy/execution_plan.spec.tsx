@@ -7,9 +7,9 @@ import sinon from "sinon";
 import Adapt, {
     Action,
     AdaptMountedElement,
-    BuiltDomElement,
     ChangeType,
     DeployStatus,
+    FinalDomElement,
     Group,
     handle,
 } from "../../src/";
@@ -81,7 +81,7 @@ describe("Execution plan", () => {
                 <Prim id={2} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const seriesActions = [0, 1].map((group) => kids.map((k, i): Action => ({
             type: ChangeType.create,
             detail: `Group${group} Action${i}`,
@@ -230,7 +230,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={2} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));
@@ -299,7 +299,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={3} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));
@@ -402,7 +402,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={3} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));
@@ -440,7 +440,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={3} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));
@@ -544,7 +544,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={4} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const spy = sinon.spy();
 
         // Add all the elems, with one Action per Prim. And add dependencies
@@ -642,7 +642,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={2} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
 
         plan.addElem(dom);
         plan.addElem(kids[0]);
@@ -729,7 +729,7 @@ describe("ExecutionPlanImpl", () => {
                 <Prim id={2} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));
@@ -870,7 +870,7 @@ describe("ExecutionPlanImpl", () => {
                 <DependPrim id={2} dep={dep} handle={hands[2]} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: BuiltDomElement[] = dom.props.children;
+        const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
         elems.forEach((e) => plan.addElem(e));

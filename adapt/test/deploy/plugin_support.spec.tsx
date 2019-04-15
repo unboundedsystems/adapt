@@ -12,7 +12,7 @@ import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
-import Adapt, { AdaptElementOrNull, AdaptMountedElement, BuiltDomElement, Group } from "../../src";
+import Adapt, { AdaptElementOrNull, AdaptMountedElement, FinalDomElement, Group } from "../../src";
 import {
     Action,
     ActOptions,
@@ -57,7 +57,7 @@ class TestPlugin implements Plugin<{}> {
             detail: `action${i}`,
             changes: [{
                 type: ChangeType.create,
-                element: dom.props.children[i - 1] as BuiltDomElement,
+                element: dom.props.children[i - 1] as FinalDomElement,
                 detail: `action${i}`,
             }]
         });
@@ -341,7 +341,7 @@ class SlowPlugin implements Plugin<{}> {
             detail: "action detail",
             changes: [{
                 type: ChangeType.create,
-                element: dom as BuiltDomElement,
+                element: dom as FinalDomElement,
                 detail: "change detail"
             }]
         };

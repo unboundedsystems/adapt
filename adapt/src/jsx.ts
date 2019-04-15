@@ -125,10 +125,10 @@ export function isSFCElement<P extends object = AnyProps>(val: any): val is Adap
  * intending to deal with a built DOM. They also add a level of indirection,
  * should we choose to modify the types somehow in the future.
  */
-export type BuiltDomElement<P extends object = AnyProps> = AdaptMountedPrimitiveElement<P>;
-export type PartiallyBuiltDomElement<P extends object = AnyProps> = AdaptMountedElement<P>;
-export const isBuiltDomElement = isMountedPrimitiveElement;
-export const isPartiallyBuiltDomElement = isMountedElement;
+export type FinalDomElement<P extends object = AnyProps> = AdaptMountedPrimitiveElement<P>;
+export type PartialFinalDomElement<P extends object = AnyProps> = AdaptMountedElement<P>;
+export const isFinalDomElement = isMountedPrimitiveElement;
+export const isPartialFinalDomElement = isMountedElement;
 
 export function componentStateNow<
     C extends Component<P, S>,

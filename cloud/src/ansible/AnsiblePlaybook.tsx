@@ -1,6 +1,6 @@
 import {
-    BuiltDomElement,
-    isBuiltDomElement,
+    FinalDomElement,
+    isFinalDomElement,
     PrimitiveComponent,
 } from "@usys/adapt";
 import { Env, Vars } from "./common";
@@ -50,14 +50,14 @@ export interface AnsiblePlaybookProps {
 export class AnsiblePlaybook extends PrimitiveComponent<AnsiblePlaybookProps> { }
 export default AnsiblePlaybook;
 
-export function isAnsiblePlaybookBuiltElement(
-    val: any): val is BuiltDomElement<AnsiblePlaybookProps> {
-    return isBuiltDomElement(val) && val.componentType === AnsiblePlaybook;
+export function isAnsiblePlaybookFinalElement(
+    val: any): val is FinalDomElement<AnsiblePlaybookProps> {
+    return isFinalDomElement(val) && val.componentType === AnsiblePlaybook;
 }
 
 export class AnsibleImplicitPlaybook extends AnsiblePlaybook { }
 
-export function isAnsibleImplicitPlaybookBuiltElement(
-    val: any): val is BuiltDomElement<AnsiblePlaybookProps> {
-    return isBuiltDomElement(val) && val.componentType === AnsibleImplicitPlaybook;
+export function isAnsibleImplicitPlaybookFinalElement(
+    val: any): val is FinalDomElement<AnsiblePlaybookProps> {
+    return isFinalDomElement(val) && val.componentType === AnsibleImplicitPlaybook;
 }

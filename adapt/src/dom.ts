@@ -13,23 +13,23 @@ import {
     AdaptMountedElement,
     AnyProps,
     BuildHelpers,
-    BuiltDomElement,
     childrenToArray,
     cloneElement,
     Component,
     createElement,
+    FinalDomElement,
     FunctionComponentTyp,
-    isBuiltDomElement,
     isComponentElement,
     isDeferredElementImpl,
     isElement,
     isElementImpl,
+    isFinalDomElement,
     isMountedElement,
     isMountedPrimitiveElement,
-    isPartiallyBuiltDomElement,
+    isPartialFinalDomElement,
     isPrimitiveElement,
     KeyPath,
-    PartiallyBuiltDomElement,
+    PartialFinalDomElement,
     popComponentConstructorData,
     pushComponentConstructorData,
     simplifyChildren,
@@ -182,7 +182,7 @@ class BuildResults {
                 `no messages to describe why`);
         }
         if (this.partialBuild) {
-            if (this.contents !== null && !isPartiallyBuiltDomElement(this.contents)) {
+            if (this.contents !== null && !isPartialFinalDomElement(this.contents)) {
                 throw new InternalError(`contents is not a mounted element: ${this.contents}`);
             }
             return {
@@ -194,7 +194,7 @@ class BuildResults {
             };
         }
 
-        if (this.contents !== null && !isBuiltDomElement(this.contents)) {
+        if (this.contents !== null && !isFinalDomElement(this.contents)) {
             throw new InternalError(`contents is not a valid built DOM element: ${this.contents}`);
         }
         return {
@@ -601,13 +601,13 @@ export interface BuildOutputBase {
 export interface BuildOutputPartial extends BuildOutputBase {
     buildErr: boolean;
     partialBuild: true;
-    contents: PartiallyBuiltDomElement | null;
+    contents: PartialFinalDomElement | null;
 }
 export function isBuildOutputPartial(v: any): v is BuildOutputPartial {
     return (
         ld.isObject(v) &&
         v.partialBuild === true &&
-        (v.contents === null || isPartiallyBuiltDomElement(v.contents))
+        (v.contents === null || isPartialFinalDomElement(v.contents))
     );
 }
 
@@ -621,14 +621,14 @@ export function isBuildOutputError(v: any): v is BuildOutputError {
 export interface BuildOutputSuccess extends BuildOutputBase {
     buildErr: false;
     partialBuild: false;
-    contents: BuiltDomElement | null;
+    contents: FinalDomElement | null;
 }
 export function isBuildOutputSuccess(v: any): v is BuildOutputSuccess {
     return (
         ld.isObject(v) &&
         v.partialBuild === false &&
         v.buildErr !== true &&
-        (v.contents === null || isBuiltDomElement(v.contents))
+        (v.contents === null || isFinalDomElement(v.contents))
     );
 }
 

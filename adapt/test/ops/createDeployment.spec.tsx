@@ -97,7 +97,7 @@ const simplePluginTs = `
 import {
     Action,
     AdaptElementOrNull,
-    BuiltDomElement,
+    FinalDomElement,
     ChangeType,
     Plugin,
     PluginOptions,
@@ -130,7 +130,7 @@ class EchoPlugin implements Plugin<{}> {
             detail,
             changes: [{
                 type: ChangeType.create,
-                element: dom as BuiltDomElement,
+                element: dom as FinalDomElement,
                 detail
             }]
         });

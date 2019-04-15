@@ -1,7 +1,7 @@
 import { TaskObserver } from "@usys/utils";
 import { inspect } from "util";
 import { InternalError } from "../error";
-import { isBuiltDomElement } from "../jsx";
+import { isFinalDomElement } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/deployment_data";
 import {
@@ -175,7 +175,7 @@ export class StatusTrackerImpl implements StatusTracker {
     private updateCount(n: EPNode, oldStat: DeployStatus, newStat: DeployStatus) {
         this.nodeStatus[oldStat]--;
         this.nodeStatus[newStat]++;
-        if (n.element && isBuiltDomElement(n.element)) {
+        if (n.element && isFinalDomElement(n.element)) {
             this.primStatus[oldStat]--;
             this.primStatus[newStat]++;
         }
