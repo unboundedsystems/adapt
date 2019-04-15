@@ -24,22 +24,32 @@ function isPodReady(pod: any) {
         pod.status.containerStatuses[0].ready);
 }
 
-describeLong("pgdemo system tests", function () {
+function jsonEql(json: string, ref: any) {
+    let obj: any;
+    try {
+        obj = JSON.parse(json);
+    } catch (e) {
+        throw new Error(json + "\n\n" + e.message);
+    }
+    expect(obj).eql(ref);
+}
+
+describeLong("reactapp system tests", function () {
     let kClient: k8sutils.KubeClient;
     let kDeployID: string | undefined;
     let dockerHost: string;
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "pgdemo");
-    mochaTmpdir.all("adapt-cli-test-pgdemo", { copy: copyDir });
+    const copyDir = path.join(projectsRoot, "reactapp");
+    mochaTmpdir.all("adapt-cli-test-reactapp", { copy: copyDir });
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
         const results = await Promise.all([
             mkInstance.client,
             mkInstance.info,
-            fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
+            fs.outputJson(path.join("deploy", "kubeconfig.json"), await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];
@@ -66,9 +76,10 @@ describeLong("pgdemo system tests", function () {
 
     systemTestChain
     .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
+    .do(() => process.chdir("deploy"))
     .command(["deploy:create", "k8s"])
 
-    .it("Should deploy pgdemo to k8s", async ({ stdout, stderr }) => {
+    .it("Should deploy reactapp to k8s", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).contains("Validating project [completed]");
         expect(stdout).contains("Creating new project deployment [completed]");
@@ -87,7 +98,18 @@ describeLong("pgdemo system tests", function () {
                 ...curlOptions,
                 `http://${dockerHost}:8080/`
             ]);
-            expect(resp).equals(`Hello World! The first movie is "The Incredibles"!`);
+            expect(resp).contains(`Unbounded Movie Database`);
+        });
+
+        await waitForNoThrow(5, 5, async () => {
+            const resp = await execa.stdout("curl", [
+                ...curlOptions,
+                `http://${dockerHost}:8080/api/search/The%20Incredibles`
+            ]);
+            jsonEql(resp, [{
+                title: "The Incredibles",
+                released: "Fri Nov 05 2004"
+            }]);
         });
     });
 });
