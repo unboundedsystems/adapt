@@ -2,8 +2,9 @@ import Adapt, { Style, } from "@usys/adapt";
 import { Service, ServiceProps } from "@usys/cloud";
 // tslint:disable-next-line:no-submodule-imports
 import { ServiceDeployment } from "@usys/cloud/k8s";
-import { Postgres } from "./lib";
-import { ProdPostgres, TestPostgres } from "./postgres";
+// tslint:disable-next-line:no-submodule-imports
+import { Postgres, TestPostgres } from "@usys/cloud/postgres";
+import { ProdPostgres } from "./postgres";
 
 export function kubeconfig() {
     // tslint:disable-next-line:no-var-requires

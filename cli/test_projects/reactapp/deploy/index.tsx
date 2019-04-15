@@ -1,6 +1,7 @@
 import Adapt, { Group } from "@usys/adapt";
 import { handles } from "@usys/cloud";
-import { Postgres } from "./lib";
+// tslint:disable-next-line:no-submodule-imports
+import { Postgres } from "@usys/cloud/postgres";
 import NodeService from "./NodeService";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
