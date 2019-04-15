@@ -24,7 +24,7 @@ interface HandleReg {
     nodes: Map<KeyPathJson, AdaptElement>;
 }
 
-export async function reanimateDom(xmlString: string): Promise<AdaptElementOrNull> {
+export async function reanimateDom(xmlString: string, deployID: string): Promise<AdaptElementOrNull> {
     const domNodesRoot = await domFromString(xmlString);
     if (domNodesRoot === null) return null;
 
@@ -33,12 +33,12 @@ export async function reanimateDom(xmlString: string): Promise<AdaptElementOrNul
         nodes: new Map<string, AdaptElement>(),
     };
 
-    const dom = await reanimateNode(domNodesRoot, [], handleReg);
+    const dom = await reanimateNode(domNodesRoot, [], handleReg, deployID);
     resolveHandles(handleReg);
     return dom;
 }
 
-function updateLifecycle(domNode: DOMNode, elem: AdaptElement): void {
+function updateLifecycle(domNode: DOMNode, elem: AdaptElement, deployID: string): void {
     if (!domNode.lifecycleInfo) return;
     if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
     const info = domNode.lifecycleInfo;
@@ -48,7 +48,9 @@ function updateLifecycle(domNode: DOMNode, elem: AdaptElement): void {
     elem.mount(
         domNode.lifecycleInfo.stateNamespace.slice(0, -1),
         domNode.lifecycleInfo.path,
-        domNode.lifecycleInfo.keyPath);
+        domNode.lifecycleInfo.keyPath,
+        deployID
+        );
     elem.reanimated = true;
 }
 
@@ -83,7 +85,8 @@ async function convertHandles(val: any, handleReg: HandleReg): Promise<unknown> 
 async function reanimateNode(
     domNode: DOMNode,
     parentPath: KeyPath,
-    handleReg: HandleReg
+    handleReg: HandleReg,
+    deployID: string,
 ): Promise<AdaptElement> {
 
     const nodeKey = domNode.props.key;
@@ -95,7 +98,7 @@ async function reanimateNode(
 
     const pChildren = childrenToArray(domNode.props.children).map(async (c) => {
         if (!isDOMNode(c)) return convertHandles(c, handleReg);
-        return reanimateNode(c, keyPath, handleReg);
+        return reanimateNode(c, keyPath, handleReg, deployID);
     });
     const children: any[] = await Promise.all(pChildren);
 
@@ -107,7 +110,7 @@ async function reanimateNode(
     }
 
     const node = createElement(component, props, ...children);
-    updateLifecycle(domNode, node);
+    updateLifecycle(domNode, node, deployID);
 
     handleReg.nodes.set(JSON.stringify(keyPath), node);
 

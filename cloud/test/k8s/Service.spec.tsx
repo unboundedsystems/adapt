@@ -1,5 +1,6 @@
 import Adapt, {
     AdaptElementOrNull,
+    ChangeType,
     childrenToArray,
     Group,
     handle,
@@ -171,7 +172,13 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
         should(actions.length).equal(1);
-        should(actions[0].description).match(/Creating\s.+test/);
+        should(actions[0].type).equal(ChangeType.create);
+        should(actions[0].detail).equal("Creating Service");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.create);
+        should(actions[0].changes[0].detail).equal("Creating Service");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
 
         await plugin.finish();
     });
@@ -204,7 +211,13 @@ describe("k8s Service Operation Tests", function () {
         obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
-        should(actions[0].description).match(/Replacing\s.+test/);
+        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].detail).equal("Replacing Service");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].detail).equal("Replacing Service");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
 
         await plugin.finish();
     });
@@ -265,7 +278,13 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
-        should(actions[0].description).match(/Creating\s.+test/);
+        should(actions[0].type).equal(ChangeType.create);
+        should(actions[0].detail).equal("Creating Service");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.create);
+        should(actions[0].changes[0].detail).equal("Creating Service");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal(name);
 
         await act(actions);
 
@@ -304,7 +323,13 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
-        should(actions[0].description).match(/Replacing\s.+test/);
+        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].detail).equal("Replacing Service");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].detail).equal("Replacing Service");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
 
         await act(actions);
 
@@ -379,7 +404,13 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
-        should(actions[0].description).match(/Destroying\s.+adapt-resource-[0-9A-Fa-f]+/);
+        should(actions[0].type).equal(ChangeType.delete);
+        should(actions[0].detail).equal("Destroying removed Service");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.delete);
+        should(actions[0].changes[0].detail).equal("Destroying removed Service");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
 
         await act(actions);
 

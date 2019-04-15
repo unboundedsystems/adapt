@@ -7,5 +7,6 @@ export class LocalCompute extends PrimitiveComponent<ComputeProps> {
     static defaultProps = {
         ip: "127.0.0.1",
     };
+    static noPlugin = true;
 }
 export default LocalCompute;

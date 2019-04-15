@@ -1,4 +1,4 @@
-import { MultiError } from "@usys/utils";
+import { isMultiError, MultiError } from "@usys/utils";
 import { DocumentNode as Query } from "graphql";
 import ld from "lodash";
 import pSettle from "p-settle";
@@ -38,9 +38,21 @@ export async function noStatusOnError(f: () => unknown | Promise<unknown>): Prom
         // tslint:disable-next-line:await-promise
         return (await f()) as Status; //FIXME(manishv) update when we fix status types
     } catch (e) {
-        if (ld.isError(e)) return { noStatus: e.message };
-        return { noStatus: util.inspect(e) };
+        return errorToNoStatus(e);
     }
+}
+
+export function errorToNoStatus(err: any): Status {
+    if (ld.isError(err)) return { noStatus: err.message };
+    return { noStatus: util.inspect(err) };
+}
+
+export function gqlGetOriginalErrors(err: any): Error[] | undefined {
+    if (!isMultiError(err)) return undefined;
+    return err.errors.map((e: any) => {
+        const orig = ld.isObject(e) && e.name === "GraphQLError" && e.originalError;
+        return orig || e;
+    });
 }
 
 export async function defaultChildStatus<P extends object, S = unknown>(

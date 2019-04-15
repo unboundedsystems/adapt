@@ -97,6 +97,11 @@ describeLong("Nodecellar system tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
+        // TODO(mark): This test currently currently generates a warning
+        // for the implicit playbook Element from the Ansible plugin not
+        // being found in the DOMs. Uncomment this when fixed.
+        //expect(ctx.stdout).does.not.contain("WARNING");
+
         const matches = ctx.stdout.match(newDeployRegex);
         expect(matches).to.be.an("array").with.length(2);
         if (matches && matches[1]) lDeployID = matches[1];
@@ -125,6 +130,7 @@ describeLong("Nodecellar system tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         const matches = ctx.stdout.match(newDeployRegex);
         expect(matches).to.be.an("array").with.length(2);
@@ -176,6 +182,10 @@ describeLong("Nodecellar system tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        // TODO(mark): This test currently currently generates a warning
+        // for the LocalContainer and LocalDockerHost elements not being
+        // claimed by plugins. Uncomment this when fixed.
+        //expect(ctx.stdout).does.not.contain("WARNING");
 
         const matches = ctx.stdout.match(newDeployRegex);
         expect(matches).to.be.an("array").with.length(2);

@@ -94,7 +94,15 @@ function defaultDomXmlOutput(namespace: string[]) {
 }
 
 const simplePluginTs = `
-import { Action, AdaptElementOrNull, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+import {
+    Action,
+    AdaptElementOrNull,
+    FinalDomElement,
+    ChangeType,
+    Plugin,
+    PluginOptions,
+    registerPlugin,
+} from "@usys/adapt";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -113,8 +121,20 @@ class EchoPlugin implements Plugin<{}> {
         this.log("observe");
         return {};
     }
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
+    analyze(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
         this.log("analyze");
+        if (oldDom == null && dom == null) return [];
+
+        const info = (detail: string) => ({
+            type: ChangeType.create,
+            detail,
+            changes: [{
+                type: ChangeType.create,
+                element: dom as FinalDomElement,
+                detail
+            }]
+        });
+
         if (dom != null && dom.componentType.name === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
@@ -122,15 +142,15 @@ class EchoPlugin implements Plugin<{}> {
             return [
                 // First action is purposely NOT returning a promise and doing
                 // a synchronous throw
-                { description: "echo error", act: () => { throw new Error("ActError1"); } },
+                { ...info("echo error"), act: () => { throw new Error("ActError1"); } },
                 // Second action is correctly implemented as an async function
                 // so will return a rejected promise.
-                { description: "echo error", act: async () => { throw new Error("ActError2"); } }
+                { ...info("echo error"), act: async () => { throw new Error("ActError2"); } }
             ];
         }
         return [
-            { description: "echo action1", act: () => this.doAction("action1") },
-            { description: "echo action2", act: () => this.doAction("action2") }
+            { ...info("echo action1"), act: () => this.doAction("action1") },
+            { ...info("echo action2"), act: () => this.doAction("action2") }
         ];
     }
     async finish() {
@@ -317,8 +337,8 @@ describe("createDeployment Tests", async function () {
 
     it("Should log error on action", async () => {
         await createError("ActError", [
-            /Error: ActError1/,
-            /Error: ActError2/,
+            /Error: ActError[12]/,
+            /Error: ActError[12]/,
             /Error creating deployment: Errors encountered during plugin action phase/
         ], true);
     });
@@ -361,8 +381,8 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
-        should(lstdout).match(/action1/);
-        should(lstdout).match(/action2/);
+        should(lstdout).not.match(/action1/);
+        should(lstdout).not.match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
 
         // Now update the deployment
@@ -396,8 +416,8 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);
         should(lstdout).match(/EchoPlugin: analyze/);
-        should(lstdout).match(/action1/);
-        should(lstdout).match(/action2/);
+        should(lstdout).not.match(/action1/);
+        should(lstdout).not.match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
 
     });

@@ -1,3 +1,4 @@
+import should from "should";
 import Adapt, {
     AdaptElement,
     build,
@@ -8,14 +9,13 @@ import Adapt, {
     Group,
     isElement,
     PropsType,
+    Sequence,
     StateStore,
+    useReadyFrom,
     WithChildren,
-} from "@usys/adapt";
-import should from "should";
-import { useReadyFrom } from "../src/ready";
-import { Sequence } from "../src/Sequence";
+} from "../../src";
 
-import { Prim } from "./Sequence.spec";
+import { Prim } from "../builtin_components/Sequence.spec";
 
 export function withWrapper<W extends Constructor<Component<any, any>>>(
     // tslint:disable-next-line:variable-name
@@ -33,7 +33,7 @@ export function withWrapper<W extends Constructor<Component<any, any>>>(
     };
 }
 
-describe("useForwardReady", () => {
+describe("useReadyFrom", () => {
 
     async function buildAndCheck(
         root: AdaptElement,
@@ -46,7 +46,7 @@ describe("useForwardReady", () => {
         return state;
     }
 
-    it("Should forward ready to wrapped component", async () => {
+    it("Should use ready from wrapped component", async () => {
         // tslint:disable-next-line:variable-name
         const Wrapped = withWrapper(Prim);
         const ready = [false, false, false, false];

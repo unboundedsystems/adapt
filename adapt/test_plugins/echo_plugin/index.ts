@@ -1,4 +1,4 @@
-import { Action, Plugin, PluginOptions, registerPlugin } from "../../src";
+import { Action, ChangeType, FinalDomElement, Plugin, PluginOptions, registerPlugin } from "../../src";
 
 export class EchoPlugin implements Plugin<{}> {
     log_?: PluginOptions["log"];
@@ -20,8 +20,26 @@ export class EchoPlugin implements Plugin<{}> {
     analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
         return [
-            { description: "echo action1", act: () => this.doAction("action1") },
-            { description: "echo action2", act: () => this.doAction("action2") }
+            {
+                act: () => this.doAction("action1"),
+                type: ChangeType.create,
+                detail: "echo action1 Action",
+                changes: [{
+                        type: ChangeType.create,
+                        element: dom as FinalDomElement,
+                        detail: "echo action1 Change"
+                }]
+            },
+            {
+                act: () => this.doAction("action2"),
+                type: ChangeType.create,
+                detail: "echo action2 Action",
+                changes: [{
+                        type: ChangeType.create,
+                        element: dom as FinalDomElement,
+                        detail: "echo action2 Change"
+                }]
+            },
         ];
     }
     async finish() {

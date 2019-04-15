@@ -1,17 +1,17 @@
-import Adapt, {
-    AdaptElement,
-    BuildHelpers,
-    Children,
-    childrenToArray,
-    Component,
-    Group,
-    Handle,
-    isElement,
-    isHandle
-} from "@usys/adapt";
 import { notNull } from "@usys/utils";
 import * as util from "util";
-import { isReady } from "./ready";
+import { Handle, isHandle } from "../handle";
+import {
+    AdaptElement,
+    BuildHelpers,
+    childrenToArray,
+    Component,
+    createElement,
+    isElement,
+    isReady,
+} from "../jsx";
+import { Children } from "../type_support";
+import { Group } from "./group";
 
 export interface SequenceProps extends Children<Handle | AdaptElement | null> { }
 
@@ -29,9 +29,11 @@ function checkChildren(kids: unknown[]) {
 }
 
 export abstract class Sequence extends Component<SequenceProps, SequenceState> {
+    static noPlugin = true;
+
     initialState() { return { stage: 0 }; }
 
-    build(h: BuildHelpers) {
+    build(h: BuildHelpers): AdaptElement | null {
         if (this.props.children === undefined) return null;
         const stages = childrenToArray(this.props.children).filter(notNull);
         checkChildren(stages);
@@ -44,8 +46,7 @@ export abstract class Sequence extends Component<SequenceProps, SequenceState> {
             return { stage: Math.max(prev.stage, nextStage) };
         });
 
-        return <Group key={this.props.key}>
-            {...stages.slice(0, this.state.stage + 1).filter(isElement)}
-        </Group >;
+        return createElement(Group, { key: this.props.key },
+            stages.slice(0, this.state.stage + 1).filter(isElement));
     }
 }

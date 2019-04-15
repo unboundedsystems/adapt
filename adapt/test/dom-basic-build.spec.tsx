@@ -78,8 +78,11 @@ class GetHelpers extends Component<{ f: (helpers: BuildHelpers) => void }> {
 describe("DOM Basic Build Tests", () => {
     it("Should build empty primitive", async () => {
         const orig = <Adapt.Group key="root" />;
-        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
 
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         const ref = deepFilterElemsToPublic(orig);
 
         should(Adapt).not.Null();
@@ -102,8 +105,11 @@ describe("DOM Basic Build Tests", () => {
 
     it("Should validate primitive component", async () => {
         const orig = <AlwaysErrorPrimitive key="root" />;
-        const { contents: dom, messages } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, messages, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
 
+        should(buildErr).be.True();
+        should(partialBuild).be.True();
         should(Adapt.isElement(dom)).True();
         should(dom).not.equal(orig);
         if (dom == null) {
@@ -126,7 +132,11 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="a" id={1} />
         </MakeGroup>;
 
-        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -153,7 +163,10 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="b" id={2} />
         </MakeGroup>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -184,7 +197,10 @@ describe("DOM Basic Build Tests", () => {
             <MakeMakeEmpty key="b" id={2} />
         </Adapt.Group>;
 
-        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -209,7 +225,10 @@ describe("DOM Basic Build Tests", () => {
             <MakeMakeEmpty key="b" id={2} />
         </MakeGroup>;
 
-        const { mountedOrig, contents: dom } = await Adapt.buildOnce(orig, null);
+        const { mountedOrig, contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -250,7 +269,10 @@ describe("DOM Basic Build Tests", () => {
             <Empty key="2" id={2} />
         </Adapt.Group>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -265,7 +287,10 @@ describe("DOM Basic Build Tests", () => {
             <DeferredFlex key="1" />
         </Adapt.Group>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -283,7 +308,10 @@ describe("DOM Basic Build Tests", () => {
             </DeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -307,7 +335,10 @@ describe("DOM Basic Build Tests", () => {
             </NonDeferredFlex>
         </Adapt.Group>;
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null);
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
         if (dom == null) {
             should(dom).not.Null();
             return;
@@ -350,6 +381,8 @@ describe("DOM Basic Build Tests", () => {
                 <Empty id={11} />
             </Abstract>;
         const res = await Adapt.buildOnce(orig, null);
+        should(res.buildErr).be.True();
+        should(res.partialBuild).be.True();
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -371,6 +404,8 @@ describe("DOM Basic Build Tests", () => {
                 <Empty id={11} />
             </SFCThrows>;
         const res = await Adapt.buildOnce(orig, null);
+        should(res.buildErr).be.True();
+        should(res.partialBuild).be.True();
         const dom = res.contents;
         if (dom == null) {
             should(dom).not.Null();
@@ -386,6 +421,8 @@ describe("DOM Basic Build Tests", () => {
     it("Should build DOM that returns null", async () => {
         const orig = <ReturnsNull />;
         const res = await Adapt.buildOnce(orig, null);
+        should(res.buildErr).be.False();
+        should(res.partialBuild).be.False();
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
@@ -400,6 +437,8 @@ describe("DOM Basic Build Tests", () => {
                 {Abstract} {rule(() => <ReturnsNull />)}
             </Style>;
         const res = await Adapt.buildOnce(orig, style);
+        should(res.buildErr).be.False();
+        should(res.partialBuild).be.False();
         should(res.messages).have.length(0);
         should(res.contents).be.Null();
     });
@@ -411,11 +450,14 @@ describe("DOM Shallow Build Tests", () => {
         const orig = <MakeGroup key="orig">{body}</MakeGroup>;
         const expected = deepFilterElemsToPublic(<Adapt.Group key="orig-Group" >{body}</Adapt.Group>);
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null, { shallow: true });
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null, { shallow: true });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
+        should(partialBuild).be.True();
+        should(buildErr).be.False();
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 
@@ -440,11 +482,14 @@ describe("DOM Shallow Build Tests", () => {
                 <Empty key="outer-Empty" id={2} />
             </Adapt.Group>);
 
-        const { contents: dom } = await Adapt.buildOnce(orig, null, { depth: 2 });
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null, { depth: 2 });
         if (dom == null) {
             should(dom).not.Null();
             return;
         }
+        should(partialBuild).be.True();
+        should(buildErr).be.False();
         should(deepFilterElemsToPublic(dom)).eql(expected);
     });
 });

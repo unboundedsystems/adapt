@@ -17,15 +17,19 @@ import {
     cloneElement,
     Component,
     createElement,
+    FinalDomElement,
     FunctionComponentTyp,
     isComponentElement,
     isDeferredElementImpl,
     isElement,
     isElementImpl,
+    isFinalDomElement,
     isMountedElement,
     isMountedPrimitiveElement,
+    isPartialFinalDomElement,
     isPrimitiveElement,
     KeyPath,
+    PartialFinalDomElement,
     popComponentConstructorData,
     pushComponentConstructorData,
     simplifyChildren,
@@ -65,6 +69,7 @@ class BuildResults {
     mountedElements: AdaptElement[];
     builtElements: AdaptElement[];
     stateChanged: boolean;
+    partialBuild: boolean;
 
     // These accumulate across build passes
     buildErr = false;
@@ -99,6 +104,7 @@ class BuildResults {
         this.mountedElements = [];
         this.builtElements = [];
         this.stateChanged = false;
+        this.partialBuild = false;
     }
 
     // Terminology is a little confusing here. Anything that allows the
@@ -143,6 +149,7 @@ class BuildResults {
             case MessageType.warning:
             case MessageType.error:
                 this.buildErr = true;
+                this.partialBuild = true;
         }
     }
 
@@ -152,6 +159,7 @@ class BuildResults {
         this.mountedElements.push(...other.mountedElements);
         this.builtElements.push(...other.builtElements);
         this.buildErr = this.buildErr || other.buildErr;
+        this.partialBuild = this.partialBuild || other.partialBuild;
         this.stateChanged = this.stateChanged || other.stateChanged;
         this.buildPassStarts += other.buildPassStarts;
         other.messages = [];
@@ -173,12 +181,25 @@ class BuildResults {
             throw new InternalError(`buildErr is true, but there are ` +
                 `no messages to describe why`);
         }
-        if (this.contents != null) {
-            if (!isMountedElement(this.contents)) {
+        if (this.partialBuild) {
+            if (this.contents !== null && !isPartialFinalDomElement(this.contents)) {
                 throw new InternalError(`contents is not a mounted element: ${this.contents}`);
             }
+            return {
+                partialBuild: true,
+                buildErr: this.buildErr,
+                messages: this.messages,
+                contents: this.contents,
+                mountedOrig: this.mountedOrig,
+            };
+        }
+
+        if (this.contents !== null && !isFinalDomElement(this.contents)) {
+            throw new InternalError(`contents is not a valid built DOM element: ${this.contents}`);
         }
         return {
+            partialBuild: false,
+            buildErr: false,
             messages: this.messages,
             contents: this.contents,
             mountedOrig: this.mountedOrig
@@ -215,14 +236,21 @@ function recordDomError(
     return { domError, message };
 }
 
-function buildHelpers(options: BuildOptionsInternal): BuildHelpers {
+export interface BuildHelpersOptions {
+    observerManager?: ObserverManagerDeployment;
+    deployID: string;
+}
+
+export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
     return {
         async elementStatus(handle: Handle) {
             const elem = handle.mountedOrig;
             if (elem == null) return { noStatus: true };
             if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
             try {
-                return await elem.statusWithMgr(options.observerManager);
+                return await (options.observerManager ?
+                    elem.statusWithMgr(options.observerManager) :
+                    elem.status());
             } catch (e) {
                 if (!isObserverNeedsData(e)) throw e;
                 return undefined;
@@ -442,11 +470,10 @@ function mountElement(
 
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
-        domPathToKeyPath(finalPath));
+        domPathToKeyPath(finalPath), options.deployID);
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
-    elem.buildData.deployID = options.deployID;
     return out;
 }
 
@@ -566,11 +593,47 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
 
 let buildCount = 0;
 
-export interface BuildOutput {
+export interface BuildOutputBase {
     mountedOrig: AdaptMountedElement | null;
-    contents: AdaptMountedElement | null;
     messages: Message[];
 }
+
+export interface BuildOutputPartial extends BuildOutputBase {
+    buildErr: boolean;
+    partialBuild: true;
+    contents: PartialFinalDomElement | null;
+}
+export function isBuildOutputPartial(v: any): v is BuildOutputPartial {
+    return (
+        ld.isObject(v) &&
+        v.partialBuild === true &&
+        (v.contents === null || isPartialFinalDomElement(v.contents))
+    );
+}
+
+export interface BuildOutputError extends BuildOutputPartial {
+    buildErr: true;
+}
+export function isBuildOutputError(v: any): v is BuildOutputError {
+    return isBuildOutputPartial(v) && v.buildErr === true;
+}
+
+export interface BuildOutputSuccess extends BuildOutputBase {
+    buildErr: false;
+    partialBuild: false;
+    contents: FinalDomElement | null;
+}
+export function isBuildOutputSuccess(v: any): v is BuildOutputSuccess {
+    return (
+        ld.isObject(v) &&
+        v.partialBuild === false &&
+        v.buildErr !== true &&
+        (v.contents === null || isFinalDomElement(v.contents))
+    );
+}
+
+export type BuildOutput = BuildOutputSuccess | BuildOutputPartial | BuildOutputError;
+
 export async function build(
     root: AdaptElement,
     styles: AdaptElementOrNull,
@@ -892,6 +955,8 @@ async function realBuildOnce(
                 out.error("User-created DomError component present in the DOM tree");
             }
         }
+
+        if (atDepthFlag) out.partialBuild = true;
 
         //We are here either because mountedElem was deferred, or because mountedElem === newRoot
         if (!deferring || atDepthFlag) {

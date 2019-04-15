@@ -30,7 +30,17 @@ const basicPackageJson = {
 };
 
 const simplePluginTs = `
-import { Action, Plugin, PluginOptions, registerPlugin } from "@usys/adapt";
+import {
+    Action,
+    ActionChange,
+    FinalDomElement,
+    ChangeType,
+    domDiff,
+    DomDiff,
+    Plugin,
+    PluginOptions,
+    registerPlugin
+} from "@usys/adapt";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -49,20 +59,42 @@ class EchoPlugin implements Plugin<{}> {
         this.log("observe", dom);
         return {};
     }
-    analyze(_oldDom: any, dom: any, _obs: {}): Action[] {
+    analyze(oldDom: any, dom: any, _obs: {}): Action[] {
         this.log("analyze", dom);
+        if (oldDom == null && dom == null) return [];
+
+        const diff = domDiff(oldDom, dom);
+        const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string): ActionChange[] =>
+            [...diff[key]].map((element) => ({
+                type,
+                element: element as FinalDomElement,
+                detail
+            }));
+
+        const info = (detail: string) => {
+            const changes: ActionChange[] = [];
+            changes.push(...makeChanges("added", ChangeType.create, detail));
+            changes.push(...makeChanges("deleted", ChangeType.delete, detail));
+            changes.push(...makeChanges("commonNew", ChangeType.modify, detail));
+
+            return {
+                type: ChangeType.modify,
+                detail,
+                changes,
+            };
+        };
 
         if (dom != null && dom.componentType.name === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
         if (dom != null && dom.componentType.name === "ActError") {
             return [
-                { description: "echo error", act: () => { throw new Error("ActError"); } },
+                { ...info("echo error"), act: () => { throw new Error("ActError"); } },
             ];
         }
         return [
-            { description: "echo action1", act: () => this.doAction("action1") },
-            { description: "echo action2", act: () => this.doAction("action2") }
+            { ...info("echo action1"), act: () => this.doAction("action1") },
+            { ...info("echo action2"), act: () => this.doAction("action2") }
         ];
     }
     async finish() {
@@ -306,6 +338,7 @@ describe("Deploy destroy tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
         deployID = getNewDeployID(ctx.stdout);
     })
     .delayedcommand(() => ["deploy:destroy", deployID!])
@@ -315,6 +348,7 @@ describe("Deploy destroy tests", function () {
         expect(ctx.stdout).contains("Stopping project deployment [completed]");
         expect(ctx.stdout).contains("Listing Deployments [completed]");
         expect(ctx.stdout).does.not.contain("Listing Deployments [completed]\n\ntest::dev-");
+        expect(ctx.stdout).does.not.contain("WARNING");
     });
 });
 
@@ -336,6 +370,7 @@ describe("Deploy create tests - fresh install", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         // Should not have debug=build output
         expect(ctx.stdout).does.not.contain("BUILD [start]");
@@ -387,7 +422,7 @@ Deployment not created due to errors$`);
         const msgRe = RegExp(
 `^This project cannot be deployed.
 2 errors encountered during deploy:
-\\[deploy:create:deploy:act\\] : --Error during echo error
+\\[deploy:create:deploy:act\\] : --Error while echo error
 Error: ActError
 ----------
 \\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
@@ -405,7 +440,7 @@ DeployID is: test::ActError-[a-z]{4}$`);
         expect(stdout).contains("Applying changes to environment [failed]");
         expect(stdout).contains("Creating new project deployment [failed]");
 
-        expect(ctx.stderr).contains("ERROR: --Error during echo error\nError: ActError");
+        expect(ctx.stderr).contains("ERROR: --Error while echo error\nError: ActError");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -453,6 +488,7 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stdout).contains("✔ Validating project");
         expect(ctx.stdout).contains("✔ Creating new project deployment");
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -494,6 +530,7 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout);
 
@@ -517,6 +554,7 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout, true);
 
@@ -531,6 +569,7 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout);
 
@@ -564,6 +603,7 @@ describe("Deploy create basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         // Should not have debug=build output
         expect(ctx.stdout).does.not.contain("BUILD [start]");
@@ -634,6 +674,7 @@ describe("Observer Needs Data Reporting", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).not.contains("still needs data");
+        expect(ctx.stdout).does.not.contain("WARNING");
         checkPluginStdout(ctx.stdout);
 
         await checkBasicIndexTsxState(
@@ -652,6 +693,7 @@ describe("Observer Needs Data Reporting", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains("Observer 'MockObserver' still needs data");
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout);
 
@@ -674,6 +716,7 @@ describe("Observer Needs Data Reporting", function () {
             expect(ctx.stdout).contains("Validating project [completed]");
             expect(ctx.stdout).contains("Creating new project deployment [completed]");
             expect(ctx.stdout).not.contains("still needs data");
+            expect(ctx.stdout).does.not.contain("WARNING");
 
             checkPluginStdout(ctx.stdout);
 
@@ -698,6 +741,7 @@ describe("Observer Needs Data Reporting", function () {
             expect(ctx.stdout).contains("Validating project [completed]");
             expect(ctx.stdout).contains("Creating new project deployment [completed]");
             if (shouldNeed) expect(ctx.stdout).contains("Observer 'MockObserver' still needs data");
+            expect(ctx.stdout).does.not.contain("WARNING");
 
             checkPluginStdout(ctx.stdout);
 
@@ -818,6 +862,7 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment created successfully. DeployID is:`);
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         const matches = ctx.stdout.match(newDeployRegex);
         expect(matches).to.be.an("array").with.length(2);
@@ -838,6 +883,7 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout);
 
@@ -854,6 +900,7 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
         expect(ctx.stdout).contains(`Deployment ${deployID} updated successfully`);
+        expect(ctx.stdout).does.not.contain("WARNING");
 
         checkPluginStdout(ctx.stdout);
 
@@ -869,6 +916,7 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stdout).contains(`{
   "noStatus": "element has no children"
 }`);
+        expect(ctx.stdout).does.not.contain("WARNING");
     });
 });
 

@@ -1,13 +1,15 @@
 import Adapt, {
-    AdaptElement,
+    ActionInfo,
     AdaptElementOrNull,
     build,
+    ChangeType,
+    FinalDomElement,
     findElementsInDom,
-    isMountedElement,
+    isFinalDomElement,
     QueryDomain,
     registerPlugin,
     Style,
-    UpdateType,
+    WidgetChange,
     WidgetPair,
     WidgetPlugin,
 } from "@usys/adapt";
@@ -24,46 +26,46 @@ import {
     AnsibleGroup,
     AnsibleGroupProps,
     getGroups,
-    isAnsibleGroupElement,
+    isAnsibleGroupFinalElement,
 } from "./AnsibleGroup";
 import {
     AnsibleImplicitPlaybook,
     AnsiblePlaybook,
     AnsiblePlaybookProps,
-    isAnsibleImplicitPlaybookElement,
-    isAnsiblePlaybookElement,
+    isAnsibleImplicitPlaybookFinalElement,
+    isAnsiblePlaybookFinalElement,
 } from "./AnsiblePlaybook";
 import {
     AnsibleRole,
     AnsibleRoleProps,
-    isAnsibleRoleElement,
+    isAnsibleRoleFinalElement,
     roleName,
 } from "./AnsibleRole";
 
 interface PlaybookObs { }
 
 type AnsibleQueryDomain = QueryDomain<null, null>;
-type PlaybookElement = AdaptElement<AnsiblePlaybookProps>;
+type PlaybookElement = FinalDomElement<AnsiblePlaybookProps>;
 type PlaybookPair = WidgetPair<PlaybookElement, PlaybookObs>;
-type RoleElement = AdaptElement<AnsibleRoleProps>;
-type GroupElement = AdaptElement<AnsibleGroupProps>;
+type RoleElement = FinalDomElement<AnsibleRoleProps>;
+type GroupElement = FinalDomElement<AnsibleGroupProps>;
 
 export function findPlaybookElems(dom: AdaptElementOrNull): PlaybookElement[] {
     const rules = <Style>{AnsiblePlaybook},{AnsibleImplicitPlaybook} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsiblePlaybookElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsiblePlaybookFinalElement(e) ? e : null));
 }
 
 export function findRoleElems(dom: AdaptElementOrNull): RoleElement[] {
     const rules = <Style>{AnsibleRole} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsibleRoleElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsibleRoleFinalElement(e) ? e : null));
 }
 
 export function findGroupElems(dom: AdaptElementOrNull): GroupElement[] {
     const rules = <Style>{AnsibleGroup} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isAnsibleGroupElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isAnsibleGroupFinalElement(e) ? e : null));
 }
 
 // QueryDomain for Ansible is always local
@@ -213,13 +215,16 @@ function implicitPlaybookFile(pluginDir: string) {
     return path.join(pluginDir, "implicit_playbook.yaml");
 }
 
-function playbookFile(el: PlaybookElement, pluginDir: string) {
-    if (el.props.playbookFile) return el.props.playbookFile;
-
-    if (!isMountedElement(el)) {
+function playbookElementId(el: PlaybookElement) {
+    if (!isFinalDomElement(el)) {
         throw new Error(`Internal error: can only compute name of mounted elements`);
     }
-    return path.join(pluginDir, `playbook_${sha256hex(el.id).slice(0, 16)}.yaml`);
+    return sha256hex(el.id).slice(0, 16);
+}
+
+function playbookFile(el: PlaybookElement, pluginDir: string) {
+    if (el.props.playbookFile) return el.props.playbookFile;
+    return path.join(pluginDir, `playbook_${playbookElementId(el)}.yaml`);
 }
 
 function inventoryFile(pluginDir: string) {
@@ -290,8 +295,38 @@ async function implicitPlaybook(pluginDir: string): Promise<PlaybookElement> {
     if (built.messages.length !== 0) {
         throw new Error(`Internal Error: Build of implicit playbook failed: ${inspect(built.messages)}`);
     }
-    if (!isAnsibleImplicitPlaybookElement(built.contents)) throw new Error(`Internal error`);
+    if (!isAnsibleImplicitPlaybookFinalElement(built.contents)) throw new Error(`Internal error`);
     return built.contents;
+}
+
+interface AnsibleObjects {
+    hosts: ObjectSet<AnsibleHost>;
+    groups: GroupElement[];
+    playbooks: PlaybookElement[];
+    roles: RoleElement[];
+    rolesWithHost: RoleElement[];
+}
+
+async function findAnsibleObjects(dom: AdaptElementOrNull, dataDir: string): Promise<AnsibleObjects> {
+    const roles = findRoleElems(dom);
+    const groups = findGroupElems(dom);
+
+    const hosts = new ObjectSet<AnsibleHost>(undefined,
+        { ansible_port: 22, ansible_user: "root" }
+    );
+
+    // Add all hosts from all roles and all groups
+    const rolesWithHost = roles.filter((r) => {
+        const host = r.props.ansibleHost;
+        if (host) hosts.add(host);
+        return host != null;
+    });
+    groups.forEach((r) => hosts.add(r.props.ansibleHost));
+
+    const playbooks = findPlaybookElems(dom);
+    if (rolesWithHost.length > 0) playbooks.push(await implicitPlaybook(dataDir));
+
+    return { hosts, groups, playbooks, roles, rolesWithHost };
 }
 
 // Exported for testing
@@ -299,45 +334,41 @@ export class AnsiblePluginImpl
     extends WidgetPlugin<PlaybookElement, PlaybookObs, AnsibleQueryDomain> {
 
     seriesActions = true; // Don't run playbooks in parallel
-    hosts?: ObjectSet<AnsibleHost>;
-    groups?: GroupElement[];
-    roles?: RoleElement[];
-    playbooks?: PlaybookElement[];
+    prevDom?: AdaptElementOrNull;
+    curDom?: AdaptElementOrNull;
+    prevObjs?: AnsibleObjects;
+    curObjs?: AnsibleObjects;
 
+    // NOTE(mark): This work is being done by hijacking observe only because
+    // analyze does not currently allow async operations. This should likely
+    // be in findElems instead.
     async observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
-        this.roles = findRoleElems(dom);
-        this.groups = findGroupElems(dom);
+        this.prevDom = prevDom;
+        this.curDom = dom;
+        this.prevObjs = await findAnsibleObjects(prevDom, this.dataDir);
+        this.curObjs = await findAnsibleObjects(dom, this.dataDir);
+        const { hosts, groups, roles, playbooks } = this.curObjs;
 
-        const hosts = new ObjectSet<AnsibleHost>(undefined,
-            { ansible_port: 22, ansible_user: "root" }
-        );
-
-        // Add all hosts from all roles and all groups
-        const rolesWithHost = this.roles.filter((r) => {
-            const host = r.props.ansibleHost;
-            if (host) hosts.add(host);
-            return host != null;
-        });
-        this.groups.map((r) => hosts.add(r.props.ansibleHost));
-        this.hosts = hosts;
-
-        this.playbooks = findPlaybookElems(dom);
-        await writePlaybooks(this.playbooks, this.dataDir);
-        if (rolesWithHost.length > 0) this.playbooks.push(await implicitPlaybook(this.dataDir));
+        await writePlaybooks(playbooks, this.dataDir);
 
         if (hosts.length > 0) {
-            await writeInventory(this.hosts, this.groups, this.dataDir);
-            await writeImplicitPlaybook(this.roles, this.dataDir);
-            await installGalaxyRoles(this.roles, this.dataDir, this.log);
+            await writeInventory(hosts, groups, this.dataDir);
+            await writeImplicitPlaybook(roles, this.dataDir);
+            await installGalaxyRoles(roles, this.dataDir, this.log);
         }
 
         return super.observe(prevDom, dom);
     }
 
-    findElems = (_dom: AdaptElementOrNull): PlaybookElement[] => {
-        if (!this.playbooks) throw new Error(`Ansible plugin: playbooks not initialized yet`);
-        return this.playbooks;
+    findElems = (dom: AdaptElementOrNull): PlaybookElement[] => {
+        const objs =
+            dom === this.curDom ? this.curObjs :
+            dom === this.prevDom ? this.prevObjs :
+            undefined;
+        if (!objs) throw new Error(`Unexpected DOM passed to findElems`);
+        return objs.playbooks;
     }
+
     getElemQueryDomain = (el: PlaybookElement) => {
         return queryDomain(el);
     }
@@ -352,14 +383,49 @@ export class AnsiblePluginImpl
     getWidgetTypeFromElem = (_el: PlaybookElement): string => {
         return "Ansible Playbook";
     }
-    getWidgetIdFromElem = (_el: PlaybookElement): string => {
-        // Unclear where we might get this
-        return "FIXME_MRT_ID";
+    getWidgetIdFromElem = (el: PlaybookElement): string => {
+        return playbookElementId(el);
     }
 
-    needsUpdate = (_el: PlaybookElement, _obs: PlaybookObs): UpdateType => {
-        // FIXME(mark)
-        return UpdateType.modify;
+    computeChanges = (change: WidgetChange<PlaybookElement>, obs: PlaybookObs | undefined): ActionInfo => {
+        const changes = new Set<FinalDomElement>();
+        const addChanges = (els: FinalDomElement[] | undefined) => {
+            if (els) els.forEach((el) => changes.add(el));
+        };
+        const actionInfo = (type: ChangeType, detail: string) => {
+            return {
+                type,
+                detail,
+                changes: [...changes].map((element) => ({ type, element, detail }))
+            };
+        };
+
+        if (!this.curObjs) throw new Error(`Internal error: curObjs not set`);
+        const { groups, rolesWithHost } = this.curObjs;
+        const playbook = change.to || change.from;
+        if (playbook) {
+            addChanges([playbook]);
+            if (playbook.componentType === AnsibleImplicitPlaybook) {
+                addChanges(rolesWithHost);
+            }
+        }
+        addChanges(groups);
+
+        if (change.from == null && change.to == null) {
+            throw new Error(`Reverting unrecognized Ansible Playbooks is not currently supported`);
+        }
+        if (change.to == null) {
+            return actionInfo(ChangeType.delete, "Executing Playbook revert");
+        }
+
+        if (obs == null) {
+            return actionInfo(ChangeType.create, "Executing Playbook");
+        }
+
+        // FIXME(mark): Cannot currently determine the state of the system
+        // to evaluate whether the playbook needs run or not. So just always
+        // execute for the moment.
+        return actionInfo(ChangeType.modify, "Executing Playbook");
     }
 
     getObservations = async (_domain: AnsibleQueryDomain, _deployID: string): Promise<PlaybookObs[]> => {

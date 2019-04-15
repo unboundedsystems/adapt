@@ -1,3 +1,4 @@
+import should from "should";
 import Adapt, {
     AdaptElement,
     build,
@@ -8,8 +9,8 @@ import Adapt, {
     handle,
     isElement,
     StateStore
-} from "@usys/adapt";
-import should from "should";
+} from "../../src";
+import { Sequence } from "../../src/builtin_components/sequence";
 
 export class Prim extends Adapt.PrimitiveComponent<{ id: any, ready: () => boolean }> {
 
@@ -25,7 +26,6 @@ export class Prim extends Adapt.PrimitiveComponent<{ id: any, ready: () => boole
         return this.props.ready();
     }
 }
-import { Sequence } from "../src/Sequence";
 
 describe("Sequence Component Tests", () => {
     it("Should instantiate with no children", async () => {

@@ -10,7 +10,7 @@ export async function act(actions: Action[]) {
         try {
             await action.act();
         } catch (e) {
-            throw new Error(`${action.description}: ${util.inspect(e)}`);
+            throw new Error(`${action.detail} Action failed: ${util.inspect(e)}`);
         }
     }
 }

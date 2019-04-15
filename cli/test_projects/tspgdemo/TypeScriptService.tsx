@@ -1,5 +1,5 @@
-import Adapt, { Group, handle, Handle } from "@usys/adapt";
-import { Sequence, useTypescriptBuild } from "@usys/cloud";
+import Adapt, { Group, handle, Handle, Sequence } from "@usys/adapt";
+import { useTypescriptBuild } from "@usys/cloud";
 // tslint:disable-next-line:no-submodule-imports
 import { EnvVar, K8sContainer, Pod, Service } from "@usys/cloud/k8s";
 

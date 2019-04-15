@@ -12,10 +12,21 @@ import should from "should";
 import * as sinon from "sinon";
 
 import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
-import Adapt, { AdaptElementOrNull, Group } from "../../src";
+import Adapt, { AdaptElementOrNull, AdaptMountedElement, FinalDomElement, Group } from "../../src";
+import {
+    Action,
+    ActOptions,
+    ChangeType,
+    Plugin,
+    PluginManager,
+    PluginManagerStartOptions,
+    PluginModule,
+    PluginOptions,
+} from "../../src/deploy";
 import * as pluginSupport from "../../src/deploy/plugin_support";
 import { MockAdaptContext, mockAdaptContext } from "../../src/ts";
-import { packageDirs } from "../testlib";
+import { createMockDeployment } from "../server/mocks";
+import { doBuild, Empty, packageDirs } from "../testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
@@ -26,10 +37,10 @@ async function doAction(name: string, cb: (op: string) => void) {
     cb(name);
 }
 
-class TestPlugin implements pluginSupport.Plugin<{}> {
+class TestPlugin implements Plugin<{}> {
     constructor(readonly spy: sinon.SinonSpy) { }
 
-    async start(options: pluginSupport.PluginOptions) {
+    async start(options: PluginOptions) {
         this.spy("start", options);
     }
     async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
@@ -38,11 +49,21 @@ class TestPlugin implements pluginSupport.Plugin<{}> {
         return obs;
     }
 
-    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): pluginSupport.Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: {}): Action[] {
         this.spy("analyze", dom, obs);
+        if (dom == null) throw new Error(`null dom not handled`);
+        const info = (i: number) => ({
+            type: ChangeType.create,
+            detail: `action${i}`,
+            changes: [{
+                type: ChangeType.create,
+                element: dom.props.children[i - 1] as FinalDomElement,
+                detail: `action${i}`,
+            }]
+        });
         return [
-            { description: "action1", act: () => doAction("action1", this.spy) },
-            { description: "action2", act: () => doAction("action2", this.spy) }
+            { act: () => doAction("action1", this.spy), ...info(1) },
+            { act: () => doAction("action2", this.spy), ...info(2) },
         ];
     }
     async finish() {
@@ -51,21 +72,31 @@ class TestPlugin implements pluginSupport.Plugin<{}> {
 }
 
 describe("Plugin Support Basic Tests", () => {
-    let mgr: pluginSupport.PluginManager;
+    let mgr: PluginManager;
     let spy: sinon.SinonSpy;
     let logger: MockLogger;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     let dataDir: string;
     let taskObserver: TaskObserver;
-    const dom = <Group />;
+    let dom: AdaptMountedElement;
+    let kids: AdaptMountedElement[];
+    let actOptions: ActOptions;
+    const orig =
+        <Group>
+            <Empty id={0} />
+            <Empty id={1} />
+        </Group>;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        dom = (await doBuild(orig)).dom;
+        kids = dom.props.children;
         spy = sinon.spy();
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
-        const registered = new Map<string, pluginSupport.PluginModule>();
+        taskObserver.started();
+        const registered = new Map<string, PluginModule>();
         registered.set("TestPlugin", {
             name: "TestPlugin",
             module,
@@ -78,8 +109,11 @@ describe("Plugin Support Basic Tests", () => {
         dataDir = path.join(process.cwd(), "pluginData");
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
+        };
+        actOptions = {
+            sequence: await options.deployment.newSequence(),
             taskObserver,
         };
     });
@@ -131,27 +165,23 @@ describe("Plugin Support Basic Tests", () => {
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
-        should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
-        should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["action1", "action2"]);
-        should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Created, TaskState.Created]);
+        should(taskNames).have.length(0);
     });
 
     it("Should call actions", async () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(false);
+        await mgr.act(actOptions);
         await mgr.finish();
         should(spy.callCount).equal(6);
         should(spy.getCall(0).args[0]).eql("start");
         should(spy.getCall(0).args[1].deployID).eql("deploy123");
         should(spy.getCall(1).args).eql(["observe", dom, { test: "object" }]);
         should(spy.getCall(2).args).eql(["analyze", dom, { test: "object" }]);
-        should(spy.getCall(3).args).eql(["action1"]);
-        should(spy.getCall(4).args).eql(["action2"]);
+        // The two actions can be called in either order
+        should([spy.getCall(3).args, spy.getCall(4).args])
+            .containDeep([ ["action1"], ["action2"] ]);
         should(spy.getCall(5).args).eql(["finish"]);
         const contents = logger.stdout;
         should(contents).match(/action1/);
@@ -160,18 +190,18 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep([dom, ...kids].map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["action1", "action2"]);
+            .containDeep(["Group", "action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Complete, TaskState.Complete]);
+            .eql([TaskState.Complete, TaskState.Complete, TaskState.Complete]);
     });
 
     it("Should not call actions on dry run", async () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(true);
+        await mgr.act({ ...actOptions, dryRun: true });
         await mgr.finish();
         should(spy.callCount).equal(4);
         should(spy.getCall(0).args[0]).eql("start");
@@ -186,29 +216,32 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep([dom, ...kids].map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["action1", "action2"]);
+            .containDeep(["Group", "action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Skipped, TaskState.Skipped]);
+            .eql([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
     });
 
     it("Should not allow illegal call sequences", async () => {
         await mgr.start(null, dom, options);
         should(() => mgr.analyze()).throw();
-        await should(mgr.act(false)).rejectedWith(Error);
+        await should(mgr.act(actOptions)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
 
         await mgr.observe();
-        await should(mgr.act(false)).rejectedWith(Error);
+        await should(mgr.act(actOptions)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
 
         mgr.analyze();
-        await mgr.act(true); //dry run
-        await should(mgr.act(false)).rejectedWith(/new TaskObserver must be provided/);
+        await mgr.act({ ...actOptions, dryRun: true });
+        taskObserver.complete();
+        await should(mgr.act(actOptions)).rejectedWith(/new TaskObserver must be provided/);
 
-        mgr.taskObserver = createTaskObserver("parent2", { logger });
-        await mgr.act(false);
+        taskObserver = createTaskObserver("parent2", { logger });
+        taskObserver.started();
+        actOptions.taskObserver = taskObserver;
+        await mgr.act(actOptions);
         await mgr.finish();
     });
 
@@ -223,7 +256,7 @@ describe("Plugin Support Basic Tests", () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(true);
+        await mgr.act({ ...actOptions, dryRun: true });
         should(spy.callCount).equal(3);
         should(spy.getCall(0).args[0]).eql("start");
         should(spy.getCall(0).args[1].deployID).eql("deploy123");
@@ -236,32 +269,34 @@ describe("Plugin Support Basic Tests", () => {
         const tasks = getTasks();
         let taskNames = Object.keys(tasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep([dom, ...kids].map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["action1", "action2"]);
+            .containDeep(["Group", "action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Skipped, TaskState.Skipped]);
+            .eql([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
 
         // Provide a new taskObserver for the second act()
         taskObserver = createTaskObserver("parent2", { logger });
-        mgr.taskObserver = taskObserver;
-        await mgr.act(false);
+        taskObserver.started();
+        actOptions.taskObserver = taskObserver;
+        await mgr.act(actOptions);
         await mgr.finish();
 
         should(spy.callCount).equal(6);
-        should(spy.getCall(3).args).eql(["action1"]);
-        should(spy.getCall(4).args).eql(["action2"]);
+        // The two actions can be called in either order
+        should([spy.getCall(3).args, spy.getCall(4).args])
+            .containDeep([ ["action1"], ["action2"] ]);
         should(spy.getCall(5).args).eql(["finish"]);
 
         const newTasks = getTasks();
         should(newTasks).not.equal(tasks);
-        taskNames = Object.keys(tasks);
+        taskNames = Object.keys(newTasks);
         should(taskNames)
-            .containDeep(["TestPlugin.0", "TestPlugin.1"]);
+            .containDeep([dom, ...kids].map((e) => e.id));
         should(taskNames.map((n) => newTasks[n]!.description))
-            .containDeep(["action1", "action2"]);
+            .containDeep(["Group", "action1", "action2"]);
         should(taskNames.map((n) => newTasks[n]!.state))
-            .containDeep([TaskState.Complete, TaskState.Complete]);
+            .eql([TaskState.Complete, TaskState.Complete, TaskState.Complete]);
     });
 
 });
@@ -278,7 +313,7 @@ class Concurrent {
     }
 }
 
-class SlowPlugin implements pluginSupport.Plugin<{}> {
+class SlowPlugin implements Plugin<{}> {
     local = new Concurrent();
 
     constructor(
@@ -287,7 +322,7 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
         public shared: Concurrent,
         ) { }
 
-    async start(options: pluginSupport.PluginOptions) {/**/}
+    async start(options: PluginOptions) {/**/}
     async observe(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull) {
         return {};
     }
@@ -300,11 +335,20 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
         this.local.dec();
         this.shared.dec();
     }
-    analyze(_oldDom: AdaptElementOrNull, _dom: AdaptElementOrNull, _obs: {}): pluginSupport.Action[] {
+    analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
+        const info = {
+            type: ChangeType.create,
+            detail: "action detail",
+            changes: [{
+                type: ChangeType.create,
+                element: dom as FinalDomElement,
+                detail: "change detail"
+            }]
+        };
         return [
-            { description: "action1", act: this.act },
-            { description: "action2", act: this.act },
-            { description: "action3", act: this.act },
+            { ...info, act: this.act },
+            { ...info, act: this.act },
+            { ...info, act: this.act },
         ];
     }
     async finish() {
@@ -313,27 +357,35 @@ class SlowPlugin implements pluginSupport.Plugin<{}> {
 }
 
 describe("Plugin concurrency", () => {
-    let mgr: pluginSupport.PluginManager;
+    let mgr: PluginManager;
     let logger: MockLogger;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     let dataDir: string;
-    let registered: Map<string, pluginSupport.PluginModule>;
+    let registered: Map<string, PluginModule>;
     let shared: Concurrent;
-    const dom = <Group />;
+    let dom: AdaptMountedElement;
+    let actOptions: ActOptions;
+    const orig = <Group />;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        dom = (await doBuild(orig)).dom;
         logger = createMockLogger();
-        registered = new Map<string, pluginSupport.PluginModule>();
+        registered = new Map<string, PluginModule>();
         shared = new Concurrent();
 
         dataDir = path.join(process.cwd(), "pluginData");
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
         };
+        actOptions = {
+            sequence: await options.deployment.newSequence(),
+            taskObserver: createTaskObserver("parent", { logger }),
+        };
+        actOptions.taskObserver.started();
     });
 
     it("Should act in parallel", async () => {
@@ -350,7 +402,7 @@ describe("Plugin concurrency", () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(false);
+        await mgr.act(actOptions);
         await mgr.finish();
         should(spy.callCount).equal(1);
         should(spy.getCall(0).args[0]).eql("max");
@@ -371,7 +423,7 @@ describe("Plugin concurrency", () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(false);
+        await mgr.act(actOptions);
         await mgr.finish();
         should(spy.callCount).equal(1);
         should(spy.getCall(0).args[0]).eql("max");
@@ -410,7 +462,7 @@ describe("Plugin concurrency", () => {
         await mgr.start(null, dom, options);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(false);
+        await mgr.act(actOptions);
         await mgr.finish();
         spies.forEach((spy) => {
             should(spy.callCount).equal(1);
@@ -462,16 +514,16 @@ function outputLines(logger: MockLogger): string[] {
 describe("Plugin register and deploy", () => {
     let logger: MockLogger;
     let mockContext: MockAdaptContext;
-    let options: pluginSupport.PluginManagerStartOptions;
+    let options: PluginManagerStartOptions;
     const dom = <Group />;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         cleanupTestPlugins();
         mockContext = mockAdaptContext();
         logger = createMockLogger();
         options = {
             logger,
-            deployID: "deploy123",
+            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir: "/tmp/fakeDataDir",
         };
     });

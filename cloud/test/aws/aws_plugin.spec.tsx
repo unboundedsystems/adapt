@@ -1,6 +1,8 @@
 import Adapt, {
+    Action,
     AdaptElement,
     AdaptElementOrNull,
+    ChangeType,
     createStateStore,
     findElementsInDom,
     Group,
@@ -144,17 +146,17 @@ export interface SimpleDomConfig {
     secondInstance?: boolean;
     addExtra?: boolean;
 }
+const simpleDomDefaults = {
+    secondStack: true,
+    testTagVal: "value1",
+    secondInstance: true,
+    addExtra: false,
+};
 
 // tslint:disable-next-line:variable-name
 const Creds = awsDefaultCredentialsContext;
 function simpleDom(config: SimpleDomConfig) {
-    const defaults = {
-        secondStack: true,
-        testTagVal: "value1",
-        secondInstance: true,
-        addExtra: false,
-    };
-    const { creds, secondStack, testTagVal, secondInstance, addExtra } = { ...defaults, ...config };
+    const { creds, secondStack, testTagVal, secondInstance, addExtra } = { ...simpleDomDefaults, ...config };
     const tags = [ { Key: "testTag", Value: testTagVal } ];
 
     return (
@@ -211,6 +213,41 @@ function simpleDom(config: SimpleDomConfig) {
     );
 }
 
+function checkSimpleDomCreate(actions: Action[], config: SimpleDomConfig) {
+    config = { ...simpleDomDefaults, ...config };
+    should(actions.length).equal(config.secondStack ? 2 : 1);
+
+    should(actions[0].type).equal(ChangeType.create);
+    should(actions[0].detail).equal("Creating CFStack");
+    should(actions[0].changes).have.length(config.secondInstance ? 3 : 2);
+
+    should(actions[0].changes[0].type).equal(ChangeType.create);
+    should(actions[0].changes[0].detail).equal("Creating CFStack");
+    should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
+    should(actions[0].changes[1].type).equal(ChangeType.create);
+    should(actions[0].changes[1].detail).equal("Creating AWS::EC2::Instance");
+    should(actions[0].changes[1].element.componentName).equal("CFResource");
+    should(actions[0].changes[1].element.props.key).equal("i1");
+    if (config.secondInstance) {
+        should(actions[0].changes[2].type).equal(ChangeType.create);
+        should(actions[0].changes[2].detail).equal("Creating AWS::EC2::Instance");
+        should(actions[0].changes[2].element.componentName).equal("CFResource");
+        should(actions[0].changes[2].element.props.key).equal("i2");
+    }
+
+    should(actions[1].type).equal(ChangeType.create);
+    should(actions[1].detail).equal("Creating CFStack");
+    should(actions[1].changes).have.length(2);
+
+    should(actions[1].changes[0].type).equal(ChangeType.create);
+    should(actions[1].changes[0].detail).equal("Creating CFStack");
+    should(actions[1].changes[0].element.componentName).equal("CFStackPrimitive");
+    should(actions[1].changes[1].type).equal(ChangeType.create);
+    should(actions[1].changes[1].detail).equal("Creating AWS::EC2::Instance");
+    should(actions[1].changes[1].element.componentName).equal("CFResource");
+    should(actions[1].changes[1].element.props.key).equal("i1");
+}
+
 function instanceLogicalId(
     dom: AdaptElementOrNull,
     stackName: string,
@@ -253,15 +290,14 @@ describe("AWS plugin basic tests", () => {
 
     it("Should allow additional DOM elements under CFStack", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
-        const orig = simpleDom({ creds, addExtra: true });
+        const config = { creds, addExtra: true };
+        const orig = simpleDom(config);
         const { dom } = await doBuild(orig, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
-        should(actions.length).equal(2);
-        should(actions[0].description).match(/Creating\s.+CFStack/);
-        should(actions[1].description).match(/Creating\s.+CFStack/);
+        checkSimpleDomCreate(actions, config);
 
         await plugin.finish();
 
@@ -272,15 +308,14 @@ describe("AWS plugin basic tests", () => {
 
     it("Should compute create actions", async () => {
         awsMock.mock("CloudFormation", "describeStacks", describeStackResp);
-        const orig = simpleDom({ creds });
+        const config = { creds };
+        const orig = simpleDom(config);
         const { dom } = await doBuild(orig, { deployID });
 
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
-        should(actions.length).equal(2);
-        should(actions[0].description).match(/Creating\s.+CFStack/);
-        should(actions[1].description).match(/Creating\s.+CFStack/);
+        checkSimpleDomCreate(actions, config);
 
         await plugin.finish();
     });
@@ -385,9 +420,7 @@ describeLong("AWS plugin live tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, dom);
         const actions = plugin.analyze(prevDom, dom, obs);
-        should(actions.length).equal(2, "wrong number of actions");
-        should(actions[0].description).match(/Creating\s.+CFStack/);
-        should(actions[1].description).match(/Creating\s.+CFStack/);
+        checkSimpleDomCreate(actions, domConfig);
 
         await act(actions);
         await plugin.finish();
@@ -450,7 +483,19 @@ describeLong("AWS plugin live tests", function () {
         const obs = await plugin.observe(prevDom, dom);
         const actions = plugin.analyze(prevDom, dom, obs);
         should(actions.length).equal(1, "wrong number of actions");
-        should(actions[0].description).match(/Destroying\s.+CFStack/);
+
+        should(actions[0].type).equal(ChangeType.delete);
+        should(actions[0].detail).equal("Destroying CFStack");
+        should(actions[0].changes).have.length(2);
+
+        should(actions[0].changes[0].type).equal(ChangeType.delete);
+        should(actions[0].changes[0].detail).equal("Destroying CFStack");
+        should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
+        should(actions[0].changes[1].type).equal(ChangeType.delete);
+        should(actions[0].changes[1].detail).equal(
+            "Destroying AWS::EC2::Instance due to CFStack deletion");
+        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.props.key).equal("i1");
 
         await act(actions);
         await plugin.finish();
@@ -496,7 +541,25 @@ describeLong("AWS plugin live tests", function () {
         const obs = await plugin.observe(prevDom, dom);
         const actions = plugin.analyze(prevDom, dom, obs);
         should(actions.length).equal(1, "wrong number of actions");
-        should(actions[0].description).match(/Modifying\s.+CFStack/);
+        should(actions[0].type).equal(ChangeType.modify);
+        should(actions[0].detail).equal("Modifying CFStack");
+        should(actions[0].changes).have.length(3);
+
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
+        should(actions[0].changes[0].detail).equal("Modifying CFStack");
+        should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
+        should(actions[0].changes[1].type).equal(ChangeType.modify);
+        // TODO: This needs updated once we add querying individual resource changes from AWS API
+        should(actions[0].changes[1].detail).equal(
+            "Resource AWS::EC2::Instance may be affected by CFStack modification");
+        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.props.key).equal("i1");
+        should(actions[0].changes[2].type).equal(ChangeType.modify);
+        // TODO: This needs updated once we add querying individual resource changes from AWS API
+        should(actions[0].changes[2].detail).equal(
+            "Resource AWS::EC2::Instance may be affected by CFStack modification");
+        should(actions[0].changes[2].element.componentName).equal("CFResource");
+        should(actions[0].changes[2].element.props.key).equal("i2");
 
         await act(actions);
         await plugin.finish();
@@ -531,7 +594,26 @@ describeLong("AWS plugin live tests", function () {
         const obs = await plugin.observe(prevDom, dom);
         const actions = plugin.analyze(prevDom, dom, obs);
         should(actions.length).equal(1, "wrong number of actions");
-        should(actions[0].description).match(/Modifying\s.+CFStack/);
+        should(actions[0].type).equal(ChangeType.modify);
+        should(actions[0].detail).equal("Modifying CFStack");
+
+        // FIXME(mark): This is a bug in the plugin. The correct number of
+        // affected elements is 3. The one that the plugin is failing to
+        // report is the one that has been deleted.
+        // This should get fixed when we actually query the API for the info
+        // instead of determining it via DOM only.
+        //should(actions[0].changes).have.length(3);
+        should(actions[0].changes).have.length(2);
+
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
+        should(actions[0].changes[0].detail).equal("Modifying CFStack");
+        should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
+        should(actions[0].changes[1].type).equal(ChangeType.modify);
+        // TODO: This needs updated once we add querying individual resource changes from AWS API
+        should(actions[0].changes[1].detail).equal(
+            "Resource AWS::EC2::Instance may be affected by CFStack modification");
+        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.props.key).equal("i2");
 
         await act(actions);
         await plugin.finish();

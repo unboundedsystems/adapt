@@ -136,7 +136,7 @@ describe("DOM Reanimateable Serialization", () => {
             { reanimateable: true }
         );
         should(ser).equal(`<Adapt>
-  <Group xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components.js:Group">
+  <Group xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components/group.js:Group">
     <Flex id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
     <Flex id="2" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
   </Group>

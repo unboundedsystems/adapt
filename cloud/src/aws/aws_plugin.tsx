@@ -1,13 +1,15 @@
 import Adapt, {
-    AdaptElement,
+    ActionInfo,
     AdaptElementOrNull,
+    ChangeType,
+    FinalDomElement,
     findElementsInDom,
     Handle,
     isHandle,
     QueryDomain,
     registerPlugin,
     Style,
-    UpdateType,
+    WidgetChange,
     WidgetPair,
     WidgetPlugin,
 } from "@usys/adapt";
@@ -23,7 +25,7 @@ import {
 import {
     CFStackPrimitive,
     CFStackPrimitiveProps,
-    isCFStackPrimitiveElement,
+    isCFStackPrimitiveFinalElement,
 } from "./CFStack";
 import {
     adaptDeployIdTag,
@@ -172,7 +174,7 @@ function adaptStackId(el: StackElement): string {
     return adaptIdFromElem("CFStack", el);
 }
 
-function findResourceElems(dom: AdaptElementOrNull): AdaptElement<CFResourceProps>[] {
+function findResourceElems(dom: AdaptElementOrNull) {
     const rules = <Style>{CFResource} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
     return compact(candidateElems.map((e) => isCFResourceElement(e) ? e : null));
@@ -181,7 +183,7 @@ function findResourceElems(dom: AdaptElementOrNull): AdaptElement<CFResourceProp
 export function findStackElems(dom: AdaptElementOrNull): StackElement[] {
     const rules = <Style>{CFStackPrimitive} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isCFStackPrimitiveElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isCFStackPrimitiveFinalElement(e) ? e : null));
 }
 
 export function stacksWithDeployID(stacks: StackObs[] | undefined, deployID: string): StackObs[] {
@@ -245,13 +247,49 @@ function areEqual<T extends object>(
     return isEqualUnorderedArrays(exp, act);
 }
 
-export function compareStack(
-    el: StackElement,
-    actual: StackObs,
+export function computeStackChanges(
+    change: WidgetChange<StackElement>,
+    actual: StackObs | undefined,
     deployID: string,
-): UpdateType {
+): ActionInfo {
+    const { to, from } = change;
 
-    const expected = createStackParams(el, deployID);
+    const getElems = () => {
+        const els: FinalDomElement[] = [];
+        const root = to || from || null;
+        if (root) els.push(root as FinalDomElement);
+        return els.concat(findResourceElems(root));
+    };
+
+    // TODO: Ask AWS for detail on resource changes via change set API
+    const actionInfo = (type: ChangeType, detail: string, elDetailTempl = detail) => ({
+        type,
+        detail,
+        changes: getElems().map((element) => {
+            const elDetail = element.componentType === CFStackPrimitive ? detail :
+                elDetailTempl.replace("{TYPE}", element.props.Type || "resource");
+            return {
+                type,
+                element,
+                detail: elDetail,
+            };
+        })
+    });
+
+    if (from == null && to == null) {
+        return actionInfo(ChangeType.delete, "Destroying unrecognized CFStack");
+    }
+
+    if (to == null) {
+        return actionInfo(ChangeType.delete, "Destroying CFStack",
+            "Destroying {TYPE} due to CFStack deletion");
+    }
+
+    if (actual == null) {
+        return actionInfo(ChangeType.create, "Creating CFStack", "Creating {TYPE}");
+    }
+
+    const expected = createStackParams(to, deployID);
     // Ugh. Special case. OnFailure doesn't show up in describeStacks output,
     // but instead transforms into DisableRollback.
     const onFailure = expected.OnFailure;
@@ -266,17 +304,22 @@ export function compareStack(
     }
 
     if (!areEqual<StackParams>(expected, actual, replaceProps)) {
-        return UpdateType.replace;
+        return actionInfo(ChangeType.replace, "Replacing CFStack",
+            "Replacing {TYPE} due to replacing CFStack");
     }
     if (!areEqual<StackParams>(expected, actual, modifyProps)) {
-        return UpdateType.modify;
+        // TODO: Because we're modifying the stack, each resource within the
+        // stack could be created, deleted, updated, or replaced...we must
+        // ask the AWS API to know.
+        return actionInfo(ChangeType.modify, "Modifying CFStack",
+            "Resource {TYPE} may be affected by CFStack modification");
     }
 
-    return UpdateType.none;
+    return actionInfo(ChangeType.none, "No changes required");
 }
 
 type AwsQueryDomain = QueryDomain<AwsRegion, AwsSecret>;
-type StackElement = AdaptElement<CFStackPrimitiveProps>;
+type StackElement = FinalDomElement<CFStackPrimitiveProps>;
 type StackPair = WidgetPair<StackElement, StackObs>;
 
 // Exported for testing
@@ -302,8 +345,8 @@ export class AwsPluginImpl
         return adaptStackId(el);
     }
 
-    needsUpdate = (el: StackElement, obs: StackObs): UpdateType => {
-        return compareStack(el, obs, this.deployID);
+    computeChanges = (change: WidgetChange<StackElement>, obs: StackObs | undefined): ActionInfo => {
+        return computeStackChanges(change, obs, this.deployID);
     }
 
     getObservations = async (domain: AwsQueryDomain, deployID: string): Promise<StackObs[]> => {

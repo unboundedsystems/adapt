@@ -12,9 +12,10 @@ import {
     tagConstructor,
 } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
+import { DependsOn, DeployStatus } from "./deploy/deploy_types";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
-import { Handle, handle, isHandleInternal } from "./handle";
+import { Handle, handle, isHandle, isHandleInternal } from "./handle";
 import { Defaultize } from "./jsx_namespace";
 import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
@@ -48,7 +49,11 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 }
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
-export interface GenericInstance {
+export interface GenericInstanceMethods {
+    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
+}
+
+export interface GenericInstance extends GenericInstanceMethods {
     [key: string]: any;
 }
 
@@ -64,6 +69,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly instance: GenericInstance;
 
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
+    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -113,6 +119,17 @@ export function isSFCElement<P extends object = AnyProps>(val: any): val is Adap
     return isElement(val) && !isComponentElement(val);
 }
 
+/*
+ * Type info for the Elements returned from dom.build. These types are
+ * intended to convey semantic meaning--that whomever uses these types is
+ * intending to deal with a built DOM. They also add a level of indirection,
+ * should we choose to modify the types somehow in the future.
+ */
+export type FinalDomElement<P extends object = AnyProps> = AdaptMountedPrimitiveElement<P>;
+export type PartialFinalDomElement<P extends object = AnyProps> = AdaptMountedElement<P>;
+export const isFinalDomElement = isMountedPrimitiveElement;
+export const isPartialFinalDomElement = isMountedElement;
+
 export function componentStateNow<
     C extends Component<P, S>,
     P extends object,
@@ -129,7 +146,10 @@ export interface BuildHelpers {
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
-export abstract class Component<Props extends object = {}, State extends object = {}> {
+export abstract class Component<Props extends object = {}, State extends object = {}>
+    implements GenericInstanceMethods {
+
+    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
 
     // cleanup gets called after build of this component's
     // subtree has completed.
@@ -178,6 +198,8 @@ export abstract class Component<Props extends object = {}, State extends object 
         // by waiting to init getState.
         this.getState = cData.getState;
     }
+
+    ready(helpers: BuildHelpers): boolean | Promise<boolean> { return true; }
 
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
         if (this.initialState == null) {
@@ -246,10 +268,12 @@ export function isComponent<P extends object, S extends object>(func: SFC | Comp
 
 export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
+    noPlugin?: boolean;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
     status?: (props: P, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
+    ready?: (helpers: BuildHelpers) => boolean | Promise<boolean>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -329,7 +353,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath) {
+    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath, deployID: string) {
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -343,6 +367,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.keyPath = keyPath;
         this.mounted = true;
         this.buildData.id = this.id;
+        this.buildData.deployID = deployID;
     }
 
     setState = (stateUpdate: StateUpdater<Props, AnyState>): void => {
@@ -418,6 +443,15 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
             return result.data;
         };
         return this.statusCommon(o || observeForStatus);
+    }
+
+    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined {
+        if (!this.mounted) {
+            throw new InternalError(`dependsOn requested but element is not mounted`);
+        }
+        const dependsOnMethod = this.instance.dependsOn;
+        if (!dependsOnMethod) return undefined;
+        return dependsOnMethod(goalStatus);
     }
 
     get componentName() { return this.componentType.name || "anonymous"; }
@@ -579,6 +613,16 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
     }
 
     return children;
+}
+
+export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promise<boolean> {
+    const hand = isHandle(e) ? e : e.props.handle;
+    const elem = hand.mountedOrig;
+    if (elem === undefined) throw new Error("element has no mountedOrig!");
+    if (elem === null) return true;
+
+    if (!elem.instance.ready) return true;
+    return elem.instance.ready(h);
 }
 
 export interface ComponentConstructorData {

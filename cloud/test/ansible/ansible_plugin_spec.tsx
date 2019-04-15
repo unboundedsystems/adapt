@@ -1,5 +1,7 @@
 import Adapt, {
+    Action,
     AdaptElement,
+    ChangeType,
     Group,
     PluginOptions,
 } from "@usys/adapt";
@@ -153,7 +155,7 @@ describe("Ansible plugin", async function () {
                 />
                 <AnsibleGroup ansibleHost={host} groups={groups} />
             </Group>;
-        await buildAndRun(orig);
+        await buildAndRun(orig, checkSimplePlaybook);
     }
 
     async function simplePlaybookObj(
@@ -170,7 +172,19 @@ describe("Ansible plugin", async function () {
                 />
                 <AnsibleGroup ansibleHost={host} groups={groups} />
             </Group>;
-        await buildAndRun(orig);
+        await buildAndRun(orig, checkSimplePlaybook);
+    }
+
+    function checkSimplePlaybook(actions: Action[]) {
+        should(actions.length).equal(1);
+        should(actions[0].detail).equal("Executing Playbook");
+        should(actions[0].changes).have.length(2);
+        should(actions[0].changes[0].type).equal(ChangeType.create);
+        should(actions[0].changes[0].detail).equal("Executing Playbook");
+        should(actions[0].changes[0].element.componentName).equal("AnsiblePlaybook");
+        should(actions[0].changes[1].type).equal(ChangeType.create);
+        should(actions[0].changes[1].detail).equal("Executing Playbook");
+        should(actions[0].changes[1].element.componentName).equal("AnsibleGroup");
     }
 
     async function simpleRole(
@@ -180,17 +194,25 @@ describe("Ansible plugin", async function () {
 
         const orig =
             <AnsibleRole ansibleHost={host} galaxy={role} vars={vars} />;
-        await buildAndRun(orig);
+        await buildAndRun(orig, (actions: Action[]) => {
+            should(actions.length).equal(1);
+            should(actions[0].detail).equal("Executing Playbook");
+            should(actions[0].changes).have.length(2);
+            should(actions[0].changes[0].type).equal(ChangeType.create);
+            should(actions[0].changes[0].detail).equal("Executing Playbook");
+            should(actions[0].changes[0].element.componentName).equal("AnsibleImplicitPlaybook");
+            should(actions[0].changes[1].type).equal(ChangeType.create);
+            should(actions[0].changes[1].detail).equal("Executing Playbook");
+            should(actions[0].changes[1].element.componentName).equal("AnsibleRole");
+        });
     }
 
-    async function buildAndRun(orig: AdaptElement) {
+    async function buildAndRun(orig: AdaptElement, checkActions: (a: Action[]) => void) {
         const { dom } = await doBuild(orig);
         await plugin.start(options);
         const obs = await plugin.observe(null, dom);
         const actions = plugin.analyze(null, dom, obs);
-        should(actions.length).equal(1);
-        should(actions[0].description).match(/Creating Ansible Playbook/);
-
+        checkActions(actions);
         await act(actions);
         await plugin.finish();
     }

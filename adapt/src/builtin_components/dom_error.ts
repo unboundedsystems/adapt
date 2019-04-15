@@ -1,9 +1,4 @@
-import { AdaptElement, AdaptElementOrNull, PrimitiveComponent } from "./jsx";
-
-export interface GroupProps {
-    children?: AdaptElementOrNull[] | AdaptElementOrNull;
-}
-export class Group extends PrimitiveComponent<GroupProps> { }
+import { AdaptElement, PrimitiveComponent } from "../jsx";
 
 export interface DomErrorProps {
     children: string;

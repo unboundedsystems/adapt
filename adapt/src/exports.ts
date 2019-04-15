@@ -1,8 +1,4 @@
-export {
-    useBuildHelpers,
-    useImperativeMethods,
-    useState,
-} from "./hooks";
+export * from "./hooks";
 export * from "./jsx_namespace";
 export {
     childrenToArray,
@@ -18,13 +14,18 @@ export {
     AnyProps,
     AnyState,
     BuildHelpers,
+    FinalDomElement,
     BuiltinProps,
     ElementPredicate,
+    PartialFinalDomElement,
     isApplyStyle,
+    isFinalDomElement,
     isElement,
+    isPartialFinalDomElement,
     isMountedElement,
     isDeferredElement,
     isPrimitiveElement,
+    isReady,
     WithChildren,
     PropsType,
     SFC,
@@ -32,12 +33,8 @@ export {
     SFCDeclProps,
 } from "./jsx";
 
-export {
-    Group,
-    DomError,
-    isDomErrorElement
-} from "./builtin_components";
-
+export * from "./builtin_components";
+export * from "./deploy";
 export {
     build,
     BuildData,
@@ -99,15 +96,9 @@ export {
 } from "./observers";
 
 export {
-    Action,
-    Plugin,
-    PluginOptions,
-    registerPlugin,
-    PluginRegistration,
-} from "./deploy/plugin_support";
-
-export {
     defaultChildStatus,
+    errorToNoStatus,
+    gqlGetOriginalErrors,
     mergeDefaultChildStatus,
     NoStatus,
     noStatusOnError,
@@ -118,14 +109,6 @@ export {
 export {
     Children
 } from "./type_support";
-
-export {
-    Observed,
-    WidgetPlugin,
-    QueryDomain,
-    WidgetPair,
-    UpdateType,
-} from "./deploy/widget_plugin";
 
 export {
     Constructor,

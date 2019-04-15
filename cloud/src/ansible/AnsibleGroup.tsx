@@ -1,6 +1,6 @@
 import {
-    AdaptPrimitiveElement,
-    isPrimitiveElement,
+    FinalDomElement,
+    isFinalDomElement,
     PrimitiveComponent,
 } from "@usys/adapt";
 import { AnsibleHost } from "./ansible_host";
@@ -26,7 +26,7 @@ export function getGroups(props: AnsibleGroupProps): string[] {
 export class AnsibleGroup extends PrimitiveComponent<AnsibleGroupProps> { }
 export default AnsibleGroup;
 
-export function isAnsibleGroupElement(
-    val: any): val is AdaptPrimitiveElement<AnsibleGroupProps> {
-    return isPrimitiveElement(val) && val.componentType === AnsibleGroup;
+export function isAnsibleGroupFinalElement(
+    val: any): val is FinalDomElement<AnsibleGroupProps> {
+    return isFinalDomElement(val) && val.componentType === AnsibleGroup;
 }

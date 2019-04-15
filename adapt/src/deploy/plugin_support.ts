@@ -1,92 +1,43 @@
 import {
-    createTaskObserver,
-    Logger,
     mapMap,
     MessageLogger,
-    TaskObserver,
+    TaskState,
     UserError,
 } from "@usys/utils";
 import * as fs from "fs-extra";
 import * as ld from "lodash";
-import pMapSeries from "p-map-series";
 import * as path from "path";
+import { domDiff, DomDiff, logElements } from "../dom_utils";
 import { InternalError } from "../error";
-import { AdaptElementOrNull } from "../jsx";
+import {
+    AdaptElementOrNull,
+    AdaptMountedElement,
+    isMountedElement,
+} from "../jsx";
 import { findPackageInfo } from "../packageinfo";
+import { Deployment } from "../server/deployment";
 import { getAdaptContext } from "../ts";
 
-type PluginKey = string;
-type PluginInstances = Map<PluginKey, Plugin>;
-type PluginModules = Map<PluginKey, PluginModule>;
-
-export interface PluginRegistration {
-    name: string;
-    module: NodeModule;
-    create(): Plugin;
-}
-
-export interface PluginModule extends PluginRegistration {
-    packageName: string;
-    version: string;
-}
-
-export interface PluginConfig {
-    plugins: PluginInstances;
-    modules: PluginModules;
-}
-
-export interface Action {
-    description: string;
-    act(): Promise<void>;
-}
-
-export interface PluginOptions {
-    deployID: string;
-    log: Logger;
-    dataDir: string;
-}
-
-export interface PluginObservations {
-    [pluginKey: string]: object;
-}
-
-export interface Plugin<Observations extends object = object> {
-    seriesActions?: boolean;
-    start(options: PluginOptions): Promise<void>;
-    observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
-    analyze(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Action[];
-    finish(): Promise<void>;
-}
-
-export interface PluginManagerStartOptions {
-    deployID: string;
-    logger: MessageLogger;
-    dataDir: string;
-    taskObserver?: TaskObserver;
-}
-
-export interface ActionResult {
-    action: Action;
-    err?: any;
-}
-
-export interface PluginManager {
-    taskObserver: TaskObserver;
-    start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-        options: PluginManagerStartOptions): Promise<void>;
-    observe(): Promise<PluginObservations>;
-    analyze(): Action[];
-    act(dryRun: boolean): Promise<ActionResult[]>;
-    finish(): Promise<void>;
-}
+import {
+    Action,
+    ActOptions,
+    DeployStatus,
+    Plugin,
+    PluginConfig,
+    PluginInstances,
+    PluginKey,
+    PluginManager,
+    PluginManagerStartOptions,
+    PluginModule,
+    PluginModules,
+    PluginObservations,
+    PluginRegistration,
+} from "./deploy_types";
+import { createExecutionPlan, execute } from "./execution_plan";
 
 export function createPluginManager(modules: PluginModules): PluginManager {
     const config = createPluginConfig(modules);
     return new PluginManagerImpl(config);
-}
-
-function logError(action: Action, err: any, logger: Logger) {
-    logger(`--Error during ${action.description}\n${err}\n----------`);
 }
 
 enum PluginManagerState {
@@ -133,37 +84,76 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
     }
 }
 
+export function checkPrimitiveActions(diff: DomDiff, actions: Action[]) {
+    const hasPlugin = (el: AdaptMountedElement) => !el.componentType.noPlugin;
+    const changes = ld.flatten(actions.map((a) => a.changes));
+    const done = new Set<AdaptMountedElement>();
+
+    // The set of elements that should be claimed by plugins (i.e. referenced
+    // in a change) is all elements in the new DOM (added+commonNew) and
+    // all elements deleted from the old DOM, then filtered by the noPlugin
+    // flag.
+    const newEls = new Set([...diff.added, ...diff.commonNew].filter(hasPlugin));
+    const deleted = new Set([...diff.deleted].filter(hasPlugin));
+
+    changes.forEach((c) => {
+        const el = c.element;
+        if (!isMountedElement(el)) throw new InternalError(`Element is not mounted`);
+        if (!hasPlugin(el)) return;
+
+        // Only check each el once to avoid triggering warning if el is in
+        // more than one change.
+        if (done.has(el)) return;
+        done.add(el);
+
+        if (!newEls.delete(el) && !deleted.delete(el)) {
+            logElements(`WARNING: Element was specified as affected by a ` +
+                `plugin action but was not found in old or new DOM as expected:\n` +
+                // tslint:disable-next-line: no-console
+                `(change: ${c.detail}): `, [el], console.log);
+        }
+    });
+
+    if (newEls.size > 0) {
+        logElements(`WARNING: The following new or updated elements were ` +
+            `not claimed by any deployment plugin and will probably not be ` +
+            // tslint:disable-next-line: no-console
+            `correctly deployed:\n`, [...newEls], console.log);
+    }
+    if (deleted.size > 0) {
+        logElements(`WARNING: The following deleted elements were ` +
+            `not claimed by any deployment plugin and will probably not be ` +
+            // tslint:disable-next-line: no-console
+            `correctly deleted:\n`, [...deleted], console.log);
+    }
+}
+
 interface AnyObservation {
     [name: string]: any;
 }
 
+const defaultActOptions: { dryRun: boolean; goalStatus: DeployStatus.Deployed } = {
+    dryRun: false,
+    goalStatus: DeployStatus.Deployed,
+};
+
 class PluginManagerImpl implements PluginManager {
     plugins: PluginInstances;
     modules: PluginModules;
+    deployment?: Deployment;
     dom?: AdaptElementOrNull;
     prevDom?: AdaptElementOrNull;
+    diff?: DomDiff;
     parallelActions: Action[] = [];
     seriesActions: Action[][] = [];
     logger?: MessageLogger;
     state: PluginManagerState;
     observations: AnyObservation;
-    taskObserver_?: TaskObserver;
-    tasks = new WeakMap<Action, TaskObserver>();
 
     constructor(config: PluginConfig) {
         this.plugins = new Map(config.plugins);
         this.modules = new Map(config.modules);
         this.state = PluginManagerState.Initial;
-    }
-
-    get taskObserver() {
-        if (!this.taskObserver_) throw new InternalError(`PluginManager: taskObserver is null`);
-        return this.taskObserver_;
-    }
-
-    set taskObserver(newTaskObserver: TaskObserver) {
-        this.taskObserver_ = newTaskObserver;
-        this.createTasks();
     }
 
     transitionTo(next: PluginManagerState) {
@@ -178,16 +168,12 @@ class PluginManagerImpl implements PluginManager {
         this.transitionTo(PluginManagerState.Starting);
         this.dom = dom;
         this.prevDom = prevDom;
+        this.deployment = options.deployment;
         this.logger = options.logger;
         this.observations = {};
-        this.taskObserver_ = options.taskObserver ||
-            createTaskObserver("pluginAction", {
-                logger: this.logger,
-                description: "Default plugin manager action task",
-            });
 
         const loptions = {
-            deployID: options.deployID,
+            deployID: options.deployment.deployID,
             log: options.logger.info, //FIXME(manishv) have a per-plugin log here
         };
         const waitingFor = mapMap(this.plugins, async (key, plugin) => {
@@ -240,9 +226,17 @@ class PluginManagerImpl implements PluginManager {
         for (const [name, plugin] of this.plugins) {
             const obs = JSON.parse(this.observations[name]);
             const actions = plugin.analyze(prevDom, dom, obs);
-            this.createTasks(name, actions);
             this.addActions(actions, plugin);
         }
+
+        if (dom && !isMountedElement(dom)) {
+            throw new InternalError(`dom is not Mounted`);
+        }
+        if (prevDom && !isMountedElement(prevDom)) {
+            throw new InternalError(`prevDom is not Mounted`);
+        }
+        this.diff = domDiff(prevDom, dom);
+        checkPrimitiveActions(this.diff, this.actions);
 
         this.transitionTo(PluginManagerState.PreAct);
         return this.actions;
@@ -256,56 +250,41 @@ class PluginManagerImpl implements PluginManager {
         }
     }
 
-    async act(dryRun: boolean) {
-        if (this.taskObserver_ == null) {
+    async act(options: ActOptions) {
+        const { goalStatus, ...opts } = { ...defaultActOptions, ...options };
+        // tslint:disable-next-line: no-this-assignment
+        const { deployment, diff, logger } = this;
+
+        if (opts.taskObserver.state !== TaskState.Started) {
             throw new InternalError(
                 `PluginManager: A new TaskObserver must be provided for additional calls to act()`);
         }
-        let errored = false;
+        if (logger == null) throw new InternalError("Must call start before act (logger == null)");
+        if (diff == null) throw new InternalError("Must call analyze before act (diff == null)");
+        if (deployment == null) throw new InternalError("Must start analyze before act (deployment == null)");
+
+        const plan = await createExecutionPlan({
+            actions: this.parallelActions,
+            diff,
+            goalStatus,
+            seriesActions: this.seriesActions
+        });
+        plan.check();
+
         this.transitionTo(PluginManagerState.Acting);
-        const log = this.logger;
-        if (log == undefined) throw new InternalError("Must call start before act");
 
-        const doing = (action: Action) => log.info(`Doing ${action.description}...`);
-        const doAction = async (action: Action) => {
-            try {
-                doing(action);
-                await this.getTask(action).complete(action.act);
-                return { action };
-            } catch (err) {
-                errored = true;
-                logError(action, err, (m) => log.error(m));
-                return { action, err };
-            }
-        };
-
-        if (dryRun) {
-            const actions = this.actions;
-            actions.forEach((action) => {
-                doing(action);
-                this.getTask(action).skipped();
-            });
-            this.transitionTo(PluginManagerState.PreAct);
-            // Can only use a taskObserver once
-            this.taskObserver_ = undefined;
-            return actions.map((action) => ({ action }));
-        } else {
-            // Kick off ALL of these in parallel.
-            // TODO(mark): At some point, this may be so much stuff that we
-            // need to limit concurrency.
-            const pParallel: Promise<ActionResult>[] =
-                this.parallelActions.map(doAction);
-
-            // The actions within each group must run in series, but kick off all
-            // the groups in parallel.
-            const pSeries = this.seriesActions.map((group) => pMapSeries(group, doAction));
-
-            let results = await Promise.all(pParallel);
-            results = results.concat(ld.flatten(await Promise.all(pSeries)));
-            if (errored) throw new UserError(`Errors encountered during plugin action phase`);
-            this.transitionTo(PluginManagerState.PreFinish);
-            return results;
+        const result = await execute({
+            ...opts,
+            deployment,
+            logger,
+            plan,
+        });
+        if (result.deploymentStatus !== goalStatus) {
+            throw new UserError(`Errors encountered during plugin action phase`);
         }
+
+        if (opts.dryRun) this.transitionTo(PluginManagerState.PreAct);
+        else this.transitionTo(PluginManagerState.PreFinish);
     }
 
     async finish() {
@@ -323,31 +302,6 @@ class PluginManagerImpl implements PluginManager {
 
     private get actions(): Action[] {
         return this.parallelActions.concat(ld.flatten(this.seriesActions));
-    }
-
-    private getTask(action: Action): TaskObserver {
-        const task = this.tasks.get(action);
-        if (!task) {
-            throw new InternalError(`Unable to find task for action ${action.description}`);
-        }
-        return task;
-    }
-
-    private createTasks(pluginName?: string, actions?: Action[]) {
-        const aList = actions || this.actions;
-        if (aList.length === 0) return;
-
-        let taskId = 0;
-        const taskName = pluginName ?
-            (a: Action) => `${pluginName}.${taskId++}` :
-            (a: Action) => this.getTask(a).name; // Get the already assigned name
-
-        const tGroup = this.taskObserver.childGroup({ serial: false });
-        for (const a of aList) {
-            const name = taskName(a);
-            const task = tGroup.add({ [name]: a.description });
-            this.tasks.set(a, task[name]);
-        }
     }
 }
 

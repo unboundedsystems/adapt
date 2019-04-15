@@ -113,7 +113,10 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         deployID,
         stateStore,
     };
-    const { mountedOrig, contents: dom, messages } = await build(elem, style, buildOpts);
+    const { mountedOrig, contents: dom, messages, buildErr, partialBuild } =
+        await build(elem, style, buildOpts);
+    should(buildErr).be.False();
+    should(partialBuild).be.False();
     should(messages).have.length(0);
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
