@@ -64,18 +64,22 @@ class EchoPlugin implements Plugin<{}> {
         if (oldDom == null && dom == null) return [];
 
         const diff = domDiff(oldDom, dom);
-        const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string): ActionChange[] =>
-            [...diff[key]].map((element) => ({
+        const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string, n?: number): ActionChange[] => {
+            const changes = [...diff[key]].map((element) => ({
                 type,
                 element: element as FinalDomElement,
                 detail
             }));
+            if (n !== undefined && changes.length > n) return [ changes[n] ];
+            return changes;
+        };
 
-        const info = (detail: string) => {
+        const info = (msg: string, n: number) => {
+            const detail = msg + n;
             const changes: ActionChange[] = [];
-            changes.push(...makeChanges("added", ChangeType.create, detail));
-            changes.push(...makeChanges("deleted", ChangeType.delete, detail));
-            changes.push(...makeChanges("commonNew", ChangeType.modify, detail));
+            changes.push(...makeChanges("added", ChangeType.create, detail, n));
+            changes.push(...makeChanges("deleted", ChangeType.delete, detail, n));
+            changes.push(...makeChanges("commonNew", ChangeType.modify, detail, n));
 
             return {
                 type: ChangeType.modify,
@@ -89,12 +93,13 @@ class EchoPlugin implements Plugin<{}> {
         }
         if (dom != null && dom.componentType.name === "ActError") {
             return [
-                { ...info("echo error"), act: () => { throw new Error("ActError"); } },
+                { ...info("echo error", 0), act: () => { throw new Error("ActError"); } },
+                { ...info("echo error", 1), act: () => { throw new Error("ActError"); } },
             ];
         }
         return [
-            { ...info("echo action1"), act: () => this.doAction("action1") },
-            { ...info("echo action2"), act: () => this.doAction("action2") }
+            { ...info("echo act", 0), act: () => this.doAction("action0") },
+            { ...info("echo act", 1), act: () => this.doAction("action1") }
         ];
     }
     async finish() {
@@ -169,32 +174,37 @@ const testBaseTty =
  */
 
 const basicIndexTsx = `
-    import Adapt, { PrimitiveComponent } from "@usys/adapt";
+    import Adapt, { AnyProps, Constructor, PrimitiveComponent } from "@usys/adapt";
     import "./simple_plugin";
 
-    export class DevStack extends PrimitiveComponent<{}> { }
-    export class ActError extends PrimitiveComponent<{}> {}
+    export class DevStack extends PrimitiveComponent { }
+    export class ActError extends PrimitiveComponent {}
     export class AnalyzeError extends PrimitiveComponent<{}> {}
 
-    Adapt.stack("dev", <DevStack />);
-    Adapt.stack("ActError", <ActError />);
+    Adapt.stack("dev", makeTwo(DevStack));
+    Adapt.stack("ActError", makeTwo(ActError));
     Adapt.stack("AnalyzeError", <AnalyzeError />);
+
+    function makeTwo(Comp: Constructor<PrimitiveComponent<AnyProps>>) {
+        const key = Comp.name;
+        return <Comp key={key}><Comp key={key} /></Comp>;
+    }
 `;
 
 function observerIndexTsx(id1: number, id2: number) {
     return `
-        import Adapt, { gql, Observer, PrimitiveComponent } from "@usys/adapt";
+        import Adapt, { AnyProps, Constructor, gql, Observer, PrimitiveComponent } from "@usys/adapt";
         import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
         import "./simple_plugin";
 
-        export class DevStack extends PrimitiveComponent<{}> { }
+        export class DevStack extends PrimitiveComponent { }
 
         const app = <Observer
             observer={MockObserver}
             query={gql\`query { mockById(id: "${id1}") { idSquared } }\`}
             build={(err, props) => {
                 console.log("+++", err, props, "+++");
-                return <DevStack key="DevStack" />;
+                return makeTwo(DevStack);
             }}/>;
 
         const app2 = <Observer
@@ -202,11 +212,16 @@ function observerIndexTsx(id1: number, id2: number) {
             query={gql\`query { mockById(id: "${id2}") { idSquared } }\`}
             build={(err, props) => {
                 console.log("***", err, props, "***");
-                return props ? app : <DevStack key="DevStack" />;
+                return props ? app : makeTwo(DevStack);
             }}/>;
 
         Adapt.stack("dev", app);
         Adapt.stack("devNeedsData", app2);
+
+        function makeTwo(Comp: Constructor<PrimitiveComponent<AnyProps>>) {
+            const key = Comp.name;
+            return <Comp key={key}><Comp key={key} /></Comp>;
+        }
     `;
 }
 
@@ -244,14 +259,26 @@ async function checkBasicIndexTsxState(
         dataDirFilename,
     ]);
     const domXml = await fs.readFile(path.join(historyDir, domFilename));
+    const ns1 = namespaces[stackName];
+    const ns2 = ns1.concat(compName);
     expect(domXml.toString()).equals(
 `<Adapt>
   <${compName} xmlns="urn:Adapt:test:1.0.0::index.tsx:${compName}">
     <__props__>
       <prop name="key">"${compName}"</prop>
     </__props__>
+    <${compName} xmlns="urn:Adapt:test:1.0.0::index.tsx:${compName}">
+      <__props__>
+        <prop name="key">"${compName}"</prop>
+      </__props__>
+      <__lifecycle__>
+        <field name="stateNamespace">${JSON.stringify(ns2)}</field>
+        <field name="keyPath">["${compName}","${compName}"]</field>
+        <field name="path">"/${compName}/${compName}"</field>
+      </__lifecycle__>
+    </${compName}>
     <__lifecycle__>
-      <field name="stateNamespace">${JSON.stringify(namespaces[stackName])}</field>
+      <field name="stateNamespace">${JSON.stringify(ns1)}</field>
       <field name="keyPath">["${compName}"]</field>
       <field name="path">"/${compName}"</field>
     </__lifecycle__>
@@ -283,8 +310,8 @@ function checkPluginStdout(stdout: string, dryRun = false) {
         observe: true,
         analyze: true,
         finish: true,
+        action0: !dryRun,
         action1: !dryRun,
-        action2: !dryRun,
     };
 
     for (const m of Object.keys(msgs)) {
@@ -419,17 +446,20 @@ Deployment not created due to errors$`);
     basicTestChain
     .command(["deploy:create", "ActError"])
     .catch((err) => {
-        const msgRe = RegExp(
-`^This project cannot be deployed.
-2 errors encountered during deploy:
-\\[deploy:create:deploy:act\\] : --Error while echo error
+        const id = getNewDeployID(err.message);
+        expect(err.message).equals(
+`This project cannot be deployed.
+3 errors encountered during deploy:
+[deploy:create:deploy:act] : --Error while echo error0
 Error: ActError
 ----------
-\\[deploy:create\\] : Error creating deployment: Errors encountered during plugin action phase
+[deploy:create:deploy:act] : --Error while echo error1
+Error: ActError
+----------
+[deploy:create] : Error creating deployment: Errors encountered during plugin action phase
 
 Deployment created but errors occurred in the deploy phase.
-DeployID is: test::ActError-[a-z]{4}$`);
-        expect(err.message).matches(msgRe);
+DeployID is: ${id}`);
         expect((err as any).oclif.exit).equals(2);
     })
 
@@ -440,7 +470,7 @@ DeployID is: test::ActError-[a-z]{4}$`);
         expect(stdout).contains("Applying changes to environment [failed]");
         expect(stdout).contains("Creating new project deployment [failed]");
 
-        expect(ctx.stderr).contains("ERROR: --Error while echo error\nError: ActError");
+        expect(ctx.stderr).contains("ERROR: --Error while echo error0\nError: ActError");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -768,7 +798,7 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
     import Adapt, { AnyState, Component, PrimitiveComponent } from "@usys/adapt";
     import "./simple_plugin";
 
-    export class Empty extends PrimitiveComponent<{ id: number }> { }
+    export class Empty extends PrimitiveComponent<{ id: number; children?: any }> { }
 
     interface StateUpdaterProps {
         newState: (prev: any, props: StateUpdaterProps) => any;
@@ -782,7 +812,7 @@ function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
 
         build() {
             this.setState(this.props.newState);
-            return <Empty id={1} />;
+            return <Empty id={1}><Empty id={2} /></Empty>;
         }
     }
 
@@ -817,6 +847,13 @@ async function checkStateUpdateState(count: number): Promise<void> {
     <__props__>
       <prop name="key">"StateUpdater-Empty"</prop>
     </__props__>
+    <Empty id="2" key="Empty" xmlns="urn:Adapt:test:1.0.0::index.tsx:Empty">
+      <__lifecycle__>
+        <field name="stateNamespace">["StateUpdater","StateUpdater-Empty","Empty"]</field>
+        <field name="keyPath">["StateUpdater-Empty","Empty"]</field>
+        <field name="path">"/Empty/Empty"</field>
+      </__lifecycle__>
+    </Empty>
     <__lifecycle__>
       <field name="stateNamespace">["StateUpdater","StateUpdater-Empty"]</field>
       <field name="keyPath">["StateUpdater-Empty"]</field>
@@ -914,8 +951,8 @@ describe("Deploy update basic tests", function () {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains(`Deployment ${deployID} status:`);
         expect(ctx.stdout).contains(`{
-  "noStatus": "element has no children"
-}`);
+      "noStatus": "element has no children"
+    }`);
         expect(ctx.stdout).does.not.contain("WARNING");
     });
 });

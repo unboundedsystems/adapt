@@ -3,8 +3,9 @@ import {
     MessageLogger,
     TaskObserver,
 } from "@usys/utils";
-import { isBoolean, isFunction, isObject, isString } from "lodash";
+import { isFunction, isObject, isString } from "lodash";
 import { DomDiff } from "../dom_utils";
+import { InternalError } from "../error";
 import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
@@ -19,13 +20,13 @@ export enum DeployStatus {
     Initial = "Initial",
     Waiting = "Waiting",
     Deploying = "Deploying",
-    //Destroying = "Destroying",
+    Destroying = "Destroying",
     //Retrying = "Retrying",
 
     // Final states
     Deployed = "Deployed",
     Failed = "Failed",
-    //Destroyed = "Destroyed",
+    Destroyed = "Destroyed",
 }
 
 export function isDeployStatus(val: any): val is DeployStatus {
@@ -33,19 +34,63 @@ export function isDeployStatus(val: any): val is DeployStatus {
         case DeployStatus.Initial:
         case DeployStatus.Waiting:
         case DeployStatus.Deploying:
-        //case DeployStatus.Destroying:
+        case DeployStatus.Destroying:
         //case DeployStatus.Retrying:
         case DeployStatus.Deployed:
         case DeployStatus.Failed:
-        //case DeployStatus.Destroyed:
+        case DeployStatus.Destroyed:
             return true;
         default:
             return false;
     }
 }
 
-export function isFinalStatus(ds: DeployStatus) {
-    return ds === DeployStatus.Deployed || ds === DeployStatus.Failed;
+export type FinalStatus =
+    DeployStatus.Deployed |
+    DeployStatus.Destroyed |
+    DeployStatus.Failed;
+
+export function isFinalStatus(ds: DeployStatusExt): ds is FinalStatus {
+    switch (ds) {
+        case DeployStatus.Deployed:
+        case DeployStatus.Destroyed:
+        case DeployStatus.Failed:
+            return true;
+        default:
+            return false;
+    }
+}
+
+export type GoalStatus =
+    DeployStatus.Deployed |
+    DeployStatus.Destroyed;
+
+export function isGoalStatus(ds: DeployStatusExt): ds is GoalStatus {
+    switch (ds) {
+        case DeployStatus.Deployed:
+        case DeployStatus.Destroyed:
+            return true;
+        default:
+            return false;
+    }
+}
+
+export function goalToInProgress(stat: GoalStatus) {
+    const ret =
+        stat === DeployStatus.Deployed ? DeployStatus.Deploying :
+        stat === DeployStatus.Destroyed ? DeployStatus.Destroying :
+        undefined;
+    if (!ret) throw new InternalError(`Bad GoalStatus '${stat}'`);
+    return ret;
+}
+
+export function isInProgress(stat: DeployStatusExt) {
+    return stat === DeployStatusExt.Deploying || stat === DeployStatusExt.Destroying;
+}
+
+export function isProxying(stat: DeployStatusExt) {
+    return stat === DeployStatusExt.ProxyDeploying ||
+        stat === DeployStatusExt.ProxyDestroying;
 }
 
 export type PluginKey = string;
@@ -131,7 +176,7 @@ export interface PluginManagerStartOptions {
 export interface ActOptions {
     concurrency?: number;
     dryRun?: boolean;
-    goalStatus?: DeployStatus.Deployed;
+    goalStatus?: GoalStatus;
     taskObserver: TaskObserver;
     timeoutMs?: number;
     sequence: DeploymentSequence;
@@ -142,53 +187,74 @@ export interface ActionResult {
     err?: any;
 }
 
-export type Dependency = Handle | DependsOn;
-
-export interface DependsOn {
+export interface Relation {
     description: string;
-    status: (this: this, helpers: DeployHelpers) => WaitStatus | Promise<WaitStatus>;
+    ready: (relatesTo: Relation[]) => true | Waiting | Waiting[];
 
-    action?: (this: this, helpers: DeployHelpers) => void | Promise<void>;
-    dependsOn?: Dependency[];
+    inverse?: (relatesTo: Relation[]) => Relation;
+    relatesTo?: Relation[];
+    toString?: (indent?: string) => string;
 }
 
-export function isDependsOn(v: any): v is DependsOn {
+export interface RelationExt extends Relation {
+    toDependencies?: () => Dependency[];
+}
+
+export function isRelation(v: any): v is Relation {
     return (
         isObject(v) &&
         isString(v.description) &&
-        isFunction(v.status) &&
-        (v.action === undefined || isFunction(v.action)) &&
-        (v.dependsOn === undefined || Array.isArray(v.dependsOn))
+        isFunction(v.ready) &&
+        (v.inverse === undefined || isFunction(v.inverse)) &&
+        (v.relatesTo === undefined || Array.isArray(v.relatesTo)) &&
+        (v.toString === undefined || isFunction(v.toString))
     );
 }
 
-export interface WaitInfo extends DependsOn {
+// A specific kind of Relation that operates on other Relations
+export type RelationOp = (...args: Relation[]) => Relation;
+
+export type DependsOn = Relation;
+export type DependsOnMethod = (goalStatus: GoalStatus, helpers: DeployHelpers) => DependsOn | undefined;
+export type DeployedWhenMethod = (goalStatus: GoalStatus, helpers: DeployHelpers) => WaitStatus | Promise<WaitStatus>;
+export type Dependency = Handle | DependsOn;
+
+export const isDependsOn = isRelation;
+
+export interface WaitInfo {
+    deployedWhen: (gs: GoalStatus) => ReturnType<DeployedWhenMethod>;
+    description: string;
+
     actingFor?: ActionChange[];
+    action?: () => void | Promise<void>;
+    dependsOn?: RelationExt;
     logAction?: boolean;
 }
 
 export function isWaitInfo(v: any): v is WaitInfo {
     return (
-        isDependsOn(v) &&
-        ((v as any).actingFor === undefined || Array.isArray((v as any).actingFor)) &&
-        ((v as any).logAction === undefined || isBoolean((v as any).logAction))
+        isObject(v) &&
+        isFunction(v.deployedWhen) &&
+        isString(v.description) &&
+        (v.actingFor === undefined || Array.isArray(v.actingFor)) &&
+        (v.action === undefined || isFunction(v.action)) &&
+        (v.dependsOn === undefined || isDependsOn(v.dependsOn))
     );
 }
 
 export interface Waiting {
     done: false;
     status: string;
+    related?: Waiting[];
 }
 
-export interface DoneWaiting {
-    done: true;
-}
+export type WaitStatus = true | Waiting | Waiting[];
 
-export type WaitStatus = Waiting | DoneWaiting;
-
+export type IsDeployedFunc = (dep: Dependency) => boolean;
 export interface DeployHelpers {
     elementStatus: <S extends Status = Status>(handle: Handle) => Promise<S | Status | undefined>;
-    isDeployed: (dep: Dependency) => boolean;
+    isDeployed: IsDeployedFunc;
+    dependsOn: (dep: Handle | Handle[]) => Relation;
 }
 
 export interface PluginManager {
@@ -202,8 +268,9 @@ export interface PluginManager {
 
 export interface ExecutionPlanOptions {
     actions: Action[];
+    deployment: Deployment;
     diff: DomDiff;
-    goalStatus: DeployStatus.Deployed;
+    goalStatus: GoalStatus;
     seriesActions?: Action[][];
 }
 
@@ -213,7 +280,6 @@ export interface ExecutionPlan {
 
 export interface ExecuteOptions {
     concurrency?: number;
-    deployment: Deployment;
     dryRun?: boolean;
     logger: MessageLogger;
     plan: ExecutionPlan;
@@ -234,21 +300,35 @@ export interface ExecuteComplete {
     primStatus: Record<DeployStatus, number>;
 }
 
-export interface EPNodeEl {
+export interface EPNodeCommon {
+    goalStatus: GoalStatus;
+    hardDeps?: Set<EPNode>;
+}
+export interface EPNodeEl extends EPNodeCommon {
     element: AdaptMountedElement;
     waitInfo?: WaitInfo;
 }
-export interface EPNodeWI {
+export interface EPNodeWI extends EPNodeCommon {
     element?: AdaptMountedElement;
     waitInfo: WaitInfo;
 }
+
+export function isEPNodeWI(n: EPNode): n is EPNodeWI {
+    return isWaitInfo(n.waitInfo);
+}
+
 export type EPNode = EPNodeEl | EPNodeWI;
 export type EPObject = EPNode | AdaptMountedElement | WaitInfo;
 export type EPNodeId = string;
 
+export interface EPEdge {
+    hard?: boolean;
+}
+
 export interface StatusTracker {
     readonly deployment: Deployment;
     readonly dryRun: boolean;
+    readonly goalStatus: GoalStatus;
     readonly nodeStatus: Record<DeployStatus, number>;
     readonly primStatus: Record<DeployStatus, number>;
     readonly statMap: Map<EPNode, DeployStatusExt>;
@@ -266,16 +346,17 @@ export interface StatusTracker {
 
 export enum InternalStatus {
     ProxyDeploying = "ProxyDeploying",
+    ProxyDestroying = "ProxyDestroying",
 }
 
 export type DeployStatusExt = DeployStatus | InternalStatus;
 // tslint:disable-next-line: variable-name
 export const DeployStatusExt = { ...DeployStatus, ...InternalStatus };
 
-export function isFinalStatusExt(stat: DeployStatusExt) {
-    return isDeployStatus(stat) && isFinalStatus(stat);
-}
-
 export function toDeployStatus(stat: DeployStatusExt): DeployStatus {
-    return stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying : stat;
+    return (
+        stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying :
+        stat === DeployStatusExt.ProxyDestroying ? DeployStatus.Destroying :
+        stat
+    );
 }

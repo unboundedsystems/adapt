@@ -1,4 +1,4 @@
-export * from "./depends_on";
+export * from "./relations";
 export * from "./deploy_types";
 export {
     registerPlugin,

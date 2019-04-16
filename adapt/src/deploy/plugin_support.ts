@@ -270,6 +270,7 @@ class PluginManagerImpl implements PluginManager {
 
         const plan = await createExecutionPlan({
             actions: this.parallelActions,
+            deployment,
             diff,
             goalStatus,
             seriesActions: this.seriesActions
@@ -280,7 +281,6 @@ class PluginManagerImpl implements PluginManager {
 
         const result = await execute({
             ...opts,
-            deployment,
             logger,
             plan,
         });
