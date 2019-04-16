@@ -15,7 +15,6 @@ import * as path from "path";
  */
 // @ts-ignore
 import AdaptDontUse, {
-    Message,
     ProjectBuildError,
 } from "..";
 
@@ -146,7 +145,6 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
 
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
-        let buildMessages: Message[] = [];
         let executedQueries: ExecutedQueries = {};
 
         let needsData: ExecutedQueries = {};
@@ -164,13 +162,12 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
                 });
 
             if (results.buildErr || isBuildOutputPartial(results)) {
-                logger.append(buildMessages);
+                logger.append(results.messages);
                 throw new ProjectBuildError(inAdapt.serializeDom(results.contents));
             }
 
             newDom = results.contents;
             mountedOrig = results.mountedOrig;
-            buildMessages = results.messages;
             executedQueries = podify(observeManager.executedQueries());
             needsData = podify(observeManager.executedQueriesThatNeededData());
         }

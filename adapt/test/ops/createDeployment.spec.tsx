@@ -8,6 +8,7 @@ import {
 } from "@usys/testutils";
 import {
     messagesToString,
+    MessageType,
     yarn,
 } from "@usys/utils";
 import * as fs from "fs-extra";
@@ -70,6 +71,11 @@ async function makeNull() {
     return null;
 }
 
+function BuildError(props: { error: boolean; }) {
+    if (props.error) throw new Error("This is a build error");
+    return <Simple />;
+}
+
 Adapt.stack("default", <Simple />);
 Adapt.stack("ActError", <ActError />);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -78,6 +84,7 @@ Adapt.stack("BuildNull", <BuildNull />);
 Adapt.stack("ObserverToSimple", <ObserverToSimple />);
 Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName: "neverObserve" }}/>);
 Adapt.stack("promises", makeSimple(), makeNull());
+Adapt.stack("BuildError", <BuildError error={true} />);
 `;
 
 function defaultDomXmlOutput(namespace: string[]) {
@@ -184,13 +191,21 @@ const simplePluginPackageJson = `
 }
 `;
 
-function checkErrors(ds: DeployState, expected: RegExp[]) {
-    const errors = ds.messages.filter((m) => m.type === "error");
-    should(errors).have.length(expected.length);
+type ExpectedMsg = string | RegExp;
+
+function checkMessages(ds: DeployState, expected: ExpectedMsg[],
+    type: MessageType = MessageType.error) {
+
+    const msgs = ds.messages.filter((m) => m.type === type);
+    should(msgs).have.length(expected.length);
     for (let i = 0; i < expected.length; i++) {
-        should(errors[i].content).match(expected[i]);
+        if (typeof expected[i] === "string") {
+            should(msgs[i].content).equal(expected[i]);
+        } else {
+            should(msgs[i].content).match(expected[i]);
+        }
     }
-    should(ds.summary.error).equal(expected.length);
+    should(ds.summary[type]).equal(expected.length);
 }
 
 describe("createDeployment Tests", async function () {
@@ -250,14 +265,15 @@ describe("createDeployment Tests", async function () {
         });
     }
 
-    async function createError(stackName: string,
-        expectedErrs: RegExp[], actError = false): Promise<DeployError> {
+    async function createError(stackName: string, expectedErrs: ExpectedMsg[],
+        expectedWarnings?: ExpectedMsg[], actError = false): Promise<DeployError> {
         const ds = await doCreate(stackName);
         if (isDeploySuccess(ds)) {
             should(isDeploySuccess(ds)).be.False();
             throw new Error();
         }
-        checkErrors(ds, expectedErrs);
+        checkMessages(ds, expectedErrs, MessageType.error);
+        if (expectedWarnings) checkMessages(ds, expectedWarnings, MessageType.warning);
 
         const list = await listDeploymentIDs(await server());
         // If the error occurred during the act phase, the deployment should
@@ -332,7 +348,7 @@ describe("createDeployment Tests", async function () {
     it("Should log error on analyze", async () => {
         await createError("AnalyzeError", [
             /Error creating deployment: Error: AnalyzeError/
-        ]);
+        ], []);
     });
 
     it("Should log error on action", async () => {
@@ -340,7 +356,7 @@ describe("createDeployment Tests", async function () {
             /Error: ActError[12]/,
             /Error: ActError[12]/,
             /Error creating deployment: Errors encountered during plugin action phase/
-        ], true);
+        ], [], true);
     });
 
     it("Should report status", async () => {
@@ -480,4 +496,13 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
     });
+
+    it("Should log build error", async () => {
+        await createError("BuildError", [
+            "Error creating deployment: Error building Adapt project"
+        ], [
+            "Component BuildError cannot be built with current props: SFC build failed: This is a build error"
+        ]);
+    });
+
 });
