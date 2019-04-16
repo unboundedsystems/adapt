@@ -1,7 +1,5 @@
-import { useDockerBuild } from "@usys/cloud";
 import * as fs from "fs-extra";
-
-export function Postgres() { return null; }
+import { useDockerBuild } from "..";
 
 export function usePreloadedPostgres(mockDbName: string, mockDataPath: string) {
     return useDockerBuild(async () => {

@@ -1,6 +1,6 @@
 import Adapt, { handle, useImperativeMethods } from "@usys/adapt";
-import { Container, NetworkService, Service, useMethod } from "@usys/cloud";
-import { usePreloadedPostgres } from "./lib";
+import { Container, NetworkService, Service, useMethod } from "..";
+import { usePreloadedPostgres } from "./usePreloadedPostgres";
 
 export function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {
     const dbCtr = handle();
@@ -39,23 +39,4 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
             />
         : null}
     </Service>;
-}
-
-export function ProdPostgres() {
-    useImperativeMethods(() => ({
-        connectEnv: () => ([
-            { name: "PGHOST", value: "postgres_db" },
-            { name: "PGUSER", value: "postgres" },
-            {
-                name: "PGPASSWORD",
-                valueFrom: {
-                    secretKeyRef: {
-                        name: "postgres_password",
-                        key: "password"
-                    }
-                }
-            }
-        ])
-    }));
-    return null;
 }
