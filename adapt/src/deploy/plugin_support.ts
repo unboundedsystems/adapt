@@ -7,6 +7,7 @@ import {
 import * as fs from "fs-extra";
 import * as ld from "lodash";
 import * as path from "path";
+import { inspect } from "util";
 import { domDiff, DomDiff, logElements } from "../dom_utils";
 import { InternalError } from "../error";
 import {
@@ -98,7 +99,11 @@ export function checkPrimitiveActions(diff: DomDiff, actions: Action[]) {
 
     changes.forEach((c) => {
         const el = c.element;
-        if (!isMountedElement(el)) throw new InternalError(`Element is not mounted`);
+        if (!isMountedElement(el)) {
+            throw new UserError(`A plugin returned an Action with an ActionChange ` +
+                `where the 'element' property is not a valid and mounted Element. ` +
+                `(element=${inspect(el)})`);
+        }
         if (!hasPlugin(el)) return;
 
         // Only check each el once to avoid triggering warning if el is in
