@@ -516,7 +516,10 @@ export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComp
         let pIdle = queue.onIdle();
         if (opts.timeoutMs && opts.timeoutTime) {
             const msg = `Deploy operation timed out after ${opts.timeoutMs / 1000} seconds`;
-            pIdle = pTimeout(pIdle, opts.timeoutTime - Date.now(), msg);
+            const timeLeft = opts.timeoutTime - Date.now();
+            if (timeLeft <= 0) throw new pTimeout.TimeoutError(msg);
+
+            pIdle = pTimeout(pIdle, timeLeft, msg);
         }
         await pIdle;
 
