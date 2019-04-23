@@ -56,6 +56,34 @@ describe("k8s Service Component Tests", () => {
         should(messages[0].content).match(/multiple ports/);
     });
 
+    it("Should return first port if many configured", async () => {
+        const svc = <Service
+            key="test"
+            config={dummyConfig} ports={[{ name: "foo", port: 80 }, { name: "bar", port: 1234 }]} />;
+        const { mountedOrig } = await Adapt.build(svc, null);
+        if (mountedOrig == null) throw should(mountedOrig).not.Null();
+        const port = mountedOrig.instance.port();
+        should(port).equal(80);
+    });
+
+    it("Should return a named port", async () => {
+        const svc = <Service
+            key="test"
+            config={dummyConfig} ports={[{ name: "foo", port: 80 }, { name: "bar", port: 1234 }]} />;
+        const { mountedOrig } = await Adapt.build(svc, null);
+        if (mountedOrig == null) throw should(mountedOrig).not.Null();
+        const port = mountedOrig.instance.port("bar");
+        should(port).equal(1234);
+    });
+
+    it("Should return lone configured port", async () => {
+        const svc = <Service key="test" config={dummyConfig} ports={[{ port: 80 }]} />;
+        const { mountedOrig } = await Adapt.build(svc, null);
+        if (mountedOrig == null) throw should(mountedOrig).not.Null();
+        const port = mountedOrig.instance.port();
+        should(port).equal(80);
+    });
+
     it("Should translate from abstract to k8s", async () => {
         const absDom =
             <abs.NetworkService port={8080} />;
@@ -260,7 +288,8 @@ describe("k8s Service Operation Tests", function () {
         const { mountedOrig, dom } = await doBuild(svc, options);
         if (mountedOrig == null) throw should(mountedOrig).not.Null();
         const hostname = mountedOrig.instance.hostname();
-        should(hostname).equal(resourceElementToName(dom, options.deployID));
+        should(hostname).equal(
+            resourceElementToName(dom, options.deployID) + ".default.svc.cluster.local.");
     });
 
     async function createService(name: string): Promise<AdaptElementOrNull> {

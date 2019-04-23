@@ -36,6 +36,12 @@ export abstract class NetworkService extends PrimitiveComponent<NetworkServicePr
         if (!hand) throw new Error(`Internal error: Element props.handle is null`);
         return callNextInstanceMethod(hand, () => undefined, "hostname");
     }
+
+    port() {
+        const hand = this.props.handle;
+        if (!hand) throw new Error(`Internal error: Element props.handle is null`);
+        return callNextInstanceMethod(hand, () => undefined, "port");
+    }
 }
 export default NetworkService;
 
