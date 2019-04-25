@@ -20,13 +20,15 @@ import {
     DependsOn,
     DependsOnMethod,
     DeployHelpers,
-    EPNode,
     ExecuteComplete,
     GoalStatus,
-    isEPNodeWI,
-    WaitInfo,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
+import {
+    EPNode,
+    isEPNodeWI,
+    WaitInfo,
+} from "../../src/deploy/deploy_types_private";
 import {
     createExecutionPlan,
     EPDependency,

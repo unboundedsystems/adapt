@@ -9,7 +9,6 @@ import { InternalError } from "../error";
 import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
-    AdaptMountedElement,
     FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -43,6 +42,23 @@ export function isDeployStatus(val: any): val is DeployStatus {
         default:
             return false;
     }
+}
+
+export enum InternalStatus {
+    ProxyDeploying = "ProxyDeploying",
+    ProxyDestroying = "ProxyDestroying",
+}
+
+export type DeployStatusExt = DeployStatus | InternalStatus;
+// tslint:disable-next-line: variable-name
+export const DeployStatusExt = { ...DeployStatus, ...InternalStatus };
+
+export function toDeployStatus(stat: DeployStatusExt): DeployStatus {
+    return (
+        stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying :
+        stat === DeployStatusExt.ProxyDestroying ? DeployStatus.Destroying :
+        stat
+    );
 }
 
 export type FinalStatus =
@@ -182,11 +198,6 @@ export interface ActOptions {
     sequence: DeploymentSequence;
 }
 
-export interface ActionResult {
-    action: Action;
-    err?: any;
-}
-
 export interface Relation {
     description: string;
     ready: (relatesTo: Relation[]) => true | Waiting | Waiting[];
@@ -220,27 +231,6 @@ export type DeployedWhenMethod = (goalStatus: GoalStatus, helpers: DeployHelpers
 export type Dependency = Handle | DependsOn;
 
 export const isDependsOn = isRelation;
-
-export interface WaitInfo {
-    deployedWhen: (gs: GoalStatus) => ReturnType<DeployedWhenMethod>;
-    description: string;
-
-    actingFor?: ActionChange[];
-    action?: () => void | Promise<void>;
-    dependsOn?: RelationExt;
-    logAction?: boolean;
-}
-
-export function isWaitInfo(v: any): v is WaitInfo {
-    return (
-        isObject(v) &&
-        isFunction(v.deployedWhen) &&
-        isString(v.description) &&
-        (v.actingFor === undefined || Array.isArray(v.actingFor)) &&
-        (v.action === undefined || isFunction(v.action)) &&
-        (v.dependsOn === undefined || isDependsOn(v.dependsOn))
-    );
-}
 
 export interface Waiting {
     done: false;
@@ -289,74 +279,8 @@ export interface ExecuteOptions {
     timeoutMs?: number;
 }
 
-export interface ExecutePassOptions extends Required<ExecuteOptions> {
-    nodeStatus: StatusTracker;
-    timeoutTime: number;
-}
-
 export interface ExecuteComplete {
     deploymentStatus: DeployStatus;
     nodeStatus: Record<DeployStatus, number>;
     primStatus: Record<DeployStatus, number>;
-}
-
-export interface EPNodeCommon {
-    goalStatus: GoalStatus;
-    hardDeps?: Set<EPNode>;
-}
-export interface EPNodeEl extends EPNodeCommon {
-    element: AdaptMountedElement;
-    waitInfo?: WaitInfo;
-}
-export interface EPNodeWI extends EPNodeCommon {
-    element?: AdaptMountedElement;
-    waitInfo: WaitInfo;
-}
-
-export function isEPNodeWI(n: EPNode): n is EPNodeWI {
-    return isWaitInfo(n.waitInfo);
-}
-
-export type EPNode = EPNodeEl | EPNodeWI;
-export type EPObject = EPNode | AdaptMountedElement | WaitInfo;
-export type EPNodeId = string;
-
-export interface EPEdge {
-    hard?: boolean;
-}
-
-export interface StatusTracker {
-    readonly deployment: Deployment;
-    readonly dryRun: boolean;
-    readonly goalStatus: GoalStatus;
-    readonly nodeStatus: Record<DeployStatus, number>;
-    readonly primStatus: Record<DeployStatus, number>;
-    readonly statMap: Map<EPNode, DeployStatusExt>;
-    readonly taskMap: Map<EPNode, TaskObserver>;
-    readonly sequence: DeploymentSequence;
-    get(n: EPNode): DeployStatusExt;
-    set(n: EPNode, statExt: DeployStatusExt, err: Error | undefined,
-        description?: string): Promise<boolean>;
-    isFinal(n: EPNode): boolean;
-    isActive(n: EPNode): boolean;
-    output(n: EPNode, s: string): void;
-    complete(): Promise<ExecuteComplete>;
-    debug(getId: (n: EPNode) => string): string;
-}
-
-export enum InternalStatus {
-    ProxyDeploying = "ProxyDeploying",
-    ProxyDestroying = "ProxyDestroying",
-}
-
-export type DeployStatusExt = DeployStatus | InternalStatus;
-// tslint:disable-next-line: variable-name
-export const DeployStatusExt = { ...DeployStatus, ...InternalStatus };
-
-export function toDeployStatus(stat: DeployStatusExt): DeployStatus {
-    return (
-        stat === DeployStatusExt.ProxyDeploying ? DeployStatus.Deploying :
-        stat === DeployStatusExt.ProxyDestroying ? DeployStatus.Destroying :
-        stat
-    );
 }

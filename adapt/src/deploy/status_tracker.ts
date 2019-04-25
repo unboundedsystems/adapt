@@ -7,7 +7,6 @@ import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/
 import {
     DeployStatus,
     DeployStatusExt,
-    EPNode,
     ExecuteComplete,
     GoalStatus,
     goalToInProgress,
@@ -15,9 +14,12 @@ import {
     isGoalStatus,
     isInProgress,
     isProxying,
-    StatusTracker,
     toDeployStatus,
 } from "./deploy_types";
+import {
+    EPNode,
+    StatusTracker,
+} from "./deploy_types_private";
 
 export interface StatusTrackerOptions {
     deployment: Deployment;
