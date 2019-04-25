@@ -213,12 +213,16 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
         }
     }
 
+    const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
+    const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
     useImperativeMethods(() => ({
         hostname: () => {
             const resourceHand = props.handle;
             const resourceElem = resourceHand.target;
             if (!resourceElem) return undefined;
-            return resourceElementToName(resourceElem, deployID);
+            const resourceName = resourceElementToName(resourceElem, deployID);
+            const namespace = computeNamespaceFromMetadata(manifest.metadata);
+            return `${resourceName}.${namespace}.svc.cluster.local.`;
         },
         port: (name?: string) => {
             if (name) {
@@ -234,8 +238,6 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
         }
     }));
 
-    const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
-    const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
     updateSelector(async () => {
         const { selector: ep } = props;
         if (!isHandle(ep)) return {};
