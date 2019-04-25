@@ -1,5 +1,13 @@
-import Adapt, { Handle, Sequence } from "@usys/adapt";
-import { Container, Environment, handles, NetworkService, Service, useBuildNodeContainer } from "@usys/cloud";
+import Adapt, { Handle, handle, Sequence, useImperativeMethods } from "@usys/adapt";
+import {
+    callInstanceMethod,
+    Container,
+    Environment,
+    handles,
+    NetworkService,
+    Service,
+    useBuildNodeContainer
+} from "@usys/cloud";
 
 export type Env = Environment;
 
@@ -11,11 +19,18 @@ export default function NodeService(props: {
     const h = handles();
     const externalPort = props.externalPort || props.port;
 
+    const netSvc = handle();
+    useImperativeMethods(() => ({
+        hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
+        port: () => callInstanceMethod(netSvc, undefined, "port")
+    }));
+
     return <Sequence>
         {props.deps || []}
         {buildObj}
         <Service>
             <NetworkService
+                handle={netSvc}
                 endpoint={h.create.nodeCtr}
                 port={externalPort}
                 targetPort={props.port}
