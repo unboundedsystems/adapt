@@ -22,9 +22,9 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { immediatePromise, TaskObserver } from "@usys/utils";
+import { immediatePromise, MessageLogger, TaskObserver } from "@usys/utils";
 import { createPluginManager } from "../deploy/plugin_support";
-import { isBuildOutputPartial } from "../dom";
+import { isBuildOutputError, isBuildOutputPartial } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement, FinalDomElement } from "../jsx";
@@ -234,6 +234,47 @@ export async function withContext<T>(
     return f(ctx);
 }
 
+interface ReanimateOpts {
+    ctx: AdaptContext;
+    domXml: string;
+    stateJson: string;
+    deployID: string;
+    logger: MessageLogger;
+}
+async function reanimateAndBuild(opts: ReanimateOpts) {
+    const inAdapt = opts.ctx.Adapt;
+    const { deployID, domXml, logger } = opts;
+    let stateStore: StateStore;
+    try {
+        stateStore = createStateStore(opts.stateJson);
+    } catch (err) {
+        let msg = `Invalid state JSON during reanimate`;
+        if (err.message) msg += `: ${err.message}`;
+        throw new Error(msg);
+    }
+    const zombie = await inAdapt.internal.reanimateDom(domXml, deployID);
+    if (zombie === null) return null;
+    const buildRes = await inAdapt.build(zombie, null, {
+        deployID,
+        buildOnce: true,
+        stateStore,
+    });
+    if (buildRes.messages.length > 0) logger.append(buildRes.messages);
+    if (isBuildOutputError(buildRes)) {
+        throw new Error(`Error attempting to rebuild reanimated DOM`);
+    }
+    if (isBuildOutputPartial(buildRes)) {
+        throw new Error(`Rebuilding reanimated DOM produced a partial build`);
+    }
+    const checkXML = inAdapt.serializeDom(buildRes.contents, { reanimateable: true });
+    if (checkXML !== domXml) {
+        logger.error(`Error comparing reanimated built dom to original:\n` +
+            `Original:\n` + domXml + `\nCheck:\n` + checkXML);
+        throw new Error(`Error comparing reanimated built dom to original`);
+    }
+    return buildRes.contents;
+}
+
 export async function deploy(options: BuildResults): Promise<DeployState> {
     const { deployment, newDom, stackName, taskObserver, fileName, projectRoot } = options;
     const tasks = taskObserver.childGroup().add({
@@ -261,7 +302,13 @@ export async function deploy(options: BuildResults): Promise<DeployState> {
             });
 
             const prevDom = await tasks.reanimatePrev.complete(async () => {
-                return prev ? inAdapt.internal.reanimateDom(prev.domXml, deployID) : null;
+                return prev ? reanimateAndBuild({
+                    ctx,
+                    domXml: prev.domXml,
+                    stateJson: prev.stateJson,
+                    deployID,
+                    logger
+                }) : null;
             });
 
             if (debugDeployDom.enabled) {
