@@ -58,7 +58,7 @@ describe("AWS EC2Instance component tests", () => {
         const domXml = serializeDom(dom);
         const expected =
 `<Adapt>
-  <CFResource>
+  <CFResourcePrimitive>
     <__props__>
       <prop name="Properties">{
   "InstanceType": "t2.micro",
@@ -72,7 +72,7 @@ describe("AWS EC2Instance component tests", () => {
       <prop name="key">"anonymous"</prop>
     </__props__>
     <Foo key="Foo"/>
-  </CFResource>
+  </CFResourcePrimitive>
 </Adapt>
 `;
         should(domXml).eql(expected);
@@ -97,7 +97,7 @@ apt-get update -qq
         // FIXME: key prop is incorrect
         const expected =
 `<Adapt>
-  <CFResource>
+  <CFResourcePrimitive>
     <__props__>
       <prop name="Properties">{
   "InstanceType": "t2.micro",
@@ -111,7 +111,7 @@ apt-get update -qq
       <prop name="Type">"AWS::EC2::Instance"</prop>
       <prop name="key">"anonymous"</prop>
     </__props__>
-  </CFResource>
+  </CFResourcePrimitive>
 </Adapt>
 `;
         should(domXml).eql(expected);

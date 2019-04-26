@@ -10,11 +10,12 @@ import Adapt, {
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import AWS from "aws-sdk";
+import { flatten } from "lodash";
 import { ComputeProps } from "../Compute";
 import { CFResource } from "./CFResource";
 import { withCredentials, WithCredentials } from "./credentials";
 import { AwsEc2Observer } from "./ec2_observer";
-import { adaptDeployIdTag, adaptId, adaptResourceIdTag } from "./plugin_utils";
+import { adaptDeployIdTag, adaptResourceId, adaptResourceIdTag } from "./plugin_utils";
 
 export interface EC2Props extends ComputeProps, WithChildren, WithCredentials {
     imageId: string;
@@ -58,10 +59,11 @@ class EC2InstanceNC extends Component<EC2Props> {
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData): Promise<EC2InstanceStatus> {
+        const isActive = (inst: AWS.EC2.Instance) => inst.State && inst.State.Name !== "terminated";
         const { awsCredentials } = this.props;
-        const resource = buildData.successor;
-        if (resource == null) throw new Error(`Internal Error: EC2Instance has no successor`);
-        const resourceId = adaptId(resourceType, resource.id);
+        const hand = this.props.handle;
+        if (!hand) throw new Error(`EC2InstanceNC component handle is null`);
+        const resourceId = adaptResourceId(hand);
 
         if (awsCredentials == null) {
             throw new Error(`awsCredentials must be provided`);
@@ -99,21 +101,23 @@ class EC2InstanceNC extends Component<EC2Props> {
             }
         );
 
-        return mergeDefaultChildStatus(this.props, obsP, observe,
-            buildData, (obs: any) => {
-            let noStatus = "";
+        return mergeDefaultChildStatus(this.props, obsP, observe, buildData, (obs: any) => {
+            let noStatus;
 
             const reservations = obs.withCredentials.DescribeInstances.Reservations;
             if (!Array.isArray(reservations)) {
                 noStatus = `Unexpected response from AWS API: ${reservations}`;
-            } else if (reservations.length === 0) {
-                noStatus = `EC2Instance with ID ${resourceId} does not exist`;
-            } else if (reservations.length > 1) {
-                noStatus = `Multiple EC2Instances with ID ${resourceId} exist`;
+            } else {
+                const instances = flatten(reservations.map((r) => r.Instances));
+                const active = instances.filter(isActive);
+
+                if (active.length === 1) return active[0];
+                noStatus = active.length === 0 ?
+                    `EC2Instance with ID ${resourceId} does not exist` :
+                    `Multiple EC2Instances with ID ${resourceId} exist`;
             }
 
-            const stat: EC2InstanceStatus = noStatus ?
-                { noStatus } : reservations[0].Instances[0];
+            const stat: EC2InstanceStatus = { noStatus };
             return stat;
         });
     }

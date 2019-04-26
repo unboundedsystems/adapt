@@ -4,14 +4,18 @@ import Adapt, {
     BuildData,
     childrenToArray,
     Component,
+    DeployedWhenMethod,
+    DeployStatus,
     FinalDomElement,
     gql,
+    handle,
     isElement,
     isFinalDomElement,
     mergeDefaultChildStatus,
     ObserveForStatus,
     PrimitiveComponent,
     Status,
+    waiting,
     WithChildren,
 } from "@usys/adapt";
 import { OverwriteT } from "type-ops";
@@ -25,6 +29,7 @@ import {
 } from "../resource_id";
 import { AwsCfObserver } from "./cf_observer";
 import { withCredentials, WithCredentials } from "./credentials";
+import { CFStackContext } from "./stack_context";
 
 const resourceIds = resourceIdList("StackName");
 
@@ -98,6 +103,53 @@ export interface CFStackStatus extends Status {
 }
 
 export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> {
+
+    deployedWhen: DeployedWhenMethod = async (goalStatus, helpers) => {
+        const hand = this.props.handle;
+        if (!hand) throw new Error("Invalid handle");
+
+        const status = await helpers.elementStatus<CFStackStatus>(hand);
+        if (!status) return waiting("No status returned by EC2 API");
+        if (status.StackStatus) {
+            switch (status.StackStatus) {
+                case "CREATE_COMPLETE":
+                case "UPDATE_COMPLETE":
+                    return goalStatus === DeployStatus.Deployed ? true :
+                        waiting(`Unexpected StackStatus ${status.StackStatus}`);
+                case "DELETE_COMPLETE":
+                    return goalStatus === DeployStatus.Destroyed ? true :
+                        waiting(`Unexpected StackStatus ${status.StackStatus}`);
+                case "CREATE_IN_PROGRESS":
+                case "UPDATE_IN_PROGRESS":
+                case "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS":
+                case "REVIEW_IN_PROGRESS":
+                case "DELETE_IN_PROGRESS":
+                    return waiting(status.StackStatus);
+                case "ROLLBACK_IN_PROGRESS":
+                case "ROLLBACK_COMPLETE":
+                case "UPDATE_ROLLBACK_IN_PROGRESS":
+                case "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS":
+                case "UPDATE_ROLLBACK_COMPLETE":
+                case "CREATE_FAILED":
+                case "ROLLBACK_FAILED":
+                case "UPDATE_ROLLBACK_FAILED":
+                case "DELETE_FAILED":
+                default:
+                    throw new Error(
+                        `Operation failed (${status.StackStatus}): ` +
+                        status.StackStatusReason);
+            }
+        }
+        if (status.noStatus === `Stack with id ${this.props.StackName} does not exist`) {
+            return goalStatus === DeployStatus.Destroyed ? true :
+                waiting(`Stack not found`);
+        }
+        if (typeof status.noStatus === "string") {
+            throw new Error("Unable to get status: " + status.noStatus);
+        }
+        throw new Error("Invalid status returned by EC2 API");
+    }
+
     validate() {
         try {
             this.validateChildren(this.props.children);
@@ -180,8 +232,13 @@ export class CFStackBase extends Component<CFStackProps, CFStackState> {
 
         // Make sure StackName (and any other ResourceIds are just strings
         // in the primitive component)
-        const { handle, ...primProps } = { ...this.props, ...ids };
-        return <CFStackPrimitive {...primProps} />;
+        const { handle: _h, ...primProps } = { ...this.props, ...ids };
+        const pHandle = handle();
+        return (
+            <CFStackContext.Provider key={this.props.key} value={pHandle}>
+                <CFStackPrimitive {...primProps} handle={pHandle} />
+            </CFStackContext.Provider>
+        );
     }
 }
 

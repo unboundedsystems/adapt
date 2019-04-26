@@ -226,12 +226,12 @@ function checkSimpleDomCreate(actions: Action[], config: SimpleDomConfig) {
     should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
     should(actions[0].changes[1].type).equal(ChangeType.create);
     should(actions[0].changes[1].detail).equal("Creating AWS::EC2::Instance");
-    should(actions[0].changes[1].element.componentName).equal("CFResource");
+    should(actions[0].changes[1].element.componentName).equal("CFResourcePrimitive");
     should(actions[0].changes[1].element.props.key).equal("i1");
     if (config.secondInstance) {
         should(actions[0].changes[2].type).equal(ChangeType.create);
         should(actions[0].changes[2].detail).equal("Creating AWS::EC2::Instance");
-        should(actions[0].changes[2].element.componentName).equal("CFResource");
+        should(actions[0].changes[2].element.componentName).equal("CFResourcePrimitive");
         should(actions[0].changes[2].element.props.key).equal("i2");
     }
 
@@ -244,7 +244,7 @@ function checkSimpleDomCreate(actions: Action[], config: SimpleDomConfig) {
     should(actions[1].changes[0].element.componentName).equal("CFStackPrimitive");
     should(actions[1].changes[1].type).equal(ChangeType.create);
     should(actions[1].changes[1].detail).equal("Creating AWS::EC2::Instance");
-    should(actions[1].changes[1].element.componentName).equal("CFResource");
+    should(actions[1].changes[1].element.componentName).equal("CFResourcePrimitive");
     should(actions[1].changes[1].element.props.key).equal("i1");
 }
 
@@ -494,7 +494,7 @@ describeLong("AWS plugin live tests", function () {
         should(actions[0].changes[1].type).equal(ChangeType.delete);
         should(actions[0].changes[1].detail).equal(
             "Destroying AWS::EC2::Instance due to CFStack deletion");
-        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.componentName).equal("CFResourcePrimitive");
         should(actions[0].changes[1].element.props.key).equal("i1");
 
         await act(actions);
@@ -552,13 +552,13 @@ describeLong("AWS plugin live tests", function () {
         // TODO: This needs updated once we add querying individual resource changes from AWS API
         should(actions[0].changes[1].detail).equal(
             "Resource AWS::EC2::Instance may be affected by CFStack modification");
-        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.componentName).equal("CFResourcePrimitive");
         should(actions[0].changes[1].element.props.key).equal("i1");
         should(actions[0].changes[2].type).equal(ChangeType.modify);
         // TODO: This needs updated once we add querying individual resource changes from AWS API
         should(actions[0].changes[2].detail).equal(
             "Resource AWS::EC2::Instance may be affected by CFStack modification");
-        should(actions[0].changes[2].element.componentName).equal("CFResource");
+        should(actions[0].changes[2].element.componentName).equal("CFResourcePrimitive");
         should(actions[0].changes[2].element.props.key).equal("i2");
 
         await act(actions);
@@ -612,7 +612,7 @@ describeLong("AWS plugin live tests", function () {
         // TODO: This needs updated once we add querying individual resource changes from AWS API
         should(actions[0].changes[1].detail).equal(
             "Resource AWS::EC2::Instance may be affected by CFStack modification");
-        should(actions[0].changes[1].element.componentName).equal("CFResource");
+        should(actions[0].changes[1].element.componentName).equal("CFResourcePrimitive");
         should(actions[0].changes[1].element.props.key).equal("i2");
 
         await act(actions);
