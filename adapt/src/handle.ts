@@ -1,4 +1,4 @@
-import { sha256hex } from "@usys/utils";
+import { isInstance, sha256hex, tagConstructor } from "@usys/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
@@ -14,7 +14,7 @@ export interface Handle {
 }
 
 export function isHandle(val: unknown): val is Handle {
-    return val instanceof HandleImpl;
+    return isHandleImpl(val);
 }
 
 export interface HandleInternal extends Handle {
@@ -25,7 +25,7 @@ export interface HandleInternal extends Handle {
 }
 
 export function isHandleInternal(val: unknown): val is HandleInternal {
-    return val instanceof HandleImpl;
+    return isHandleImpl(val);
 }
 
 export function getInternalHandle(el: AdaptElement): HandleInternal {
@@ -72,7 +72,7 @@ function traverseUntil(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
         if (childHand == null) {
             throw new InternalError(`no Handle present on Element in child chain`);
         }
-        if (!(childHand instanceof HandleImpl)) {
+        if (!isHandleImpl(childHand)) {
             throw new InternalError(`Handle present on Element is not a HandleImpl`);
         }
 
@@ -180,6 +180,11 @@ class HandleImpl implements HandleInternal {
             urn: handleUrn
         };
     }
+}
+tagConstructor(HandleImpl, "adapt");
+
+function isHandleImpl(val: unknown): val is HandleImpl {
+    return isInstance(val, HandleImpl, "adapt");
 }
 
 /**
