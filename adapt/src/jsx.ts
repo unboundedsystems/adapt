@@ -263,9 +263,10 @@ export interface SFC<Props extends object = AnyProps> {
     status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
 
-export type SFCDeclProps<Props, Defaults> = Defaultize<Props, Defaults> & Partial<BuiltinProps>;
+export type SFCDeclProps<Props, Defaults extends object = object> =
+    Defaultize<Props, Defaults> & Partial<BuiltinProps>;
 
-export type SFCBuildProps<Props, Defaults> =
+export type SFCBuildProps<Props, Defaults extends object = object> =
     & {[K in Extract<keyof Props, keyof Defaults>]: Props[K]}
     & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
     & {[K in Exclude<OptionalPropertiesT<Props>, keyof Defaults>]?: Props[K]}
