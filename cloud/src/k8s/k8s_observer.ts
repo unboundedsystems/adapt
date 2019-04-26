@@ -10,13 +10,38 @@ import { execute, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "grap
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";
 import jsonStableStringify = require("json-stable-stringify");
-import fetch from "node-fetch";
+import fetch, { Response } from "node-fetch";
+import { CustomError } from "ts-custom-error";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import { Kubeconfig } from "./common";
 
 // tslint:disable-next-line:no-var-requires
 const swaggerClient = require("swagger-client");
+
+export class K8sNotFound extends CustomError {
+    request?: { kind: string; name: string; };
+
+    constructor(jsonBody: any) {
+        let msg = `Resource not found`;
+        const info = jsonBody && jsonBody.message;
+        if (info) msg += ": " + info;
+        super(msg);
+        const request = jsonBody && jsonBody.details;
+        if (request && typeof request.kind === "string" &&
+            typeof request.name === "string") {
+            this.request = request;
+        }
+    }
+}
+
+export class K8sResponseError extends CustomError {
+    constructor(resp: Response, public status: any) {
+        super(`Error fetching ${resp.url}: status ${resp.statusText} ` +
+            `(${resp.status}): ${status.message || ""}\n` +
+            JSON.stringify(status, null, 2));
+    }
+}
 
 export function getK8sConnectInfo(kubeconfig: Kubeconfig) {
     function byName(name: string) { return (x: { name: string }) => x.name === name; }
@@ -109,12 +134,11 @@ const k8sObserveResolverFactory: ResolverFactory = {
 
             const url = obj[infoSym].host + req.url;
             const resp = await fetch(url, { ...req, agent: obj[infoSym].agent });
-            if (resp.status !== 200) {
-                throw new Error(`Error fetching ${url}: status ${resp.statusText}(${resp.status}):`
-                    + `${JSON.stringify(await resp.json(), undefined, 2)}`);
-            }
-
             const ret = await resp.json();
+
+            if (resp.status === 404) throw new K8sNotFound(ret);
+            else if (!resp.ok) throw new K8sResponseError(resp, ret);
+
             const queryId = computeQueryId(obj[infoSym].id, fieldName, args);
             context[queryId] = ret; //Overwrite in case data got updated on later query
 
