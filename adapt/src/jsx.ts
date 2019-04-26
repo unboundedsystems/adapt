@@ -324,6 +324,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     path?: string;
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
+    buildState = BuildState.initial;
     reanimated: boolean = false;
     stateUpdates: StateUpdater[] = [];
 
@@ -370,6 +371,10 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.buildData.deployID = deployID;
     }
 
+    setBuilt = () => this.buildState = BuildState.built;
+    shouldBuild = () => this.buildState === BuildState.initial;
+    built = () => this.buildState === BuildState.built;
+
     setState = (stateUpdate: StateUpdater<Props, AnyState>): void => {
         this.stateUpdates.push(stateUpdate);
     }
@@ -396,7 +401,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     }
 
     statusCommon = async (observeForStatus: ObserveForStatus) => {
-        if (this.reanimated) throw new NoStatusAvailable("status for reanimated elements not supported yet");
+        if (this.reanimated && !this.built()) {
+            throw new NoStatusAvailable("status for reanimated elements not supported without a DOM build");
+        }
         if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
 
         const buildData = this.buildData as BuildData; //After build, this type assertion should hold
@@ -462,26 +469,15 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 tagConstructor(AdaptElementImpl, "adapt");
 
-enum DeferredState {
+enum BuildState {
     initial = "initial",
     deferred = "deferred",
     built = "built"
 }
 
 export class AdaptDeferredElementImpl<Props extends object> extends AdaptElementImpl<Props> {
-    state = DeferredState.initial;
-
-    deferred() {
-        this.state = DeferredState.deferred;
-    }
-
-    built() {
-        this.state = DeferredState.built;
-    }
-
-    shouldBuild() {
-        return this.state === DeferredState.deferred; //Build if we've deferred once
-    }
+    setDeferred = () => this.buildState = BuildState.deferred;
+    shouldBuild = () => this.buildState === BuildState.deferred; //Build if we've deferred once
 }
 tagConstructor(AdaptDeferredElementImpl, "adapt");
 

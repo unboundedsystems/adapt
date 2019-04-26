@@ -509,6 +509,7 @@ async function buildElement(
         try {
             constructComponent(elem, options.stateStore, options.observerManager);
             res.builtElements.push(elem);
+            elem.setBuilt();
         } catch (err) {
             if (!isError(err)) throw err;
             recordDomError(res, elem,
@@ -529,6 +530,7 @@ async function buildElement(
     }
 
     out.builtElements.push(elem);
+    elem.setBuilt();
     return out;
 }
 
@@ -795,12 +797,13 @@ async function buildChildren(
     newChildren = [];
     const mountedOrigChildren: any[] = [];
     for (const child of childList) {
-        if (isMountedElement(child)) {
-            newChildren.push(child); //Must be from a deferred build
-            mountedOrigChildren.push(child);
-            continue;
-        }
         if (isElementImpl(child)) {
+            if (isMountedElement(child) && child.built()) {
+                newChildren.push(child); //Must be from a deferred build
+                mountedOrigChildren.push(child);
+                continue;
+            }
+
             options.recorder({ type: "descend", descendFrom: newRoot, descendTo: child });
             const ret = await realBuildOnce(
                 [...workingPath, child],
@@ -924,7 +927,7 @@ async function realBuildOnce(
             }
         } else {
             deferring = true;
-            mountedElem.deferred();
+            mountedElem.setDeferred();
             newRoot = mountedElem;
             out.contents = newRoot;
         }
