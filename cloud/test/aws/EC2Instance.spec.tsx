@@ -118,6 +118,17 @@ apt-get update -qq
     });
 });
 
+// WARNING: Do not commit with this set to true (it slows down tests)
+const captureForNock = false;
+
+// tslint:disable-next-line: no-console
+if (captureForNock) console.warn("\n*****\n\nWARNING: running with captureForNock enabled\n\n*****");
+
+// When we're capturing, poll less frequently so there are fewer requests
+// to have to delete in the captured API requests. Otherwise, optimize for
+// getting results faster.
+const pollMs = captureForNock ? 20 * 1000 : 1000;
+
 describeFixture("AWS EC2Instance API tests", () => {
     let creds: AwsCredentialsProps;
     let client: AWS.CloudFormation;
@@ -133,12 +144,21 @@ describeFixture("AWS EC2Instance API tests", () => {
         this.timeout(10 * 1000);
         creds = await loadAwsCreds();
         client = getAwsClient(creds);
-        await deleteAllStacks(client, deployID, 10 * 1000, false);
+        await deleteAllStacks(client, deployID, {
+            pollMs: 10 * 1000,
+            definite: false,
+        });
     });
 
     afterEach(async function () {
-        this.timeout(65 * 1000);
-        if (client) await deleteAllStacks(client, deployID, 60 * 1000, false);
+        this.timeout(65 * 1000 + pollMs);
+        if (client) {
+            await deleteAllStacks(client, deployID, {
+                pollMs,
+                timeoutMs: 60 * 1000 + pollMs,
+                definite: false,
+            });
+        }
     });
 
     async function runPlugin(dom: AdaptElement) {
@@ -168,16 +188,19 @@ describeFixture("AWS EC2Instance API tests", () => {
      * To rebuild the mocha-nock mocked HTTP responses:
      * 1. Delete the file that corresponds to this test case in
      *    cloud/test/fixtures.
-     * 2. Optionally, set useFixedNames to false in order to generate new
+     * 2. Set captureForNock to true (see above). This will reduce the number
+     *    of API requests recorded and make it easier to edit the capture.
+     * 3. Optionally, set useFixedNames to false in order to generate new
      *    random stack name and deployID.
-     * 3. Run this test. That will create the test/fixtures file again.
-     * 4. In order to reduce test run time, edit the fixture file and manually
+     * 4. Run this test. That will create the test/fixtures file again.
+     * 5. In order to reduce test run time, edit the fixture file and manually
      *    delete the all the responses that have StackStatus=CREATE_IN_PROGRESS.
-     * 5. If you set useFixedNames=false, set it to true again and update the
+     * 6. Set captureForNock to false again.
+     * 7. If you set useFixedNames=false, set it to true again and update the
      *    associated strings to the values found in the test fixture.
      */
     it("Should build and have status", async function () {
-        this.timeout(90 * 1000); // For when not using mock HTTP data
+        this.timeout(5 * 60 * 1000); // For when not using mock HTTP data
         this.slow(3 * 1000); // With mock data, this usually runs in about 2s
         // tslint:disable-next-line:variable-name
         const Creds = awsDefaultCredentialsContext;
@@ -217,8 +240,10 @@ describeFixture("AWS EC2Instance API tests", () => {
         should(iStatus.noStatus).match(/EC2Instance with ID .* does not exist/);
 
         await runPlugin(dom);
-        const stacks = await waitForStacks(client, deployID, stackNames,
-                                           {timeoutMs: 4 * 60 * 1000});
+        const stacks = await waitForStacks(client, deployID, stackNames, {
+            pollMs,
+            timeoutMs: 4 * 60 * 1000,
+        });
         should(stacks).have.length(1);
 
         await waitFor(12, 10, "EC2Instance did not return a status", async () => {
