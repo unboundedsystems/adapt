@@ -7,17 +7,24 @@ import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/
 import {
     DeployStatus,
     DeployStatusExt,
-    EPNode,
     ExecuteComplete,
-    isFinalStatusExt,
-    StatusTracker,
+    GoalStatus,
+    goalToInProgress,
+    isFinalStatus,
+    isGoalStatus,
+    isInProgress,
+    isProxying,
     toDeployStatus,
 } from "./deploy_types";
+import {
+    EPNode,
+    StatusTracker,
+} from "./deploy_types_private";
 
 export interface StatusTrackerOptions {
     deployment: Deployment;
     dryRun: boolean;
-    goalStatus: DeployStatus;
+    goalStatus: GoalStatus;
     nodes: EPNode[];
     sequence: DeploymentSequence;
     taskObserver: TaskObserver;
@@ -25,13 +32,14 @@ export interface StatusTrackerOptions {
 
 export async function createStatusTracker(options: StatusTrackerOptions): Promise<StatusTracker> {
     const tracker = new StatusTrackerImpl(options);
-    await tracker.initDeploymentStatus(options.goalStatus);
+    await tracker.initDeploymentStatus();
     return tracker;
 }
 
 export class StatusTrackerImpl implements StatusTracker {
     readonly deployment: Deployment;
     readonly dryRun: boolean;
+    readonly goalStatus: GoalStatus;
     readonly nodeStatus: Record<DeployStatus, number>;
     readonly primStatus: Record<DeployStatus, number>;
     readonly statMap: Map<EPNode, DeployStatusExt>;
@@ -41,6 +49,7 @@ export class StatusTrackerImpl implements StatusTracker {
     constructor(options: StatusTrackerOptions) {
         this.deployment = options.deployment;
         this.dryRun = options.dryRun;
+        this.goalStatus = options.goalStatus;
 
         this.nodeStatus = this.newStatus();
         this.nodeStatus.Waiting = options.nodes.length;
@@ -62,15 +71,8 @@ export class StatusTrackerImpl implements StatusTracker {
         this.sequence = options.sequence;
     }
 
-    async initDeploymentStatus(goalStatus: DeployStatus) {
-        const deploymentDeployStatus =
-            goalStatus === DeployStatus.Deployed ? DeployStatus.Deploying :
-            //goalStatus === DeployStatus.Destroyed ? DeployStatus.Destroying :
-            undefined;
-        if (!deploymentDeployStatus) {
-            throw new InternalError(`Invalid goal status ${goalStatus}`);
-        }
-
+    async initDeploymentStatus() {
+        const deploymentDeployStatus = goalToInProgress(this.goalStatus);
         if (this.dryRun) return;
 
         const elementStatus: ElementStatusMap = {};
@@ -81,7 +83,7 @@ export class StatusTrackerImpl implements StatusTracker {
         });
         await this.deployment.status(this.sequence, {
             deployStatus: deploymentDeployStatus,
-            goalStatus,
+            goalStatus: this.goalStatus,
             elementStatus,
         });
     }
@@ -99,42 +101,25 @@ export class StatusTrackerImpl implements StatusTracker {
     async set(n: EPNode, statExt: DeployStatusExt, err: Error | undefined,
         description?: string) {
         const oldStat = this.get(n);
-        if (statExt === oldStat || isFinalStatusExt(oldStat)) return false;
+        if (statExt === oldStat || isFinalStatus(oldStat)) return false;
 
         const deployStatus = toDeployStatus(statExt);
-        const s: ElementStatus = { deployStatus };
-        if (err) s.error = err.message;
 
         this.statMap.set(n, statExt);
         this.updateCount(n, toDeployStatus(oldStat), deployStatus);
 
-        if (!n.element) return true;
-        const task = this.taskMap.get(n);
-        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
-        if (description) task.description = description;
+        this.updateTask(n, oldStat, deployStatus, err, description);
+        await this.updateStatus(n, err);
 
-        if (this.dryRun) {
-            if (err) task.failed(err);
-            else if (deployStatus === DeployStatus.Deployed) task.skipped();
-
-        } else {
-            await this.deployment.elementStatus(this.sequence, { [n.element.id]: s });
-
-            if (err) task.failed(err);
-            else if (
-                deployStatus === DeployStatus.Deploying &&
-                oldStat !== DeployStatusExt.ProxyDeploying) task.started();
-            else if (deployStatus === DeployStatus.Deployed) task.complete();
-        }
         return true;
     }
 
     isFinal(n: EPNode) {
-        return isFinalStatusExt(this.get(n));
+        return isFinalStatus(this.get(n));
     }
 
     isActive(n: EPNode) {
-        return !isFinalStatusExt(this.get(n));
+        return !isFinalStatus(this.get(n));
     }
 
     output(n: EPNode, s: string) {
@@ -149,10 +134,11 @@ export class StatusTrackerImpl implements StatusTracker {
             throw new InternalError(`Nodes should not be in Initial state ${JSON.stringify(this.nodeStatus)}`);
         }
 
+        const atGoal = this.nodeStatus.Deployed + this.nodeStatus.Destroyed;
         const deploymentStatus =
             (this.nodeStatus.Failed > 0) ? DeployStatus.Failed :
-            (this.nodeStatus.Deployed === this.statMap.size) ? DeployStatus.Deployed :
-            DeployStatus.Waiting;
+            (atGoal === this.statMap.size) ? this.goalStatus :
+            goalToInProgress(this.goalStatus);
 
         if (!this.dryRun) {
             await this.deployment.status(this.sequence, { deployStatus: deploymentStatus });
@@ -170,6 +156,36 @@ export class StatusTrackerImpl implements StatusTracker {
             .map(([n, stat]) => `  ${(getId(n) as any).padEnd(20)} => ${stat}`)
             .join("\n");
         return `StatusTracker {\n${entries}\n}`;
+    }
+
+    private async updateStatus(n: EPNode, err: Error | undefined) {
+        if (n.element == null || this.dryRun) return;
+
+        const statExt = this.get(n);
+        const deployStatus = toDeployStatus(statExt);
+        const s: ElementStatus = { deployStatus };
+        if (err) s.error = err.message;
+        await this.deployment.elementStatus(this.sequence, { [n.element.id]: s });
+    }
+
+    private updateTask(n: EPNode, oldStat: DeployStatusExt, newStat: DeployStatus,
+        err: Error | undefined, description: string | undefined) {
+
+        if (!n.element) return;
+
+        const task = this.taskMap.get(n);
+        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
+        if (description) task.description = description;
+
+        if (err) return task.failed(err);
+
+        if (this.dryRun) {
+            if (isGoalStatus(newStat)) task.skipped();
+
+        } else {
+            if (isInProgress(newStat) && !isProxying(oldStat)) task.started();
+            else if (isGoalStatus(newStat)) task.complete();
+        }
     }
 
     private updateCount(n: EPNode, oldStat: DeployStatus, newStat: DeployStatus) {

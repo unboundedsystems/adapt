@@ -1,11 +1,13 @@
 import {
     AdaptElement,
+    Handle,
+    isHandle,
     isMountedElement,
 } from "@usys/adapt";
 import { sha256hex } from "@usys/utils";
 import AWS from "aws-sdk";
 
-import { CFResourceProps } from "./CFResource";
+import { CFResourceProps, isCFResourcePrimitiveElement } from "./CFResource";
 
 export interface Tagged {
     Tags?: AWS.EC2.Tag[];
@@ -38,7 +40,17 @@ export function getTag(obj: Tagged, tag: string) {
     return undefined;
 }
 
-export function adaptResourceIdFromElem(el: AdaptElement<CFResourceProps>): string {
+export function adaptResourceId(elemOrHandle: AdaptElement<CFResourceProps> | Handle): string {
+    const el = isHandle(elemOrHandle) ? elemOrHandle.target : elemOrHandle;
+    if (el == null) {
+        throw new Error(`Cannot get a CloudFormation resource ID ` +
+            `for an unassociated handle`);
+    }
+    if (!isCFResourcePrimitiveElement(el)) {
+        throw new Error(`Cannot get a CloudFormation resource ID for an ` +
+            `element that is not a CFResourcePrimitive`);
+    }
+
     return adaptIdFromElem(el.props.Type, el);
 }
 

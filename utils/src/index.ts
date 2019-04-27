@@ -14,6 +14,7 @@ export * from "./object_set";
 export { createPackageRegistry, PackageRegistry } from "./package_registry";
 export * from "./paths";
 export * from "./sleep";
+export * from "./to_array";
 export * from "./type_check";
 export * from "./user_error";
 export * from "./wait_for";

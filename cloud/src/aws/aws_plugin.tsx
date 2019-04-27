@@ -18,9 +18,9 @@ import AWS = require("aws-sdk");
 import { compact, pick } from "lodash";
 
 import {
-    CFResource,
+    CFResourcePrimitive,
     CFResourceProps,
-    isCFResourceElement,
+    isCFResourcePrimitiveElement,
 } from "./CFResource";
 import {
     CFStackPrimitive,
@@ -30,7 +30,7 @@ import {
 import {
     adaptDeployIdTag,
     adaptIdFromElem,
-    adaptResourceIdFromElem,
+    adaptResourceId,
     adaptResourceIdTag,
     adaptStackIdTag,
     addTag,
@@ -74,12 +74,7 @@ interface LogicalRef {
 }
 
 function cfLogicalRef(handle: Handle): LogicalRef {
-    const el = handle.target;
-    if (el == null) throw new Error(`Cannot get a CloudFormation ref for an unassociated handle`);
-    if (!isCFResourceElement(el)) {
-        throw new Error(`Cannot get a CloudFormation ref for an element that is not a CFResource`);
-    }
-    return { Ref: adaptResourceIdFromElem(el) };
+    return { Ref: adaptResourceId(handle) };
 }
 
 function addAdaptDeployId(input: AWS.CloudFormation.CreateStackInput, deployID: string) {
@@ -127,7 +122,7 @@ export function createTemplate(stackEl: StackElement): Template {
 
     const resources = findResourceElems(stackEl);
     for (const r of resources) {
-        const resourceId = adaptResourceIdFromElem(r);
+        const resourceId = adaptResourceId(r);
         // Don't modify the element's props. Clone.
         const properties = { ...r.props.Properties };
 
@@ -175,9 +170,9 @@ function adaptStackId(el: StackElement): string {
 }
 
 function findResourceElems(dom: AdaptElementOrNull) {
-    const rules = <Style>{CFResource} {Adapt.rule()}</Style>;
+    const rules = <Style>{CFResourcePrimitive} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
-    return compact(candidateElems.map((e) => isCFResourceElement(e) ? e : null));
+    return compact(candidateElems.map((e) => isCFResourcePrimitiveElement(e) ? e : null));
 }
 
 export function findStackElems(dom: AdaptElementOrNull): StackElement[] {

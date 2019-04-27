@@ -113,6 +113,7 @@ function updateStoredStatus(
     switch (event) {
         case TaskEvent.ChildGroup:
         case TaskEvent.Description:
+        case TaskEvent.Complete:
             break;
         default:
             if (status == null) status = taskStatus.status;

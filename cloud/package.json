@@ -47,6 +47,7 @@
     "randomstring": "^1.1.5",
     "swagger-client": "^3.8.21",
     "tmp": "^0.0.33",
+    "ts-custom-error": "^2.2.1",
     "tslib": "^1.9.3",
     "type-ops": "^3.0.1"
   },

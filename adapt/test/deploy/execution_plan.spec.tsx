@@ -1,5 +1,6 @@
 import { createMockLogger, MockLogger } from "@usys/testutils";
-import { createTaskObserver, sleep, TaskObserver, TaskObserversUnknown, TaskState } from "@usys/utils";
+import { createTaskObserver, inDebugger, sleep, TaskObserver, TaskObserversUnknown, TaskState } from "@usys/utils";
+import { uniq } from "lodash";
 import pDefer from "p-defer";
 import should from "should";
 import sinon from "sinon";
@@ -12,54 +13,115 @@ import Adapt, {
     FinalDomElement,
     Group,
     handle,
+    Handle,
 } from "../../src/";
-import { EPNode, ExecuteComplete, WaitInfo } from "../../src/deploy/deploy_types";
+import {
+    Dependency,
+    DependsOn,
+    DependsOnMethod,
+    DeployHelpers,
+    ExecuteComplete,
+    GoalStatus,
+    WaitStatus,
+} from "../../src/deploy/deploy_types";
+import {
+    EPNode,
+    isEPNodeWI,
+    WaitInfo,
+} from "../../src/deploy/deploy_types_private";
 import {
     createExecutionPlan,
+    EPDependency,
     execute,
     ExecutionPlanImpl,
+    isExecutionPlanImpl,
 } from "../../src/deploy/execution_plan";
+import { relationIsReadyStatus, toRelation } from "../../src/deploy/relation_utils";
+import { And } from "../../src/deploy/relations";
 import { domDiff } from "../../src/dom_utils";
 import { Deployment } from "../../src/server/deployment";
 import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
 import { createMockDeployment } from "../server/mocks";
 import { doBuild, Empty } from "../testlib";
+import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
 
-interface IdProps {
-    id: number;
+function dependencies(plan: ExecutionPlanImpl) {
+    const ret: { [ id: string]: string[] } = {};
+    const epDeps = plan.toDependencies();
+    const toDetail = (d: EPDependency) => epDeps[d.id].detail;
+    Object.keys(epDeps).map((id) => {
+        const ep = epDeps[id];
+        ret[ep.detail] = ep.deps.map(toDetail).sort();
+    });
+    return ret;
 }
 
-class Prim extends Adapt.PrimitiveComponent<IdProps> { }
+const timeoutMs = inDebugger() ? 0 : 1500;
 
-interface DependProps {
-    id: number;
-    dep: (id: number) => WaitInfo;
+interface AllOfTesterOptions {
+    description: string;
+    helpers: DeployHelpers;
+    deps: Dependency[];
+    checkReady?: (stat: WaitStatus) => void;
 }
 
-class DependPrim extends Adapt.PrimitiveComponent<DependProps> {
-    dependsOn = () => this.props.dep(this.props.id);
+function AllOfTester(options: AllOfTesterOptions): DependsOn {
+    const { description, helpers, deps, checkReady } = options;
+    return {
+        description,
+        relatesTo: deps.map((d) => toRelation(helpers, d)),
+        ready: (rels) => {
+            const stat = relationIsReadyStatus(And(...rels));
+            if (checkReady) checkReady(stat);
+            return stat;
+        }
+    };
 }
 
-/*
-function MakePrim(props: IdProps) {
-    return <Prim id={props.id} />;
+function makeAllOf(description: string, helpers: DeployHelpers, deps: Dependency[]) {
+    return AllOfTester({ description, helpers, deps });
 }
-*/
 
-function spyArgs(spy: sinon.SinonSpy): any[][];
-function spyArgs(spy: sinon.SinonSpy, argNum: number): any[];
-function spyArgs(spy: sinon.SinonSpy, argNum?: number) {
-    const args = spy.getCalls().map((call) => call.args);
-    if (argNum === undefined) return args;
-    return args.map((a) => a[argNum]);
+const getHandles = (els: AdaptMountedElement[]) => els.map((el) => el.props.handle);
+
+function addNodeWithWaitInfo(plan: ExecutionPlanImpl, el: AdaptMountedElement,
+    deps: AdaptMountedElement[], gs: GoalStatus = DeployStatus.Deployed,
+    checkReady?: AllOfTesterOptions["checkReady"]) {
+
+    const helpers = plan.helpers.create(el);
+    let node: EPNode = {
+        element: el,
+        goalStatus: gs,
+    };
+    plan.addNode(node);
+    node = plan.getNode(node);
+    node.waitInfo = {
+        description: el.id,
+        dependsOn: AllOfTester({
+            description: "tester",
+            helpers,
+            deps: getHandles(deps),
+            checkReady,
+        }),
+        deployedWhen: () => true,
+    };
+    if (!isEPNodeWI(node)) throw new Error("node is not EPNodeWI");
+    plan.addWaitInfo(node, gs);
 }
 
 describe("Execution plan", () => {
+    let deployment: Deployment;
+
+    beforeEach(async () => {
+        deployment = await createMockDeployment();
+    });
+
     it("Should create a plan", async () => {
         const d = <Empty id={1}/>;
         const { dom } = await doBuild(d);
         const plan = await createExecutionPlan({
             actions: [],
+            deployment,
             diff: domDiff(null, dom),
             goalStatus: DeployStatus.Deployed,
         });
@@ -79,10 +141,17 @@ describe("Execution plan", () => {
                 <Prim id={0} />
                 <Prim id={1} />
                 <Prim id={2} />
+                <Prim id={3} />
+                <Prim id={4} />
+                <Prim id={5} />
             </Group>;
         const { dom } = await doBuild(orig);
-        const kids: FinalDomElement[] = dom.props.children;
-        const seriesActions = [0, 1].map((group) => kids.map((k, i): Action => ({
+        const kids: FinalDomElement[][] = [
+            dom.props.children.slice(0, 3),
+            dom.props.children.slice(3, 6),
+        ];
+        const nKids = dom.props.children.length;
+        const seriesActions = [0, 1].map((group) => kids[group].map((k, i): Action => ({
             type: ChangeType.create,
             detail: `Group${group} Action${i}`,
             act: () => Promise.resolve(),
@@ -98,6 +167,7 @@ describe("Execution plan", () => {
         const plan = await createExecutionPlan({
             actions: [],
             seriesActions,
+            deployment,
             diff: domDiff(null, dom),
             goalStatus: DeployStatus.Deployed,
         });
@@ -105,9 +175,9 @@ describe("Execution plan", () => {
         if (!(plan instanceof ExecutionPlanImpl)) {
             throw new Error(`plan is not an ExecutionPlanImpl`);
         }
-        should(plan.elems).have.length(1 + kids.length);
-        // GroupEl + kids * (1 elem + 2 series groups * 1 action)
-        should(plan.nodes).have.length(1 + kids.length * 3);
+        should(plan.elems).have.length(1 + nKids);
+        // GroupEl + kids * (1 elem + 1 action)
+        should(plan.nodes).have.length(1 + nKids * 2);
         // GroupEl + 1 action from each series group
         should(plan.leaves).have.length(3);
     });
@@ -209,20 +279,33 @@ describe("ExecutionPlanImpl", () => {
         const { deployStatus, goalStatus, elementStatus } =
             await deployment.status(sequence);
         should(deployStatus).equal(expDeploy);
-        should(goalStatus).equal(DeployStatus.Deployed);
+        should(goalStatus).equal(expDeploy);
         expElems.forEach((e) => checkElemStatus(elementStatus, e, expDeploy));
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames).have.length(expTaskNames.length);
         should(taskNames).containDeep(expElems.map((e) => e.id));
-        should(taskNames.map((n) => tasks[n]!.description)) .containDeep(expTaskNames);
+        should(taskNames.map((n) => tasks[n]!.description)).containDeep(expTaskNames);
         should(taskNames.map((n) => tasks[n]!.state))
             .containDeep(expTaskNames.map(() => expTask));
     }
 
-    it("Should execute elements and actions", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+    /**
+     * Basic plan with 3 kids and one action each. No additional dependencies.
+     * Actions all start at once, but complete in the order 2, 0, 1
+     *
+     * Tests:
+     *   - Adding hard dependencies via plan.addAction
+     *   - Hard dependencies
+     * Dependencies (all hard):
+     *   root -> (none)
+     *   kid0 -> Action0
+     *   kid1 -> Action1
+     *   kid2 -> Action2
+     */
+    async function createPlan1(goalStatus: GoalStatus) {
+        const plan = new ExecutionPlanImpl(goalStatus, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -233,7 +316,7 @@ describe("ExecutionPlanImpl", () => {
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
+        elems.forEach((e) => plan.addElem(e, goalStatus));
 
         should(plan.nodes).have.length(4);
         should(plan.elems).have.length(4);
@@ -242,13 +325,13 @@ describe("ExecutionPlanImpl", () => {
         const spy = sinon.spy();
         const acts = sequentialActs([2, 0, 1], spy);
         const actions = acts.map((a, i) => ({
-            type: ChangeType.create,
+            type: toChangeType(goalStatus),
             detail: `Action${i}`,
             act: a.act,
             changes: [
                 {
                     detail: `Action${i} Change0`,
-                    type: ChangeType.create,
+                    type: toChangeType(goalStatus),
                     element: kids[i]
                 }
             ]
@@ -258,19 +341,42 @@ describe("ExecutionPlanImpl", () => {
         const expNodes = 7;
         should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(4);
+
+        return {
+            dom,
+            elems,
+            expNodes,
+            kids,
+            plan,
+            spy,
+        };
+    }
+
+    it("Should deploy elements with actions (Plan1)", async () => {
+        const goal = DeployStatus.Deployed;
+        const { dom, elems, expNodes, kids, plan, spy } = await createPlan1(goal);
         should(plan.leaves).have.length(4);
+
+        should(dependencies(plan)).eql({
+            [dom.id]: [],
+            [kids[0].id]: [ "Action0" ],
+            [kids[1].id]: [ "Action1" ],
+            [kids[2].id]: [ "Action2" ],
+            Action0: [],
+            Action1: [],
+            Action2: [],
+        });
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
-        await checkFinalSimple(plan, ret, DeployStatus.Deployed,
-            TaskState.Complete, elems, expNodes,
+        await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
             ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
 
         const { stdout, stderr } = logger;
@@ -289,8 +395,262 @@ describe("ExecutionPlanImpl", () => {
         should(spy.getCall(5).args[0]).match(/Action1 completed/);
     });
 
-    it("Should wait for all dependencies", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+    /**
+     * Tests a very simple full destroy.
+     * - Tests that group leaders (Actions) always happen before group
+     *   members (Elements affected by the change), even during destroy when
+     *   most dependencies reverse.
+     */
+    it("Should destroy elements with actions (Plan1)", async () => {
+        const goal = DeployStatus.Destroyed;
+        const { dom, elems, expNodes, kids, plan, spy } = await createPlan1(goal);
+
+        should(plan.leaves).have.length(4);
+
+        // The kids elements should ALWAYS depend on their Action (group leader),
+        // even when destroying.
+        should(dependencies(plan)).eql({
+            [dom.id]: [],
+            [kids[0].id]: [ "Action0" ],
+            [kids[1].id]: [ "Action1" ],
+            [kids[2].id]: [ "Action2" ],
+            Action0: [],
+            Action1: [],
+            Action2: [],
+        });
+
+        plan.check();
+        const ret = await execute({
+            logger,
+            plan,
+            sequence,
+            taskObserver,
+            timeoutMs,
+        });
+
+        await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
+            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
+
+        const { stdout, stderr } = logger;
+        should(stdout).match(/Doing Action0/);
+        should(stdout).match(/Doing Action1/);
+        should(stdout).match(/Doing Action2/);
+        should(stderr).equal("");
+
+        should(spy.callCount).equal(6); // 2 per action
+        // Starts can happen in any order, but all before any completions
+        should(spy.getCall(0).args[0]).match(/Action\d started/);
+        should(spy.getCall(1).args[0]).match(/Action\d started/);
+        should(spy.getCall(2).args[0]).match(/Action\d started/);
+        should(spy.getCall(3).args[0]).match(/Action2 completed/);
+        should(spy.getCall(4).args[0]).match(/Action0 completed/);
+        should(spy.getCall(5).args[0]).match(/Action1 completed/);
+    });
+
+    /**
+     * Plan with a couple additional explicit hard dependencies between
+     * elements. This uses addAction.
+     * - Tests that dependencies on an Element in a group depend on that
+     *   element in the deploy direction, but the group leader (Action) has
+     *   the dependency in destroy.
+     * - The depsBeforeActions flag tests the setGroup functionality of moving
+     *   dependencies to the group leader when true.
+     *
+     * Dependencies (all hard. auto means via addAtion):
+     *   root -> kid0, kid3
+     *   kid0 -> Action0 (auto), kid1, kid2, kid3
+     *   kid1 -> Action1 (auto), kid2
+     *   kid2 -> Action2 (auto), kid3
+     *   kid3 -> Action3 (auto)
+     */
+    async function createPlan2(goal: GoalStatus, depsBeforeActions = false) {
+        const plan = new ExecutionPlanImpl(goal, deployment);
+        const checkLeaves = (depl: number, dest: number, desc: string) => {
+            const leaves = goal === DeployStatus.Deployed ? depl : dest;
+            should(plan.leaves).have.length(leaves, desc);
+        };
+        const orig =
+            <Group key="root">
+                <Prim key="kid0" id={0} />
+                <Prim key="kid1" id={1} />
+                <Prim key="kid2" id={2} />
+                <Prim key="kid3" id={3} />
+            </Group>;
+        const { dom } = await doBuild(orig);
+        const kids: FinalDomElement[] = dom.props.children;
+        const elems = [ dom, ...kids ];
+
+        const addDeps = () => {
+            plan.addHardDep(kids[0], kids[1]);
+            plan.addHardDep(kids[0], kids[2]);
+            plan.addHardDep(kids[0], kids[3]);
+            plan.addHardDep(kids[1], kids[2]);
+            plan.addHardDep(kids[2], kids[3]);
+        };
+
+        elems.forEach((e) => plan.addElem(e, goal));
+
+        plan.addHardDep(dom, kids[0]);
+        plan.addHardDep(dom, kids[3]);
+
+        should(plan.nodes).have.length(5);
+        should(plan.elems).have.length(5);
+        checkLeaves(4, 3, "After nodes & 2 dependencies");
+
+        if (depsBeforeActions) {
+            addDeps();
+            checkLeaves(1, 1, "deps before actions");
+        }
+
+        const spy = sinon.spy();
+        const actions = kids.map((k, i) => ({
+            type: toChangeType(goal),
+            detail: `Action${i}`,
+            act: () => spy(`Action${i} called`),
+            changes: [
+                {
+                    detail: `Change${i}`,
+                    type: toChangeType(goal),
+                    element: k
+                }
+            ]
+        }));
+        actions.forEach((a) => plan.addAction(a));
+
+        if (!depsBeforeActions) addDeps();
+
+        const expNodes = 9;
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(5);
+        checkLeaves(1, 1, "plan complete");
+
+        return {
+            dom,
+            elems,
+            expNodes,
+            kids,
+            plan,
+            spy,
+        };
+    }
+
+    const deployPlan2 = (depsBeforeActions: boolean) => {
+        it(`Should wait for hard dependencies in deploy (Plan2/${depsBeforeActions})`, async () => {
+
+            const goal: GoalStatus = DeployStatus.Deployed;
+            const { dom, elems, expNodes, kids, plan, spy } =
+                await createPlan2(goal, depsBeforeActions);
+
+            should(plan.leaves).have.length(1);
+
+            should(dependencies(plan)).eql({
+                [dom.id]: [ kids[0].id, kids[3].id ],
+                [kids[0].id]: [ "Action0" ],
+                [kids[1].id]: [ "Action1" ],
+                [kids[2].id]: [ "Action2" ],
+                [kids[3].id]: [ "Action3" ],
+                // Dependencies between kids actually get placed on group leader
+                // (Action)
+                Action0: [ kids[1].id, kids[2].id, kids[3].id ],
+                Action1: [ kids[2].id ],
+                Action2: [ kids[3].id ],
+                Action3: [],
+            });
+
+            plan.check();
+            const ret = await execute({
+                logger,
+                plan,
+                sequence,
+                taskObserver,
+                timeoutMs,
+            });
+
+            await checkFinalSimple(plan, ret, goal,
+                TaskState.Complete, elems, expNodes,
+                ["Group", "Change0", "Change1", "Change2", "Change3"]);
+
+            const { stdout, stderr } = logger;
+            const lines = stdout.split("\n");
+            should(lines).have.length(5);
+            should(lines[0]).match(/Doing Action3/);
+            should(lines[1]).match(/Doing Action2/);
+            should(lines[2]).match(/Doing Action1/);
+            should(lines[3]).match(/Doing Action0/);
+            should(lines[4]).equal("");
+            should(stderr).equal("");
+
+            const calls = spyArgs(spy, 0);
+            should(calls).eql([
+                "Action3 called",
+                "Action2 called",
+                "Action1 called",
+                "Action0 called",
+            ]);
+        });
+    };
+    deployPlan2(false);  // Add actions, then deps
+    deployPlan2(true);   // Add deps, then actions
+
+    const destroyPlan2 = (depsBeforeActions: boolean) => {
+        it(`Should wait for hard dependencies in destroy (Plan2/${depsBeforeActions})`, async () => {
+
+            const goal: GoalStatus = DeployStatus.Destroyed;
+            const { dom, elems, expNodes, kids, plan, spy } =
+                await createPlan2(goal, depsBeforeActions);
+
+            should(plan.leaves).have.length(1);
+
+            should(dependencies(plan)).eql({
+                [dom.id]: [],
+                [kids[0].id]: [ "Action0" ],
+                [kids[1].id]: [ "Action1" ],
+                [kids[2].id]: [ "Action2" ],
+                [kids[3].id]: [ "Action3" ],
+                Action0: [ dom.id ],
+                Action1: [ kids[0].id ],
+                Action2: [ kids[0].id, kids[1].id ],
+                Action3: [ kids[0].id, kids[2].id, dom.id ],
+            });
+
+            plan.check();
+            const ret = await execute({
+                logger,
+                plan,
+                sequence,
+                taskObserver,
+                timeoutMs,
+            });
+
+            await checkFinalSimple(plan, ret, goal,
+                TaskState.Complete, elems, expNodes,
+                ["Group", "Change0", "Change1", "Change2", "Change3"]);
+
+            const { stdout, stderr } = logger;
+            const lines = stdout.split("\n");
+            should(lines).have.length(5);
+            should(lines[0]).match(/Doing Action0/);
+            should(lines[1]).match(/Doing Action1/);
+            should(lines[2]).match(/Doing Action2/);
+            should(lines[3]).match(/Doing Action3/);
+            should(lines[4]).equal("");
+            should(stderr).equal("");
+
+            const calls = spyArgs(spy, 0);
+            should(calls).eql([
+                "Action0 called",
+                "Action1 called",
+                "Action2 called",
+                "Action3 called",
+            ]);
+        });
+    };
+    destroyPlan2(false);  // Add actions, then deps
+    destroyPlan2(true);   // Add deps, then actions
+
+    it("Should wait for soft dependencies", async () => {
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -302,79 +662,101 @@ describe("ExecutionPlanImpl", () => {
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
-
-        plan.addDep(dom, kids[0]);
-        plan.addDep(dom, kids[3]);
+        addNodeWithWaitInfo(plan, dom, [ kids[0], kids[3] ], goal);
+        addNodeWithWaitInfo(plan, kids[0], [ kids[1], kids[2], kids[3] ], goal);
+        addNodeWithWaitInfo(plan, kids[1], [ kids[2] ], goal);
+        addNodeWithWaitInfo(plan, kids[2], [ kids[3] ], goal);
+        addNodeWithWaitInfo(plan, kids[3], [], goal);
 
         should(plan.nodes).have.length(5);
         should(plan.elems).have.length(5);
-        should(plan.leaves).have.length(4);
+        should(plan.leaves).have.length(1);
 
         const spy = sinon.spy();
-        const waits: WaitInfo[] = [];
-        for (let i = 0; i < 4; i++) {
-            waits.push({
-                description: `Action${i}`,
-                status: () => ({ done: true }),
-                action: () => spy(`Action${i} called`),
-                logAction: true,
-            });
-        }
-        waits.forEach((waitInfo, i) => {
-            const n = { waitInfo };
-            plan.addNode(n);
-            plan.addDep(kids[i], n);
+        const acts = sequentialActs([3, 2, 1, 0], spy);
+        const waits = acts.map<WaitInfo>((a, i) => ({
+            description: `Action${i}`,
+            action: a.act,
+            logAction: true,
+            deployedWhen: () => true,
+            actingFor: [
+                {
+                    detail: `Action${i} Change0`,
+                    type: ChangeType.create,
+                    element: kids[i]
+                }
+            ]
+        }));
+        waits.forEach((w, i) => {
+            const n = plan.addWaitInfo(w, goal);
+            plan.addHardDep(kids[i], n);
         });
-
-        plan.addDep(waits[0], waits[1]);
-        plan.addDep(waits[0], waits[2]);
-        plan.addDep(waits[0], waits[3]);
-        plan.addDep(waits[1], waits[2]);
-        plan.addDep(waits[2], waits[3]);
 
         const expNodes = 9;
         should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(5);
-        should(plan.leaves).have.length(1);
+        should(plan.leaves).have.length(4);
+
+        should(dependencies(plan)).eql({
+            [dom.id]: [ kids[0].id, kids[3].id ],
+            [kids[0].id]: [ "Action0", kids[1].id, kids[2].id, kids[3].id ],
+            [kids[1].id]: [ "Action1", kids[2].id ],
+            [kids[2].id]: [ "Action2", kids[3].id ],
+            [kids[3].id]: [ "Action3" ],
+            Action0: [],
+            Action1: [],
+            Action2: [],
+            Action3: [],
+        });
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
-        await checkFinalSimple(plan, ret, DeployStatus.Deployed,
+        await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
-            ["Prim", "Prim", "Prim", "Prim", "Group"]);
+            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
         should(lines).have.length(5);
-        should(lines[0]).match(/Doing Action3/);
-        should(lines[1]).match(/Doing Action2/);
-        should(lines[2]).match(/Doing Action1/);
-        should(lines[3]).match(/Doing Action0/);
+        should(stdout).match(/Doing Action3/);
+        should(stdout).match(/Doing Action2/);
+        should(stdout).match(/Doing Action1/);
+        should(stdout).match(/Doing Action0/);
         should(lines[4]).equal("");
         should(stderr).equal("");
 
-        should(spy.callCount).equal(4); // 1 per action
-        should(spy.getCall(0).args[0]).match(/Action3 called/);
-        should(spy.getCall(1).args[0]).match(/Action2 called/);
-        should(spy.getCall(2).args[0]).match(/Action1 called/);
-        should(spy.getCall(3).args[0]).match(/Action0 called/);
+        const calls = spyArgs(spy, 0);
+        const starts = calls.slice(0, 4).sort(); // Starts can be in any order
+        const rest = calls.slice(4);
+        should(starts).eql([
+            "Action0 started",
+            "Action1 started",
+            "Action2 started",
+            "Action3 started",
+        ]);
+        should(rest).eql([
+            "Action3 completed",
+            "Action2 completed",
+            "Action1 completed",
+            "Action0 completed",
+        ]);
     });
 
     it("Should fail with simple cycle", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const goalStatus: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goalStatus, deployment);
         const orig = <Group/>;
         const { dom } = await doBuild(orig);
 
-        plan.addElem(dom);
-        plan.addDep(dom, dom);
+        plan.addElem(dom, goalStatus);
+        plan.addHardDep(dom, dom);
 
         should(plan.nodes).have.length(1);
         should(plan.elems).have.length(1);
@@ -393,7 +775,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should fail with larger cycles", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -405,13 +787,13 @@ describe("ExecutionPlanImpl", () => {
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
+        elems.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
 
-        plan.addDep(dom, kids[0]);
-        plan.addDep(kids[0], dom);
-        plan.addDep(kids[1], kids[2]);
-        plan.addDep(kids[2], kids[3]);
-        plan.addDep(kids[3], kids[1]);
+        plan.addHardDep(dom, kids[0]);
+        plan.addHardDep(kids[0], dom);
+        plan.addHardDep(kids[1], kids[2]);
+        plan.addHardDep(kids[2], kids[3]);
+        plan.addHardDep(kids[3], kids[1]);
 
         should(plan.nodes).have.length(5);
         should(plan.elems).have.length(5);
@@ -430,27 +812,45 @@ describe("ExecutionPlanImpl", () => {
         }
     });
 
+    it("Should fail with soft dependency cycle");
+
+    /**
+     * Tests that dependents fail when a node fails.
+     * kid2 will throw an error.
+     * Dependencies:
+     *   kid0 -> kid1 (soft) - Tests hard cascading to soft
+     *   kid1 -> kid2 (hard) - Tests immediate hard dependency
+     *   kid2 -> kid3 (hard) - Tests that kid3 is unaffected by kid2 error
+     *   kid3 -> (none)
+     *   kid4 -> kid2 (soft) - Tests immediate soft dependency
+     */
     it("Should fail dependents on error", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const plan = new ExecutionPlanImpl(DeployStatus.Deployed, deployment);
+
+        const hands = makeHandles(5);
+        const dep0 = (_i: number, _gs: GoalStatus, h: DeployHelpers) =>
+            makeAllOf("kid0", h, [ hands[1] ]);
+        const dep4 = (_i: number, _gs: GoalStatus, h: DeployHelpers) =>
+            makeAllOf("kid4", h, [ hands[2] ]);
         const orig =
             <Group>
-                <Prim id={0} />
-                <Prim id={1} />
-                <Prim id={2} />
-                <Prim id={3} />
+                <DependPrim id={0} handle={hands[0]} dep={dep0} />
+                <DependPrim id={1} handle={hands[1]} />
+                <DependPrim id={2} handle={hands[2]} />
+                <DependPrim id={3} handle={hands[3]} />
+                <DependPrim id={4} handle={hands[4]} dep={dep4} />
             </Group>;
         const { dom } = await doBuild(orig);
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
+        elems.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
 
-        const actions: Action[] = [];
-        for (let i = 0; i < 4; i++) {
-            const act = i === 3 ?
+        const actions = kids.map((k, i) => {
+            const act = i === 2 ?
                 async () => { throw new Error(`Action error`); } :
                 async () => { /**/ };
-            actions.push({
+            return {
                 type: ChangeType.create,
                 detail: `Action${i}`,
                 act,
@@ -458,41 +858,47 @@ describe("ExecutionPlanImpl", () => {
                     {
                         detail: `Action${i} Change0`,
                         type: ChangeType.create,
-                        element: kids[i]
+                        element: k
                     }
                 ]
-            });
-        }
+            };
+        });
         actions.forEach((a) => plan.addAction(a));
 
-        plan.addDep(kids[0], kids[1]);
-        plan.addDep(kids[1], kids[2]);
-        plan.addDep(kids[2], kids[3]);
+        plan.addHardDep(kids[1], kids[2]);
+        plan.addHardDep(kids[2], kids[3]);
 
-        should(plan.nodes).have.length(9);
-        should(plan.elems).have.length(5);
-        should(plan.leaves).have.length(5);
+        plan.updateElemWaitInfo();
+
+        // 6 elems + 5 actions
+        should(plan.nodes).have.length(11);
+        should(plan.elems).have.length(6);
+        should(plan.leaves).have.length(2);
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
-            [DeployStatus.Deployed]: 4,
+            [DeployStatus.Deployed]: 3,
             [DeployStatus.Deploying]: 0,
-            [DeployStatus.Failed]: 5,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
+            [DeployStatus.Failed]: 8,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
         });
         should(ret.primStatus).eql({
-            [DeployStatus.Deployed]: 1,
+            [DeployStatus.Deployed]: 2,
             [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
             [DeployStatus.Failed]: 4,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
@@ -500,13 +906,11 @@ describe("ExecutionPlanImpl", () => {
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
-        should(lines).have.length(5);
-        should(stdout).match(/Doing Action0/);
-        should(stdout).match(/Doing Action1/);
-        should(stdout).match(/Doing Action2/);
-        should(stdout).match(/Doing Action3/);
-        should(lines[4]).equal("");
-        should(stderr).match(/Error while Action3/);
+        should(lines).have.length(3);
+        should(lines[0]).match(/Doing Action3/);
+        should(lines[1]).match(/Doing Action2/);
+        should(lines[2]).equal("");
+        should(stderr).match(/Error while Action2/);
         should(stderr).match(/Error: Action error/);
 
         const { deployStatus, goalStatus, elementStatus } =
@@ -519,22 +923,28 @@ describe("ExecutionPlanImpl", () => {
         checkElemStatus(elementStatus, kids[1], DeployStatus.Failed,
             /A dependency failed to deploy successfully/);
         checkElemStatus(elementStatus, kids[2], DeployStatus.Failed,
-            /A dependency failed to deploy successfully/);
-        checkElemStatus(elementStatus, kids[3], DeployStatus.Failed,
             /Action error/);
+        checkElemStatus(elementStatus, kids[3], DeployStatus.Deployed);
+        checkElemStatus(elementStatus, kids[4], DeployStatus.Failed,
+            /A dependency failed to deploy successfully/);
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames).containDeep([dom.id, ...kids.map((k) => k.id)]);
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
+            .containDeep([
+                "Group", "Action0 Change0", "Action1 Change0",
+                "Action2 Change0", "Action3 Change0", "Action4 Change0"
+            ]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Complete, TaskState.Failed, TaskState.Failed, TaskState.Failed]);
+            .containDeep([TaskState.Complete, TaskState.Failed, TaskState.Failed,
+                TaskState.Failed, TaskState.Complete, TaskState.Failed]);
     });
 
     it("Should time out", async () => {
-        const timeoutMs = 100;
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const timeout = 100;
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -551,16 +961,16 @@ describe("ExecutionPlanImpl", () => {
         // to make the Actions sequential. Actions 0 and 1 return immediately
         // but the rest take more time than the execute timeout.
         let prev: EPNode | undefined;
-        plan.addElem(dom);
+        plan.addElem(dom, goal);
         kids.forEach((k, i) => {
-            plan.addElem(k);
+            plan.addElem(k, goal);
             const a = plan.addAction({
                 type: ChangeType.create,
                 detail: `Action${i}`,
                 act: i > 1 ?
                     async () => {
                         spy(`Action${i}`);
-                        await sleep(timeoutMs * 2);
+                        await sleep(timeout * 2);
                     }
                     :
                     async () => spy(`Action${i}`),
@@ -570,7 +980,7 @@ describe("ExecutionPlanImpl", () => {
                     element: k
                 }]
             });
-            if (prev) plan.addDep(a, prev);
+            if (prev) plan.addHardDep(a, prev);
             prev = a;
         });
 
@@ -580,18 +990,19 @@ describe("ExecutionPlanImpl", () => {
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
-            timeoutMs,
             taskObserver,
+            timeoutMs: timeout,
         });
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
             [DeployStatus.Deployed]: 5,
             [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
             [DeployStatus.Failed]: 6,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
@@ -599,6 +1010,8 @@ describe("ExecutionPlanImpl", () => {
         should(ret.primStatus).eql({
             [DeployStatus.Deployed]: 3,
             [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
             [DeployStatus.Failed]: 3,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
@@ -634,7 +1047,8 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should not run actions or modify state on dryRun", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -643,11 +1057,10 @@ describe("ExecutionPlanImpl", () => {
             </Group>;
         const { dom } = await doBuild(orig);
         const kids: FinalDomElement[] = dom.props.children;
+        const elems = [ dom, ...kids ];
 
-        plan.addElem(dom);
-        plan.addElem(kids[0]);
-        plan.addElem(kids[1]);
-        plan.addElem(kids[2]);
+        elems.forEach((e) => plan.addElem(e, goal));
+
         should(plan.nodes).have.length(4);
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(4);
@@ -676,18 +1089,20 @@ describe("ExecutionPlanImpl", () => {
 
         plan.check();
         const ret = await execute({
-            deployment,
             dryRun: true,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
-        should(ret.deploymentStatus).equal(DeployStatus.Deployed);
+        should(ret.deploymentStatus).equal(goal);
         should(ret.nodeStatus).eql({
             [DeployStatus.Deployed]: 7,
             [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
             [DeployStatus.Failed]: 0,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
@@ -695,6 +1110,8 @@ describe("ExecutionPlanImpl", () => {
         should(ret.primStatus).eql({
             [DeployStatus.Deployed]: 4,
             [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
             [DeployStatus.Failed]: 0,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
@@ -721,7 +1138,8 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should mark elements Deploying while actions run", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
         const orig =
             <Group>
                 <Prim id={0} />
@@ -732,7 +1150,7 @@ describe("ExecutionPlanImpl", () => {
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
+        elems.forEach((e) => plan.addElem(e, goal));
 
         should(plan.nodes).have.length(4);
         should(plan.elems).have.length(4);
@@ -773,7 +1191,7 @@ describe("ExecutionPlanImpl", () => {
         for (let i = 0; i < 3; i++) {
             const w: WaitInfo = {
                 description: `Action${i}`,
-                status: () => ({ done: true }),
+                deployedWhen: () => true,
                 action: async () => actionCheck(i),
                 actingFor: [{
                     type: ChangeType.create,
@@ -783,14 +1201,13 @@ describe("ExecutionPlanImpl", () => {
                 logAction: true,
             };
             waits.push(w);
-            plan.addWaitInfo(w);
-            plan.addDep(kids[i], w);
+            plan.addWaitInfo(w, goal);
+            plan.addHardDep(kids[i], w);
         }
-        waits.forEach((w) => plan.addWaitInfo(w));
 
         // Execution order: 2, 0, 1
-        plan.addDep(waits[1], waits[0]);
-        plan.addDep(waits[0], waits[2]);
+        plan.addHardDep(waits[1], waits[0]);
+        plan.addHardDep(waits[0], waits[2]);
 
         const expNodes = 7;
         should(plan.nodes).have.length(expNodes);
@@ -799,11 +1216,11 @@ describe("ExecutionPlanImpl", () => {
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
@@ -825,15 +1242,13 @@ describe("ExecutionPlanImpl", () => {
         should(spy.getCall(2).args[0]).match(/Action1 started/);
     });
 
+    it("Should mark elements Destroying while actions run");
+
     it("Should give unassociated handle error", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
-        const h = handle();
-        const w: WaitInfo = {
-            description: `desc`,
-            status: () => ({ done: true }),
-            dependsOn: [ h ]
-        };
-        const dep = () => w;
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
+        const dep = (id: number, gs: GoalStatus, h: DeployHelpers) =>
+            makeAllOf("desc", h, [ handle() ]);
 
         const orig =
             <Group>
@@ -841,109 +1256,504 @@ describe("ExecutionPlanImpl", () => {
             </Group>;
         const { dom } = await doBuild(orig);
 
-        plan.addElem(dom);
-        plan.addElem(dom.props.children);
+        plan.addElem(dom, goal);
+        plan.addElem(dom.props.children, goal);
 
         const errRE = RegExp(
             `A Component dependsOn method returned a DependsOn ` +
             `object 'desc' that contains ` +
             `a Handle that is not associated with any Element`);
-        should(() => plan.updateElemDepends()).throwError(errRE);
+        should(() => plan.updateElemWaitInfo()).throwError(errRE);
     });
 
     it("Should check primitive element dependsOn", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed);
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
         const spy = sinon.spy();
-        const hands = [ handle(), handle(), handle() ];
-        const waits = hands.map<WaitInfo>((_h, i) => ({
-            description: `wait${i}`,
-            status: () => { spy(`status${i}`); return { done: true }; },
-            action: () => spy(`wait action${i}`),
-            dependsOn: i > 1 ? [] : [ hands[i + 1] ],
-        }));
-        const dep = (id: number) => waits[id];
+        const hands = makeHandles(6);
+
+        // Add the following dependencies:
+        // These have hard deps on actions, so will only get notified
+        // once hard deps are complete.
+        //   kid0 -> kid1
+        //   kid1 -> kid2
+        //   kid2 -> -
+        // These only have soft deps, so they'll get notified each time a
+        // dep changes.
+        //   kid3 -> kid0
+        //   kid4 -> kid0, kid1
+        //   kid5 -> kid0, kid1, kid2
+        const depFuncs = hands.map<DependsOnMethod>((_hand, i) =>
+            (gs: GoalStatus, h: DeployHelpers) => {
+                const deps: Handle[] = [];
+                switch (i) {
+                    case 0: deps.push(hands[1]); break;
+                    case 1: deps.push(hands[2]); break;
+                    case 3: deps.push(hands[0]); break;
+                    case 4: deps.push(hands[0], hands[1]); break;
+                    case 5: deps.push(hands[0], hands[1], hands[2]); break;
+                }
+                return AllOfTester({
+                    description: `allof${i}`,
+                    helpers: h,
+                    deps,
+                    checkReady: (stat) => spy(`checkReady${i} ` +
+                        (stat === true ? "ready" : "waiting")),
+                });
+            }
+        );
+        const dep = (id: number, gs: GoalStatus, h: DeployHelpers) => depFuncs[id](gs, h);
 
         const orig =
             <Group>
-                <DependPrim id={0} dep={dep} handle={hands[0]} />
-                <DependPrim id={1} dep={dep} handle={hands[1]} />
-                <DependPrim id={2} dep={dep} handle={hands[2]} />
+                { hands.map((h, id) => <DependPrim id={id} dep={dep} handle={h} />) }
             </Group>;
         const { dom } = await doBuild(orig);
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        elems.forEach((e) => plan.addElem(e));
+        elems.forEach((e) => plan.addElem(e, goal));
 
-        should(plan.nodes).have.length(4);
-        should(plan.elems).have.length(4);
-        should(plan.leaves).have.length(4);
+        should(plan.nodes).have.length(7);
+        should(plan.elems).have.length(7);
+        // No dependencies yet
+        should(plan.leaves).have.length(7);
 
-        const acts = sequentialActs([0, 1, 2], spy);
-        const actions = acts.map((a, i) => ({
+        // Only the first 3 kids have actions
+        const actions = kids.slice(0, 3).map((k, i) => ({
             type: ChangeType.create,
             detail: `Action${i}`,
-            act: a.act,
+            act: async () => spy(`Action${i} completed`),
             changes: [
                 {
                     detail: `Action${i} Change0`,
                     type: ChangeType.create,
-                    element: kids[i]
+                    element: k
                 }
             ]
         }));
         actions.forEach((a) => plan.addAction(a));
 
-        const expNodes = 7;
+        const expNodes = 10;
         should(plan.nodes).have.length(expNodes);
-        should(plan.elems).have.length(4);
-        should(plan.leaves).have.length(4);
+        should(plan.elems).have.length(7);
+        // Added 3 nodes, but also 3 dependencies
+        should(plan.leaves).have.length(7);
 
-        plan.updateElemDepends();
+        plan.updateElemWaitInfo();
 
-        // Each WaitInfo should attach to it's Element's node
-        should(plan.nodes).have.length(7);
-        should(plan.elems).have.length(4);
-        should(plan.leaves).have.length(4);
+        // Each WaitInfo should attach to it's Element's node - no new nodes
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(7);
+        // Only Action2 and Group are leaves
+        should(plan.leaves).have.length(2);
 
         plan.check();
         const ret = await execute({
-            deployment,
             logger,
             plan,
             sequence,
             taskObserver,
+            timeoutMs,
         });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
+            [
+                "Group",
+                "Action0 Change0", "Action1 Change0", "Action2 Change0",
+                "DependPrim", "DependPrim", "DependPrim"
+            ]);
 
         const { stdout, stderr } = logger;
         should(stderr).equal("");
         const lines = stdout.split("\n");
-        // Actions could happen in any order
-        should(lines[0]).match(/Doing Action\d/);
-        should(lines[1]).match(/Doing Action\d/);
-        should(lines[2]).match(/Doing Action\d/);
+        should(lines[0]).match(/Doing Action2/);
+        should(lines[1]).match(/Doing Action1/);
+        should(lines[2]).match(/Doing Action0/);
         should(lines[3]).match("");
 
-        should(spy.callCount).equal(12); // 3 elems * 4 calls per elem
+        const calls: string[] = spyArgs(spy, 0);
+        // These calls should be in 4 groups. The first group is before
+        // completing the first Action, then all others starting with
+        // an action completed. The checkReady calls in each group
+        // are in non-deterministic order.
+        const groups = makeActionGroups(calls);
+        should(groups).have.length(4);
+
+        should(groups[0][0]).equal("checkReady2 ready");
+
+        should(groups[1][0]).equal("Action2 completed");
+        should(groups[1].slice(1)).containDeep([
+            "checkReady2 ready",
+            "checkReady5 waiting",
+        ]);
+
+        should(groups[2][0]).equal("Action1 completed");
+        should(groups[2].slice(1)).containDeep([
+            "checkReady1 ready",
+            "checkReady4 waiting",
+            "checkReady5 waiting",
+        ]);
+
+        should(groups[3][0]).equal("Action0 completed");
+        should(groups[3].slice(1)).containDeep([
+            "checkReady0 ready",
+            "checkReady3 ready",
+            "checkReady4 ready",
+            "checkReady5 ready",
+        ]);
+    });
+
+    function makeActionGroups(calls: string[]) {
+        const groups: string[][] = [];
+        let cur: string[] | null = null;
+        calls.forEach((c) => {
+            if (!cur || c.startsWith("Action")) {
+                cur = [];
+                groups.push(cur);
+            }
+            cur.push(c);
+        });
+        return groups;
+    }
+
+    it("Should give correct goalStatus to elements", async () => {
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl(goal, deployment);
+        const spy = sinon.spy();
+        const dep = (tag: string) => (id: number, gStat: DeployStatus): DependsOn => ({
+            description: `${tag}${id} wait`,
+            ready: () => {
+                spy(`${tag}${id} ready: ${gStat}`);
+                return true;
+            }
+        });
+        const when = (tag: string) => (id: number, gStat: GoalStatus): true => {
+            spy(`${tag}${id} when: ${gStat}`);
+            return true;
+        };
+        const oldOrig =
+            <Group>
+                <DependPrim key="0" id={0} dep={dep("old")} when={when("old")} />
+                <DependPrim key="1" id={1} dep={dep("old")} when={when("old")} />
+            </Group>;
+        const { dom: oldDom } = await doBuild(oldOrig);
+        const oldKids: FinalDomElement[] = oldDom.props.children;
+        const newOrig =
+            <Group>
+                <DependPrim key="0" id={0} dep={dep("new")} when={when("new")} />
+                <DependPrim key="2" id={2} dep={dep("new")} when={when("new")} />
+            </Group>;
+        const { dom: newDom } = await doBuild(newOrig);
+        const newKids: FinalDomElement[] = newDom.props.children;
+        const elems = [ newDom, ...newKids ];
+
+        elems.forEach((e) => plan.addElem(e, goal));
+
+        should(plan.nodes).have.length(3);
+        should(plan.elems).have.length(3);
+        should(plan.leaves).have.length(3);
+
+        const action: Action = {
+            type: ChangeType.modify,
+            detail: `One Action`,
+            act: async () => {/* */},
+            changes: [
+                {
+                    detail: `Updating id0`,
+                    type: ChangeType.modify,
+                    element: newKids[0]
+                },
+                {
+                    detail: `Deleting id1`,
+                    type: ChangeType.delete,
+                    element: oldKids[1]
+                },
+                {
+                    detail: `Creating id2`,
+                    type: ChangeType.create,
+                    element: newKids[1]
+                },
+            ]
+        };
+        plan.addAction(action);
+
+        // 3 elems in newDom, 1 action, 1 elem from oldDom
+        const expNodes = 5;
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(4);
+        should(plan.leaves).have.length(2);
+
+        plan.updateElemWaitInfo();
+
+        // Number of nodes shouldn't change because the 3 new WaitInfos should
+        // be attached to 3 existing elems
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(4);
+        should(plan.leaves).have.length(2);
+
+        should(dependencies(plan)).eql({
+            [newDom.id]: [],
+            "new0 wait": [ "One Action" ],
+            "new2 wait": [ "One Action" ],
+            "old1 wait": [ "One Action" ],
+            "One Action": [],
+        });
+
+        plan.check();
+        const ret = await execute({
+            logger,
+            plan,
+            sequence,
+            taskObserver,
+            timeoutMs,
+        });
+
+        // We don't care about repeat calls or order
+        const calls = uniq(spyArgs(spy, 0)).sort();
+        should(calls).eql([
+            "new0 ready: Deployed",
+            "new0 when: Deployed",
+            "new2 ready: Deployed",
+            "new2 when: Deployed",
+            "old1 when: Destroyed",
+        ]);
+
+        should(ret.deploymentStatus).equal(goal);
+        should(ret.nodeStatus).eql({
+            [DeployStatus.Deployed]: 4,
+            [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 1,
+            [DeployStatus.Destroying]: 0,
+            [DeployStatus.Failed]: 0,
+            [DeployStatus.Initial]: 0,
+            [DeployStatus.Waiting]: 0,
+        });
+        should(ret.primStatus).eql({
+            [DeployStatus.Deployed]: 3,
+            [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 1,
+            [DeployStatus.Destroying]: 0,
+            [DeployStatus.Failed]: 0,
+            [DeployStatus.Initial]: 0,
+            [DeployStatus.Waiting]: 0,
+        });
+
+        // All plan nodes should be removed upon successful deploy
+        should(plan.nodes).have.length(0);
+        should(plan.elems).have.length(0);
+
+        const { deployStatus, goalStatus, elementStatus } =
+            await deployment.status(sequence);
+        should(deployStatus).equal(goal);
+        should(goalStatus).equal(goal);
+        should(Object.keys(elementStatus)).have.length(4);
+        elems.forEach((e) => checkElemStatus(elementStatus, e, DeployStatus.Deployed));
+        checkElemStatus(elementStatus, oldKids[1], DeployStatus.Destroyed);
+
+        const expTaskNames = [
+            "Group",
+            "Updating id0",
+            "Deleting id1",
+            "Creating id2",
+        ];
+        const tasks = getTasks();
+        const taskNames = Object.keys(tasks);
+        should(taskNames).have.length(expTaskNames.length);
+        should(taskNames).containDeep([...elems, oldKids[1]].map((e) => e.id));
+        should(taskNames.map((n) => tasks[n]!.description)).containDeep(expTaskNames);
+        should(taskNames.map((n) => tasks[n]!.state))
+            .containDeep(expTaskNames.map(() => TaskState.Complete));
+
+        const { stdout, stderr } = logger;
+        should(stdout).match(/Doing One Action/);
+        should(stderr).equal("");
+    });
+
+    /**
+     * Tests fairly basic setup using createExecutePlan.
+     * - Tests plan groups/leaders (Action + changed elements)
+     *   - Actions always deploy first
+     *   - Dependencies of all elements in group are met before Action runs
+     * - Tests component dependsOn
+     * - Tests basic component deployedWhen
+     * Dependencies (all soft except kid to its action):
+     *  root -> kid0, kid3
+     *  kid0 -> kid1, kid2, kid3, Action0 (h)
+     *  kid1 -> kid2, Action1 (h)
+     *  kid2 -> kid3, Action2 (h)
+     *  kid3 -> Action3 (h)
+     */
+    async function createPlanC(goal: GoalStatus) {
+        const spy = sinon.spy();
+        const hands = makeHandles(5);
+        const kHands = hands.slice(1);
+        const deps: DependsOnMethod[] = [
+            (_gs, h) => makeAllOf("depsRoot", h, [ kHands[0], kHands[3] ]),
+            (_gs, h) => makeAllOf("depsKid0", h, [ kHands[1], kHands[2], kHands[3] ]),
+            (_gs, h) => makeAllOf("depsKid1", h, [ kHands[2] ]),
+            (_gs, h) => makeAllOf("depsKid2", h, [ kHands[3] ]),
+            (_gs, _h) => ({ description: "depsKid3", ready: () => true }),
+        ];
+        const dep = (id: number, gs: GoalStatus, h: DeployHelpers) => deps[id](gs, h);
+        const when = (id: number, gs: GoalStatus): true => {
+            const name = id === 0 ? "Root" : id - 1;
+            spy(`When${name} called: ${gs}`);
+            return true;
+        };
+        const orig =
+            <DependPrim key="root" id={0} handle={hands[0]} dep={dep} when={when} >
+                <DependPrim key="kid0" id={1} handle={hands[1]} dep={dep} when={when} />
+                <DependPrim key="kid1" id={2} handle={hands[2]} dep={dep} when={when} />
+                <DependPrim key="kid2" id={3} handle={hands[3]} dep={dep} when={when} />
+                <DependPrim key="kid3" id={4} handle={hands[4]} dep={dep} when={when} />
+            </DependPrim>;
+        const { dom } = await doBuild(orig);
+        const kids: FinalDomElement[] = dom.props.children;
+        const elems = [ dom, ...kids ];
+        const changeType = toChangeType(goal);
+
+        const actions: Action[] = kids.map((k, i) => ({
+            detail: `Action${i}`,
+            type: changeType,
+            act: () => spy(`Action${i} called`),
+            changes: [{
+                detail: `Change${i}`,
+                type: changeType,
+                element: k,
+            }]
+        }));
+
+        const plan = await createExecutionPlan({
+            actions,
+            deployment,
+            diff: toDiff(dom, goal),
+            goalStatus: goal,
+        });
+
+        if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
+
+        const expNodes = 9;
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(5);
+
+        return {
+            elems,
+            expNodes,
+            kids,
+            plan,
+            spy,
+        };
+    }
+
+    it("Should deploy plan with dependencies (PlanC)", async () => {
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const { elems, expNodes, plan, spy } = await createPlanC(goal);
+
+        should(dependencies(plan)).eql({
+            depsRoot: [ "depsKid0", "depsKid3" ],
+            depsKid0: [ "Action0" ],
+            depsKid1: [ "Action1" ],
+            depsKid2: [ "Action2" ],
+            depsKid3: [ "Action3" ],
+            Action0: [ "depsKid1", "depsKid2", "depsKid3" ],
+            Action1: [ "depsKid2" ],
+            Action2: [ "depsKid3" ],
+            Action3: [],
+        });
+
+        should(plan.leaves).have.length(1);
+
+        plan.check();
+        const ret = await execute({
+            logger,
+            plan,
+            sequence,
+            taskObserver,
+            timeoutMs,
+        });
+
+        await checkFinalSimple(plan, ret, goal,
+            TaskState.Complete, elems, expNodes,
+            ["DependPrim", "Change0", "Change1", "Change2", "Change3"]);
+
+        const { stdout, stderr } = logger;
+        const lines = stdout.split("\n");
+        should(lines).have.length(5);
+        should(lines[0]).match(/Doing Action3/);
+        should(lines[1]).match(/Doing Action2/);
+        should(lines[2]).match(/Doing Action1/);
+        should(lines[3]).match(/Doing Action0/);
+        should(lines[4]).equal("");
+        should(stderr).equal("");
+
         const calls = spyArgs(spy, 0);
-        // Starts can happen in any order, but all before any completions
-        should(calls[0]).match(/Action\d started/);
-        should(calls[1]).match(/Action\d started/);
-        should(calls[2]).match(/Action\d started/);
-        should(calls.slice(3)).eql([
-            "Action0 completed",
-            "Action1 completed",
-            "Action2 completed",
-            "wait action2",
-            "status2",
-            "wait action1",
-            "status1",
-            "wait action0",
-            "status0",
+        should(calls).eql([
+            "Action3 called",
+            "When3 called: Deployed",
+            "Action2 called",
+            "When2 called: Deployed",
+            "Action1 called",
+            "When1 called: Deployed",
+            "Action0 called",
+            "When0 called: Deployed",
+            "WhenRoot called: Deployed",
+        ]);
+    });
+
+    it("Should destroy plan with dependencies (PlanC)", async () => {
+        const goal: GoalStatus = DeployStatus.Destroyed;
+        const { elems, expNodes, plan, spy } = await createPlanC(goal);
+
+        should(dependencies(plan)).eql({
+            depsRoot: [],
+            depsKid0: [ "Action0" ],
+            depsKid1: [ "Action1" ],
+            depsKid2: [ "Action2" ],
+            depsKid3: [ "Action3" ],
+            Action0: [ "depsRoot" ],
+            Action1: [ "depsKid0" ],
+            Action2: [ "depsKid0", "depsKid1" ],
+            Action3: [ "depsKid0", "depsKid2", "depsRoot" ],
+        });
+
+        should(plan.leaves).have.length(1);
+
+        plan.check();
+        const ret = await execute({
+            logger,
+            plan,
+            sequence,
+            taskObserver,
+            timeoutMs,
+        });
+
+        await checkFinalSimple(plan, ret, goal,
+            TaskState.Complete, elems, expNodes,
+            ["DependPrim", "Change0", "Change1", "Change2", "Change3"]);
+
+        const { stdout, stderr } = logger;
+        const lines = stdout.split("\n");
+        should(lines).have.length(5);
+        should(lines[0]).match(/Doing Action0/);
+        should(lines[1]).match(/Doing Action1/);
+        should(lines[2]).match(/Doing Action2/);
+        should(lines[3]).match(/Doing Action3/);
+        should(lines[4]).equal("");
+        should(stderr).equal("");
+
+        const calls = spyArgs(spy, 0);
+        should(calls).eql([
+            "WhenRoot called: Destroyed",
+            "Action0 called",
+            "When0 called: Destroyed",
+            "Action1 called",
+            "When1 called: Destroyed",
+            "Action2 called",
+            "When2 called: Destroyed",
+            "Action3 called",
+            "When3 called: Destroyed",
         ]);
     });
 });

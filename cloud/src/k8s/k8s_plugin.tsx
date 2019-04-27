@@ -7,14 +7,16 @@ import Adapt, {
     ChangeType,
     FinalDomElement,
     findElementsInDom,
+    GoalStatus,
     isMountedElement,
     ObserveForStatus,
     QueryDomain,
     registerPlugin,
     Style,
+    WaitStatus,
     WidgetChange,
     WidgetPair,
-    WidgetPlugin
+    WidgetPlugin,
 } from "@usys/adapt";
 import { sha256hex } from "@usys/utils";
 import jsonStableStringify = require("json-stable-stringify");
@@ -68,7 +70,8 @@ export function createK8sPlugin() {
 export interface ResourceInfo {
     kind: Kind;
     apiName: string;
-    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown | Promise<unknown>;
+    deployedWhen: (statusObj: unknown, goalStatus: GoalStatus) => WaitStatus;
+    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => any | Promise<any>;
     specsEqual(actual: Spec, element: Spec): boolean;
 }
 

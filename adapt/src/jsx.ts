@@ -12,7 +12,14 @@ import {
     tagConstructor,
 } from "@usys/utils";
 import { printError as gqlPrintError } from "graphql";
-import { DependsOn, DeployStatus } from "./deploy/deploy_types";
+import {
+    DependsOn,
+    DependsOnMethod,
+    DeployedWhenMethod,
+    DeployHelpers,
+    GoalStatus,
+    WaitStatus,
+} from "./deploy/deploy_types";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
 import { Handle, handle, isHandle, isHandleInternal } from "./handle";
@@ -50,7 +57,8 @@ export function isElementImpl<P extends object = AnyProps>(val: any): val is Ada
 export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 
 export interface GenericInstanceMethods {
-    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
+    dependsOn?: DependsOnMethod;
+    deployedWhen?: DeployedWhenMethod;
 }
 
 export interface GenericInstance extends GenericInstanceMethods {
@@ -68,8 +76,9 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     readonly buildData: BuildData;
     readonly instance: GenericInstance;
 
+    dependsOn: DependsOnMethod;
+    deployedWhen: DeployedWhenMethod;
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
-    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -149,7 +158,8 @@ export interface BuildHelpers {
 export abstract class Component<Props extends object = {}, State extends object = {}>
     implements GenericInstanceMethods {
 
-    dependsOn?: (goalStatus: DeployStatus.Deployed) => DependsOn | undefined;
+    dependsOn?: DependsOnMethod;
+    deployedWhen?: DeployedWhenMethod;
 
     // cleanup gets called after build of this component's
     // subtree has completed.
@@ -253,9 +263,10 @@ export interface SFC<Props extends object = AnyProps> {
     status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
 
-export type SFCDeclProps<Props, Defaults> = Defaultize<Props, Defaults> & Partial<BuiltinProps>;
+export type SFCDeclProps<Props, Defaults extends object = object> =
+    Defaultize<Props, Defaults> & Partial<BuiltinProps>;
 
-export type SFCBuildProps<Props, Defaults> =
+export type SFCBuildProps<Props, Defaults extends object = object> =
     & {[K in Extract<keyof Props, keyof Defaults>]: Props[K]}
     & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
     & {[K in Exclude<OptionalPropertiesT<Props>, keyof Defaults>]?: Props[K]}
@@ -324,6 +335,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     path?: string;
     keyPath?: KeyPath;
     buildData: Partial<BuildData> = {};
+    buildState = BuildState.initial;
     reanimated: boolean = false;
     stateUpdates: StateUpdater[] = [];
 
@@ -370,6 +382,10 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.buildData.deployID = deployID;
     }
 
+    setBuilt = () => this.buildState = BuildState.built;
+    shouldBuild = () => this.buildState === BuildState.initial;
+    built = () => this.buildState === BuildState.built;
+
     setState = (stateUpdate: StateUpdater<Props, AnyState>): void => {
         this.stateUpdates.push(stateUpdate);
     }
@@ -396,7 +412,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     }
 
     statusCommon = async (observeForStatus: ObserveForStatus) => {
-        if (this.reanimated) throw new NoStatusAvailable("status for reanimated elements not supported yet");
+        if (this.reanimated && !this.built()) {
+            throw new NoStatusAvailable("status for reanimated elements not supported without a DOM build");
+        }
         if (!this.mounted) throw new NoStatusAvailable(`element is not mounted`);
 
         const buildData = this.buildData as BuildData; //After build, this type assertion should hold
@@ -445,13 +463,22 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return this.statusCommon(o || observeForStatus);
     }
 
-    dependsOn(goalStatus: DeployStatus.Deployed): DependsOn | undefined {
+    dependsOn(goalStatus: GoalStatus, helpers: DeployHelpers): DependsOn | undefined {
         if (!this.mounted) {
             throw new InternalError(`dependsOn requested but element is not mounted`);
         }
-        const dependsOnMethod = this.instance.dependsOn;
-        if (!dependsOnMethod) return undefined;
-        return dependsOnMethod(goalStatus);
+        const method = this.instance.dependsOn;
+        if (!method) return undefined;
+        return method(goalStatus, helpers);
+    }
+
+    deployedWhen(goalStatus: GoalStatus, helpers: DeployHelpers): WaitStatus | Promise<WaitStatus> {
+        if (!this.mounted) {
+            throw new InternalError(`deployedWhen requested but element is not mounted`);
+        }
+        const method = this.instance.deployedWhen;
+        if (!method) return true;
+        return method(goalStatus, helpers);
     }
 
     get componentName() { return this.componentType.name || "anonymous"; }
@@ -462,26 +489,15 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 tagConstructor(AdaptElementImpl, "adapt");
 
-enum DeferredState {
+enum BuildState {
     initial = "initial",
     deferred = "deferred",
     built = "built"
 }
 
 export class AdaptDeferredElementImpl<Props extends object> extends AdaptElementImpl<Props> {
-    state = DeferredState.initial;
-
-    deferred() {
-        this.state = DeferredState.deferred;
-    }
-
-    built() {
-        this.state = DeferredState.built;
-    }
-
-    shouldBuild() {
-        return this.state === DeferredState.deferred; //Build if we've deferred once
-    }
+    setDeferred = () => this.buildState = BuildState.deferred;
+    shouldBuild = () => this.buildState === BuildState.deferred; //Build if we've deferred once
 }
 tagConstructor(AdaptDeferredElementImpl, "adapt");
 

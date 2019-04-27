@@ -11,11 +11,12 @@ import Adapt, {
     SFCDeclProps,
     useBuildHelpers,
     useImperativeMethods,
-    useState
+    useState,
+    waiting
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import stringify from "json-stable-stringify";
-import { isEqual, pick } from "lodash";
+import { isEqual, isObject, pick } from "lodash";
 import * as abs from "../NetworkService";
 import { computeNamespaceFromMetadata, Kubeconfig, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
@@ -392,9 +393,20 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: M
     };
 }
 
+function deployedWhen(statusObj: unknown) {
+    const status: any = statusObj;
+    // There doesn't appear to be much actual status for a
+    // service like there is for a Pod.
+    if (status == null || !isObject(status.status)) {
+        return waiting(`Kubernetes cluster returned invalid status for Service`);
+    }
+    return true;
+}
+
 export const serviceResourceInfo = {
     kind: "Service",
     apiName: "services",
+    deployedWhen,
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {

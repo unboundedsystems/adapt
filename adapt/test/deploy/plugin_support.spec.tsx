@@ -320,6 +320,7 @@ class SlowPlugin implements Plugin<{}> {
         public seriesActions: boolean,
         readonly spy: sinon.SinonSpy,
         public shared: Concurrent,
+        public elemStart = 0,
         ) { }
 
     async start(options: PluginOptions) {/**/}
@@ -336,19 +337,21 @@ class SlowPlugin implements Plugin<{}> {
         this.shared.dec();
     }
     analyze(_oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
-        const info = {
+        if (!dom) throw new Error(`Test error: dom is null`);
+        const elems = [ dom, ...dom.props.children ].slice(this.elemStart);
+        const info = () => ({
             type: ChangeType.create,
             detail: "action detail",
             changes: [{
                 type: ChangeType.create,
-                element: dom as FinalDomElement,
+                element: elems.shift() as FinalDomElement,
                 detail: "change detail"
             }]
-        };
+        });
         return [
-            { ...info, act: this.act },
-            { ...info, act: this.act },
-            { ...info, act: this.act },
+            { ...info(), act: this.act },
+            { ...info(), act: this.act },
+            { ...info(), act: this.act },
         ];
     }
     async finish() {
@@ -365,7 +368,11 @@ describe("Plugin concurrency", () => {
     let shared: Concurrent;
     let dom: AdaptMountedElement;
     let actOptions: ActOptions;
-    const orig = <Group />;
+    const orig =
+        <Group>
+            <Group /><Group /><Group /><Group />
+            <Group /><Group /><Group /><Group />
+        </Group>;
 
     mochaTmpdir.all("adapt-plugin-tests");
 
@@ -439,21 +446,21 @@ describe("Plugin concurrency", () => {
         registered.set("Series1", {
             name: "Series1",
             module,
-            create: () => new SlowPlugin(true, spies[0], shared),
+            create: () => new SlowPlugin(true, spies[0], shared, 0),
             packageName: "slow_plugin",
             version: "1.0.0",
         });
         registered.set("Series2", {
             name: "Series2",
             module,
-            create: () => new SlowPlugin(true, spies[1], shared),
+            create: () => new SlowPlugin(true, spies[1], shared, 3),
             packageName: "slow_plugin",
             version: "1.0.0",
         });
         registered.set("Parallel", {
             name: "Parallel",
             module,
-            create: () => new SlowPlugin(false, spies[2], shared),
+            create: () => new SlowPlugin(false, spies[2], shared, 6),
             packageName: "slow_plugin",
             version: "1.0.0",
         });

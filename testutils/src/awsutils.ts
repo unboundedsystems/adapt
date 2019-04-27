@@ -1,7 +1,8 @@
-import { sleep } from "@usys/utils";
+import { removeUndef, sleep } from "@usys/utils";
 import AWS = require("aws-sdk");
-import { xor } from "lodash";
+import { isNumber, xor } from "lodash";
 import should from "should";
+import { inspect } from "util";
 
 interface AwsCredentials {
     awsAccessKeyId: string;
@@ -85,8 +86,31 @@ export async function getStacks(client: AWS.CloudFormation, deployID?: string,
     return resp.Stacks || [];
 }
 
+export interface DeleteOptions {
+    definite?: boolean;
+    pollMs?: number;
+    timeoutMs?: number;
+}
+
+const deleteDefaults = {
+    definite: true,
+    pollMs: 1000,
+    timeoutMs: 20 * 1000,
+};
+
 export async function deleteAllStacks(client: AWS.CloudFormation, deployID: string,
-                                      timeoutMs = 20 * 1000, definite = true) {
+                                      options: DeleteOptions): Promise<void>;
+export async function deleteAllStacks(client: AWS.CloudFormation, deployID: string,
+                                      timeoutMs?: number, definite?: boolean): Promise<void>;
+export async function deleteAllStacks(client: AWS.CloudFormation, deployID: string,
+                                      timeoutOrOptions?: number | DeleteOptions,
+                                      definite?: boolean): Promise<void> {
+    const inOpts = timeoutOrOptions === undefined ? {} :
+        isNumber(timeoutOrOptions) ? removeUndef({ timeoutMs: timeoutOrOptions, definite }) :
+        timeoutOrOptions;
+    const opts = { ...deleteDefaults, ...inOpts };
+    let timeoutMs = opts.timeoutMs;
+
     let stacks = await getStacks(client, deployID);
     for (const s of stacks) {
         const name = s.StackId || s.StackName;
@@ -100,8 +124,8 @@ export async function deleteAllStacks(client: AWS.CloudFormation, deployID: stri
         if (!definite) stacks = stacks.filter((s) => !isProbablyDeleted(s.StackStatus));
         if (stacks.length === 0) return;
 
-        await sleep(1000);
-        timeoutMs -= 1000;
+        await sleep(opts.pollMs);
+        timeoutMs -= opts.pollMs;
     } while (timeoutMs > 0);
     throw new Error(`Unable to delete stacks`);
 }
@@ -109,12 +133,14 @@ export async function deleteAllStacks(client: AWS.CloudFormation, deployID: stri
 type StatusFilter = (status: AWS.CloudFormation.StackStatus) => boolean;
 
 export interface WaitOptions {
+    pollMs?: number;
     timeoutMs?: number;
     terminalOnly?: boolean;
     searchDeleted?: boolean;
     statusFilter?: StatusFilter;
 }
 const waitDefaults = {
+    pollMs: 1000,
     timeoutMs: 30 * 1000,
     terminalOnly: true,
     searchDeleted: false,
@@ -123,7 +149,7 @@ const waitDefaults = {
 
 export async function waitForStacks(client: AWS.CloudFormation, deployID: string,
                                     stackNames: string[], options?: WaitOptions) {
-    const { statusFilter, ...opts } = { ...waitDefaults, ...options };
+    const { pollMs, statusFilter, ...opts } = { ...waitDefaults, ...options };
     let timeoutMs = opts.timeoutMs;
     let singleStackName: string | undefined;
 
@@ -145,10 +171,10 @@ export async function waitForStacks(client: AWS.CloudFormation, deployID: string
 
         const names = stacks.map((s) => opts.searchDeleted ? s.StackId : s.StackName);
         if (xor(names, stackNames).length === 0) return stacks;
-        await sleep(1000);
-        timeoutMs -= 1000;
+        await sleep(pollMs);
+        timeoutMs -= pollMs;
     } while (timeoutMs > 0);
-    throw new Error(`Timeout waiting for stacks. Expected: ${stackNames} Actual: ${actual}`);
+    throw new Error(`Timeout waiting for stacks. Expected: ${inspect(stackNames)} Actual: ${inspect(actual)}`);
 }
 
 export async function checkStackStatus(stack: AWS.CloudFormation.Stack,

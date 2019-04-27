@@ -6,7 +6,8 @@ import Adapt, {
     DeferredComponent,
     gql,
     isElement,
-    ObserveForStatus
+    ObserveForStatus,
+    waiting
 } from "@usys/adapt";
 import { removeUndef } from "@usys/utils";
 import * as ld from "lodash";
@@ -159,9 +160,25 @@ function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
     return ld.isEqual(s1, s2);
 }
 
+function deployedWhen(statusObj: unknown) {
+    const status: any = statusObj;
+    if (!status || !status.status) return waiting(`Kubernetes cluster returned invalid status for Pod`);
+    if (status.status.phase === "Running") return true;
+    let msg = `Pod state ${status.status.phase}`;
+    if (Array.isArray(status.status.conditions)) {
+        const failing = status.status.conditions
+            .filter((cond: any) => cond.status !== "True")
+            .map((cond: any) => cond.message)
+            .join("; ");
+        if (failing) msg += `: ${failing}`;
+    }
+    return waiting(msg);
+}
+
 export const podResourceInfo = {
     kind: "Pod",
     apiName: "pods",
+    deployedWhen,
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {

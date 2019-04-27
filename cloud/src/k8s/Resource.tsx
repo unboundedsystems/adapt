@@ -2,11 +2,16 @@ import Adapt, {
     AdaptElement,
     BuildData,
     childrenToArray,
+    DeployHelpers,
+    DeployStatus,
+    errorToNoStatus,
     FinalDomElement,
+    GoalStatus,
+    gqlGetOriginalErrors,
     isFinalDomElement,
-    noStatusOnError,
     ObserveForStatus,
-    PrimitiveComponent
+    PrimitiveComponent,
+    waiting,
 } from "@usys/adapt";
 import * as ld from "lodash";
 
@@ -31,12 +36,41 @@ export class Resource extends PrimitiveComponent<ResourceProps> {
         //Do other validations of Specs here
     }
 
+    deployedWhen = async (goalStatus: GoalStatus, helpers: DeployHelpers) => {
+        const kind = this.props.kind;
+        const info = getResourceInfo(kind);
+        const hand = this.props.handle;
+        if (!info) throw new Error(`Invalid Resource kind ${kind}`);
+        if (!hand) throw new Error("Invalid handle");
+        try {
+            const statObj = await helpers.elementStatus<any>(hand);
+            if (goalStatus === DeployStatus.Destroyed) {
+                return waiting(`Waiting for ${kind} to be destroyed`);
+            }
+            return info.deployedWhen(statObj, DeployStatus.Deployed);
+        } catch (err) {
+            if (ld.isError(err) && err.name === "K8sNotFound") {
+                if (goalStatus === DeployStatus.Destroyed) return true;
+                return waiting(`${kind} not present`);
+            }
+            throw err;
+        }
+    }
+
     async status(observe: ObserveForStatus, buildData: BuildData) {
         const info = getResourceInfo(this.props.kind);
-        if (!info) return undefined;
-
-        const statusQuery = info.statusQuery;
+        const statusQuery = info && info.statusQuery;
         if (!statusQuery) return { noStatus: "no status query defined for this kind" };
-        return noStatusOnError(() => statusQuery(this.props, observe, buildData));
+        try {
+            return await statusQuery(this.props, observe, buildData);
+        } catch (err) {
+            // If there's only one GQL error and it's K8sNotFound, throw
+            // that on up the stack. Otherwise, return a Status object.
+            const orig = gqlGetOriginalErrors(err);
+            if (orig && orig.length === 1 && orig[0].name === "K8sNotFound") {
+                throw orig[0];
+            }
+            return errorToNoStatus(err);
+        }
     }
 }
