@@ -281,6 +281,7 @@ describe("AWS plugin basic tests", () => {
         options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
     });
@@ -400,6 +401,7 @@ describeLong("AWS plugin live tests", function () {
         options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
     });

@@ -11,10 +11,8 @@ import Adapt, {
 } from "@usys/adapt";
 import should from "should";
 
-import { k8sutils } from "@usys/testutils";
+import { createMockLogger, k8sutils, MockLogger } from "@usys/testutils";
 import { sleep } from "@usys/utils";
-import { Console } from "console";
-import { WritableStreamBuffer } from "stream-buffers";
 import * as abs from "../../src";
 import {
     createK8sPlugin,
@@ -123,7 +121,7 @@ describe("k8s Service Operation Tests", function () {
     this.timeout(10 * 1000);
 
     let plugin: K8sPlugin;
-    let logs: WritableStreamBuffer;
+    let logger: MockLogger;
     let options: PluginOptions;
     let kubeconfig: Kubeconfig;
     let client: k8sutils.KubeClient;
@@ -139,12 +137,13 @@ describe("k8s Service Operation Tests", function () {
 
     beforeEach(async () => {
         plugin = createK8sPlugin();
-        logs = new WritableStreamBuffer();
+        logger = createMockLogger();
         deployID = randomName("cloud-service-op");
         options = {
             dataDir: "/fake/datadir",
             deployID,
-            log: new Console(logs, logs).log
+            logger,
+            log: logger.info,
         };
     });
 

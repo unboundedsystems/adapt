@@ -137,6 +137,7 @@ describe("Ansible plugin", async function () {
         options = {
             deployID: "abc123",
             log: logger.info,
+            logger,
             dataDir,
         };
     });

@@ -167,6 +167,7 @@ describeFixture("AWS EC2Instance API tests", () => {
         const options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
 

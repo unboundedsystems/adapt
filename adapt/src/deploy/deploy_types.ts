@@ -167,7 +167,8 @@ export interface Action extends ActionInfo {
 
 export interface PluginOptions {
     deployID: string;
-    log: Logger;
+    log: Logger;  // deprecated
+    logger: MessageLogger;
     dataDir: string;
 }
 

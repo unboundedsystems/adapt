@@ -180,6 +180,7 @@ class PluginManagerImpl implements PluginManager {
         const loptions = {
             deployID: options.deployment.deployID,
             log: options.logger.info, //FIXME(manishv) have a per-plugin log here
+            logger: options.logger,
         };
         const waitingFor = mapMap(this.plugins, async (key, plugin) => {
             const pMod = this.modules.get(key);

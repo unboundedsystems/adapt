@@ -51,6 +51,7 @@ describe("Container component", () => {
         const options = {
             deployID: "abc123",
             log: logger.info,
+            logger,
             dataDir,
         };
 
