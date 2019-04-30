@@ -28,8 +28,15 @@ export function domMap<T>(dom: AdaptMountedElement | null, f: (el: AdaptMountedE
     return ret;
 }
 
+export type DomDiffIdFunc = (el: AdaptMountedElement) => string;
+
+export const defaultDomDiffId: DomDiffIdFunc = (el) => el.id;
+
 export function domDiff(
-    oldDom: AdaptMountedElement | null, newDom: AdaptMountedElement | null): DomDiff {
+    oldDom: AdaptMountedElement | null,
+    newDom: AdaptMountedElement | null,
+    idFunc = defaultDomDiffId
+    ): DomDiff {
 
     const byId = new Map<ElementID, AdaptMountedElement>();
     const added = new Set<AdaptMountedElement>();
@@ -37,9 +44,9 @@ export function domDiff(
     const commonOld = new Set<AdaptMountedElement>();
     const commonNew = new Set<AdaptMountedElement>();
 
-    domForEach(oldDom, (el) => byId.set(el.id, el));
+    domForEach(oldDom, (el) => byId.set(idFunc(el), el));
     domForEach(newDom, (el) => {
-        const id = el.id;
+        const id = idFunc(el);
         const old = byId.get(id);
         if (old) {
             commonOld.add(old);
