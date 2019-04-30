@@ -2,26 +2,31 @@ import stream from "stream";
 import { Message, MessageType } from "./common";
 
 export interface MessageStringOptions {
+    from?: boolean;
     timestamp?: boolean;
     type?: boolean;
 }
 
-const defaultOptions: MessageStringOptions = {
+const defaultOptions = {
+    from: true,
     timestamp: true,
     type: true,
 };
 
 export function messagesToString(msgs: ReadonlyArray<Message>, filter?: MessageType,
-                                 options = defaultOptions): string {
+                                 options: MessageStringOptions = {}): string {
     if (filter) msgs = msgs.filter((m) => m.type === filter);
     return msgs.map((m) => messageToString(m, options)).join("\n");
 }
 
-export function messageToString(msg: Message, options = defaultOptions): string {
+export function messageToString(msg: Message, options: MessageStringOptions = {}): string {
+    const opts = { ...defaultOptions, ...options };
+    if (!(opts.from || opts.timestamp || opts.type)) return msg.content;
+
     let ret = "";
-    if (options.timestamp) ret += (new Date(msg.timestamp)).toUTCString() + " ";
-    ret += `[${msg.from}] `;
-    if (options.type) ret += `${msg.type.toUpperCase()}`;
+    if (opts.timestamp) ret += (new Date(msg.timestamp)).toUTCString() + " ";
+    if (opts.from) ret += `[${msg.from}] `;
+    if (opts.type) ret += `${msg.type.toUpperCase()}`;
     ret += `: ${msg.content}`;
     return ret;
 }
@@ -39,15 +44,16 @@ export function getWarnings(msgs: ReadonlyArray<Message>): string {
 export function logToStreams(
     msg: Message,
     outStream: stream.Writable | undefined,
-    errStream: stream.Writable | undefined) {
+    errStream: stream.Writable | undefined,
+    options: MessageStringOptions = {}) {
 
     switch (msg.type) {
         case MessageType.error:
-            if (errStream) errStream.write(messageToString(msg) + "\n");
+            if (errStream) errStream.write(messageToString(msg, options) + "\n");
             break;
         case MessageType.info:
         case MessageType.warning:
-            if (outStream) outStream.write(messageToString(msg) + "\n");
+            if (outStream) outStream.write(messageToString(msg, options) + "\n");
             break;
     }
 }
