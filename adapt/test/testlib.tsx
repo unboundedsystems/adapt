@@ -1,6 +1,14 @@
 import { findPackageDirs } from "@usys/utils";
 import should from "should";
-import Adapt, { AdaptElement, AdaptMountedElement, build, buildPrinter, StateStore } from "../src";
+import Adapt, {
+    AdaptElement,
+    AdaptMountedElement,
+    build,
+    buildPrinter,
+    FinalDomElement,
+    StateStore,
+} from "../src";
+import { isBuildOutputPartial } from "../src/dom";
 import * as jsx from "../src/jsx";
 
 import { makeObserverManagerDeployment } from "../src/observers";
@@ -88,11 +96,11 @@ export interface DoBuildOptsNullOk extends DoBuildOpts {
 
 export interface DoBuild {
     mountedOrig: AdaptMountedElement;
-    dom: AdaptMountedElement;
+    dom: FinalDomElement;
 }
 export interface DoBuildNullOk {
     mountedOrig: AdaptMountedElement | null;
-    dom: AdaptMountedElement | null;
+    dom: FinalDomElement | null;
 }
 
 const doBuildDefaults = {
@@ -113,10 +121,13 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         deployID,
         stateStore,
     };
-    const { mountedOrig, contents: dom, messages, buildErr, partialBuild } =
-        await build(elem, style, buildOpts);
-    should(buildErr).be.False();
-    should(partialBuild).be.False();
+    const buildOutput = await build(elem, style, buildOpts);
+    if (isBuildOutputPartial(buildOutput)) {
+        should(buildOutput.buildErr).be.False();
+        should(buildOutput.partialBuild).be.False();
+        throw new Error("Partially built DOM");
+    }
+    const { mountedOrig, contents: dom, messages } = buildOutput;
     should(messages).have.length(0);
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
