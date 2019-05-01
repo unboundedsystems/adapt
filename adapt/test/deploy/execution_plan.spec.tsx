@@ -38,6 +38,7 @@ import {
 } from "../../src/deploy/execution_plan";
 import { relationIsReadyStatus, toRelation } from "../../src/deploy/relation_utils";
 import { And } from "../../src/deploy/relations";
+import { shouldTrackStatus } from "../../src/deploy/status_tracker";
 import { domDiff } from "../../src/dom_utils";
 import { Deployment } from "../../src/server/deployment";
 import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
@@ -284,7 +285,7 @@ describe("ExecutionPlanImpl", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames).have.length(expTaskNames.length);
-        should(taskNames).containDeep(expElems.map((e) => e.id));
+        should(taskNames).containDeep(expElems.filter(shouldTrackStatus).map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description)).containDeep(expTaskNames);
         should(taskNames.map((n) => tasks[n]!.state))
             .containDeep(expTaskNames.map(() => expTask));
@@ -376,7 +377,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
+            ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
 
         const { stdout, stderr } = logger;
         should(stdout).match(/Doing Action0/);
@@ -428,7 +429,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
+            ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
 
         const { stdout, stderr } = logger;
         should(stdout).match(/Doing Action0/);
@@ -567,7 +568,7 @@ describe("ExecutionPlanImpl", () => {
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
-                ["Group", "Change0", "Change1", "Change2", "Change3"]);
+                ["Change0", "Change1", "Change2", "Change3"]);
 
             const { stdout, stderr } = logger;
             const lines = stdout.split("\n");
@@ -623,7 +624,7 @@ describe("ExecutionPlanImpl", () => {
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
-                ["Group", "Change0", "Change1", "Change2", "Change3"]);
+                ["Change0", "Change1", "Change2", "Change3"]);
 
             const { stdout, stderr } = logger;
             const lines = stdout.split("\n");
@@ -719,7 +720,7 @@ describe("ExecutionPlanImpl", () => {
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
-            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
+            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
@@ -929,14 +930,14 @@ describe("ExecutionPlanImpl", () => {
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
-        should(taskNames).containDeep([dom.id, ...kids.map((k) => k.id)]);
+        should(taskNames).containDeep(kids.map((k) => k.id));
         should(taskNames.map((n) => tasks[n]!.description))
             .containDeep([
-                "Group", "Action0 Change0", "Action1 Change0",
+                "Action0 Change0", "Action1 Change0",
                 "Action2 Change0", "Action3 Change0", "Action4 Change0"
             ]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Complete, TaskState.Failed, TaskState.Failed,
+            .containDeep([TaskState.Failed, TaskState.Failed,
                 TaskState.Failed, TaskState.Complete, TaskState.Failed]);
     });
 
@@ -1129,11 +1130,11 @@ describe("ExecutionPlanImpl", () => {
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
-        should(taskNames).containDeep([dom.id, ...kids.map((k) => k.id)]);
+        should(taskNames).containDeep(kids.map((k) => k.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["Action0 Change0", "Action1 Change0", "Action2 Change0", "Group"]);
+            .containDeep(["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .containDeep([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
+            .containDeep([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
     });
 
     it("Should mark elements Deploying while actions run", async () => {
@@ -1224,7 +1225,7 @@ describe("ExecutionPlanImpl", () => {
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
-            ["Creating Action0", "Creating Action1", "Creating Action2", "Group"]);
+            ["Creating Action0", "Creating Action1", "Creating Action2"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
@@ -1359,7 +1360,6 @@ describe("ExecutionPlanImpl", () => {
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
             [
-                "Group",
                 "Action0 Change0", "Action1 Change0", "Action2 Change0",
                 "DependPrim", "DependPrim", "DependPrim"
             ]);
@@ -1552,7 +1552,6 @@ describe("ExecutionPlanImpl", () => {
         checkElemStatus(elementStatus, oldKids[1], DeployStatus.Destroyed);
 
         const expTaskNames = [
-            "Group",
             "Updating id0",
             "Deleting id1",
             "Creating id2",
@@ -1560,7 +1559,7 @@ describe("ExecutionPlanImpl", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames).have.length(expTaskNames.length);
-        should(taskNames).containDeep([...elems, oldKids[1]].map((e) => e.id));
+        should(taskNames).containDeep([...newKids, oldKids[1]].map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description)).containDeep(expTaskNames);
         should(taskNames.map((n) => tasks[n]!.state))
             .containDeep(expTaskNames.map(() => TaskState.Complete));

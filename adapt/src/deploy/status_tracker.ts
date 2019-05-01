@@ -1,7 +1,7 @@
 import { TaskObserver } from "@usys/utils";
 import { inspect } from "util";
 import { InternalError } from "../error";
-import { isFinalDomElement } from "../jsx";
+import { AdaptMountedElement, isFinalDomElement, isMountedElement } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/deployment_data";
 import {
@@ -62,9 +62,11 @@ export class StatusTrackerImpl implements StatusTracker {
         this.statMap = new Map<EPNode, DeployStatusExt>(options.nodes.map((n) => {
             if (n.element) {
                 this.primStatus.Waiting++;
-                const id = n.element.id;
-                const tasks = tGroup.add({ [id]: n.element.componentName });
-                this.taskMap.set(n, tasks[id]);
+                if (shouldTrackStatus(n)) {
+                    const id = n.element.id;
+                    const tasks = tGroup.add({ [id]: n.element.componentName });
+                    this.taskMap.set(n, tasks[id]);
+                }
             }
             return [n, DeployStatusExt.Waiting] as [EPNode, DeployStatusExt];
         }));
@@ -123,9 +125,8 @@ export class StatusTrackerImpl implements StatusTracker {
     }
 
     output(n: EPNode, s: string) {
-        if (!n.element) return;
-        const task = this.taskMap.get(n);
-        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
+        const task = this.getTask(n);
+        if (!task) return;
         task.updateStatus(s);
     }
 
@@ -158,6 +159,15 @@ export class StatusTrackerImpl implements StatusTracker {
         return `StatusTracker {\n${entries}\n}`;
     }
 
+    private getTask(n: EPNode) {
+        if (!shouldTrackStatus(n)) return undefined;
+        const task = this.taskMap.get(n);
+        if (!task) {
+            throw new InternalError(`No task observer found for node (${n.element && n.element.id})`);
+        }
+        return task;
+    }
+
     private async updateStatus(n: EPNode, err: Error | undefined) {
         if (n.element == null || this.dryRun) return;
 
@@ -171,10 +181,9 @@ export class StatusTrackerImpl implements StatusTracker {
     private updateTask(n: EPNode, oldStat: DeployStatusExt, newStat: DeployStatus,
         err: Error | undefined, description: string | undefined) {
 
-        if (!n.element) return;
+        const task = this.getTask(n);
+        if (!task) return;
 
-        const task = this.taskMap.get(n);
-        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
         if (description) task.description = description;
 
         if (err) return task.failed(err);
@@ -202,4 +211,10 @@ export class StatusTrackerImpl implements StatusTracker {
         Object.keys(DeployStatus).forEach((k) => stat[k] = 0);
         return stat;
     }
+}
+
+export function shouldTrackStatus(n: EPNode | AdaptMountedElement) {
+    const el = isMountedElement(n) ? n : n.element;
+    if (!el) return false;
+    return el.componentType.noPlugin !== true;
 }

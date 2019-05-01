@@ -188,12 +188,11 @@ describe("Plugin Support Basic Tests", () => {
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
-        should(taskNames)
-            .containDeep([dom, ...kids].map((e) => e.id));
+        should(taskNames).containDeep(kids.map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["Group", "action1", "action2"]);
+            .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .eql([TaskState.Complete, TaskState.Complete, TaskState.Complete]);
+            .eql([TaskState.Complete, TaskState.Complete]);
     });
 
     it("Should not call actions on dry run", async () => {
@@ -214,12 +213,11 @@ describe("Plugin Support Basic Tests", () => {
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
-        should(taskNames)
-            .containDeep([dom, ...kids].map((e) => e.id));
+        should(taskNames).containDeep(kids.map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["Group", "action1", "action2"]);
+            .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .eql([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
+            .eql([TaskState.Skipped, TaskState.Skipped]);
     });
 
     it("Should not allow illegal call sequences", async () => {
@@ -267,12 +265,11 @@ describe("Plugin Support Basic Tests", () => {
 
         const tasks = getTasks();
         let taskNames = Object.keys(tasks);
-        should(taskNames)
-            .containDeep([dom, ...kids].map((e) => e.id));
+        should(taskNames).containDeep(kids.map((e) => e.id));
         should(taskNames.map((n) => tasks[n]!.description))
-            .containDeep(["Group", "action1", "action2"]);
+            .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => tasks[n]!.state))
-            .eql([TaskState.Skipped, TaskState.Skipped, TaskState.Skipped]);
+            .eql([TaskState.Skipped, TaskState.Skipped]);
 
         // Provide a new taskObserver for the second act()
         taskObserver = createTaskObserver("parent2", { logger });
@@ -290,12 +287,11 @@ describe("Plugin Support Basic Tests", () => {
         const newTasks = getTasks();
         should(newTasks).not.equal(tasks);
         taskNames = Object.keys(newTasks);
-        should(taskNames)
-            .containDeep([dom, ...kids].map((e) => e.id));
+        should(taskNames).containDeep(kids.map((e) => e.id));
         should(taskNames.map((n) => newTasks[n]!.description))
-            .containDeep(["Group", "action1", "action2"]);
+            .containDeep(["action1", "action2"]);
         should(taskNames.map((n) => newTasks[n]!.state))
-            .eql([TaskState.Complete, TaskState.Complete, TaskState.Complete]);
+            .eql([TaskState.Complete, TaskState.Complete]);
     });
 
 });
