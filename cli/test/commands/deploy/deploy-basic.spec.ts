@@ -432,8 +432,10 @@ Deployment not created due to errors$`);
     .it("Should error before act and not create deployment", async (ctx) => {
         const stdout = ctx.stdout;
         expect(stdout).contains("Validating project [completed]");
-        expect(stdout).contains("Analyzing environment [started]");
-        expect(stdout).contains("Analyzing environment [failed]");
+        expect(stdout).contains("Deploying [started]");
+        expect(stdout).contains("Applying changes to environment [started]");
+        expect(stdout).contains("Observing and analyzing environment");
+        expect(stdout).contains("Applying changes to environment [failed]");
         expect(stdout).contains("Creating new project deployment [failed]");
 
         expect(ctx.stderr).contains(`[deploy:create] ERROR: Error creating deployment: Error: AnalyzeError\n`);
