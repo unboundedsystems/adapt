@@ -41,8 +41,7 @@ import { And } from "../../src/deploy/relations";
 import { domDiff } from "../../src/dom_utils";
 import { Deployment } from "../../src/server/deployment";
 import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
-import { createMockDeployment } from "../server/mocks";
-import { doBuild, Empty } from "../testlib";
+import { createMockDeployment, doBuild, Empty } from "../testlib";
 import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
 
 function dependencies(plan: ExecutionPlanImpl) {

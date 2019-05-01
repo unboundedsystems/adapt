@@ -262,7 +262,7 @@ describe("Element Handle", () => {
         should(domXml).equal(
             `<Adapt>
   <Group key="Group" xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components/group.js:Group">
-    <Empty id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/testlib.js:Empty">
+    <Empty id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/testlib/components.js:Empty">
       <__props__>
         <prop name="key">"MakeEmpty-Empty"</prop>
       </__props__>

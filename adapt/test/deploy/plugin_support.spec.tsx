@@ -25,8 +25,7 @@ import {
 } from "../../src/deploy";
 import * as pluginSupport from "../../src/deploy/plugin_support";
 import { MockAdaptContext, mockAdaptContext } from "../../src/ts";
-import { createMockDeployment } from "../server/mocks";
-import { doBuild, Empty, packageDirs } from "../testlib";
+import { createMockDeployment, doBuild, Empty, packageDirs } from "../testlib";
 
 function nextTick(): Promise<void> {
     return new Promise((res) => process.nextTick(() => res()));
