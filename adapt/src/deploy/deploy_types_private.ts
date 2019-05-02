@@ -6,14 +6,14 @@ import {
     AdaptMountedElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence } from "../server/deployment_data";
+import { DeployOpID, DeployStepID } from "../server/deployment_data";
 import {
     ActionChange,
     DeployedWhenMethod,
     DeployStatus,
     DeployStatusExt,
+    ExecuteComplete,
     ExecuteOptions,
-    ExecutePassComplete,
     GoalStatus,
     isDependsOn,
     RelationExt,
@@ -75,16 +75,17 @@ export interface StatusTracker {
     readonly dryRun: boolean;
     readonly goalStatus: GoalStatus;
     readonly nodeStatus: Record<DeployStatus, number>;
+    readonly deployOpID: DeployOpID;
     readonly primStatus: Record<DeployStatus, number>;
     readonly statMap: Map<EPNode, DeployStatusExt>;
     readonly taskMap: Map<EPNode, TaskObserver>;
-    readonly sequence: DeploymentSequence;
+    readonly stepID?: DeployStepID;
     get(n: EPNode): DeployStatusExt;
     set(n: EPNode, statExt: DeployStatusExt, err: Error | undefined,
         description?: string): Promise<boolean>;
     isFinal(n: EPNode): boolean;
     isActive(n: EPNode): boolean;
     output(n: EPNode, s: string): void;
-    complete(): Promise<ExecutePassComplete>;
+    complete(stateChanged: boolean): Promise<ExecuteComplete>;
     debug(getId: (n: EPNode) => string): string;
 }

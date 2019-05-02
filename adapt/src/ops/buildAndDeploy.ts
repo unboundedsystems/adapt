@@ -32,7 +32,7 @@ import {
     ExecutedQuery,
 } from "../observers";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence } from "../server/deployment_data";
+import { DeployOpID } from "../server/deployment_data";
 import { HistoryEntry, HistoryStatus, isStatusComplete } from "../server/history";
 import { createStateStore, StateStore } from "../state";
 import { Status } from "../status";
@@ -51,7 +51,7 @@ export interface BuildOptions {
     stackName: string;
     taskObserver: TaskObserver;
 
-    sequence?: DeploymentSequence;
+    deployOpID?: DeployOpID;
     withStatus?: boolean;
     observationsJson?: string;
     prevStateJson?: string;
@@ -92,9 +92,9 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         throw new Error(msg);
     }
 
-    // Allocate a new sequence ID for this operation if not provided
-    const sequence = options.sequence !== undefined ?
-        options.sequence : await deployment.newSequence();
+    // Allocate a new opID for this operation if not provided
+    const deployOpID = options.deployOpID !== undefined ?
+        options.deployOpID : await deployment.newOpID();
 
     const ret = {
         ...options,
@@ -103,7 +103,7 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         observationsJson,
         prevDomXml: prev && prev.domXml,
         prevStateJson,
-        sequence,
+        deployOpID,
         stateStore,
         withStatus: options.withStatus || false,
     };
@@ -364,9 +364,9 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
                 actTaskObserver.started();
             }
             const { deployComplete, stateChanged } = await mgr.act({
+                deployOpID: options.deployOpID,
                 dryRun: options.dryRun,
                 processStateUpdates,
-                sequence: options.sequence,
                 taskObserver: actTaskObserver,
             });
             await mgr.finish();

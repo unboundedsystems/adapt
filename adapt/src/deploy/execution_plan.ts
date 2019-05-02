@@ -11,6 +11,7 @@ import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
 import { AdaptElement, AdaptMountedElement, isMountedElement } from "../jsx";
 import { Deployment } from "../server/deployment";
+import { DeployOpID } from "../server/deployment_data";
 import { Status } from "../status";
 import {
     Action,
@@ -18,11 +19,11 @@ import {
     Dependency,
     DependsOn,
     DeployHelpers,
+    DeployOpStatus,
     DeployStatus,
     DeployStatusExt,
     ExecuteComplete,
     ExecuteOptions,
-    ExecutePassComplete,
     ExecutionPlan,
     ExecutionPlanOptions,
     GoalStatus,
@@ -61,7 +62,7 @@ const debugExecute = db("adapt:deploy:execute");
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
     const { actions, diff, seriesActions } = options;
 
-    const plan = new ExecutionPlanImpl(options.goalStatus, options.deployment);
+    const plan = new ExecutionPlanImpl(options);
 
     diff.added.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.commonNew.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
@@ -119,15 +120,27 @@ export interface EPDependencies {
     };
 }
 
+export interface ExecutionPlanImplOptions {
+    deployment: Deployment;
+    deployOpID: DeployOpID;
+    goalStatus: GoalStatus;
+}
+
 export class ExecutionPlanImpl implements ExecutionPlan {
-    helpers: DeployHelpersFactory;
+    readonly deployment: Deployment;
+    readonly deployOpID: DeployOpID;
+    readonly goalStatus: GoalStatus;
+    readonly helpers: DeployHelpersFactory;
     protected graph = new Graph({ compound: true });
     protected nextWaitId = 0;
     protected waitInfoIds = new WeakMap<WaitInfo, string>();
     protected complete = new Map<EPNodeId, EPNode>();
 
-    constructor(readonly goalStatus: GoalStatus, readonly deployment: Deployment) {
-        this.helpers = new DeployHelpersFactory(this, deployment);
+    constructor(options: ExecutionPlanImplOptions) {
+        this.goalStatus = options.goalStatus;
+        this.deployment = options.deployment;
+        this.deployOpID = options.deployOpID;
+        this.helpers = new DeployHelpersFactory(this, this.deployment);
     }
 
     /*
@@ -512,16 +525,15 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     const plan = opts.plan;
     const timeoutTime = opts.timeoutMs ? Date.now() + opts.timeoutMs : 0;
     let loopNum = 0;
-    let stateChanged = false;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
 
     const nodeStatus = await createStatusTracker({
-        dryRun: opts.dryRun,
         deployment: plan.deployment,
+        deployOpID: plan.deployOpID,
+        dryRun: opts.dryRun,
         goalStatus: plan.goalStatus,
         nodes: plan.nodes,
-        sequence: opts.sequence,
         taskObserver: opts.taskObserver,
     });
     plan.helpers.nodeStatus = nodeStatus;
@@ -533,19 +545,17 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
         while (true) {
             debugExecute(`\n\n-----------------------------\n\n**** Starting execution pass ${++loopNum}`);
 
-            const ret = await executePass({ ...opts, nodeStatus, timeoutTime });
+            await executePass({ ...opts, nodeStatus, timeoutTime });
+            const { stateChanged } = await opts.processStateUpdates();
+            const ret = await nodeStatus.complete(stateChanged);
 
             debugExecute(`**** execution pass ${loopNum} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
-            const upd = await opts.processStateUpdates();
-            if (upd.stateChanged) stateChanged = true;
 
-            if (isFinalStatus(ret.deploymentStatus)) {
+            if (ret.deploymentStatus === DeployOpStatus.StateChanged ||
+                isFinalStatus(ret.deploymentStatus)) {
                 debugExecute(`**** Execution completed`);
-                return {
-                    ...ret,
-                    stateChanged,
-                };
+                return ret;
             }
             await sleep(opts.pollDelayMs);
         }
@@ -553,6 +563,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     } catch (err) {
         err = ensureError(err);
         opts.logger.error(`Deploy operation failed: ${err.message}`);
+        let stateChanged = false;
 
         try {
             const upd = await opts.processStateUpdates();
@@ -568,11 +579,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             for (const n of plan.nodes) {
                 await nodeStatus.set(n, DeployStatus.Failed, err);
             }
-            const ret = await nodeStatus.complete();
-            return {
-                ...ret,
-                stateChanged,
-            };
+            return nodeStatus.complete(stateChanged);
 
         } else {
             throw err;
@@ -580,7 +587,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     }
 }
 
-export async function executePass(opts: ExecutePassOptions): Promise<ExecutePassComplete> {
+export async function executePass(opts: ExecutePassOptions) {
     const { dryRun, logger, nodeStatus, plan } = opts;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
@@ -783,8 +790,6 @@ export async function executePass(opts: ExecutePassOptions): Promise<ExecutePass
             pIdle = pTimeout(pIdle, timeLeft, msg);
         }
         await pIdle;
-
-        return await nodeStatus.complete();
 
     } catch (err) {
         stopExecuting = true;

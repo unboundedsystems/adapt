@@ -12,7 +12,7 @@ import {
     FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence } from "../server/deployment_data";
+import { DeployOpID } from "../server/deployment_data";
 import { Status } from "../status";
 
 export enum DeployStatus {
@@ -109,6 +109,18 @@ export function isProxying(stat: DeployStatusExt) {
         stat === DeployStatusExt.ProxyDestroying;
 }
 
+export enum DeployOpStatusExt {
+    StateChanged = "StateChanged",
+}
+
+export type DeployOpStatus = DeployStatus | DeployOpStatusExt;
+// tslint:disable-next-line: variable-name
+export const DeployOpStatus = { ...DeployStatus, ...DeployOpStatusExt };
+
+/*
+ * Deployment plugins
+ */
+
 export type PluginKey = string;
 export type PluginInstances = Map<PluginKey, Plugin>;
 export type PluginModules = Map<PluginKey, PluginModule>;
@@ -192,12 +204,12 @@ export interface PluginManagerStartOptions {
 
 export interface ActOptions {
     concurrency?: number;
+    deployOpID: DeployOpID;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
     processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
-    sequence: DeploymentSequence;
 }
 
 export interface ActComplete {
@@ -266,6 +278,7 @@ export interface PluginManager {
 export interface ExecutionPlanOptions {
     actions: Action[];
     deployment: Deployment;
+    deployOpID: DeployOpID;
     diff: DomDiff;
     goalStatus: GoalStatus;
     seriesActions?: Action[][];
@@ -282,17 +295,13 @@ export interface ExecuteOptions {
     plan: ExecutionPlan;
     pollDelayMs?: number;
     processStateUpdates: () => Promise<{ stateChanged: boolean; }>;
-    sequence: DeploymentSequence;
     taskObserver: TaskObserver;
     timeoutMs?: number;
 }
 
-export interface ExecutePassComplete {
-    deploymentStatus: DeployStatus;
+export interface ExecuteComplete {
+    deploymentStatus: DeployOpStatus;
     nodeStatus: Record<DeployStatus, number>;
     primStatus: Record<DeployStatus, number>;
-}
-
-export interface ExecuteComplete extends ExecutePassComplete {
     stateChanged: boolean;
 }

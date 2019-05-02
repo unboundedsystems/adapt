@@ -30,6 +30,7 @@ import {
     DeployHelpers,
     ExecuteComplete,
     ExecuteOptions,
+    ExecutionPlanOptions,
     GoalStatus,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
@@ -43,16 +44,18 @@ import {
     EPDependency,
     execute,
     ExecutionPlanImpl,
+    ExecutionPlanImplOptions,
     isExecutionPlanImpl,
 } from "../../src/deploy/execution_plan";
 import { relationIsReadyStatus, toRelation } from "../../src/deploy/relation_utils";
 import { And } from "../../src/deploy/relations";
 import { shouldTrackStatus } from "../../src/deploy/status_tracker";
+import { noStateUpdates } from "../../src/dom";
 import { domDiff } from "../../src/dom_utils";
 import { InternalError } from "../../src/error";
 import { Deployment } from "../../src/server/deployment";
-import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
-import { createMockDeployment, doBuild, Empty, MockDeploy } from "../testlib";
+import { DeployOpID, DeployStepID, ElementStatusMap } from "../../src/server/deployment_data";
+import { createMockDeployment, DeployOptions, doBuild, Empty, MockDeploy } from "../testlib";
 import { ActionState, createActionStatePlugin } from "./action_state";
 import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
 
@@ -122,17 +125,24 @@ function addNodeWithWaitInfo(plan: ExecutionPlanImpl, el: AdaptMountedElement,
 
 describe("Execution plan", () => {
     let deployment: Deployment;
+    let deployOpID: DeployOpID;
+    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus">;
 
     beforeEach(async () => {
         deployment = await createMockDeployment();
+        deployOpID = await deployment.newOpID();
+        planOpts = {
+            actions: [],
+            deployment,
+            deployOpID,
+        };
     });
 
     it("Should create a plan", async () => {
         const d = <Empty id={1}/>;
         const { dom } = await doBuild(d);
         const plan = await createExecutionPlan({
-            actions: [],
-            deployment,
+            ...planOpts,
             diff: domDiff(null, dom),
             goalStatus: DeployStatus.Deployed,
         });
@@ -176,9 +186,8 @@ describe("Execution plan", () => {
         })));
 
         const plan = await createExecutionPlan({
-            actions: [],
+            ...planOpts,
             seriesActions,
-            deployment,
             diff: domDiff(null, dom),
             goalStatus: DeployStatus.Deployed,
         });
@@ -251,20 +260,29 @@ function checkElemStatus(
 describe("ExecutionPlanImpl", () => {
     let deployment: Deployment;
     let logger: MockLogger;
-    let sequence: DeploymentSequence;
     let taskObserver: TaskObserver;
-    const processStateUpdates = async () => ({ stateChanged: false });
+    const processStateUpdates = noStateUpdates;
     let executeOpts: Omit<ExecuteOptions, "plan">;
+    let deployOpID: DeployOpID;
+    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus">;
+    let implOpts: Omit<ExecutionPlanImplOptions, "goalStatus">;
 
     beforeEach(async () => {
         deployment = await createMockDeployment();
-        sequence = await deployment.newSequence();
+        deployOpID = await deployment.newOpID();
+        implOpts = {
+            deployment,
+            deployOpID,
+        };
+        planOpts = {
+            ...implOpts,
+            actions: [],
+        };
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
         executeOpts = {
             logger,
             processStateUpdates,
-            sequence,
             taskObserver,
             timeoutMs,
         };
@@ -272,6 +290,13 @@ describe("ExecutionPlanImpl", () => {
 
     function getTasks(): TaskObserversUnknown {
         return (taskObserver.childGroup() as any).tasks_;
+    }
+
+    async function getDeploymentStatus(expStepNum: number) {
+        const stepID = await deployment.currentStepID(deployOpID);
+        should(stepID.deployOpID).equal(deployOpID);
+        should(stepID.deployStepNum).equal(expStepNum);
+        return deployment.status(stepID);
     }
 
     async function checkFinalSimple(
@@ -297,7 +322,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.elems).have.length(0);
 
         const { deployStatus, goalStatus, elementStatus } =
-            await deployment.status(sequence);
+            await getDeploymentStatus(0);
         should(deployStatus).equal(expDeploy);
         should(goalStatus).equal(expDeploy);
         expElems.forEach((e) => checkElemStatus(elementStatus, e, expDeploy));
@@ -325,7 +350,7 @@ describe("ExecutionPlanImpl", () => {
      *   kid2 -> Action2
      */
     async function createPlan1(goalStatus: GoalStatus) {
-        const plan = new ExecutionPlanImpl(goalStatus, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -472,7 +497,7 @@ describe("ExecutionPlanImpl", () => {
      *   kid3 -> Action3 (auto)
      */
     async function createPlan2(goal: GoalStatus, depsBeforeActions = false) {
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const checkLeaves = (depl: number, dest: number, desc: string) => {
             const leaves = goal === DeployStatus.Deployed ? depl : dest;
             should(plan.leaves).have.length(leaves, desc);
@@ -646,7 +671,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should wait for soft dependencies", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -741,7 +766,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should fail with simple cycle", async () => {
         const goalStatus: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goalStatus, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus });
         const orig = <Group/>;
         const { dom } = await doBuild(orig);
 
@@ -765,7 +790,8 @@ describe("ExecutionPlanImpl", () => {
     });
 
     it("Should fail with larger cycles", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed, deployment);
+        const goal = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -815,7 +841,8 @@ describe("ExecutionPlanImpl", () => {
      *   kid4 -> kid2 (soft) - Tests immediate soft dependency
      */
     it("Should fail dependents on error", async () => {
-        const plan = new ExecutionPlanImpl(DeployStatus.Deployed, deployment);
+        const goal = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
 
         const hands = makeHandles(5);
         const dep0 = (_i: number, _gs: GoalStatus, h: DeployHelpers) =>
@@ -898,7 +925,7 @@ describe("ExecutionPlanImpl", () => {
         should(stderr).match(/Error: Action error/);
 
         const { deployStatus, goalStatus, elementStatus } =
-            await deployment.status(sequence);
+            await getDeploymentStatus(0);
         should(deployStatus).equal(DeployStatus.Failed);
         should(goalStatus).equal(DeployStatus.Deployed);
         checkElemStatus(elementStatus, dom, DeployStatus.Deployed);
@@ -928,7 +955,7 @@ describe("ExecutionPlanImpl", () => {
     it("Should time out", async () => {
         const timeout = 100;
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -1010,7 +1037,7 @@ describe("ExecutionPlanImpl", () => {
         should(spy.getCall(2).args[0]).equal("Action2");
 
         const { deployStatus, goalStatus, elementStatus } =
-            await deployment.status(sequence);
+            await getDeploymentStatus(0);
         should(deployStatus).equal(DeployStatus.Failed);
         should(goalStatus).equal(DeployStatus.Deployed);
         checkElemStatus(elementStatus, dom, DeployStatus.Deployed);
@@ -1026,7 +1053,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should not run actions or modify state on dryRun", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -1063,7 +1090,11 @@ describe("ExecutionPlanImpl", () => {
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(4);
 
-        const beforeStatus = await deployment.status(sequence);
+        const firstStepID: DeployStepID = {
+            deployOpID: 0,
+            deployStepNum: 0,
+        };
+        await should(deployment.status(firstStepID)).be.rejectedWith("Deployment step ID 0.0 not found");
 
         plan.check();
         const ret = await execute({ ...executeOpts, plan, dryRun: true });
@@ -1096,8 +1127,8 @@ describe("ExecutionPlanImpl", () => {
 
         should(spy.callCount).equal(0);
 
-        const afterStatus = await deployment.status(sequence);
-        should(afterStatus).deepEqual(beforeStatus);
+        // Should still be no first sequence created
+        await should(deployment.status(firstStepID)).be.rejectedWith("Deployment step ID 0.0 not found");
 
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
@@ -1110,7 +1141,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should mark elements Deploying while actions run", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const orig =
             <Group>
                 <Prim id={0} />
@@ -1145,7 +1176,7 @@ describe("ExecutionPlanImpl", () => {
         const actionCheck = async (idx: number) => {
             spy(`Action${idx} started`);
             const tList = getTasks();
-            const s = await deployment.status(sequence);
+            const s = await getDeploymentStatus(0);
             kids.forEach((k, i) => {
                 try {
                     checkElemStatus(s.elementStatus, k, expectedStatus[idx][i]);
@@ -1211,7 +1242,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should give unassociated handle error", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const dep = (id: number, gs: GoalStatus, h: DeployHelpers) =>
             makeAllOf("desc", h, [ handle() ]);
 
@@ -1233,7 +1264,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should check primitive element dependsOn", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const spy = sinon.spy();
         const hands = makeHandles(6);
 
@@ -1378,7 +1409,7 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should give correct goalStatus to elements", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const plan = new ExecutionPlanImpl(goal, deployment);
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
         const spy = sinon.spy();
         const dep = (tag: string) => (id: number, gStat: DeployStatus): DependsOn => ({
             description: `${tag}${id} wait`,
@@ -1497,7 +1528,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.elems).have.length(0);
 
         const { deployStatus, goalStatus, elementStatus } =
-            await deployment.status(sequence);
+            await getDeploymentStatus(0);
         should(deployStatus).equal(goal);
         should(goalStatus).equal(goal);
         should(Object.keys(elementStatus)).have.length(4);
@@ -1523,7 +1554,7 @@ describe("ExecutionPlanImpl", () => {
     });
 
     /**
-     * Tests fairly basic setup using createExecutePlan.
+     * Tests fairly basic setup using createExecutionPlan.
      * - Tests plan groups/leaders (Action + changed elements)
      *   - Actions always deploy first
      *   - Dependencies of all elements in group are met before Action runs
@@ -1577,8 +1608,8 @@ describe("ExecutionPlanImpl", () => {
         }));
 
         const plan = await createExecutionPlan({
+            ...planOpts,
             actions,
-            deployment,
             diff: toDiff(dom, goal),
             goalStatus: goal,
         });
@@ -1742,5 +1773,108 @@ describe("Execution plan state", () => {
             current: "one",
         });
         should(spyArgs(spy, 0)).eql(["action called"]);
+    });
+});
+
+xdescribe("Execution plan restart", () => {
+    let dep: MockDeploy;
+
+    mochaTmpdir.each("exec-plan-restart");
+
+    beforeEach(async () => {
+        dep = new MockDeploy({
+            pluginCreates: [ createActionStatePlugin ],
+            tmpDir: process.cwd(),
+        });
+        await dep.init();
+    });
+
+    it("Should not re-deploy elements on second execute", async () => {
+        let spy = sinon.spy();
+        let buildNum = 0;
+        const action = (comp: ActionState) => {
+            spy(`action${comp.props.id}`);
+            comp.setState({ count: comp.props.id });
+        };
+        const when = (id: number, _gs: GoalStatus, comp: ActionState): WaitStatus => {
+            const count = comp.state.count;
+            spy(`when${id} count=${count} build=${buildNum}`);
+            if (count === buildNum) return true;
+            return {
+                done: false,
+                status: `${count} != ${buildNum}`
+            };
+        };
+
+        const orig =
+            <ActionState id={0} action={action} when={when}>
+                <ActionState id={1} action={action} when={when} />
+                <ActionState id={2} action={action} when={when} />
+            </ActionState>;
+        const deployOpts: DeployOptions = {};
+
+        while (buildNum < 3) {
+            const results = await dep.deploy(orig, deployOpts);
+            if (results.dom == null) throw should(results.dom).not.be.Null();
+
+            const expComplete = buildNum === 2;
+            // State only changes the first time
+            const expChanged = buildNum === 0;
+            should(results.deployComplete).equal(expComplete);
+            should(results.stateChanged).equal(expChanged);
+
+            const elems: FinalDomElement[] = [ results.dom, ...results.dom.props.children ];
+            should(elems).have.length(3);
+            elems.forEach((e) => {
+                should(dep.stateStore.elementState(e.keyPath)).eql({
+                    initial: "initial",
+                    count: e.props.id,
+                });
+            });
+
+            // One element deploys each build loop
+            const eStat = (id: number) => ({
+                [elems[id].id]: {
+                    deployStatus: buildNum >= id ? DeployStatus.Deployed : DeployStatus.Deploying
+                }
+            });
+            // All elements should be deployed when buildNum === 2
+            const deployStatus = buildNum === 2 ? DeployStatus.Deployed : DeployStatus.Deploying;
+            const depStat = await dep.deployment.status(results.stepID);
+            should(depStat).eql({
+                deployStatus,
+                goalStatus: DeployStatus.Deployed,
+                elementStatus: {
+                    ...eStat(0),
+                    ...eStat(1),
+                    ...eStat(2),
+                }
+            });
+
+            const expSpyArgs = [];
+
+            // Actions only happen the first time, as does undefined state
+            // and the one additional execute pass.
+            if (buildNum === 0) {
+                expSpyArgs.push(
+                    "action0",
+                    "action1",
+                    "action2",
+                    "when0 count=undefined build=0",
+                    "when1 count=undefined build=0",
+                    "when2 count=undefined build=0",
+                );
+            }
+            expSpyArgs.push(
+                `when0 count=0 build=${buildNum}`,
+                `when1 count=1 build=${buildNum}`,
+                `when2 count=2 build=${buildNum}`,
+            );
+
+            should(spyArgs(spy, 0)).containDeep(expSpyArgs);
+
+            buildNum++;
+            spy = sinon.spy();
+        }
     });
 });
