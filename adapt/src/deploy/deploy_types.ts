@@ -194,9 +194,15 @@ export interface ActOptions {
     concurrency?: number;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
+    processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
     sequence: DeploymentSequence;
+}
+
+export interface ActComplete {
+    deployComplete: boolean;
+    stateChanged: boolean;
 }
 
 export interface Relation {
@@ -253,7 +259,7 @@ export interface PluginManager {
         options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<PluginObservations>;
     analyze(): Action[];
-    act(options: ActOptions): Promise<void>;
+    act(options: ActOptions): Promise<ActComplete>;
     finish(): Promise<void>;
 }
 
@@ -275,13 +281,18 @@ export interface ExecuteOptions {
     logger: MessageLogger;
     plan: ExecutionPlan;
     pollDelayMs?: number;
+    processStateUpdates: () => Promise<{ stateChanged: boolean; }>;
     sequence: DeploymentSequence;
     taskObserver: TaskObserver;
     timeoutMs?: number;
 }
 
-export interface ExecuteComplete {
+export interface ExecutePassComplete {
     deploymentStatus: DeployStatus;
     nodeStatus: Record<DeployStatus, number>;
     primStatus: Record<DeployStatus, number>;
+}
+
+export interface ExecuteComplete extends ExecutePassComplete {
+    stateChanged: boolean;
 }

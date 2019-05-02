@@ -7,7 +7,7 @@ import {
     FinalDomElement,
     StateStore,
 } from "../../src";
-import { isBuildOutputPartial } from "../../src/dom";
+import { isBuildOutputPartial, ProcessStateUpdates } from "../../src/dom";
 
 export interface DoBuildOpts {
     deployID?: string;
@@ -22,10 +22,12 @@ export interface DoBuildOptsNullOk extends DoBuildOpts {
 export interface DoBuild {
     mountedOrig: AdaptMountedElement;
     dom: FinalDomElement;
+    processStateUpdates: ProcessStateUpdates;
 }
 export interface DoBuildNullOk {
     mountedOrig: AdaptMountedElement | null;
     dom: FinalDomElement | null;
+    processStateUpdates: ProcessStateUpdates;
 }
 
 const doBuildDefaults = {
@@ -52,7 +54,7 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         should(buildOutput.partialBuild).be.False();
         throw new Error("Partially built DOM");
     }
-    const { mountedOrig, contents: dom, messages } = buildOutput;
+    const { mountedOrig, contents: dom, messages, processStateUpdates } = buildOutput;
     should(messages).have.length(0);
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
@@ -60,5 +62,5 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         throw new Error("Unreachable");
     }
 
-    return { mountedOrig, dom };
+    return { dom, mountedOrig, processStateUpdates };
 }

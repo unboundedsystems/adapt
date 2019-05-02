@@ -1,5 +1,13 @@
-import { createMockLogger, MockLogger } from "@usys/testutils";
-import { createTaskObserver, inDebugger, sleep, TaskObserver, TaskObserversUnknown, TaskState } from "@usys/utils";
+import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
+import {
+    createTaskObserver,
+    inDebugger,
+    Omit,
+    sleep,
+    TaskObserver,
+    TaskObserversUnknown,
+    TaskState,
+} from "@usys/utils";
 import { uniq } from "lodash";
 import pDefer from "p-defer";
 import should from "should";
@@ -21,6 +29,7 @@ import {
     DependsOnMethod,
     DeployHelpers,
     ExecuteComplete,
+    ExecuteOptions,
     GoalStatus,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
@@ -40,9 +49,11 @@ import { relationIsReadyStatus, toRelation } from "../../src/deploy/relation_uti
 import { And } from "../../src/deploy/relations";
 import { shouldTrackStatus } from "../../src/deploy/status_tracker";
 import { domDiff } from "../../src/dom_utils";
+import { InternalError } from "../../src/error";
 import { Deployment } from "../../src/server/deployment";
 import { DeploymentSequence, ElementStatusMap } from "../../src/server/deployment_data";
-import { createMockDeployment, doBuild, Empty } from "../testlib";
+import { createMockDeployment, doBuild, Empty, MockDeploy } from "../testlib";
+import { ActionState, createActionStatePlugin } from "./action_state";
 import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
 
 function dependencies(plan: ExecutionPlanImpl) {
@@ -242,12 +253,21 @@ describe("ExecutionPlanImpl", () => {
     let logger: MockLogger;
     let sequence: DeploymentSequence;
     let taskObserver: TaskObserver;
+    const processStateUpdates = async () => ({ stateChanged: false });
+    let executeOpts: Omit<ExecuteOptions, "plan">;
 
     beforeEach(async () => {
         deployment = await createMockDeployment();
         sequence = await deployment.newSequence();
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
+        executeOpts = {
+            logger,
+            processStateUpdates,
+            sequence,
+            taskObserver,
+            timeoutMs,
+        };
     });
 
     function getTasks(): TaskObserversUnknown {
@@ -368,13 +388,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
             ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
@@ -420,13 +434,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
             ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
@@ -558,13 +566,7 @@ describe("ExecutionPlanImpl", () => {
             });
 
             plan.check();
-            const ret = await execute({
-                logger,
-                plan,
-                sequence,
-                taskObserver,
-                timeoutMs,
-            });
+            const ret = await execute({ ...executeOpts, plan });
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
@@ -614,13 +616,7 @@ describe("ExecutionPlanImpl", () => {
             });
 
             plan.check();
-            const ret = await execute({
-                logger,
-                plan,
-                sequence,
-                taskObserver,
-                timeoutMs,
-            });
+            const ret = await execute({ ...executeOpts, plan });
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
@@ -710,13 +706,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
@@ -876,13 +866,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(2);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
@@ -989,13 +973,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(2);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs: timeout,
-        });
+        const ret = await execute({ ...executeOpts, plan, timeoutMs: timeout });
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
@@ -1088,14 +1066,7 @@ describe("ExecutionPlanImpl", () => {
         const beforeStatus = await deployment.status(sequence);
 
         plan.check();
-        const ret = await execute({
-            dryRun: true,
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan, dryRun: true });
 
         should(ret.deploymentStatus).equal(goal);
         should(ret.nodeStatus).eql({
@@ -1215,13 +1186,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(2);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
@@ -1349,13 +1314,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(2);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
@@ -1501,13 +1460,7 @@ describe("ExecutionPlanImpl", () => {
         });
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         // We don't care about repeat calls or order
         const calls = uniq(spyArgs(spy, 0)).sort();
@@ -1664,13 +1617,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(1);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
@@ -1719,13 +1666,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(1);
 
         plan.check();
-        const ret = await execute({
-            logger,
-            plan,
-            sequence,
-            taskObserver,
-            timeoutMs,
-        });
+        const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
@@ -1753,5 +1694,53 @@ describe("ExecutionPlanImpl", () => {
             "Action3 called",
             "When3 called: Destroyed",
         ]);
+    });
+});
+
+describe("Execution plan state", () => {
+    let dep: MockDeploy;
+
+    mochaTmpdir.each("exec-plan-state");
+
+    beforeEach(async () => {
+        dep = new MockDeploy({
+            pluginCreates: [ createActionStatePlugin ],
+            tmpDir: process.cwd(),
+        });
+        await dep.init();
+    });
+
+    it("Should accept state changes during deploy", async () => {
+        const spy = sinon.spy();
+        const action = (comp: ActionState) => {
+            spy("action called");
+            comp.setState({ current: "one" });
+        };
+        const orig = <ActionState action={action} />;
+        const { dom } = await dep.deploy(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        should(dep.stateStore.elementState(dom.keyPath)).eql({
+            initial: "initial",
+            current: "one",
+        });
+        should(spyArgs(spy, 0)).eql(["action called"]);
+    });
+
+    it("Should accept state changes even with error", async () => {
+        const spy = sinon.spy();
+        const action = (comp: ActionState) => {
+            spy("action called");
+            comp.setState({ current: "one" });
+            throw new InternalError(`Error in action`);
+        };
+        const orig = <ActionState action={action} />;
+        await should(dep.deploy(orig)).be.rejectedWith(/during plugin action/);
+
+        should(dep.stateStore.elementState(["ActionState"])).eql({
+            initial: "initial",
+            current: "one",
+        });
+        should(spyArgs(spy, 0)).eql(["action called"]);
     });
 });

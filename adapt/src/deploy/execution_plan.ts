@@ -22,6 +22,7 @@ import {
     DeployStatusExt,
     ExecuteComplete,
     ExecuteOptions,
+    ExecutePassComplete,
     ExecutionPlan,
     ExecutionPlanOptions,
     GoalStatus,
@@ -511,6 +512,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     const plan = opts.plan;
     const timeoutTime = opts.timeoutMs ? Date.now() + opts.timeoutMs : 0;
     let loopNum = 0;
+    let stateChanged = false;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
 
@@ -535,9 +537,15 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
             debugExecute(`**** execution pass ${loopNum} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
+            const upd = await opts.processStateUpdates();
+            if (upd.stateChanged) stateChanged = true;
+
             if (isFinalStatus(ret.deploymentStatus)) {
                 debugExecute(`**** Execution completed`);
-                return ret;
+                return {
+                    ...ret,
+                    stateChanged,
+                };
             }
             await sleep(opts.pollDelayMs);
         }
@@ -546,13 +554,25 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
         err = ensureError(err);
         opts.logger.error(`Deploy operation failed: ${err.message}`);
 
+        try {
+            const upd = await opts.processStateUpdates();
+            if (upd.stateChanged) stateChanged = true;
+        } catch (err2) {
+            err2 = ensureError(err2);
+            opts.logger.error(`Error processing state updates during error handling: ${err2.message}`);
+        }
+
         debugExecute(`**** Execution failed:`, inspect(err));
         if (err.name === "TimeoutError") {
             //TODO : Mark all un-deployed as timed out
             for (const n of plan.nodes) {
                 await nodeStatus.set(n, DeployStatus.Failed, err);
             }
-            return nodeStatus.complete();
+            const ret = await nodeStatus.complete();
+            return {
+                ...ret,
+                stateChanged,
+            };
 
         } else {
             throw err;
@@ -560,7 +580,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     }
 }
 
-export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComplete> {
+export async function executePass(opts: ExecutePassOptions): Promise<ExecutePassComplete> {
     const { dryRun, logger, nodeStatus, plan } = opts;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);

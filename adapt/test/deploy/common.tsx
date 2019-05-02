@@ -2,6 +2,7 @@ import sinon from "sinon";
 
 import Adapt, {
     AdaptMountedElement,
+    BuiltinProps,
     domDiff,
     handle,
     Handle,
@@ -25,14 +26,18 @@ export class Prim extends PrimitiveComponent<IdProps> { }
 export interface DependProps {
     id: number;
     dep?: (id: number, goalStatus: GoalStatus, h: DeployHelpers) => DependsOn | undefined;
-    when?: (id: number, goalStatus: GoalStatus) => WaitStatus | Promise<WaitStatus>;
+    when?: (id: number, goalStatus: GoalStatus, comp: DependPrim) => WaitStatus | Promise<WaitStatus>;
 }
 
-export class DependPrim extends PrimitiveComponent<DependProps> {
-    constructor(props: DependProps) {
+export class DependPrim
+    <P extends DependProps = DependProps, S extends object = {}>
+    extends PrimitiveComponent<P, S> {
+
+    static defaultProps = { id: 0 };
+    constructor(props: P & Partial<BuiltinProps>) {
         super(props);
         const when = props.when;
-        if (when) this.deployedWhen = (gs: GoalStatus) => when(props.id, gs);
+        if (when) this.deployedWhen = (gs: GoalStatus) => when(props.id, gs, this);
     }
     dependsOn = (goalStatus: GoalStatus, h: DeployHelpers) =>
         this.props.dep && this.props.dep(this.props.id, goalStatus, h)

@@ -24,7 +24,7 @@ let Adapt: never;
 
 import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@usys/utils";
 import { createPluginManager } from "../deploy/plugin_support";
-import { isBuildOutputError, isBuildOutputPartial } from "../dom";
+import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement, FinalDomElement } from "../jsx";
@@ -140,6 +140,7 @@ export interface BuildResults extends FullBuildOptions {
     executedQueries: ExecutedQueries;
     needsData: ExecutedQueries;
     newDom: FinalDomElement | null;
+    processStateUpdates: ProcessStateUpdates;
 }
 
 function podify<T>(x: T): T {
@@ -167,6 +168,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
         let executedQueries: ExecutedQueries = {};
+        let processStateUpdates: ProcessStateUpdates = () => Promise.resolve({ stateChanged: true });
 
         let needsData: ExecutedQueries = {};
         const root = await stack.root;
@@ -191,6 +193,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
             mountedOrig = results.mountedOrig;
             executedQueries = podify(observeManager.executedQueries());
             needsData = podify(observeManager.executedQueriesThatNeededData());
+            processStateUpdates = results.processStateUpdates;
         }
 
         return {
@@ -203,6 +206,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
             newDom,
             executedQueries,
             prevStateJson: stateStore.serialize(),
+            processStateUpdates,
         };
     });
 }
@@ -301,7 +305,10 @@ export interface DeployPassOptions extends FullBuildOptions {
     dataDir: string;
     prevDom: FinalDomElement | null;
 }
-export type DeployPassResults = BuildResults;
+export interface DeployPassResults extends BuildResults {
+    deployComplete: boolean;
+    stateChanged: boolean;
+}
 
 export async function deployPass(options: DeployPassOptions): Promise<DeployPassResults> {
     const { actTaskObserver, dataDir, deployment, prevDom, taskObserver, ...buildOpts } = options;
@@ -318,7 +325,7 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
             withStatus: true,
             taskObserver,
         });
-        const { newDom } = buildResults;
+        const { newDom, processStateUpdates } = buildResults;
         if (debugDeployDom.enabled) {
             debugDeployDom(inAdapt.serializeDom(newDom, { props: [ "key" ] }));
         }
@@ -356,16 +363,19 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
             if (actTaskObserver.state === TaskState.Created) {
                 actTaskObserver.started();
             }
-            await mgr.act({
+            const { deployComplete, stateChanged } = await mgr.act({
                 dryRun: options.dryRun,
+                processStateUpdates,
                 sequence: options.sequence,
                 taskObserver: actTaskObserver,
             });
             await mgr.finish();
 
-            debugAction(`deployPass: done`);
+            debugAction(`deployPass: done (complete: ${deployComplete}, state changed: ${stateChanged})`);
             return {
                 ...buildResults,
+                deployComplete,
+                stateChanged,
                 observationsJson,
             };
         } catch (err) {
@@ -451,7 +461,10 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
                     try {
                         while (true) {
                             const res = await deployPass(passOpts);
-                            if (res /* TODO: Check for completion */) {
+                            if (!res.deployComplete && !res.stateChanged) {
+                                throw new Error(`TODO: Need to implement retry/timeout still`);
+                            }
+                            if (res.deployComplete) {
                                 await commit({
                                     status: HistoryStatus.success,
                                     dataDir,

@@ -2,8 +2,9 @@ import { createMockLogger } from "@usys/testutils";
 import { createTaskObserver } from "@usys/utils";
 import fs from "fs-extra";
 import * as path from "path";
-import { PluginModule } from "../../src/deploy";
+import { ActComplete, PluginModule } from "../../src/deploy";
 import { createPluginManager } from "../../src/deploy/plugin_support";
+import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
 import { AdaptElement, FinalDomElement } from "../../src/jsx";
 import { Deployment } from "../../src/server/deployment";
 import { createStateStore, StateStore } from "../../src/state";
@@ -18,13 +19,14 @@ export interface MockDeployOptions {
 
 export interface DeployOptions {
     dryRun?: boolean;
+    sequence?: number;
 }
 
 const defaultDeployOptions = {
     dryRun: false,
 };
 
-export interface DeployOutput {
+export interface DeployOutput extends ActComplete {
     dom: FinalDomElement | null;
 }
 
@@ -42,6 +44,7 @@ export class MockDeploy {
     // adapt's SOURCE FILES to the cloud build...which creates huge compile
     // errors in cloud.
     stateStore: StateStore = createStateStore("{}");
+    sequence = -1;
 
     constructor(options: MockDeployOptions) {
         if (options.pluginCreates.length === 0) throw new Error(`Must specify plugins`);
@@ -73,9 +76,29 @@ export class MockDeploy {
     async deploy(orig: AdaptElement | null, options: DeployOptions = {}): Promise<DeployOutput> {
         const opts = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
+        let processStateUpdates: ProcessStateUpdates;
+
         const taskObserver = createTaskObserver("parent", { logger: this.logger });
         taskObserver.started();
-        const mgr = createPluginManager(this.plugins);
+
+        if (orig === null) {
+            dom = orig;
+            processStateUpdates = noStateUpdates;
+        } else {
+            const res = await doBuild(orig, {
+                deployID: this.deployID,
+                stateStore: this.stateStore,
+            });
+            dom = res.dom;
+            processStateUpdates = res.processStateUpdates;
+        }
+        this.prevDom = this.currDom;
+        this.currDom = dom;
+
+        const sequence = options.sequence !== undefined ? options.sequence :
+            await this.deployment.newSequence();
+        this.sequence = sequence;
+
         const mgrOpts = {
             logger: this.logger,
             deployment: this.deployment,
@@ -83,29 +106,19 @@ export class MockDeploy {
         };
         const actOpts = {
             dryRun: opts.dryRun,
-            sequence: await this.deployment.newSequence(),
+            sequence,
+            processStateUpdates,
             taskObserver,
         };
 
-        if (orig === null) {
-            dom = orig;
-        } else {
-            const res = await doBuild(orig, {
-                deployID: this.deployID,
-                stateStore: this.stateStore,
-            });
-            dom = res.dom;
-        }
-        this.currDom = dom;
+        const mgr = createPluginManager(this.plugins);
 
         await mgr.start(this.prevDom, dom, mgrOpts);
         await mgr.observe();
         mgr.analyze();
-        await mgr.act(actOpts);
+        const actResults = await mgr.act(actOpts);
         await mgr.finish();
 
-        this.prevDom = dom;
-
-        return { dom };
+        return { ...actResults, dom };
     }
 }

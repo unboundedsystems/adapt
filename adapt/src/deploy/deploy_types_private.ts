@@ -12,8 +12,8 @@ import {
     DeployedWhenMethod,
     DeployStatus,
     DeployStatusExt,
-    ExecuteComplete,
     ExecuteOptions,
+    ExecutePassComplete,
     GoalStatus,
     isDependsOn,
     RelationExt,
@@ -85,6 +85,6 @@ export interface StatusTracker {
     isFinal(n: EPNode): boolean;
     isActive(n: EPNode): boolean;
     output(n: EPNode, s: string): void;
-    complete(): Promise<ExecuteComplete>;
+    complete(): Promise<ExecutePassComplete>;
     debug(getId: (n: EPNode) => string): string;
 }

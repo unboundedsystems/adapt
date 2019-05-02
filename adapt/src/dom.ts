@@ -59,6 +59,7 @@ import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 export type DomPath = AdaptElement[];
 
 const debugBuild = db("adapt:dom:build");
+const debugState = db("adapt:state");
 
 type CleanupFunc = () => void;
 class BuildResults {
@@ -176,7 +177,7 @@ class BuildResults {
             if (clean) clean();
         } while (clean);
     }
-    toBuildOutput(): BuildOutput {
+    toBuildOutput(stateStore: StateStore): BuildOutput {
         if (this.buildErr && this.messages.length === 0) {
             throw new InternalError(`buildErr is true, but there are ` +
                 `no messages to describe why`);
@@ -197,12 +198,14 @@ class BuildResults {
         if (this.contents !== null && !isFinalDomElement(this.contents)) {
             throw new InternalError(`contents is not a valid built DOM element: ${this.contents}`);
         }
+        const builtElements = this.builtElements;
         return {
             partialBuild: false,
             buildErr: false,
             messages: this.messages,
             contents: this.contents,
-            mountedOrig: this.mountedOrig
+            mountedOrig: this.mountedOrig,
+            processStateUpdates: () => processStateUpdates(builtElements, stateStore),
         };
     }
 }
@@ -620,9 +623,13 @@ export function isBuildOutputError(v: any): v is BuildOutputError {
     return isBuildOutputPartial(v) && v.buildErr === true;
 }
 
+export type ProcessStateUpdates = () => Promise<{ stateChanged: boolean }>;
+export const noStateUpdates = () => Promise.resolve({ stateChanged: false });
+
 export interface BuildOutputSuccess extends BuildOutputBase {
     buildErr: false;
     partialBuild: false;
+    processStateUpdates: ProcessStateUpdates;
     contents: FinalDomElement | null;
 }
 export function isBuildOutputSuccess(v: any): v is BuildOutputSuccess {
@@ -656,7 +663,7 @@ export async function build(
         if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
 
         await pathBuild([root], styleList, optionsReq, results);
-        return results.toBuildOutput();
+        return results.toBuildOutput(optionsReq.stateStore);
     } finally {
         debugBuildBuild(`done`);
         buildCount--;
@@ -751,16 +758,27 @@ async function pathBuildOnceGuts(
 
     debug(`postBuild`);
     options.recorder({ type: "done", root: results.contents });
-    const updates = results.builtElements.map(async (elem) => {
+
+    const { stateChanged } = await processStateUpdates(results.builtElements, options.stateStore);
+    if (stateChanged) results.stateChanged = true;
+    debug(`done (stateChanged=${results.stateChanged})`);
+}
+
+export async function processStateUpdates(
+    builtElements: AdaptElement[], stateStore: StateStore): Promise<{ stateChanged: boolean }> {
+
+    let stateChanged = false;
+
+    debugState(`State updates: start`);
+    const updates = builtElements.map(async (elem) => {
         if (isElementImpl(elem)) {
-            const { stateChanged } = await elem.postBuild(options.stateStore);
-            if (stateChanged) {
-                results.stateChanged = true;
-            }
+            const ret = await elem.postBuild(stateStore);
+            if (ret.stateChanged) stateChanged = true;
         }
     });
     await Promise.all(updates);
-    debug(`done (stateChanged=${results.stateChanged})`);
+    debugState(`State updates: complete (stateChanged=${stateChanged})`);
+    return { stateChanged };
 }
 
 function setOrigChildren(predecessor: AdaptElementImpl<AnyProps>, origChildren: any[]) {

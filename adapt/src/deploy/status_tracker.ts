@@ -7,7 +7,7 @@ import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/
 import {
     DeployStatus,
     DeployStatusExt,
-    ExecuteComplete,
+    ExecutePassComplete,
     GoalStatus,
     goalToInProgress,
     isFinalStatus,
@@ -130,7 +130,7 @@ export class StatusTrackerImpl implements StatusTracker {
         task.updateStatus(s);
     }
 
-    async complete(): Promise<ExecuteComplete> {
+    async complete(): Promise<ExecutePassComplete> {
         if (this.nodeStatus.Initial > 0) {
             throw new InternalError(`Nodes should not be in Initial state ${JSON.stringify(this.nodeStatus)}`);
         }

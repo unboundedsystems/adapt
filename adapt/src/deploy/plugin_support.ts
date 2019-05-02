@@ -20,9 +20,12 @@ import { Deployment } from "../server/deployment";
 import { getAdaptContext } from "../ts";
 
 import {
+    ActComplete,
     Action,
     ActOptions,
     DeployStatus,
+    GoalStatus,
+    goalToInProgress,
     Plugin,
     PluginConfig,
     PluginInstances,
@@ -137,9 +140,10 @@ interface AnyObservation {
     [name: string]: any;
 }
 
-const defaultActOptions: { dryRun: boolean; goalStatus: DeployStatus.Deployed } = {
+const defaultActOptions = {
     dryRun: false,
-    goalStatus: DeployStatus.Deployed,
+    goalStatus: DeployStatus.Deployed as GoalStatus,
+    processStateUpdates: () => Promise.resolve({ stateChanged: false }),
 };
 
 class PluginManagerImpl implements PluginManager {
@@ -256,7 +260,7 @@ class PluginManagerImpl implements PluginManager {
         }
     }
 
-    async act(options: ActOptions) {
+    async act(options: ActOptions): Promise<ActComplete> {
         const { goalStatus, ...opts } = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
         const { deployment, diff, logger } = this;
@@ -280,17 +284,26 @@ class PluginManagerImpl implements PluginManager {
 
         this.transitionTo(PluginManagerState.Acting);
 
-        const result = await execute({
+        const { deploymentStatus, stateChanged } = await execute({
             ...opts,
             logger,
             plan,
         });
-        if (result.deploymentStatus !== goalStatus) {
+        if (deploymentStatus === DeployStatus.Failed) {
             throw new UserError(`Errors encountered during plugin action phase`);
+        }
+        const deployComplete = deploymentStatus === goalStatus;
+        if (!deployComplete && deploymentStatus !== goalToInProgress(goalStatus)) {
+            throw new InternalError(`Unexpected DeployStatus (${deploymentStatus}) from execute`);
         }
 
         if (opts.dryRun) this.transitionTo(PluginManagerState.PreAct);
         else this.transitionTo(PluginManagerState.PreFinish);
+
+        return {
+            deployComplete,
+            stateChanged,
+        };
     }
 
     async finish() {
