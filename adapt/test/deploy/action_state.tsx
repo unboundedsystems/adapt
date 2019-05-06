@@ -1,5 +1,7 @@
+import { isInstance, tagConstructor } from "@usys/utils";
 import {
     Action,
+    AdaptElement,
     ChangeType,
     FinalDomElement,
 } from "../../src/";
@@ -17,16 +19,29 @@ export interface ActionStateState {
     initial: string;
     current?: string;
     count?: number;
+    deployed?: boolean;
 }
 
 export class ActionState extends DependPrim<ActionStateProps, ActionStateState> {
     static defaultProps = DependPrim.defaultProps;
+    action?: () => void;
+
+    constructor(props: ActionStateProps) {
+        super(props);
+        // Use state to determine whether plugin will generate a real action
+        // vs. ChangeType.none
+        if (this.state.deployed !== true && this.props.action) {
+            this.action = () => this.props.action(this);
+        }
+    }
     initialState() {
         return { initial: "initial" };
     }
-    action() {
-        this.props.action(this);
-    }
+}
+tagConstructor(ActionState);
+
+function isActionStateElem(elem: AdaptElement) {
+    return isInstance(elem.componentType.prototype, ActionState);
 }
 
 export class ActionStatePlugin implements Plugin<{}> {
@@ -34,19 +49,22 @@ export class ActionStatePlugin implements Plugin<{}> {
     async observe() { return {}; }
     analyze(oldDom: FinalDomElement | null, newDom: FinalDomElement | null, _obs: {}): Action[] {
         const diff = domDiff(oldDom, newDom);
-        const actions = (elems: FinalDomElement[], type: ChangeType) => {
+        const actions = (elems: FinalDomElement[], ct: ChangeType) => {
             return elems
-                .filter((el) => el.instance.action != null)
-                .map((el, i) => ({
-                    act: () => el.instance.action(),
-                    type,
-                    detail: `Action ${i}`,
-                    changes: [{
+                .filter(isActionStateElem)
+                .map((el, i) => {
+                    const type = el.instance.action ? ct : ChangeType.none;
+                    return {
+                        act: () => el.instance.action && el.instance.action(),
                         type,
-                        element: el,
                         detail: `Action ${i}`,
-                    }]
-                }));
+                        changes: [{
+                            type,
+                            element: el,
+                            detail: `Action ${i}`,
+                        }]
+                    };
+                });
         };
 
         return actions([...diff.added], ChangeType.create)
@@ -54,7 +72,6 @@ export class ActionStatePlugin implements Plugin<{}> {
             .concat(actions([...diff.deleted], ChangeType.delete));
     }
     async finish() {/* */}
-
 }
 
 export function createActionStatePlugin() {

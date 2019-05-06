@@ -28,6 +28,7 @@ import {
     DependsOn,
     DependsOnMethod,
     DeployHelpers,
+    DeployOpStatus,
     ExecuteComplete,
     ExecuteOptions,
     ExecutionPlanOptions,
@@ -56,7 +57,7 @@ import { InternalError } from "../../src/error";
 import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID, ElementStatusMap } from "../../src/server/deployment_data";
 import { createMockDeployment, DeployOptions, doBuild, Empty, MockDeploy } from "../testlib";
-import { ActionState, createActionStatePlugin } from "./action_state";
+import { ActionState, ActionStateState, createActionStatePlugin } from "./action_state";
 import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
 
 function dependencies(plan: ExecutionPlanImpl) {
@@ -1776,7 +1777,7 @@ describe("Execution plan state", () => {
     });
 });
 
-xdescribe("Execution plan restart", () => {
+describe("Execution plan restart", () => {
     let dep: MockDeploy;
 
     mochaTmpdir.each("exec-plan-restart");
@@ -1789,20 +1790,21 @@ xdescribe("Execution plan restart", () => {
         await dep.init();
     });
 
-    it("Should not re-deploy elements on second execute", async () => {
+    it("Should iterate deploys with state change", async () => {
         let spy = sinon.spy();
         let buildNum = 0;
         const action = (comp: ActionState) => {
             spy(`action${comp.props.id}`);
-            comp.setState({ count: comp.props.id });
+            if (buildNum === comp.props.id) {
+                comp.setState({ deployed: true });
+            }
         };
         const when = (id: number, _gs: GoalStatus, comp: ActionState): WaitStatus => {
-            const count = comp.state.count;
-            spy(`when${id} count=${count} build=${buildNum}`);
-            if (count === buildNum) return true;
+            spy(`when${id} build=${buildNum} deployed=${comp.state.deployed}`);
+            if (comp.state.deployed) return true;
             return {
                 done: false,
-                status: `${count} != ${buildNum}`
+                status: `deployed = ${comp.state.deployed}`
             };
         };
 
@@ -1813,33 +1815,31 @@ xdescribe("Execution plan restart", () => {
             </ActionState>;
         const deployOpts: DeployOptions = {};
 
-        while (buildNum < 3) {
+        while (buildNum < 4) {
             const results = await dep.deploy(orig, deployOpts);
             if (results.dom == null) throw should(results.dom).not.be.Null();
 
-            const expComplete = buildNum === 2;
-            // State only changes the first time
-            const expChanged = buildNum === 0;
+            const expComplete = buildNum === 3;
+            const expChanged = buildNum < 3;
             should(results.deployComplete).equal(expComplete);
             should(results.stateChanged).equal(expChanged);
 
             const elems: FinalDomElement[] = [ results.dom, ...results.dom.props.children ];
             should(elems).have.length(3);
             elems.forEach((e) => {
-                should(dep.stateStore.elementState(e.keyPath)).eql({
-                    initial: "initial",
-                    count: e.props.id,
-                });
+                const expState: ActionStateState = { initial: "initial" };
+                if (buildNum >= e.props.id) expState.deployed = true;
+                should(dep.stateStore.elementState(e.keyPath)).eql(expState);
             });
 
-            // One element deploys each build loop
+            // One element deploys each build loop, starting with buildNum 1
             const eStat = (id: number) => ({
                 [elems[id].id]: {
-                    deployStatus: buildNum >= id ? DeployStatus.Deployed : DeployStatus.Deploying
+                    deployStatus: buildNum > id ? DeployStatus.Deployed : DeployStatus.Deploying
                 }
             });
-            // All elements should be deployed when buildNum === 2
-            const deployStatus = buildNum === 2 ? DeployStatus.Deployed : DeployStatus.Deploying;
+            // All elements should be deployed when buildNum === 3
+            const deployStatus = buildNum === 3 ? DeployOpStatus.Deployed : DeployOpStatus.StateChanged;
             const depStat = await dep.deployment.status(results.stepID);
             should(depStat).eql({
                 deployStatus,
@@ -1851,24 +1851,21 @@ xdescribe("Execution plan restart", () => {
                 }
             });
 
+            const whenSpy = (id: number) => {
+                const depVal = buildNum > id ? "true" : "undefined";
+                return `when${id} build=${buildNum} deployed=${depVal}`;
+            };
+
             const expSpyArgs = [];
 
-            // Actions only happen the first time, as does undefined state
-            // and the one additional execute pass.
-            if (buildNum === 0) {
-                expSpyArgs.push(
-                    "action0",
-                    "action1",
-                    "action2",
-                    "when0 count=undefined build=0",
-                    "when1 count=undefined build=0",
-                    "when2 count=undefined build=0",
-                );
-            }
+            if (buildNum <= 0) expSpyArgs.push("action0");
+            if (buildNum <= 1) expSpyArgs.push("action1");
+            if (buildNum <= 2) expSpyArgs.push("action2");
+
             expSpyArgs.push(
-                `when0 count=0 build=${buildNum}`,
-                `when1 count=1 build=${buildNum}`,
-                `when2 count=2 build=${buildNum}`,
+                whenSpy(0),
+                whenSpy(1),
+                whenSpy(2),
             );
 
             should(spyArgs(spy, 0)).containDeep(expSpyArgs);

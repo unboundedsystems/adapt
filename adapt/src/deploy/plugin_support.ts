@@ -23,9 +23,8 @@ import {
     ActComplete,
     Action,
     ActOptions,
-    DeployStatus,
+    DeployOpStatus,
     GoalStatus,
-    goalToInProgress,
     Plugin,
     PluginConfig,
     PluginInstances,
@@ -142,7 +141,7 @@ interface AnyObservation {
 
 const defaultActOptions = {
     dryRun: false,
-    goalStatus: DeployStatus.Deployed as GoalStatus,
+    goalStatus: DeployOpStatus.Deployed as GoalStatus,
     processStateUpdates: () => Promise.resolve({ stateChanged: false }),
 };
 
@@ -290,12 +289,12 @@ class PluginManagerImpl implements PluginManager {
             logger,
             plan,
         });
-        if (deploymentStatus === DeployStatus.Failed) {
+        if (deploymentStatus === DeployOpStatus.Failed) {
             throw new UserError(`Errors encountered during plugin action phase`);
         }
         const deployComplete = deploymentStatus === goalStatus;
-        if (!deployComplete && deploymentStatus !== goalToInProgress(goalStatus)) {
-            throw new InternalError(`Unexpected DeployStatus (${deploymentStatus}) from execute`);
+        if (!deployComplete && deploymentStatus !== DeployOpStatus.StateChanged) {
+            throw new InternalError(`Unexpected DeployOpStatus (${deploymentStatus}) from execute`);
         }
 
         if (opts.dryRun) this.transitionTo(PluginManagerState.PreAct);
