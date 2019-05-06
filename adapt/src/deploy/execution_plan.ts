@@ -60,13 +60,14 @@ import { createStatusTracker } from "./status_tracker";
 const debugExecute = db("adapt:deploy:execute");
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
-    const { actions, diff, seriesActions } = options;
+    const { actions, builtElements, diff, seriesActions } = options;
 
     const plan = new ExecutionPlanImpl(options);
 
     diff.added.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.commonNew.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.deleted.forEach((e) => plan.addElem(e, DeployStatus.Destroyed));
+    builtElements.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     actions.forEach((a) => plan.addAction(a));
     if (seriesActions) {
         seriesActions.forEach((group) => {

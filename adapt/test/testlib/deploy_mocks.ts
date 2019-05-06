@@ -5,7 +5,7 @@ import * as path from "path";
 import { ActComplete, PluginModule } from "../../src/deploy";
 import { createPluginManager } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
-import { AdaptElement, FinalDomElement } from "../../src/jsx";
+import { AdaptElement, AdaptMountedElement, FinalDomElement } from "../../src/jsx";
 import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID } from "../../src/server/deployment_data";
 import { createStateStore, StateStore } from "../../src/state";
@@ -91,14 +91,17 @@ export class MockDeploy {
         const opts = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
         let processStateUpdates: ProcessStateUpdates;
+        let builtElements: AdaptMountedElement[];
 
         while (true) {
             const taskObserver = createTaskObserver("parent", { logger: this.logger });
             taskObserver.started();
 
+            processStateUpdates = noStateUpdates;
+            builtElements = [];
+
             if (orig === null) {
-                dom = orig;
-                processStateUpdates = noStateUpdates;
+                dom = null;
             } else {
                 const res = await doBuild(orig, {
                     deployID: this.deployID,
@@ -106,6 +109,7 @@ export class MockDeploy {
                 });
                 dom = res.dom;
                 processStateUpdates = res.processStateUpdates;
+                builtElements = res.builtElements;
             }
             this.prevDom = this.currDom;
             this.currDom = dom;
@@ -116,6 +120,7 @@ export class MockDeploy {
                 dataDir: this.dataDir,
             };
             const actOpts = {
+                builtElements,
                 deployOpID: this.deployOpID,
                 dryRun: opts.dryRun,
                 processStateUpdates,

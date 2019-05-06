@@ -112,6 +112,7 @@ describe("Plugin Support Basic Tests", () => {
             dataDir,
         };
         actOptions = {
+            builtElements: [],
             deployOpID: await options.deployment.newOpID(),
             taskObserver,
         };
@@ -384,6 +385,7 @@ describe("Plugin concurrency", () => {
             dataDir,
         };
         actOptions = {
+            builtElements: [],
             deployOpID: await options.deployment.newOpID(),
             taskObserver: createTaskObserver("parent", { logger }),
         };

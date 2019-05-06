@@ -9,6 +9,7 @@ import { InternalError } from "../error";
 import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
+    AdaptMountedElement,
     FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -203,6 +204,7 @@ export interface PluginManagerStartOptions {
 }
 
 export interface ActOptions {
+    builtElements: AdaptMountedElement[];
     concurrency?: number;
     deployOpID: DeployOpID;
     dryRun?: boolean;
@@ -277,6 +279,7 @@ export interface PluginManager {
 
 export interface ExecutionPlanOptions {
     actions: Action[];
+    builtElements: AdaptMountedElement[];
     deployment: Deployment;
     deployOpID: DeployOpID;
     diff: DomDiff;
@@ -303,5 +306,6 @@ export interface ExecuteComplete {
     deploymentStatus: DeployOpStatus;
     nodeStatus: Record<DeployStatus, number>;
     primStatus: Record<DeployStatus, number>;
+    nonPrimStatus: Record<DeployStatus, number>;
     stateChanged: boolean;
 }

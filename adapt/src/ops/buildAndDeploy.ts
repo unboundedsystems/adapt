@@ -135,6 +135,7 @@ interface ExecutedQueries {
 }
 
 export interface BuildResults extends FullBuildOptions {
+    builtElements: AdaptMountedElement[];
     domXml: string;
     mountedOrigStatus: Status;
     executedQueries: ExecutedQueries;
@@ -165,6 +166,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         const stack = stacks.get(stackName);
         if (!stack) throw new UserError(`Adapt stack '${stackName}' not found`);
 
+        let builtElements: AdaptMountedElement[] = [];
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
         let executedQueries: ExecutedQueries = {};
@@ -189,6 +191,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
                 throw new ProjectBuildError(inAdapt.serializeDom(results.contents));
             }
 
+            builtElements = results.builtElements;
             newDom = results.contents;
             mountedOrig = results.mountedOrig;
             executedQueries = podify(observeManager.executedQueries());
@@ -198,6 +201,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
 
         return {
             ...options,
+            builtElements,
             ctx,
             domXml: inAdapt.serializeDom(newDom, { reanimateable: true }),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
@@ -364,6 +368,7 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
                 actTaskObserver.started();
             }
             const { deployComplete, stateChanged } = await mgr.act({
+                builtElements: buildResults.builtElements,
                 deployOpID: options.deployOpID,
                 dryRun: options.dryRun,
                 processStateUpdates,

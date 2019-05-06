@@ -42,6 +42,7 @@ export class StatusTrackerImpl implements StatusTracker {
     readonly dryRun: boolean;
     readonly goalStatus: GoalStatus;
     readonly nodeStatus: Record<DeployStatus, number>;
+    readonly nonPrimStatus: Record<DeployStatus, number>;
     readonly deployOpID: DeployOpID;
     readonly primStatus: Record<DeployStatus, number>;
     readonly statMap: Map<EPNode, DeployStatusExt>;
@@ -58,13 +59,15 @@ export class StatusTrackerImpl implements StatusTracker {
         this.nodeStatus.Waiting = options.nodes.length;
 
         this.primStatus = this.newStatus();
+        this.nonPrimStatus = this.newStatus();
 
         this.taskMap = new Map<EPNode, TaskObserver>();
         const tGroup = options.taskObserver.childGroup({ serial: false });
 
         this.statMap = new Map<EPNode, DeployStatusExt>(options.nodes.map((n) => {
             if (n.element) {
-                this.primStatus.Waiting++;
+                if (isFinalDomElement(n.element)) this.primStatus.Waiting++;
+                else this.nonPrimStatus.Waiting++;
                 if (shouldTrackStatus(n)) {
                     const id = n.element.id;
                     const tasks = tGroup.add({ [id]: n.element.componentName });
@@ -153,6 +156,7 @@ export class StatusTrackerImpl implements StatusTracker {
         return {
             deploymentStatus,
             nodeStatus: this.nodeStatus,
+            nonPrimStatus: this.nonPrimStatus,
             primStatus: this.primStatus,
             stateChanged,
         };
@@ -206,9 +210,14 @@ export class StatusTrackerImpl implements StatusTracker {
     private updateCount(n: EPNode, oldStat: DeployStatus, newStat: DeployStatus) {
         this.nodeStatus[oldStat]--;
         this.nodeStatus[newStat]++;
-        if (n.element && isFinalDomElement(n.element)) {
-            this.primStatus[oldStat]--;
-            this.primStatus[newStat]++;
+        if (n.element) {
+            if (isFinalDomElement(n.element)) {
+                this.primStatus[oldStat]--;
+                this.primStatus[newStat]++;
+            } else {
+                this.nonPrimStatus[oldStat]--;
+                this.nonPrimStatus[newStat]++;
+            }
         }
     }
 

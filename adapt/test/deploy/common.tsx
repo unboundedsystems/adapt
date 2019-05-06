@@ -7,6 +7,7 @@ import Adapt, {
     handle,
     Handle,
     PrimitiveComponent,
+    useImperativeMethods,
 } from "../../src";
 import {
     ChangeType,
@@ -16,6 +17,7 @@ import {
     GoalStatus,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
+import { GenericInstance } from "../../src/jsx";
 
 export interface IdProps {
     id: number;
@@ -45,6 +47,23 @@ export class DependPrim
 
 export function MakePrim(props: IdProps) {
     return <Prim id={props.id} />;
+}
+
+export interface MakeDependProps extends DependProps {
+    id: number;
+    dep?: (id: number, goalStatus: GoalStatus, h: DeployHelpers) => DependsOn | undefined;
+    when?: (id: number, goalStatus: GoalStatus) => WaitStatus | Promise<WaitStatus>;
+    primProps: DependProps & Partial<BuiltinProps>;
+}
+
+export function MakeDependPrim(props: MakeDependProps) {
+    const { dep, id, when } = props;
+    const methods: GenericInstance = {};
+    if (dep) methods.dependsOn = (gs, h) => dep(id, gs, h);
+    if (when) methods.deployedWhen = (gs, h) => when(id, gs);
+
+    useImperativeMethods(() => methods);
+    return <DependPrim {...props.primProps} />;
 }
 
 export function spyArgs(spy: sinon.SinonSpy): any[][];

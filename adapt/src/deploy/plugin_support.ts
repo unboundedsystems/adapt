@@ -260,7 +260,7 @@ class PluginManagerImpl implements PluginManager {
     }
 
     async act(options: ActOptions): Promise<ActComplete> {
-        const { deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
+        const { builtElements, deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
         const { deployment, diff, logger } = this;
 
@@ -274,6 +274,7 @@ class PluginManagerImpl implements PluginManager {
 
         const plan = await createExecutionPlan({
             actions: this.parallelActions,
+            builtElements,
             deployment,
             deployOpID,
             diff,

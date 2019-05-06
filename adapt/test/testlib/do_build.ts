@@ -20,11 +20,13 @@ export interface DoBuildOptsNullOk extends DoBuildOpts {
 }
 
 export interface DoBuild {
+    builtElements: AdaptMountedElement[];
     mountedOrig: AdaptMountedElement;
     dom: FinalDomElement;
     processStateUpdates: ProcessStateUpdates;
 }
 export interface DoBuildNullOk {
+    builtElements: AdaptMountedElement[];
     mountedOrig: AdaptMountedElement | null;
     dom: FinalDomElement | null;
     processStateUpdates: ProcessStateUpdates;
@@ -54,7 +56,7 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         should(buildOutput.partialBuild).be.False();
         throw new Error("Partially built DOM");
     }
-    const { mountedOrig, contents: dom, messages, processStateUpdates } = buildOutput;
+    const { builtElements, mountedOrig, contents: dom, messages, processStateUpdates } = buildOutput;
     should(messages).have.length(0);
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
@@ -62,5 +64,5 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         throw new Error("Unreachable");
     }
 
-    return { dom, mountedOrig, processStateUpdates };
+    return { builtElements, dom, mountedOrig, processStateUpdates };
 }

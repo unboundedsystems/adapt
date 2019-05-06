@@ -16,12 +16,14 @@ import sinon from "sinon";
 import Adapt, {
     Action,
     AdaptMountedElement,
+    BuiltinProps,
     ChangeType,
     DeployStatus,
     FinalDomElement,
     Group,
     handle,
     Handle,
+    isFinalDomElement,
 } from "../../src/";
 import {
     Dependency,
@@ -58,7 +60,16 @@ import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID, ElementStatusMap } from "../../src/server/deployment_data";
 import { createMockDeployment, DeployOptions, doBuild, Empty, MockDeploy } from "../testlib";
 import { ActionState, ActionStateState, createActionStatePlugin } from "./action_state";
-import { DependPrim, makeHandles, Prim, spyArgs, toChangeType, toDiff, } from "./common";
+import {
+    DependPrim,
+    DependProps,
+    MakeDependPrim,
+    makeHandles,
+    Prim,
+    spyArgs,
+    toChangeType,
+    toDiff,
+} from "./common";
 
 function dependencies(plan: ExecutionPlanImpl) {
     const ret: { [ id: string]: string[] } = {};
@@ -134,6 +145,7 @@ describe("Execution plan", () => {
         deployOpID = await deployment.newOpID();
         planOpts = {
             actions: [],
+            builtElements: [],
             deployment,
             deployOpID,
         };
@@ -278,6 +290,7 @@ describe("ExecutionPlanImpl", () => {
         planOpts = {
             ...implOpts,
             actions: [],
+            builtElements: [],
         };
         logger = createMockLogger();
         taskObserver = createTaskObserver("parent", { logger });
@@ -314,9 +327,12 @@ describe("ExecutionPlanImpl", () => {
             return s;
         };
 
+        const expPrim = expElems.filter(isFinalDomElement);
+
         should(ret.deploymentStatus).equal(expDeploy);
         should(ret.nodeStatus).eql(makeNodeStatus(numNodes));
-        should(ret.primStatus).eql(makeNodeStatus(expElems.length));
+        should(ret.primStatus).eql(makeNodeStatus(expPrim.length));
+        should(ret.nonPrimStatus).eql(makeNodeStatus(expElems.length - expPrim.length));
 
         // All plan nodes should be removed upon successful deploy
         should(plan.nodes).have.length(0);
@@ -1392,6 +1408,96 @@ describe("ExecutionPlanImpl", () => {
             "checkReady3 ready",
             "checkReady4 ready",
             "checkReady5 ready",
+        ]);
+    });
+
+    it("Should check non-primitive element dependsOn", async () => {
+        const goal: GoalStatus = DeployStatus.Deployed;
+        const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
+        const spy = sinon.spy();
+        const hand = handle();
+        // The SFC depends on the primitive component
+        const dep = (id: number, gStat: DeployStatus, h: DeployHelpers): DependsOn => {
+            const deps: Handle[] = [];
+            if (id === 0) deps.push(hand);
+            return AllOfTester({
+                description: `wait ${id}`,
+                helpers: h,
+                deps,
+                checkReady: (stat) => {
+                    spy(`${id} ready: ${stat}`);
+                }
+            });
+        };
+        const when = (id: number, gStat: GoalStatus): true => {
+            spy(`${id} when: ${gStat}`);
+            return true;
+        };
+        const primProps: DependProps & Partial<BuiltinProps> = {
+            id: 1,
+            dep,
+            handle: hand,
+            when,
+        };
+
+        const orig = <MakeDependPrim id={0} dep={dep} when={when} primProps={primProps} />;
+        const { builtElements, dom } = await doBuild(orig);
+
+        builtElements.forEach((e) => plan.addElem(e, goal));
+
+        should(plan.nodes).have.length(2);
+        should(plan.elems).have.length(2);
+        // No dependencies yet
+        should(plan.leaves).have.length(2);
+
+        const action = {
+            type: ChangeType.create,
+            detail: `Action1`,
+            act: async () => spy(`Action1 completed`),
+            changes: [
+                {
+                    detail: `Change0`,
+                    type: ChangeType.create,
+                    element: dom
+                }
+            ]
+        };
+        plan.addAction(action);
+
+        const expNodes = 3;
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(2);
+        // Primitive is dependent on Action
+        should(plan.leaves).have.length(2);
+
+        plan.updateElemWaitInfo();
+
+        should(plan.nodes).have.length(expNodes);
+        should(plan.elems).have.length(2);
+        // Now there's a dependency between the two elements
+        should(plan.leaves).have.length(1);
+
+        plan.check();
+        const ret = await execute({ ...executeOpts, plan });
+
+        await checkFinalSimple(plan, ret, DeployStatus.Deployed,
+            TaskState.Complete, builtElements, expNodes,
+            [ "Change0", "MakeDependPrim" ]);
+
+        const { stdout, stderr } = logger;
+        should(stderr).equal("");
+        const lines = stdout.split("\n");
+        should(lines[0]).match(/Doing Action1/);
+        should(lines[1]).match("");
+
+        const calls: string[] = spyArgs(spy, 0);
+        should(calls).eql([
+            "1 ready: true",
+            "Action1 completed",
+            "1 ready: true",
+            "1 when: Deployed",
+            "0 ready: true",
+            "0 when: Deployed",
         ]);
     });
 

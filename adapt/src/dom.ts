@@ -67,8 +67,8 @@ class BuildResults {
     mountedOrig: AdaptMountedElement | null;
     contents: AdaptElementOrNull;
     cleanups: CleanupFunc[];
-    mountedElements: AdaptElement[];
-    builtElements: AdaptElement[];
+    mountedElements: AdaptMountedElement[];
+    builtElements: AdaptMountedElement[];
     stateChanged: boolean;
     partialBuild: boolean;
 
@@ -205,6 +205,7 @@ class BuildResults {
             messages: this.messages,
             contents: this.contents,
             mountedOrig: this.mountedOrig,
+            builtElements: this.builtElements,
             processStateUpdates: () => processStateUpdates(builtElements, stateStore),
         };
     }
@@ -628,6 +629,7 @@ export const noStateUpdates = () => Promise.resolve({ stateChanged: false });
 
 export interface BuildOutputSuccess extends BuildOutputBase {
     buildErr: false;
+    builtElements: AdaptMountedElement[];
     partialBuild: false;
     processStateUpdates: ProcessStateUpdates;
     contents: FinalDomElement | null;
