@@ -21,10 +21,12 @@ export interface MockDeployOptions {
 
 export interface DeployOptions {
     dryRun?: boolean;
+    once?: boolean;
 }
 
 const defaultDeployOptions = {
     dryRun: false,
+    once: false,
 };
 
 export interface DeployOutput extends ActComplete {
@@ -90,45 +92,48 @@ export class MockDeploy {
         let dom: FinalDomElement | null;
         let processStateUpdates: ProcessStateUpdates;
 
-        const taskObserver = createTaskObserver("parent", { logger: this.logger });
-        taskObserver.started();
+        while (true) {
+            const taskObserver = createTaskObserver("parent", { logger: this.logger });
+            taskObserver.started();
 
-        if (orig === null) {
-            dom = orig;
-            processStateUpdates = noStateUpdates;
-        } else {
-            const res = await doBuild(orig, {
-                deployID: this.deployID,
-                stateStore: this.stateStore,
-            });
-            dom = res.dom;
-            processStateUpdates = res.processStateUpdates;
+            if (orig === null) {
+                dom = orig;
+                processStateUpdates = noStateUpdates;
+            } else {
+                const res = await doBuild(orig, {
+                    deployID: this.deployID,
+                    stateStore: this.stateStore,
+                });
+                dom = res.dom;
+                processStateUpdates = res.processStateUpdates;
+            }
+            this.prevDom = this.currDom;
+            this.currDom = dom;
+
+            const mgrOpts = {
+                logger: this.logger,
+                deployment: this.deployment,
+                dataDir: this.dataDir,
+            };
+            const actOpts = {
+                deployOpID: this.deployOpID,
+                dryRun: opts.dryRun,
+                processStateUpdates,
+                taskObserver,
+            };
+
+            const mgr = createPluginManager(this.plugins);
+
+            await mgr.start(this.prevDom, dom, mgrOpts);
+            await mgr.observe();
+            mgr.analyze();
+            const actResults = await mgr.act(actOpts);
+            await mgr.finish();
+
+            if (opts.once || actResults.deployComplete || !actResults.stateChanged) {
+                const stepID = await this.deployment.currentStepID(this.deployOpID);
+                return { ...actResults, dom, stepID };
+            }
         }
-        this.prevDom = this.currDom;
-        this.currDom = dom;
-
-        const mgrOpts = {
-            logger: this.logger,
-            deployment: this.deployment,
-            dataDir: this.dataDir,
-        };
-        const actOpts = {
-            deployOpID: this.deployOpID,
-            dryRun: opts.dryRun,
-            processStateUpdates,
-            taskObserver,
-        };
-
-        const mgr = createPluginManager(this.plugins);
-
-        await mgr.start(this.prevDom, dom, mgrOpts);
-        await mgr.observe();
-        mgr.analyze();
-        const actResults = await mgr.act(actOpts);
-        await mgr.finish();
-
-        const stepID = await this.deployment.currentStepID(this.deployOpID);
-
-        return { ...actResults, dom, stepID };
     }
 }

@@ -1731,6 +1731,9 @@ describe("ExecutionPlanImpl", () => {
 
 describe("Execution plan state", () => {
     let dep: MockDeploy;
+    const deployOpts: DeployOptions = {
+        once: true,
+    };
 
     mochaTmpdir.each("exec-plan-state");
 
@@ -1749,7 +1752,7 @@ describe("Execution plan state", () => {
             comp.setState({ current: "one" });
         };
         const orig = <ActionState action={action} />;
-        const { dom } = await dep.deploy(orig);
+        const { dom } = await dep.deploy(orig, deployOpts);
         if (dom == null) throw should(dom).not.be.Null();
 
         should(dep.stateStore.elementState(dom.keyPath)).eql({
@@ -1779,6 +1782,9 @@ describe("Execution plan state", () => {
 
 describe("Execution plan restart", () => {
     let dep: MockDeploy;
+    const deployOpts: DeployOptions = {
+        once: true,
+    };
 
     mochaTmpdir.each("exec-plan-restart");
 
@@ -1813,7 +1819,6 @@ describe("Execution plan restart", () => {
                 <ActionState id={1} action={action} when={when} />
                 <ActionState id={2} action={action} when={when} />
             </ActionState>;
-        const deployOpts: DeployOptions = {};
 
         while (buildNum < 4) {
             const results = await dep.deploy(orig, deployOpts);
