@@ -268,11 +268,12 @@ interface ReanimateOpts {
     domXml: string;
     stateJson: string;
     deployID: string;
+    deployOpID: DeployOpID;
     logger: MessageLogger;
 }
 async function reanimateAndBuild(opts: ReanimateOpts) {
     const inAdapt = opts.ctx.Adapt;
-    const { deployID, domXml, logger } = opts;
+    const { deployID, deployOpID, domXml, logger } = opts;
     let stateStore: StateStore;
     try {
         stateStore = createStateStore(opts.stateJson);
@@ -281,7 +282,7 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
         if (err.message) msg += `: ${err.message}`;
         throw new Error(msg);
     }
-    const zombie = await inAdapt.internal.reanimateDom(domXml, deployID);
+    const zombie = await inAdapt.internal.reanimateDom(domXml, deployID, deployOpID);
     if (zombie === null) return null;
     const buildRes = await inAdapt.build(zombie, null, {
         deployID,
@@ -438,6 +439,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
                 return initial.prevDomXml ?
                     reanimateAndBuild({
                         ctx,
+                        deployOpID: initial.deployOpID,
                         domXml: initial.prevDomXml,
                         stateJson: initial.prevStateJson,
                         deployID,

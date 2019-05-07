@@ -870,7 +870,10 @@ class DeployHelpersFactory {
     protected nodeStatus_: StatusTracker | null = null;
 
     constructor(protected plan: ExecutionPlanImpl, deployment: Deployment) {
-        const bHelpers = buildHelpers(deployment);
+        const bHelpers = buildHelpers({
+            deployID: deployment.deployID,
+            deployOpID: plan.deployOpID,
+        });
         this.elementStatus = bHelpers.elementStatus;
     }
 

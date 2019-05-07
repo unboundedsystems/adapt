@@ -29,6 +29,7 @@ import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
 import { adaptGqlExecute } from "./observers/query_transforms";
 import { findObserver } from "./observers/registry";
 import { registerConstructor } from "./reanimate";
+import { DeployOpID } from "./server/deployment_data";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
 import * as tySup from "./type_support";
@@ -152,6 +153,7 @@ export function componentStateNow<
 
 export interface BuildHelpers {
     deployID: string;
+    deployOpID: DeployOpID;
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
@@ -365,7 +367,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath, deployID: string) {
+    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath,
+        deployID: string, deployOpID: DeployOpID) {
+
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -380,6 +384,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.mounted = true;
         this.buildData.id = this.id;
         this.buildData.deployID = deployID;
+        this.buildData.deployOpID = deployOpID;
     }
 
     setBuilt = () => this.buildState = BuildState.built;

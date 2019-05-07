@@ -55,6 +55,7 @@ import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./er
 import { getInternalHandle, Handle } from "./handle";
 import { createHookInfo, finishHooks, HookInfo, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
+import { DeployOpID } from "./server/deployment_data";
 
 export type DomPath = AdaptElement[];
 
@@ -241,8 +242,9 @@ function recordDomError(
 }
 
 export interface BuildHelpersOptions {
-    observerManager?: ObserverManagerDeployment;
     deployID: string;
+    deployOpID: DeployOpID;
+    observerManager?: ObserverManagerDeployment;
 }
 
 export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
@@ -260,7 +262,8 @@ export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
                 return undefined;
             }
         },
-        deployID: options.deployID
+        deployID: options.deployID,
+        deployOpID: options.deployOpID,
     };
 }
 
@@ -474,7 +477,7 @@ function mountElement(
 
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
-        domPathToKeyPath(finalPath), options.deployID);
+        domPathToKeyPath(finalPath), options.deployID, options.deployOpID);
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
@@ -570,6 +573,7 @@ export interface BuildOptions {
     maxBuildPasses?: number;
     buildOnce?: boolean;
     deployID?: string;
+    deployOpID?: DeployOpID;
 }
 
 export interface BuildOptionsInternal extends Required<BuildOptions> {
@@ -590,6 +594,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
         maxBuildPasses: 200,
         buildOnce: false,
         deployID: "<none>",
+        deployOpID: 0,
 
         matchInfoReg: css.createMatchInfoReg(),
         hookInfo: createHookInfo(),
@@ -853,6 +858,7 @@ async function buildChildren(
 export interface BuildData {
     id: string;
     deployID: string;
+    deployOpID: DeployOpID;
     successor?: AdaptMountedElement | null;
     //Only defined for deferred elements since other elements may never mount their children
     origChildren?: (AdaptMountedElement | null | unknown)[];
