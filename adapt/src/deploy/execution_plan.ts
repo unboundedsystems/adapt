@@ -529,13 +529,13 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     const opts = { ...defaultExecuteOptions, ...options };
     const plan = opts.plan;
     const timeoutTime = opts.timeoutMs ? Date.now() + opts.timeoutMs : 0;
-    let loopNum = 0;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
 
+    const deployOpID = plan.deployOpID;
     const nodeStatus = await createStatusTracker({
         deployment: plan.deployment,
-        deployOpID: plan.deployOpID,
+        deployOpID,
         dryRun: opts.dryRun,
         goalStatus: plan.goalStatus,
         nodes: plan.nodes,
@@ -548,13 +548,16 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
     try {
         while (true) {
-            debugExecute(`\n\n-----------------------------\n\n**** Starting execution pass ${++loopNum}`);
+            const stepNum = (nodeStatus.stepID && nodeStatus.stepID.deployStepNum) || "DR";
+            const stepStr = `${deployOpID}.${stepNum}`;
+            debugExecute(`\n\n-----------------------------\n\n` +
+                `**** Starting execution step ${stepStr}`);
 
             await executePass({ ...opts, nodeStatus, timeoutTime });
             const { stateChanged } = await opts.processStateUpdates();
             const ret = await nodeStatus.complete(stateChanged);
 
-            debugExecute(`**** execution pass ${loopNum} status: ${ret.deploymentStatus}\nSummary:`,
+            debugExecute(`**** execution step ${stepStr} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
 
             if (ret.deploymentStatus === DeployOpStatus.StateChanged ||
