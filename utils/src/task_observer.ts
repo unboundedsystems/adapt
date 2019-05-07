@@ -27,7 +27,7 @@ export type TaskObservers<Names extends string> =
     TaskObserversKnown<Names> & TaskObserversUnknown;
 
 export interface TaskGroup {
-    add<T extends TaskDefinitions>(tasks: T): TaskObservers<Extract<keyof T, string>>;
+    add<T extends TaskDefinitions>(tasks: T, createOnly?: boolean): TaskObservers<Extract<keyof T, string>>;
     task(name: string): TaskObserver;
 }
 
@@ -233,17 +233,20 @@ class TaskGroupImpl implements TaskGroup {
         readonly options: Required<TaskGroupOptions>,
         readonly taskOptions: TaskObserverOptions) { }
 
-    add<T extends TaskDefinitions>(tasks: T): TaskObservers<Extract<keyof T, string>> {
+    add<T extends TaskDefinitions>(tasks: T, createOnly = true): TaskObservers<Extract<keyof T, string>> {
         // Pre-flight checks
-        for (const name of Object.keys(tasks)) {
-            if (this.tasks_[name]) {
-                throw new Error(`A task with name ${name} already exists`);
+        if (createOnly) {
+            for (const name of Object.keys(tasks)) {
+                if (this.tasks_[name]) {
+                    throw new Error(`A task with name ${name} already exists`);
+                }
             }
         }
 
         const parentLogger = this.taskOptions.logger;
 
         for (const name of Object.keys(tasks)) {
+            if (this.tasks_[name]) continue;
             const logger = parentLogger && parentLogger.createChild(name);
             const task = new TaskObserverImpl(name, {
                 ...this.taskOptions,
