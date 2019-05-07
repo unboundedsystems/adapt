@@ -26,8 +26,8 @@ export function toDetail(val: ShouldAct) {
 }
 
 export interface ActionContext {
-    logger: MessageLogger;
     dataDir: string;
+    logger: MessageLogger;
 }
 
 export class Action

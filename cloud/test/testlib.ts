@@ -3,7 +3,7 @@ import * as randomstring from "randomstring";
 import * as util from "util";
 
 // tslint:disable-next-line:no-submodule-imports
-export { doBuild } from "@usys/adapt/dist/test/testlib";
+export { doBuild, MockDeploy } from "@usys/adapt/dist/test/testlib";
 
 export async function act(actions: Action[]) {
     for (const action of actions) {

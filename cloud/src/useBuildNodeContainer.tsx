@@ -3,7 +3,8 @@ import Adapt, {
     BuiltinProps,
     handle,
     useImperativeMethods,
-    useState
+    useState,
+    waiting
 } from "@usys/adapt";
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
@@ -11,12 +12,12 @@ import path from "path";
 import { callInstanceMethod, getInstanceValue } from "./hooks";
 import { DockerBuildOptions, ImageInfo, useDockerBuild } from "./LocalDockerBuild";
 
-export interface BuildLocalNodeContainerProps extends Partial<BuiltinProps> {
+export interface LocalNodeContainerProps extends Partial<BuiltinProps> {
     srcDir: string;
     options?: NodeContainerBuildOptions;
 }
 
-export function BuildLocalNodeContainer(props: BuildLocalNodeContainerProps) {
+export function LocalNodeContainer(props: LocalNodeContainerProps) {
     const { image, buildObj } = useDockerBuild(
         async () => {
             const srcDir = path.resolve(props.srcDir);
@@ -30,25 +31,27 @@ export function BuildLocalNodeContainer(props: BuildLocalNodeContainerProps) {
                 [];
             const runCommands = scripts.map((s) => `RUN npm run ${s}`).join("\n");
             return {
-                dockerfile: "Dockerfile",
+                dockerfile: `
+                    FROM node:10-alpine
+                    WORKDIR /app
+                    ADD . /app
+                    RUN npm install
+                    ${runCommands}
+                    CMD ["node", "${main}"]
+                `,
                 contextDir: srcDir,
                 options: props.options,
-                files: [{
-                    path: "Dockerfile",
-                    contents: `FROM node:10-alpine
-WORKDIR /app
-ADD . /app
-RUN npm install
-${runCommands}
-CMD ["node", "${main}"]`
-                }]
             };
         });
 
     useImperativeMethods(() => ({
         buildComplete: () => image !== undefined,
         ready: () => image !== undefined,
-        image
+        image,
+        deployedWhen: () => {
+            if (image !== undefined) return true;
+            return waiting("Waiting for Node container image to build");
+        }
     }));
     return buildObj;
 }
@@ -63,7 +66,7 @@ const defaultContainerBuildOptions = {
 };
 
 export interface NodeContainerBuildStatus {
-    buildObj: AdaptElement<NodeContainerBuildOptions> | null;
+    buildObj: AdaptElement<NodeContainerBuildOptions>;
     image?: ImageInfo;
 }
 
@@ -73,20 +76,17 @@ export function useBuildNodeContainer(srcDir: string,
     const opts = { ...defaultContainerBuildOptions, ...options };
     const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
 
-    if (!buildState) {
-        const buildHand = handle();
+    const buildHand = handle();
+    const buildObj = <LocalNodeContainer handle={buildHand} srcDir={srcDir} options={opts} />;
 
+    if (!buildState) {
         setBuildState(async () => {
             if (callInstanceMethod(buildHand, false, "buildComplete")) {
                 return getInstanceValue(buildHand, undefined, "image");
             }
             return undefined;
         });
-        return {
-            buildObj:
-                <BuildLocalNodeContainer handle={buildHand} srcDir={srcDir} options={opts} />
-        };
     }
 
-    return { image: buildState, buildObj: null };
+    return { image: buildState, buildObj };
 }
