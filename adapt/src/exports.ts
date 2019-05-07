@@ -96,6 +96,9 @@ export {
 } from "./observers";
 
 export {
+    DeployOpID,
+} from "./server";
+export {
     defaultChildStatus,
     errorToNoStatus,
     gqlGetOriginalErrors,

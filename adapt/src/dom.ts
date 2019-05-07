@@ -296,7 +296,7 @@ async function computeContentsFromElement<P extends object>(
     }
     let component: Component;
     try {
-        component = constructComponent(element, options.stateStore, options.observerManager);
+        component = constructComponent(element, options);
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (isError(e)) {
@@ -421,8 +421,7 @@ function doOverride(
             if (!isMountedElement(element)) throw new InternalError(`Element should be mounted`);
             if (!isElementImpl(element)) throw new InternalError(`Element should be ElementImpl`);
             if (element.component == null) {
-                element.component = constructComponent(element,
-                    options.stateStore, options.observerManager);
+                element.component = constructComponent(element, options);
             }
         }
         const hand = getInternalHandle(element);
@@ -514,7 +513,7 @@ async function buildElement(
     if (isPrimitiveElement(elem)) {
         const res = new BuildResults(options.recorder, elem, elem);
         try {
-            constructComponent(elem, options.stateStore, options.observerManager);
+            constructComponent(elem, options);
             res.builtElements.push(elem);
             elem.setBuilt();
         } catch (err) {
@@ -542,13 +541,19 @@ async function buildElement(
 }
 
 function constructComponent<P extends object = {}>(
-    elem: AdaptComponentElement<P>, stateStore: StateStore, observerManager: ObserverManagerDeployment): Component<P> {
+    elem: AdaptComponentElement<P>, options: BuildOptionsInternal): Component<P> {
+
+    const { deployID, deployOpID, observerManager, stateStore } = options;
 
     if (!isElementImpl(elem)) {
         throw new InternalError(`Element is not an ElementImpl`);
     }
 
     pushComponentConstructorData({
+        deployInfo: {
+            deployID,
+            deployOpID,
+        },
         getState: () => stateStore.elementState(elem.stateNamespace),
         setInitialState: (init) => stateStore.setElementState(elem.stateNamespace, init),
         stateUpdates: elem.stateUpdates,

@@ -55,6 +55,10 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
 
 // Constructor data that doesn't actually keep track of state
 const noStoreConstructorData: jsx.ComponentConstructorData = {
+    deployInfo: {
+        deployID: "mockdeploy",
+        deployOpID: 0,
+    },
     getState: () => ({}),
     setInitialState: () => {/**/ },
     stateUpdates: [],

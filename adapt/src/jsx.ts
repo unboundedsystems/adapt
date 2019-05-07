@@ -151,14 +151,19 @@ export function componentStateNow<
     }
 }
 
-export interface BuildHelpers {
+export interface DeployInfo {
     deployID: string;
     deployOpID: DeployOpID;
+}
+
+export interface BuildHelpers extends DeployInfo {
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}>
     implements GenericInstanceMethods {
+
+    deployInfo: DeployInfo;
 
     dependsOn?: DependsOnMethod;
     deployedWhen?: DeployedWhenMethod;
@@ -205,6 +210,7 @@ export abstract class Component<Props extends object = {}, State extends object 
             cData.setInitialState(init);
         }
         this.stateUpdates = cData.stateUpdates as any;
+        this.deployInfo = cData.deployInfo;
 
         // Prevent subclass constructors from accessing this.state too early
         // by waiting to init getState.
@@ -647,6 +653,7 @@ export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promis
 }
 
 export interface ComponentConstructorData {
+    deployInfo: DeployInfo;
     getState: () => any;
     setInitialState: <T extends object>(init: T) => void;
     stateUpdates: StateUpdater[];

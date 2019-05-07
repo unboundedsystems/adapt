@@ -1,4 +1,7 @@
 export {
+    DeployOpID,
+} from "./deployment_data";
+export {
     adaptServer,
     AdaptServer,
     ServerOptions,
