@@ -1,7 +1,7 @@
-import { TaskObserver } from "@usys/utils";
+import { TaskObserver, TaskState } from "@usys/utils";
 import { inspect } from "util";
 import { InternalError } from "../error";
-import { AdaptMountedElement, isFinalDomElement, isMountedElement } from "../jsx";
+import { isFinalDomElement } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeployOpID, DeployStepID, ElementStatus, ElementStatusMap } from "../server/deployment_data";
 import {
@@ -70,7 +70,7 @@ export class StatusTrackerImpl implements StatusTracker {
                 else this.nonPrimStatus.Waiting++;
                 if (shouldTrackStatus(n)) {
                     const id = n.element.id;
-                    const tasks = tGroup.add({ [id]: n.element.componentName });
+                    const tasks = tGroup.add({ [id]: n.element.componentName }, false);
                     this.taskMap.set(n, tasks[id]);
                 }
             }
@@ -199,11 +199,17 @@ export class StatusTrackerImpl implements StatusTracker {
         if (err) return task.failed(err);
 
         if (this.dryRun) {
-            if (isGoalStatus(newStat)) task.skipped();
+            if (isGoalStatus(newStat)) {
+                if (task.state === TaskState.Created ||
+                    task.state === TaskState.Started) task.skipped();
+            }
 
         } else {
-            if (isInProgress(newStat) && !isProxying(oldStat)) task.started();
-            else if (isGoalStatus(newStat)) task.complete();
+            if (isInProgress(newStat) && !isProxying(oldStat)) {
+                if (task.state === TaskState.Created) task.started();
+            } else if (isGoalStatus(newStat)) {
+                if (task.state === TaskState.Started) task.complete();
+            }
         }
     }
 
@@ -228,8 +234,6 @@ export class StatusTrackerImpl implements StatusTracker {
     }
 }
 
-export function shouldTrackStatus(n: EPNode | AdaptMountedElement) {
-    const el = isMountedElement(n) ? n : n.element;
-    if (!el) return false;
-    return el.componentType.noPlugin !== true;
+export function shouldTrackStatus(n: EPNode) {
+    return n.element != null && (n.waitInfo != null || n.hardDeps != null);
 }

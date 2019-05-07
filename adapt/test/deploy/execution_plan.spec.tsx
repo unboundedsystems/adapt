@@ -347,7 +347,11 @@ describe("ExecutionPlanImpl", () => {
         const tasks = getTasks();
         const taskNames = Object.keys(tasks);
         should(taskNames).have.length(expTaskNames.length);
-        should(taskNames).containDeep(expElems.filter(shouldTrackStatus).map((e) => e.id));
+        const expNames = expElems
+            .map(plan.getNode)
+            .filter(shouldTrackStatus)
+            .map((n) => n.element && n.element.id);
+        should(taskNames).containDeep(expNames);
         should(taskNames.map((n) => tasks[n]!.description)).containDeep(expTaskNames);
         should(taskNames.map((n) => tasks[n]!.state))
             .containDeep(expTaskNames.map(() => expTask));
@@ -612,7 +616,7 @@ describe("ExecutionPlanImpl", () => {
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
-                ["Change0", "Change1", "Change2", "Change3"]);
+                ["Group", "Change0", "Change1", "Change2", "Change3"]);
 
             const { stdout, stderr } = logger;
             const lines = stdout.split("\n");
@@ -752,7 +756,7 @@ describe("ExecutionPlanImpl", () => {
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
+            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
