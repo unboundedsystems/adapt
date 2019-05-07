@@ -685,7 +685,7 @@ export async function executePass(opts: ExecutePassOptions) {
             debugExecId(id, `FAILED: ${err}`);
             await updateStatus(n, err);
             if (!errorLogged) {
-                logger.error(`Error while ${n.goalStatus.toLowerCase()} ` +
+                logger.error(`Error while ${goalToInProgress(n.goalStatus).toLowerCase()} ` +
                     `${nodeDescription(n)}: ${formatUserError(err)}`);
             }
             if (err.name === "InternalError") throw err;

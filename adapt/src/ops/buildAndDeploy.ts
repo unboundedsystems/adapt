@@ -411,7 +411,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         deploy: "Deploying",
     });
     const deployTasks = tasks.deploy.childGroup({ serial: false }).add({
-        status: "Deploy pass 1",
+        status: "Deployment progress",
         act: "Applying changes to environment",
     });
     const initial = await currentState(options);
