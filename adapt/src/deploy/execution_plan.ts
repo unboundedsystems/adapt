@@ -74,8 +74,8 @@ export async function createExecutionPlan(options: ExecutionPlanOptions): Promis
             let prev: EPNode | undefined;
             group.forEach((a) => {
                 const node = plan.addAction(a);
-                if (prev) plan.addHardDep(node, prev);
-                prev = node;
+                if (prev && node) plan.addHardDep(node, prev);
+                if (node) prev = node;
             });
         });
     }
@@ -165,6 +165,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     }
 
     addAction(action: Action) {
+        if (action.type === ChangeType.none) return undefined;
+
         const node: EPNode = {
             goalStatus: changeTypeToGoalStatus(action.type),
             waitInfo: {
@@ -178,6 +180,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         this.addNode(node);
 
         action.changes.forEach((c) => {
+            if (c.type === ChangeType.none) return;
+
             this.addElem(c.element, changeTypeToGoalStatus(c.type));
             const leader = this.groupLeader(c.element);
             if (leader === node) return;

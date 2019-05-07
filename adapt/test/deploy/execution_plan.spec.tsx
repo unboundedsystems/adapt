@@ -1008,8 +1008,8 @@ describe("ExecutionPlanImpl", () => {
                     element: k
                 }]
             });
-            if (prev) plan.addHardDep(a, prev);
-            prev = a;
+            if (prev && a) plan.addHardDep(a, prev);
+            if (a) prev = a;
         });
 
         should(plan.nodes).have.length(11);
