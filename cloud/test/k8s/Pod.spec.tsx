@@ -25,7 +25,7 @@ import {
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
-import { act, doBuild, randomName } from "../testlib";
+import { act, checkNoChanges, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
@@ -330,7 +330,7 @@ describe("k8s Pod Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
-        should(actions).length(0);
+        checkNoChanges(actions, dom);
         await plugin.finish();
     });
 

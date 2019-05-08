@@ -1,5 +1,4 @@
 import Adapt, {
-    AdaptElementOrNull,
     ChangeType,
     childrenToArray,
     Group,
@@ -28,7 +27,7 @@ import {
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
-import { act, doBuild, randomName } from "../testlib";
+import { act, checkNoChanges, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
@@ -292,7 +291,7 @@ describe("k8s Service Operation Tests", function () {
             resourceElementToName(dom, options.deployID) + ".default.svc.cluster.local.");
     });
 
-    async function createService(name: string): Promise<AdaptElementOrNull> {
+    async function createService(name: string) {
         if (!deployID) throw new Error(`Missing deployID?`);
         const ports: ServicePort[] = [
             { port: 9001, targetPort: 9001 },
@@ -376,7 +375,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, oldDom);
         const actions = plugin.analyze(oldDom, oldDom, obs);
-        should(actions).length(0);
+        checkNoChanges(actions, oldDom);
         await plugin.finish();
     });
 
@@ -419,7 +418,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs2 = await plugin.observe(oldDom, dom);
         const actions2 = plugin.analyze(oldDom, dom, obs2);
-        should(actions2).length(0);
+        checkNoChanges(actions2, dom.props.children);
         await plugin.finish();
     });
 
