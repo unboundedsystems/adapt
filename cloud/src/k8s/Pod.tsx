@@ -43,6 +43,7 @@ function dups<T>(data: T[]): T[] {
 
 function defaultize(spec: ContainerSpec): ContainerSpec {
     spec = { ...spec };
+    if (spec.env && spec.env.length === 0) delete spec.env;
     if (spec.tty !== true) delete spec.tty;
     if (spec.ports && spec.ports.length === 0) delete spec.ports;
     if (spec.ports) {

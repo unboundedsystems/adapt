@@ -107,13 +107,11 @@ describe("k8s Pod Component Tests", () => {
       <prop name="spec">{
   "containers": [
     {
-      "env": [],
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
       "name": "one"
     },
     {
-      "env": [],
       "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
       "name": "two"
