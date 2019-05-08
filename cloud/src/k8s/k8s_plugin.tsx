@@ -275,7 +275,11 @@ function computeResourceChanges(
         return actionInfo(ChangeType.none, "No changes required");
     }
 
-    return actionInfo(ChangeType.replace, `Replacing ${kind}`);
+    // NOTE: Returning ChangeType.modify means WidgetPlugin calls our
+    // modifyWidget function to handle the change. But right now,
+    // we don't support a true modify (PATCH) operation, so the description
+    // is "Replacing", which is accurate.
+    return actionInfo(ChangeType.modify, `Replacing ${kind}`);
 }
 
 async function createResource(
@@ -298,13 +302,17 @@ async function createResource(
 
 async function deleteResource(
     client: Client,
-    res: ResourceObject
+    res: ResourceObject,
+    immediate = false,
 ): Promise<void> {
     const info = getResourceInfo(res.kind);
     const apiName = info.apiName;
+    const opts = immediate ? { body: { gracePeriodSeconds: 0 } } : undefined;
 
     if (client.api == null) throw new Error("Action uses uninitialized client");
-    await client.api.v1.namespaces(res.metadata.namespace)[apiName](res.metadata.name).delete();
+    await client.api.v1
+        .namespaces(res.metadata.namespace)[apiName](res.metadata.name)
+        .delete(opts);
 }
 
 function notUndef(x: string | undefined): x is string {
@@ -382,10 +390,18 @@ class K8sPluginImpl
     }
 
     modifyWidget = async (
-        _domain: K8sQueryDomain,
-        _deployID: string,
-        _resource: K8sPair): Promise<void> => {
-        throw new Error(`Internal error: modify operation not supported`);
+        domain: K8sQueryDomain,
+        deployID: string,
+        resource: K8sPair): Promise<void> => {
+
+        const actual = resource.observed;
+        if (!actual) throw new Error(`resource observed null`);
+        const el = resource.element;
+        if (!el) throw new Error(`resource element null`);
+        const client = await this.getClient(domain);
+
+        await deleteResource(client, actual, true);
+        await createResource(client, el, deployID);
     }
 
     async getClient(domain: K8sQueryDomain) {

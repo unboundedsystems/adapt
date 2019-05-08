@@ -209,7 +209,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.finish();
     });
 
-    it("Should distinguish between replace and create actions", async () => {
+    it("Should distinguish between modify and create actions", async () => {
         const ports: ServicePort[] = [
             { name: "9001", port: 9001, targetPort: 9001 },
             { name: "8001", port: 8001, targetPort: 81 },
@@ -237,10 +237,10 @@ describe("k8s Service Operation Tests", function () {
         obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].type).equal(ChangeType.modify);
         should(actions[0].detail).equal("Replacing Service");
         should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
         should(actions[0].changes[0].detail).equal("Replacing Service");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
@@ -334,7 +334,7 @@ describe("k8s Service Operation Tests", function () {
         await createService("test");
     });
 
-    it("Should replace service", async () => {
+    it("Should modify service", async () => {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createService("test");
 
@@ -350,10 +350,10 @@ describe("k8s Service Operation Tests", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].type).equal(ChangeType.modify);
         should(actions[0].detail).equal("Replacing Service");
         should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
         should(actions[0].changes[0].detail).equal("Replacing Service");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");

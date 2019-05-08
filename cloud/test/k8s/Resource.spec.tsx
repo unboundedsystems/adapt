@@ -101,7 +101,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         await plugin.finish();
     });
 
-    it("Should distinguish between replace and create actions", async () => {
+    it("Should distinguish between modify and create actions", async () => {
         const resElem =
             <Resource key="test" config={kubeconfig} kind="Pod" spec={{
                 containers: [{
@@ -129,7 +129,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
             spec: {
                 containers: [{
                     name: "container",
-                    image: "alpine:latest", //This is the diff to cause a replace
+                    image: "alpine:latest", //This is the diff to cause a modify
                     dataNotUnderstood: ["foo"] //Field that should be ignored
                 }],
             },
@@ -139,10 +139,10 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].type).equal(ChangeType.modify);
         should(actions[0].detail).equal("Replacing Pod");
         should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
         should(actions[0].changes[0].detail).equal("Replacing Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
@@ -206,11 +206,11 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         await createPod("test");
     });
 
-    it("Should replace pod", async () => {
+    it("Should modify pod", async () => {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createPod("test");
 
-        //5s sleep diff to cause replace vs. 3s sleep in createPod
+        //5s sleep diff to cause modify vs. 3s sleep in createPod
         const command = ["sleep", "5s"];
         const resElem = <Resource key="test"
             config={kubeconfig}
@@ -231,10 +231,10 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.replace);
+        should(actions[0].type).equal(ChangeType.modify);
         should(actions[0].detail).equal("Replacing Pod");
         should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.replace);
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
         should(actions[0].changes[0].detail).equal("Replacing Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
