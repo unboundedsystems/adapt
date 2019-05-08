@@ -1,4 +1,6 @@
+import { mochaTmpdir } from "@usys/testutils";
 import { filePathToUrl } from "@usys/utils";
+import fs from "fs-extra";
 import path from "path";
 import { clitest } from "../common/fancy";
 import { pkgRootDir } from "../common/paths";
@@ -25,6 +27,28 @@ export const systemTestChain =
     });
 
 export const projectsRoot = path.join(pkgRootDir, "test_projects");
+export const appSubdir = "app";
+
+async function appSetupCommon(appName: string) {
+    const appDir = path.join(projectsRoot, appName);
+    await fs.copy(appDir, appSubdir);
+    process.chdir(appSubdir);
+}
+
+export const systemAppSetup = {
+    all(appName: string) {
+        mochaTmpdir.all("adapt-sys-test-" + appName);
+        before("systemAppSetup", async () => {
+            await appSetupCommon(appName);
+        });
+    },
+    each(appName: string) {
+        mochaTmpdir.each("adapt-sys-test-" + appName);
+        beforeEach("systemAppSetup", async () => {
+            await appSetupCommon(appName);
+        });
+    }
+};
 
 export const curlOptions = [
     "--silent", "--show-error", // No progress, just errors

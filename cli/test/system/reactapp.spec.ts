@@ -1,7 +1,6 @@
 import {
     describeLong,
     k8sutils,
-    mochaTmpdir,
 } from "@usys/testutils";
 import { waitForNoThrow } from "@usys/utils";
 import execa from "execa";
@@ -10,7 +9,7 @@ import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -41,8 +40,7 @@ describeLong("reactapp system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "reactapp");
-    mochaTmpdir.all("adapt-cli-test-reactapp", { copy: copyDir });
+    systemAppSetup.all("reactapp");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
