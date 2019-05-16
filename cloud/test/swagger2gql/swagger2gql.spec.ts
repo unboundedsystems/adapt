@@ -288,7 +288,7 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
             if (meta === undefined) return should(meta).not.Undefined();
             const name = meta.name;
             if (name === undefined) return should(name).not.Undefined();
-            const re = /(^(?:kube-dns)|(?:kube-addon-manager)|(?:storage-provisioner))-[a-z\-0-9]+$/;
+            const re = /(^(?:kube-dns)|(?:kube-addon-manager)|(?:storage-provisioner)|(?:coredns))-[a-z\-0-9]+$/;
             return should(name).match(re);
         }
         should(items.length).equal(3);

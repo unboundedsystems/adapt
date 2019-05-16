@@ -134,8 +134,8 @@ async function waitForMiniKube(container: Docker.Container) {
             ]);
             if (!systemPods) return false;
             const lines = systemPods.split("\n");
-            // header + 3 pods + newline
-            if (lines.length !== 5) return false;
+            // header + at least one pod + newline
+            if (lines.length < 3) return false;
 
             return true;
         } catch (err) {

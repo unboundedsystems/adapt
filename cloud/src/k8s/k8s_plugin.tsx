@@ -25,7 +25,6 @@ import * as ld from "lodash";
 import { Kind, Metadata, ResourceBase, ResourceProps, Spec } from "./common";
 import { isResourceFinalElement, Resource } from "./Resource";
 
-// Typings are for deprecated API :(
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
 
