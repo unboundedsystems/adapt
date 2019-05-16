@@ -1,6 +1,6 @@
 import { gql } from "@usys/adapt";
-import { Express } from "express";
 import express = require("express");
+import { Express } from "express";
 import { execute, GraphQLError, GraphQLResolveInfo, GraphQLSchema, printSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import * as http from "http";
@@ -9,7 +9,7 @@ import * as ld from "lodash";
 import fetch from "node-fetch";
 import should from "should";
 import { Kubeconfig } from "../../src/k8s/common";
-import { getK8sConnectInfo } from "../../src/k8s/k8s_observer";
+import { authHeaders, getK8sConnectInfo } from "../../src/k8s/k8s_observer";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
@@ -91,7 +91,8 @@ function makeMultiGetSwagger(paths: { path: string, op: string, responseSchema: 
     return ret;
 }
 
-function swaggerResolverFactory(spec: Swagger2, host: string, agent?: https.Agent): ResolverFactory {
+function swaggerResolverFactory(spec: Swagger2, host: string, agent?: https.Agent,
+    headers?: { [index: string]: string }): ResolverFactory {
     return {
         fieldResolvers: (_type, fieldName, isQuery) => {
             if (!isQuery) return;
@@ -105,7 +106,7 @@ function swaggerResolverFactory(spec: Swagger2, host: string, agent?: https.Agen
                 });
 
                 const url = host + req.url;
-                const resp = await fetch(url, { ...req, agent });
+                const resp = await fetch(url, { ...req, agent, headers });
                 if (resp.status !== 200) {
                     throw new Error(`Error status ${resp.statusText}(${resp.status}): ${resp.body}`);
                 }
@@ -246,9 +247,10 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
             ca: info.ca,
         });
         const host = info.url;
+        const headers = authHeaders(info);
         schema = swagger2gql(
             k8sSwagger,
-            swaggerResolverFactory(k8sSwagger, host, agent));
+            swaggerResolverFactory(k8sSwagger, host, agent, headers));
     });
 
     it("Should convert and reparse schema", async () => {

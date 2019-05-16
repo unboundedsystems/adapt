@@ -78,8 +78,10 @@ export interface Kubeconfig {
     users: [{
         name: string,
         user: {
-            "client-certificate-data": string,
-            "client-key-data": string
+            "client-certificate-data"?: string;
+            "client-key-data"?: string;
+            "username"?: string;
+            "password"?: string;
         }
     }];
 }
