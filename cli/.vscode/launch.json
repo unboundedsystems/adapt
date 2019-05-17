@@ -23,7 +23,7 @@
                 "mocha.opts"
             ],
             "env":{
-                //"ADAPT_TEST_MINIKUBE": "test_minikube",
+                //"ADAPT_TEST_k8S": "k3s",
                 //"ADAPT_RUN_LONG_TESTS": "1",
                 "ADAPT_NO_FORK": "1",
                 "DOCKER_ARGS": "-p5858:5858"

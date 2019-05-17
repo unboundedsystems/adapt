@@ -13,7 +13,7 @@ function minikubeContainer {
     if [ -n "${MINIKUBE}" ]; then
         echo "${MINIKUBE}"
     else
-        echo ${ADAPT_TEST_MINIKUBE:-test_minikube}
+        echo ${ADAPT_TEST_K8S:-k3s}
     fi
 }
 
