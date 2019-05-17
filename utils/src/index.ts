@@ -4,6 +4,7 @@ export * from "./diff_objects";
 export * from "./ensure_error";
 export * from "./env";
 export * from "./in_debugger";
+export * from "./internal_error";
 export * from "./is_instance";
 export * from "./map_map";
 export * from "./message";

@@ -2,6 +2,8 @@ import { UserError } from "@usys/utils";
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
 
+export { InternalError } from "@usys/utils";
+
 export class BuildNotImplemented extends CustomError {
     public constructor(message?: string) {
         super(message);
@@ -44,12 +46,6 @@ export class ProjectRunError extends CustomError {
 export class ThrewNonError extends CustomError {
     constructor(public thrown: any) {
         super(`An exception was thrown with a non-Error object: '${inspect(thrown)}'`);
-    }
-}
-
-export class InternalError extends CustomError {
-    constructor(msg: string) {
-        super(`Internal Error: ${msg}`);
     }
 }
 
