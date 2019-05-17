@@ -68,17 +68,17 @@ Note that your `awsRegion` **MUST** be `us-west-2`.
 ## Note on Test Performance
 
 If you want to speed up the kubernetes-related tests, significant time is
-spent starting and stopping a local minikube instance.  You can avoid this
-by starting a long running minikube instance and adding ADAPT_TEST_MINIKUBE
+spent starting and stopping a local kubernetes instance.  You can avoid this
+by starting a long running kubernetes instance and adding ADAPT_TEST_K8S
 to your environment like so:
 ```
-docker network create test_minikube
-docker run --privileged -d --name test_minikube --network test_minikube --network-alias kubernetes unboundedsystems/minikube-dind
+docker network create k3s
+docker run --privileged --rm -d --name k3s --hostname k3s --network k3s unboundedsystems/k3s-dind
 ```
 
 Then run the tests:
 ```
-ADAPT_TEST_MINIKUBE=test_minikube make test
+ADAPT_TEST_K8S=k3s make test
 ```
 
 ## Parallel make

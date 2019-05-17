@@ -53,17 +53,16 @@ async function runMinikubeContainer(
     containerName: string,
     networkName: string) {
 
-    const imageName = "unboundedsystems/minikube-dind";
-    const imageTag = "v0.25.0-1";
+    const imageName = "unboundedsystems/k3s-dind";
+    const imageTag = "v0.5.0-1";
     const image = `${imageName}:${imageTag}`;
 
     const opts: Docker.ContainerCreateOptions = {
         name: containerName,
-        // --apiserver-names supported in minikube > v0.25.0
-        Cmd: [ `--apiserver-names=${containerName}` ],
         AttachStdin: false,
         AttachStdout: false,
         AttachStderr: false,
+        Hostname: containerName,
         Tty: false,
         OpenStdin: false,
         StdinOnce: false,
@@ -74,9 +73,7 @@ async function runMinikubeContainer(
         },
         NetworkingConfig: {
             EndpointsConfig: {
-                [networkName]: {
-                    Aliases: [containerName]
-                }
+                [networkName]: { }
             }
         },
         Env: [],
@@ -134,8 +131,8 @@ async function waitForMiniKube(container: Docker.Container) {
             ]);
             if (!systemPods) return false;
             const lines = systemPods.split("\n");
-            // header + 3 pods + newline
-            if (lines.length !== 5) return false;
+            // header + at least one pod + newline
+            if (lines.length < 3) return false;
 
             return true;
         } catch (err) {
@@ -166,15 +163,15 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         let container: Docker.Container;
         let network: Docker.Network;
 
-        if (process.env.ADAPT_TEST_MINIKUBE) {
-            container = docker.getContainer(process.env.ADAPT_TEST_MINIKUBE);
+        if (process.env.ADAPT_TEST_K8S) {
+            container = docker.getContainer(process.env.ADAPT_TEST_K8S);
             network = await getNetwork(docker, container);
             kubeconfig = await getKubeconfig(docker, container, "kubernetes");
         } else {
             // tslint:disable-next-line:no-console
             console.log(`    Starting Minikube`);
             const tstamp = moment().format("MMDD-HHmm-ss-SSSSSS");
-            const newContainerName = `test_minikube_${process.pid}_${tstamp}`;
+            const newContainerName = `test-k8s-${process.pid}-${tstamp}`;
             network = await createNetwork(docker, newContainerName);
             stops.unshift(async () => network.remove());
             if (network.id === undefined) throw new Error("Network id was undefined!");
@@ -198,7 +195,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
 
         // If it's a shared minikube, we don't have an in-use count, so just
         // leave self connected.
-        if (!process.env.ADAPT_TEST_MINIKUBE) {
+        if (!process.env.ADAPT_TEST_K8S) {
             stops.unshift(async () => removeFromNetwork(self, network));
         }
 

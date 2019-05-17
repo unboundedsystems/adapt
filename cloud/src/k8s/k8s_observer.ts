@@ -61,14 +61,18 @@ export function getK8sConnectInfo(kubeconfig: Kubeconfig) {
     if (!user) throw new Error(`Could not find user ${context.context.user}`);
     const keyData = user.user["client-key-data"];
     const certData = user.user["client-certificate-data"];
-    const key = Buffer.from(keyData, "base64").toString();
-    const cert = Buffer.from(certData, "base64").toString();
+    const key = keyData && Buffer.from(keyData, "base64").toString();
+    const cert = certData && Buffer.from(certData, "base64").toString();
+    const username = user.user.username;
+    const password = user.user.password;
 
     return {
         ca,
         url,
         key,
-        cert
+        cert,
+        username,
+        password,
     };
 }
 
@@ -85,6 +89,7 @@ interface K8sObserveResolverInfo {
         host: string;
         agent: https.Agent;
         id: unknown;
+        headers: { Authorization?: string; };
     };
 }
 
@@ -98,6 +103,15 @@ function computeQueryId(clusterId: unknown, fieldName: string, args: unknown) {
         fieldName, //Note(manishv) should this really be the path in case operationId changes?
         args,
     });
+}
+
+export function authHeaders(user: { username?: string; password?: string }) {
+    if (!user.username || !user.password) return {};
+
+    const auth = Buffer.from(user.username + ":" + user.password).toString("base64");
+    return {
+        Authorization: "Basic " + auth
+    };
 }
 
 const k8sObserveResolverFactory: ResolverFactory = {
@@ -118,8 +132,9 @@ const k8sObserveResolverFactory: ResolverFactory = {
                     cert: info.cert,
                     ca: info.ca,
                 });
+                const headers = authHeaders(info);
                 //FIXME(manishv) Canonicalize id here (e.g. port, fqdn, etc.)
-                return { [infoSym]: { host, agent, id: host } };
+                return { [infoSym]: { host, agent, id: host, headers } };
             };
         }
 
@@ -133,7 +148,8 @@ const k8sObserveResolverFactory: ResolverFactory = {
             });
 
             const url = obj[infoSym].host + req.url;
-            const resp = await fetch(url, { ...req, agent: obj[infoSym].agent });
+            const headers = obj[infoSym].headers;
+            const resp = await fetch(url, { ...req, agent: obj[infoSym].agent, headers });
             const ret = await resp.json();
 
             if (resp.status === 404) throw new K8sNotFound(ret);
