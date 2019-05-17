@@ -55,14 +55,7 @@ export interface EnvVarFrom {
     valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
-export function toK8sEnv(from: EnvVar[] | ctr.Environment | undefined) {
-    if (from == null) return undefined;
-    if (Array.isArray(from)) return from;
-    return Object.keys(from).map((name) => ({
-        name,
-        value: from[name],
-    }));
-}
+export const toK8sEnv = ctr.mergeEnvPairs;
 
 const defaultProtocol = "tcp";
 
