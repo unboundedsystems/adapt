@@ -32,7 +32,7 @@ export function LocalNodeContainer(props: LocalNodeContainerProps) {
             const runCommands = scripts.map((s) => `RUN npm run ${s}`).join("\n");
             return {
                 dockerfile: `
-                    FROM node:10-alpine
+                    FROM node:10-stretch-slim
                     WORKDIR /app
                     ADD . /app
                     RUN npm install
