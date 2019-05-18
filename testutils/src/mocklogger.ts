@@ -15,6 +15,7 @@ class MockLoggerImpl extends MessageStreamer implements MockLogger {
         super("MockLogger", {
             outStream: new WritableStreamBuffer(),
             errStream: new WritableStreamBuffer(),
+            outputOptions: { from: false, timestamp: false },
         });
     }
     get stdout() {

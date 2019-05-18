@@ -9,13 +9,14 @@ import {
     MessageStore,
     MessageType
 } from "./common";
-import { logToStreams } from "./stringify";
+import { logToStreams, MessageStringOptions } from "./stringify";
 
 export interface MessageStreamerOptions {
     outStream?: stream.Writable;
     errStream?: stream.Writable;
     parent?: MessageStreamer;
     store?: MessageStore;
+    outputOptions?: MessageStringOptions;
 }
 
 export class MessageStreamer implements MessageLogger {
@@ -23,6 +24,7 @@ export class MessageStreamer implements MessageLogger {
     readonly errStream?: stream.Writable;
     readonly from: string;
     readonly isMessageLogger: true = true;
+    readonly outputOptions: MessageStringOptions;
     protected store: MessageStore;
 
     constructor(id: string, options: MessageStreamerOptions = {}) {
@@ -36,6 +38,10 @@ export class MessageStreamer implements MessageLogger {
             (options.parent && options.parent.store) ||
             new LocalStore();
         this.from = options.parent ? `${options.parent.from}:${id}` : id;
+        this.outputOptions =
+            options.outputOptions ||
+            (options.parent && options.parent.outputOptions) ||
+            {};
     }
 
     get messages() {
@@ -63,7 +69,7 @@ export class MessageStreamer implements MessageLogger {
             from: this.from,
             content: format(arg, ...args),
         };
-        logToStreams(m, this.outStream, this.errStream);
+        logToStreams(m, this.outStream, this.errStream, this.outputOptions);
         this.message(m);
     }
 

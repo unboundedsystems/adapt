@@ -11,6 +11,7 @@ import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
 import { AdaptElement, AdaptMountedElement, isMountedElement } from "../jsx";
 import { Deployment } from "../server/deployment";
+import { DeployOpID } from "../server/deployment_data";
 import { Status } from "../status";
 import {
     Action,
@@ -18,6 +19,7 @@ import {
     Dependency,
     DependsOn,
     DeployHelpers,
+    DeployOpStatus,
     DeployStatus,
     DeployStatusExt,
     ExecuteComplete,
@@ -58,21 +60,22 @@ import { createStatusTracker } from "./status_tracker";
 const debugExecute = db("adapt:deploy:execute");
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
-    const { actions, diff, seriesActions } = options;
+    const { actions, builtElements, diff, seriesActions } = options;
 
-    const plan = new ExecutionPlanImpl(options.goalStatus, options.deployment);
+    const plan = new ExecutionPlanImpl(options);
 
     diff.added.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.commonNew.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.deleted.forEach((e) => plan.addElem(e, DeployStatus.Destroyed));
+    builtElements.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     actions.forEach((a) => plan.addAction(a));
     if (seriesActions) {
         seriesActions.forEach((group) => {
             let prev: EPNode | undefined;
             group.forEach((a) => {
                 const node = plan.addAction(a);
-                if (prev) plan.addHardDep(node, prev);
-                prev = node;
+                if (prev && node) plan.addHardDep(node, prev);
+                if (node) prev = node;
             });
         });
     }
@@ -118,15 +121,27 @@ export interface EPDependencies {
     };
 }
 
+export interface ExecutionPlanImplOptions {
+    deployment: Deployment;
+    deployOpID: DeployOpID;
+    goalStatus: GoalStatus;
+}
+
 export class ExecutionPlanImpl implements ExecutionPlan {
-    helpers: DeployHelpersFactory;
+    readonly deployment: Deployment;
+    readonly deployOpID: DeployOpID;
+    readonly goalStatus: GoalStatus;
+    readonly helpers: DeployHelpersFactory;
     protected graph = new Graph({ compound: true });
     protected nextWaitId = 0;
     protected waitInfoIds = new WeakMap<WaitInfo, string>();
     protected complete = new Map<EPNodeId, EPNode>();
 
-    constructor(readonly goalStatus: GoalStatus, readonly deployment: Deployment) {
-        this.helpers = new DeployHelpersFactory(this, deployment);
+    constructor(options: ExecutionPlanImplOptions) {
+        this.goalStatus = options.goalStatus;
+        this.deployment = options.deployment;
+        this.deployOpID = options.deployOpID;
+        this.helpers = new DeployHelpersFactory(this, this.deployment);
     }
 
     /*
@@ -150,6 +165,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     }
 
     addAction(action: Action) {
+        if (action.type === ChangeType.none) return undefined;
+
         const node: EPNode = {
             goalStatus: changeTypeToGoalStatus(action.type),
             waitInfo: {
@@ -163,6 +180,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         this.addNode(node);
 
         action.changes.forEach((c) => {
+            if (c.type === ChangeType.none) return;
+
             this.addElem(c.element, changeTypeToGoalStatus(c.type));
             const leader = this.groupLeader(c.element);
             if (leader === node) return;
@@ -510,16 +529,16 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     const opts = { ...defaultExecuteOptions, ...options };
     const plan = opts.plan;
     const timeoutTime = opts.timeoutMs ? Date.now() + opts.timeoutMs : 0;
-    let loopNum = 0;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
 
+    const deployOpID = plan.deployOpID;
     const nodeStatus = await createStatusTracker({
-        dryRun: opts.dryRun,
         deployment: plan.deployment,
+        deployOpID,
+        dryRun: opts.dryRun,
         goalStatus: plan.goalStatus,
         nodes: plan.nodes,
-        sequence: opts.sequence,
         taskObserver: opts.taskObserver,
     });
     plan.helpers.nodeStatus = nodeStatus;
@@ -529,13 +548,20 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
     try {
         while (true) {
-            debugExecute(`\n\n-----------------------------\n\n**** Starting execution pass ${++loopNum}`);
+            const stepNum = (nodeStatus.stepID && nodeStatus.stepID.deployStepNum) || "DR";
+            const stepStr = `${deployOpID}.${stepNum}`;
+            debugExecute(`\n\n-----------------------------\n\n` +
+                `**** Starting execution step ${stepStr}`);
 
-            const ret = await executePass({ ...opts, nodeStatus, timeoutTime });
+            await executePass({ ...opts, nodeStatus, timeoutTime });
+            const { stateChanged } = await opts.processStateUpdates();
+            const ret = await nodeStatus.complete(stateChanged);
 
-            debugExecute(`**** execution pass ${loopNum} status: ${ret.deploymentStatus}\nSummary:`,
+            debugExecute(`**** execution step ${stepStr} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
-            if (isFinalStatus(ret.deploymentStatus)) {
+
+            if (ret.deploymentStatus === DeployOpStatus.StateChanged ||
+                isFinalStatus(ret.deploymentStatus)) {
                 debugExecute(`**** Execution completed`);
                 return ret;
             }
@@ -545,6 +571,15 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     } catch (err) {
         err = ensureError(err);
         opts.logger.error(`Deploy operation failed: ${err.message}`);
+        let stateChanged = false;
+
+        try {
+            const upd = await opts.processStateUpdates();
+            if (upd.stateChanged) stateChanged = true;
+        } catch (err2) {
+            err2 = ensureError(err2);
+            opts.logger.error(`Error processing state updates during error handling: ${err2.message}`);
+        }
 
         debugExecute(`**** Execution failed:`, inspect(err));
         if (err.name === "TimeoutError") {
@@ -552,7 +587,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             for (const n of plan.nodes) {
                 await nodeStatus.set(n, DeployStatus.Failed, err);
             }
-            return nodeStatus.complete();
+            return nodeStatus.complete(stateChanged);
 
         } else {
             throw err;
@@ -560,7 +595,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
     }
 }
 
-export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComplete> {
+export async function executePass(opts: ExecutePassOptions) {
     const { dryRun, logger, nodeStatus, plan } = opts;
 
     if (!isExecutionPlanImpl(plan)) throw new InternalError(`plan is not an ExecutionPlanImpl`);
@@ -650,7 +685,7 @@ export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComp
             debugExecId(id, `FAILED: ${err}`);
             await updateStatus(n, err);
             if (!errorLogged) {
-                logger.error(`Error while ${n.goalStatus.toLowerCase()} ` +
+                logger.error(`Error while ${goalToInProgress(n.goalStatus).toLowerCase()} ` +
                     `${nodeDescription(n)}: ${formatUserError(err)}`);
             }
             if (err.name === "InternalError") throw err;
@@ -764,8 +799,6 @@ export async function executePass(opts: ExecutePassOptions): Promise<ExecuteComp
         }
         await pIdle;
 
-        return await nodeStatus.complete();
-
     } catch (err) {
         stopExecuting = true;
         throw err;
@@ -844,7 +877,10 @@ class DeployHelpersFactory {
     protected nodeStatus_: StatusTracker | null = null;
 
     constructor(protected plan: ExecutionPlanImpl, deployment: Deployment) {
-        const bHelpers = buildHelpers(deployment);
+        const bHelpers = buildHelpers({
+            deployID: deployment.deployID,
+            deployOpID: plan.deployOpID,
+        });
         this.elementStatus = bHelpers.elementStatus;
     }
 

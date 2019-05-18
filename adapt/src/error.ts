@@ -2,6 +2,8 @@ import { UserError } from "@usys/utils";
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
 
+export { InternalError } from "@usys/utils";
+
 export class BuildNotImplemented extends CustomError {
     public constructor(message?: string) {
         super(message);
@@ -47,12 +49,6 @@ export class ThrewNonError extends CustomError {
     }
 }
 
-export class InternalError extends CustomError {
-    constructor(msg: string) {
-        super(`Internal Error: ${msg}`);
-    }
-}
-
 export function isError(val: any): val is Error {
     return (
         (val != null) &&
@@ -60,4 +56,24 @@ export function isError(val: any): val is Error {
         (typeof val.name === "string") &&
         (val.stack === undefined || typeof val.stack === "string")
     );
+}
+
+export class DeployStepIDNotFound extends CustomError {
+    constructor(opID: number, stepNum: number) {
+        super(`Deployment step ID ${opID}.${stepNum} not found`);
+    }
+}
+
+export class DeploymentNotActive extends CustomError {
+    constructor(deployID: string) {
+        super(`Deployment ${deployID} is not yet active. ` +
+            `(DeployOpID 0 has not been deployed)`);
+    }
+}
+
+export class DeploymentOpIDNotActive extends CustomError {
+    constructor(deployID: string, opID: number) {
+        super(`Deployment operation ID ${opID} for Deployment ${deployID} ` +
+            `is not yet active. (Step 0 has not been deployed)`);
+    }
 }

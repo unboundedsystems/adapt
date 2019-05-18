@@ -1,6 +1,6 @@
 import Adapt, { Component, ObserveForStatus } from "@usys/adapt";
 import { FIXME_NeedsProperType, removeUndef } from "@usys/utils";
-import { Container, ContainerProps, Links, PortBinding } from "../Container";
+import { Container, ContainerProps, Links, mergeEnvSimple, PortBinding } from "../Container";
 import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
@@ -106,7 +106,7 @@ export class AnsibleContainer extends Component<AnsibleContainerProps> {
             auto_remove: this.props.autoRemove,
             command: this.props.command,
             docker_host: translateDockerHost(this.props.dockerHost),
-            env: this.props.environment,
+            env: mergeEnvSimple(this.props.environment),
             image: this.props.image,
             interactive: this.props.stdinOpen,
             links: translateLinks(this.props.links),

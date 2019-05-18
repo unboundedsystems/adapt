@@ -211,7 +211,7 @@ export function registerObject(obj: any, name: string,
 
 // tslint:disable-next-line:ban-types
 export function registerConstructor(ctor: Function) {
-    registerObject(ctor, ctor.name, findConstructorModule());
+    registerObject(ctor, ctor.name, findConstructorModule(ctor.name));
 }
 
 function findExportName(obj: any, defaultName: string,
@@ -244,7 +244,7 @@ function findModule(modOrCallerNum: NodeModule | number): NodeModule {
 }
 
 // Exported for testing
-export function findConstructorModule(): NodeModule {
+export function findConstructorModule(ctorName: string): NodeModule {
     const stack = callsites();
     let candidateFrame: number | undefined;
 
@@ -258,8 +258,12 @@ export function findConstructorModule(): NodeModule {
     }
     if (frame === stack.length) throw new Error(`Unable to find constructor on stack`);
 
-    const constructingType = stack[frame].getTypeName();
-    if (!constructingType) throw new Error(`Unable to find type of constructor object`);
+    // getTypeName for the first constructor frame appears to be one of the
+    // few frames that has a non-null this type name. Use as a double check.
+    const thisType = stack[frame].getTypeName();
+    if (typeof thisType !== "string") {
+        throw new Error(`Uncertain about constructor stack frame structure for ${ctorName}`);
+    }
 
     let lastConstructor = frame;
     while (frame < stack.length) {
@@ -267,7 +271,7 @@ export function findConstructorModule(): NodeModule {
         if (!stack[frame].isConstructor()) break;
         lastConstructor = frame;
 
-        if (stack[frame].getFunctionName() === constructingType) {
+        if (stack[frame].getFunctionName() === ctorName) {
             if (candidateFrame !== undefined) {
                 throw new Error(`Found two candidate constructor frames`);
             }

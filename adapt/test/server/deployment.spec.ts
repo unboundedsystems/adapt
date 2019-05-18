@@ -9,6 +9,7 @@ import {
     listDeploymentIDs,
     listDeployments,
 } from "../../src/server/deployment";
+import { DeployStepID } from "../../src/server/deployment_data";
 import { dbFilename } from "../../src/server/local_server";
 import { AdaptServer } from "../../src/server/server";
 import { initLocalServer } from "./common";
@@ -30,9 +31,9 @@ describe("Deployment with local server", () => {
             adaptLocalServerVersion: 0,
             deployments: {
                 [encodePathComponent(deployID)]: {
-                    currentSequence: null,
+                    currentOpID: null,
                     deployID,
-                    sequenceInfo: {},
+                    deployOpInfo: {},
                     stateDirs: [],
                 }
             }
@@ -56,39 +57,78 @@ describe("Deployment with local server", () => {
         should(ids).eql([ d.deployID ]);
     });
 
-    const notActive = /^This deployment is not yet active/;
+    const notActive = /^Deployment .* is not yet active/;
+    const firstStepID: DeployStepID = {
+            deployOpID: 0,
+            deployStepNum: 0,
+    };
 
     it("Should error without the first deploy", async () => {
         const d = await create();
-        await should(d.currentSequence()).be.rejectedWith(notActive);
-        await should(d.status(0)).be.rejectedWith("Deployment sequence 0 not found");
-        await should(d.status(0, {
+        await should(d.currentOpID()).be.rejectedWith(notActive);
+        await should(d.status(firstStepID)).be.rejectedWith("Deployment step ID 0.0 not found");
+        await should(d.status(firstStepID, {
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Initial,
             elementStatus: {},
         })).be.rejectedWith(notActive);
-        await should(d.elementStatus(0, "foo")).be.rejectedWith(notActive);
+        await should(d.elementStatus(firstStepID, "foo")).be.rejectedWith(notActive);
     });
 
-    it("Should set and report sequence and status", async () => {
+    it("Should create OpID", async () => {
+        const d = await create();
+
+        const opID = await d.newOpID();
+        should(opID).equal(0);
+    });
+
+    it("Should create StepIDs", async () => {
+        const d = await create();
+
+        const opID = await d.newOpID();
+        should(opID).equal(0);
+
+        let stepID = await d.newStepID(opID);
+        should(stepID).eql(firstStepID);
+
+        stepID = await d.newStepID(opID);
+        should(stepID).eql({
+            deployOpID: 0,
+            deployStepNum: 1,
+        });
+    });
+
+    it("Should not create StepID for old OpID", async () => {
+        const d = await create();
+
+        let opID = await d.newOpID();
+        should(opID).equal(0);
+
+        const stepID = await d.newStepID(opID);
+        should(stepID).eql(firstStepID);
+
+        opID = await d.newOpID();
+        should(opID).equal(1);
+
+        await should(d.newStepID(0)).be.rejectedWith("Requested DeployOpID (0) is not current (1)");
+    });
+
+    it("Should set and report step info and status", async () => {
         const d = await create();
         const { deployID } = d;
 
-        const seq = await d.newSequence();
-        should(seq).equal(0);
+        const opID = await d.newOpID();
 
-        const db = await fs.readJSON(dbFilename);
+        let db = await fs.readJSON(dbFilename);
         should(db).eql({
             adaptLocalServerVersion: 0,
             deployments: {
                 [encodePathComponent(deployID)]: {
-                    currentSequence: 0,
+                    currentOpID: 0,
                     deployID,
-                    sequenceInfo: {
+                    deployOpInfo: {
                         0: {
-                            deployStatus: DeployStatus.Initial,
-                            goalStatus: DeployStatus.Initial,
-                            elementStatus: {},
+                            currentStepNum: null,
                         }
                     },
                     stateDirs: [],
@@ -96,21 +136,49 @@ describe("Deployment with local server", () => {
             }
         });
 
-        let stat = await d.status(0);
+        const stepID = await d.newStepID(opID);
+        should(stepID).eql(firstStepID);
+
+        db = await fs.readJSON(dbFilename);
+        should(db).eql({
+            adaptLocalServerVersion: 0,
+            deployments: {
+                [encodePathComponent(deployID)]: {
+                    currentOpID: 0,
+                    deployID,
+                    deployOpInfo: {
+                        0: {
+                            currentStepNum: 0,
+                            0: {
+                                deployStatus: DeployStatus.Initial,
+                                goalStatus: DeployStatus.Initial,
+                                elementStatus: {},
+                            }
+                        }
+                    },
+                    stateDirs: [],
+                }
+            }
+        });
+
+        let stat = await d.status(stepID);
         should(stat).eql({
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Initial,
             elementStatus: {},
         });
-        await should(d.status(1)).be.rejectedWith("Deployment sequence 1 not found");
+        await should(d.status({
+            deployOpID: 0,
+            deployStepNum: 1,
+        })).be.rejectedWith("Deployment step ID 0.1 not found");
 
-        const cur = await d.currentSequence();
-        should(cur).equal(0);
+        const cur = await d.currentStepID(0);
+        should(cur).eql(firstStepID);
 
-        await d.status(0, {
+        await d.status(stepID, {
             goalStatus: DeployStatus.Deployed,
         });
-        stat = await d.status(0);
+        stat = await d.status(stepID);
         should(stat).eql({
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Deployed,
@@ -121,11 +189,11 @@ describe("Deployment with local server", () => {
     it("Should set and report element status", async () => {
         const d = await create();
         const { deployID } = d;
-        const seq = await d.newSequence();
-        should(seq).equal(0);
+        const stepID = await d.newStepID(await d.newOpID());
+        should(stepID).eql(firstStepID);
 
-        await d.elementStatus(0, { one: { deployStatus: DeployStatus.Initial }});
-        let el = await d.elementStatus(0, "one");
+        await d.elementStatus(stepID, { one: { deployStatus: DeployStatus.Initial }});
+        let el = await d.elementStatus(stepID, "one");
         should(el).eql({ deployStatus: DeployStatus.Initial });
 
         const db = await fs.readJSON(dbFilename);
@@ -133,17 +201,20 @@ describe("Deployment with local server", () => {
             adaptLocalServerVersion: 0,
             deployments: {
                 [encodePathComponent(deployID)]: {
-                    currentSequence: 0,
+                    currentOpID: 0,
                     deployID,
-                    sequenceInfo: {
+                    deployOpInfo: {
                         0: {
-                            deployStatus: DeployStatus.Initial,
-                            goalStatus: DeployStatus.Initial,
-                            elementStatus: {
-                                one: {
-                                    deployStatus: DeployStatus.Initial
+                            currentStepNum: 0,
+                            0: {
+                                deployStatus: DeployStatus.Initial,
+                                goalStatus: DeployStatus.Initial,
+                                elementStatus: {
+                                    one: {
+                                        deployStatus: DeployStatus.Initial
+                                    },
                                 },
-                            },
+                            }
                         }
                     },
                     stateDirs: [],
@@ -151,7 +222,7 @@ describe("Deployment with local server", () => {
             }
         });
 
-        let stat = await d.status(0);
+        let stat = await d.status(stepID);
         should(stat).eql({
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Initial,
@@ -162,15 +233,15 @@ describe("Deployment with local server", () => {
             },
         });
 
-        await should(d.elementStatus(0, "two")).be.rejectedWith("ElementID 'two' not found");
-        await d.elementStatus(0, { two: { deployStatus: DeployStatus.Failed, error: "oops" }});
+        await should(d.elementStatus(stepID, "two")).be.rejectedWith("ElementID 'two' not found");
+        await d.elementStatus(stepID, { two: { deployStatus: DeployStatus.Failed, error: "oops" }});
 
-        el = await d.elementStatus(0, "one");
+        el = await d.elementStatus(stepID, "one");
         should(el).eql({ deployStatus: DeployStatus.Initial });
-        el = await d.elementStatus(0, "two");
+        el = await d.elementStatus(stepID, "two");
         should(el).eql({ deployStatus: DeployStatus.Failed, error: "oops" });
 
-        stat = await d.status(0);
+        stat = await d.status(stepID);
         should(stat).eql({
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Initial,
@@ -186,17 +257,95 @@ describe("Deployment with local server", () => {
         });
     });
 
-    it("Should error on non-current sequence", async () => {
+    it("Should error on non-current stepID", async () => {
         const d = await create();
-        const seq = await d.newSequence();
-        should(seq).equal(0);
+        const stepID = await d.newStepID(await d.newOpID());
+        should(stepID).eql(firstStepID);
 
-        await should(d.status(1, {
+        const badID: DeployStepID = {
+            deployOpID: 0,
+            deployStepNum: 1,
+        };
+        const errMsg = "Requested DeployStepID (0.1) is not current (0.0)";
+
+        await should(d.status(badID, {
             deployStatus: DeployStatus.Initial,
             goalStatus: DeployStatus.Initial,
             elementStatus: {},
-        })).be.rejectedWith("Requested sequence (1) is not current (0)");
-        await should(d.elementStatus(1, {})).be.rejectedWith("Requested sequence (1) is not current (0)");
+        })).be.rejectedWith(errMsg);
+        await should(d.elementStatus(badID, {})).be.rejectedWith(errMsg);
     });
 
+    it("Should reset stepID to 0 on new opID", async () => {
+        const d = await create();
+        const { deployID } = d;
+        const ids: [number, number][] = [];
+        const addIDs = (step: DeployStepID) => {
+            ids.push([step.deployOpID, step.deployStepNum]);
+        };
+
+        let opID = await d.newOpID();
+        addIDs(await d.newStepID(opID));
+        addIDs(await d.newStepID(opID));
+        addIDs(await d.newStepID(opID));
+
+        opID = await d.newOpID();
+        addIDs(await d.newStepID(opID));
+
+        opID = await d.newOpID();
+        opID = await d.newOpID();
+        addIDs(await d.newStepID(opID));
+        addIDs(await d.newStepID(opID));
+
+        opID = await d.newOpID();
+
+        should(ids).eql([
+            [ 0, 0],
+            [ 0, 1],
+            [ 0, 2],
+            [ 1, 0],
+            [ 3, 0],
+            [ 3, 1],
+        ]);
+
+        const initialInfo = {
+            deployStatus: DeployStatus.Initial,
+            goalStatus: DeployStatus.Initial,
+            elementStatus: {},
+        };
+        const db = await fs.readJSON(dbFilename);
+        should(db).eql({
+            adaptLocalServerVersion: 0,
+            deployments: {
+                [encodePathComponent(deployID)]: {
+                    currentOpID: 4,
+                    deployID,
+                    deployOpInfo: {
+                        0: {
+                            currentStepNum: 2,
+                            0: initialInfo,
+                            1: initialInfo,
+                            2: initialInfo,
+                        },
+                        1: {
+                            currentStepNum: 0,
+                            0: initialInfo,
+                        },
+                        2: {
+                            currentStepNum: null,
+                        },
+                        3: {
+                            currentStepNum: 1,
+                            0: initialInfo,
+                            1: initialInfo,
+                        },
+                        4: {
+                            currentStepNum: null,
+                        },
+                    },
+                    stateDirs: [],
+                }
+            }
+        });
+    });
 });

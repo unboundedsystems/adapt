@@ -1,17 +1,38 @@
-import Adapt, { Group } from "@usys/adapt";
-import { handles } from "@usys/cloud";
+import Adapt, { Group, handle } from "@usys/adapt";
+import { useMethod } from "@usys/cloud";
 // tslint:disable-next-line:no-submodule-imports
 import { Postgres } from "@usys/cloud/postgres";
+import NginxStatic from "./NginxStatic";
+import NginxUrlRouter from "./NginxUrlRouter";
 import NodeService from "./NodeService";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {
-    const h = handles();
+    const pg = handle();
+    const api = handle();
+    const stat = handle();
+
+    const connectEnv = useMethod(pg, {}, "connectEnv");
 
     return <Group key="App">
-        <Postgres handle={h.create.pg} />
-        <NodeService key="sample-service" srcDir=".."
-            port={8080} env={h.pg.connectEnv()} deps={h.pg} />
+
+        <NginxUrlRouter key="url-router"
+            port={8080}
+            routes={[
+                { path: "/api/", endpoint: api, upstreamPath: "/api/" },
+                { path: "/", endpoint: stat }
+            ]} />
+
+        <NodeService key="api-service" handle={api}
+            srcDir=".." env={connectEnv} deps={pg} />
+
+        <Postgres handle={pg} />
+
+        <NginxStatic key="static-service" handle={stat}
+            localAddRoot="../public" scope="cluster-internal"
+            add={[{ type: "image", image: api, stage: "app",
+                    files: [{ src: "/app/build", dest: "/www/static" }]}]} />
+
     </Group>;
 }
 

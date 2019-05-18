@@ -1,9 +1,11 @@
-import { Action } from "@usys/adapt";
+import { Action, AdaptElement, ChangeType } from "@usys/adapt";
+import { toArray } from "@usys/utils";
 import * as randomstring from "randomstring";
+import should from "should";
 import * as util from "util";
 
 // tslint:disable-next-line:no-submodule-imports
-export { doBuild } from "@usys/adapt/dist/test/testlib";
+export { doBuild, MockDeploy } from "@usys/adapt/dist/test/testlib";
 
 export async function act(actions: Action[]) {
     for (const action of actions) {
@@ -33,4 +35,30 @@ export function makeDeployId(prefix: string) {
         capitalization: "lowercase",
     });
     return `${prefix}-${rand}`;
+}
+
+export type NoChangeList = AdaptElement | AdaptElement[] | AdaptElement[][];
+
+// If els is:
+// 1) A single Element - then check for one Action with one Change
+// 2) An array of Elements - then check for one Action per Element and one
+//    change per Action.
+// 3) An array of arrays - then check for one Action per top level array
+//    which contains a Change for each Element in the sub-array.
+export function checkNoChanges(actions: Action[], els: NoChangeList) {
+    const actionEls = toArray(els);
+    should(actions).have.length(actionEls.length);
+    actions.forEach((a, i) => {
+        const changedEls = toArray(actionEls[i]);
+        const elSet = new Set(changedEls);
+        should(a.type).equal(ChangeType.none);
+        should(a.detail).equal("No changes required");
+        should(a.changes).have.length(elSet.size);
+        a.changes.forEach((c) => {
+            should(c.type).equal(ChangeType.none);
+            should(c.detail).equal("No changes required");
+            const had = elSet.delete(c.element);
+            should(had).be.True();
+        });
+    });
 }

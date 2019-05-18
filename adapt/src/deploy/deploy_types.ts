@@ -9,10 +9,11 @@ import { InternalError } from "../error";
 import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
+    AdaptMountedElement,
     FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence } from "../server/deployment_data";
+import { DeployOpID } from "../server/deployment_data";
 import { Status } from "../status";
 
 export enum DeployStatus {
@@ -109,6 +110,18 @@ export function isProxying(stat: DeployStatusExt) {
         stat === DeployStatusExt.ProxyDestroying;
 }
 
+export enum DeployOpStatusExt {
+    StateChanged = "StateChanged",
+}
+
+export type DeployOpStatus = DeployStatus | DeployOpStatusExt;
+// tslint:disable-next-line: variable-name
+export const DeployOpStatus = { ...DeployStatus, ...DeployOpStatusExt };
+
+/*
+ * Deployment plugins
+ */
+
 export type PluginKey = string;
 export type PluginInstances = Map<PluginKey, Plugin>;
 export type PluginModules = Map<PluginKey, PluginModule>;
@@ -167,7 +180,8 @@ export interface Action extends ActionInfo {
 
 export interface PluginOptions {
     deployID: string;
-    log: Logger;
+    log: Logger;  // deprecated
+    logger: MessageLogger;
     dataDir: string;
 }
 
@@ -190,12 +204,19 @@ export interface PluginManagerStartOptions {
 }
 
 export interface ActOptions {
+    builtElements: AdaptMountedElement[];
     concurrency?: number;
+    deployOpID: DeployOpID;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
+    processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
-    sequence: DeploymentSequence;
+}
+
+export interface ActComplete {
+    deployComplete: boolean;
+    stateChanged: boolean;
 }
 
 export interface Relation {
@@ -252,13 +273,15 @@ export interface PluginManager {
         options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<PluginObservations>;
     analyze(): Action[];
-    act(options: ActOptions): Promise<void>;
+    act(options: ActOptions): Promise<ActComplete>;
     finish(): Promise<void>;
 }
 
 export interface ExecutionPlanOptions {
     actions: Action[];
+    builtElements: AdaptMountedElement[];
     deployment: Deployment;
+    deployOpID: DeployOpID;
     diff: DomDiff;
     goalStatus: GoalStatus;
     seriesActions?: Action[][];
@@ -274,13 +297,15 @@ export interface ExecuteOptions {
     logger: MessageLogger;
     plan: ExecutionPlan;
     pollDelayMs?: number;
-    sequence: DeploymentSequence;
+    processStateUpdates: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
 }
 
 export interface ExecuteComplete {
-    deploymentStatus: DeployStatus;
+    deploymentStatus: DeployOpStatus;
     nodeStatus: Record<DeployStatus, number>;
     primStatus: Record<DeployStatus, number>;
+    nonPrimStatus: Record<DeployStatus, number>;
+    stateChanged: boolean;
 }

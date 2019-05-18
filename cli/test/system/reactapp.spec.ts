@@ -1,7 +1,6 @@
 import {
     describeLong,
     k8sutils,
-    mochaTmpdir,
 } from "@usys/testutils";
 import { waitForNoThrow } from "@usys/utils";
 import execa from "execa";
@@ -10,7 +9,7 @@ import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -41,8 +40,7 @@ describeLong("reactapp system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "reactapp");
-    mochaTmpdir.all("adapt-cli-test-reactapp", { copy: copyDir });
+    systemAppSetup.all("reactapp");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
@@ -86,22 +84,15 @@ describeLong("reactapp system tests", function () {
 
         kDeployID = getNewDeployID(stdout);
 
-        let pods: any;
-        await waitForNoThrow(120, 1, async () => {
-            pods = await getAll("pods", { client: kClient, deployID: kDeployID });
-            expect(pods).to.have.length(2);
-            if (!isPodReady(pods[0]) || !isPodReady(pods[1])) throw new Error(`Pods not ready`);
+        const pods = await getAll("pods", { client: kClient, deployID: kDeployID });
+        const names = pods.map((p) => p.spec.containers[0].name);
+        expect(names).to.have.members([
+            "nginx-url-router", "nginx-static", "db", "node-service"]);
+        pods.forEach((p: any) => {
+            if (!isPodReady(p)) throw new Error(`Pods not ready`);
         });
 
-        await waitForNoThrow(5, 5, async () => {
-            const resp = await execa.stdout("curl", [
-                ...curlOptions,
-                `http://${dockerHost}:8080/`
-            ]);
-            expect(resp).contains(`Unbounded Movie Database`);
-        });
-
-        await waitForNoThrow(5, 5, async () => {
+        await waitForNoThrow(5, 2, async () => {
             const resp = await execa.stdout("curl", [
                 ...curlOptions,
                 `http://${dockerHost}:8080/api/search/The%20Incredibles`
@@ -110,6 +101,14 @@ describeLong("reactapp system tests", function () {
                 title: "The Incredibles",
                 released: "Fri Nov 05 2004"
             }]);
+        });
+
+        await waitForNoThrow(5, 2, async () => {
+            const resp = await execa.stdout("curl", [
+                ...curlOptions,
+                `http://${dockerHost}:8080/`
+            ]);
+            expect(resp).contains(`Unbounded Movie Database`);
         });
     });
 });

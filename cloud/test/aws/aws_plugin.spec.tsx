@@ -3,6 +3,7 @@ import Adapt, {
     AdaptElement,
     AdaptElementOrNull,
     ChangeType,
+    childrenToArray,
     createStateStore,
     findElementsInDom,
     Group,
@@ -36,7 +37,7 @@ import {
     findStackElems,
 } from "../../src/aws/aws_plugin";
 import { getTag } from "../../src/aws/plugin_utils";
-import { act, doBuild, makeDeployId } from "../testlib";
+import { act, checkNoChanges, doBuild, makeDeployId } from "../testlib";
 import { getStackNames } from "./aws_testlib";
 const {
     checkStackStatus,
@@ -281,6 +282,7 @@ describe("AWS plugin basic tests", () => {
         options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
     });
@@ -400,6 +402,7 @@ describeLong("AWS plugin live tests", function () {
         options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
     });
@@ -453,11 +456,15 @@ describeLong("AWS plugin live tests", function () {
 
     it("Should not update stack with no changes [step 2]", async () => {
         should(stepComplete).equal(1, "Previous test did not complete");
+        if (!prevDom) throw should(prevDom).not.be.Null();
 
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, prevDom);
         const actions = plugin.analyze(prevDom, prevDom, obs);
-        should(actions.length).equal(0, "wrong number of actions");
+
+        const expChanges = childrenToArray(prevDom.props.children)
+            .map((stack) => [ stack, ...childrenToArray(stack.props.children) ]);
+        checkNoChanges(actions, expChanges);
 
         await act(actions);
         await plugin.finish();
@@ -482,20 +489,35 @@ describeLong("AWS plugin live tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(prevDom, dom);
         const actions = plugin.analyze(prevDom, dom, obs);
-        should(actions.length).equal(1, "wrong number of actions");
+        should(actions.length).equal(2, "wrong number of actions");
 
-        should(actions[0].type).equal(ChangeType.delete);
-        should(actions[0].detail).equal("Destroying CFStack");
-        should(actions[0].changes).have.length(2);
+        const del = actions.find((a) => a.type === ChangeType.delete);
+        if (!del) throw should(del).not.be.Undefined();
+        should(del.type).equal(ChangeType.delete);
+        should(del.detail).equal("Destroying CFStack");
+        should(del.changes).have.length(2);
 
-        should(actions[0].changes[0].type).equal(ChangeType.delete);
-        should(actions[0].changes[0].detail).equal("Destroying CFStack");
-        should(actions[0].changes[0].element.componentName).equal("CFStackPrimitive");
-        should(actions[0].changes[1].type).equal(ChangeType.delete);
-        should(actions[0].changes[1].detail).equal(
+        should(del.changes[0].type).equal(ChangeType.delete);
+        should(del.changes[0].detail).equal("Destroying CFStack");
+        should(del.changes[0].element.componentName).equal("CFStackPrimitive");
+        should(del.changes[1].type).equal(ChangeType.delete);
+        should(del.changes[1].detail).equal(
             "Destroying AWS::EC2::Instance due to CFStack deletion");
-        should(actions[0].changes[1].element.componentName).equal("CFResourcePrimitive");
-        should(actions[0].changes[1].element.props.key).equal("i1");
+        should(del.changes[1].element.componentName).equal("CFResourcePrimitive");
+        should(del.changes[1].element.props.key).equal("i1");
+
+        const none = actions.find((a) => a.type === ChangeType.none);
+        if (!none) throw should(none).not.be.Undefined();
+        should(none.type).equal(ChangeType.none);
+        should(none.detail).equal("No changes required");
+        const unchanged = new Set([ dom.props.children,
+            ...childrenToArray(dom.props.children.props.children)]);
+        should(none.changes).have.length(3);
+        none.changes.forEach((c) => {
+            should(c.type).equal(ChangeType.none);
+            should(c.detail).equal("No changes required");
+            should(unchanged.delete(c.element)).be.True();
+        });
 
         await act(actions);
         await plugin.finish();

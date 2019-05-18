@@ -1,19 +1,23 @@
 /**
  * Types describing the actual stored data in an AdaptServer
  */
-import { DeployStatus } from "../deploy";
+import { DeployOpStatus, DeployStatus } from "../deploy";
 
 /**
  * Top level of info that's stored in the Server
  */
 export interface DeploymentStored {
     deployID: string;
-    currentSequence: DeploymentSequence | null;
-    sequenceInfo: SequenceInfoMap;
+    currentOpID: DeployOpID | null;
+    deployOpInfo: DeployOpInfoMap;
     stateDirs: string[];
 }
 
-export type DeploymentSequence = number; // Integer only
+export type DeployOpID = number; // Integer only
+export interface DeployStepID {
+    deployOpID: DeployOpID;
+    deployStepNum: number;
+}
 
 export interface ElementStatus {
     deployStatus: DeployStatus;
@@ -24,12 +28,17 @@ export interface ElementStatusMap {
     [ elementID: string ]: ElementStatus;
 }
 
-export interface SequenceInfo {
-    deployStatus: DeployStatus;
+export interface DeployStepInfo {
+    deployStatus: DeployOpStatus;
     goalStatus: DeployStatus;
     elementStatus: ElementStatusMap;
 }
 
-export interface SequenceInfoMap {
-    [ deploymentSequence: number ]: SequenceInfo;
+export interface DeployOpInfoMap {
+    [ deployOpID: number ]: DeployStepInfoMap;
+}
+
+export interface DeployStepInfoMap {
+    currentStepNum: number | null;
+    [ deployStepNum: number ]: DeployStepInfo;
 }

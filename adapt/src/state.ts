@@ -3,7 +3,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { diffObjects, removeUndef } from "@usys/utils";
+import { diffObjects } from "@usys/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
 
@@ -112,8 +112,6 @@ export async function applyStateUpdates<
 
         newState = { ...newState as any, ...u as any };
     }
-
-    newState = removeUndef(newState);
 
     if (ld.isEqual(prev, newState)) return false;
     store.setElementState(path, newState);

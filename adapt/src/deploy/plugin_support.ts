@@ -20,9 +20,11 @@ import { Deployment } from "../server/deployment";
 import { getAdaptContext } from "../ts";
 
 import {
+    ActComplete,
     Action,
     ActOptions,
-    DeployStatus,
+    DeployOpStatus,
+    GoalStatus,
     Plugin,
     PluginConfig,
     PluginInstances,
@@ -137,9 +139,10 @@ interface AnyObservation {
     [name: string]: any;
 }
 
-const defaultActOptions: { dryRun: boolean; goalStatus: DeployStatus.Deployed } = {
+const defaultActOptions = {
     dryRun: false,
-    goalStatus: DeployStatus.Deployed,
+    goalStatus: DeployOpStatus.Deployed as GoalStatus,
+    processStateUpdates: () => Promise.resolve({ stateChanged: false }),
 };
 
 class PluginManagerImpl implements PluginManager {
@@ -180,6 +183,7 @@ class PluginManagerImpl implements PluginManager {
         const loptions = {
             deployID: options.deployment.deployID,
             log: options.logger.info, //FIXME(manishv) have a per-plugin log here
+            logger: options.logger,
         };
         const waitingFor = mapMap(this.plugins, async (key, plugin) => {
             const pMod = this.modules.get(key);
@@ -255,8 +259,8 @@ class PluginManagerImpl implements PluginManager {
         }
     }
 
-    async act(options: ActOptions) {
-        const { goalStatus, ...opts } = { ...defaultActOptions, ...options };
+    async act(options: ActOptions): Promise<ActComplete> {
+        const { builtElements, deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
         const { deployment, diff, logger } = this;
 
@@ -270,7 +274,9 @@ class PluginManagerImpl implements PluginManager {
 
         const plan = await createExecutionPlan({
             actions: this.parallelActions,
+            builtElements,
             deployment,
+            deployOpID,
             diff,
             goalStatus,
             seriesActions: this.seriesActions
@@ -279,17 +285,26 @@ class PluginManagerImpl implements PluginManager {
 
         this.transitionTo(PluginManagerState.Acting);
 
-        const result = await execute({
+        const { deploymentStatus, stateChanged } = await execute({
             ...opts,
             logger,
             plan,
         });
-        if (result.deploymentStatus !== goalStatus) {
+        if (deploymentStatus === DeployOpStatus.Failed) {
             throw new UserError(`Errors encountered during plugin action phase`);
+        }
+        const deployComplete = deploymentStatus === goalStatus;
+        if (!deployComplete && deploymentStatus !== DeployOpStatus.StateChanged) {
+            throw new InternalError(`Unexpected DeployOpStatus (${deploymentStatus}) from execute`);
         }
 
         if (opts.dryRun) this.transitionTo(PluginManagerState.PreAct);
         else this.transitionTo(PluginManagerState.PreFinish);
+
+        return {
+            deployComplete,
+            stateChanged,
+        };
     }
 
     async finish() {

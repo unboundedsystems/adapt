@@ -194,6 +194,14 @@ const defaultProps = {
     type: "ClusterIP",
 };
 
+function findInArray<T extends { [key: string]: any }>(arr: T[] | undefined | null, keyProp: string, key: any) {
+    if (!arr) return undefined;
+    for (const item of arr) {
+        if (item[keyProp] === key) return item;
+    }
+    return undefined;
+}
+
 export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<ServiceProps, typeof defaultProps>;
     const helpers = useBuildHelpers();
@@ -205,17 +213,31 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
         }
     }
 
+    const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
+    const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
     useImperativeMethods(() => ({
         hostname: () => {
             const resourceHand = props.handle;
             const resourceElem = resourceHand.target;
             if (!resourceElem) return undefined;
-            return resourceElementToName(resourceElem, deployID);
+            const resourceName = resourceElementToName(resourceElem, deployID);
+            const namespace = computeNamespaceFromMetadata(manifest.metadata);
+            return `${resourceName}.${namespace}.svc.cluster.local.`;
+        },
+        port: (name?: string) => {
+            if (name) {
+                const item = findInArray(props.ports, "name", name);
+                if (!item) return undefined;
+                return item.port;
+            } else if (props.ports) {
+                //Should it be an error to ask for ports without a name when there is more than one?
+                return props.ports[0].port;
+            } else {
+                return undefined;
+            }
         }
     }));
 
-    const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
-    const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
     updateSelector(async () => {
         const { selector: ep } = props;
         if (!isHandle(ep)) return {};

@@ -7,9 +7,17 @@ export type ImageId = string;
 
 export type Command = string | string[];
 
-export interface Environment {
+export interface EnvPair {
+    name: string;
+    value: string;
+}
+export type EnvPairs = EnvPair[];
+
+export interface EnvSimple {
     [key: string]: string;
 }
+
+export type Environment = EnvPair[] | EnvSimple;
 
 export interface PortBinding {
     [ctrPort: number]: number;
@@ -97,4 +105,29 @@ export default Container;
 
 export function isContainerElement(el: AdaptElement): el is AdaptElement<ContainerProps> {
     return el.componentType as any === Container;
+}
+
+export function mergeEnvPairs(...envs: (Environment | undefined)[]): EnvPairs | undefined {
+    let ret: EnvPairs | undefined;
+    envs.forEach((e) => {
+        if (!e) return;
+        if (!ret) ret = [];
+        ret = ret.concat(Array.isArray(e) ? e :
+            Object.keys(e).map((name) => ({ name, value: e[name] })));
+    });
+    return ret;
+}
+
+export function mergeEnvSimple(...envs: (Environment | undefined)[]): EnvSimple | undefined {
+    let ret: EnvSimple | undefined;
+    envs.forEach((e) => {
+        if (!e) return;
+        if (!ret) ret = {};
+        if (Array.isArray(e)) {
+            e.forEach((pair) => (ret as EnvSimple)[pair.name] = pair.value);
+        } else {
+            Object.assign(ret, e);
+        }
+    });
+    return ret;
 }

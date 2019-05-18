@@ -55,10 +55,12 @@ import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./er
 import { getInternalHandle, Handle } from "./handle";
 import { createHookInfo, finishHooks, HookInfo, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
+import { DeployOpID } from "./server/deployment_data";
 
 export type DomPath = AdaptElement[];
 
 const debugBuild = db("adapt:dom:build");
+const debugState = db("adapt:state");
 
 type CleanupFunc = () => void;
 class BuildResults {
@@ -66,8 +68,8 @@ class BuildResults {
     mountedOrig: AdaptMountedElement | null;
     contents: AdaptElementOrNull;
     cleanups: CleanupFunc[];
-    mountedElements: AdaptElement[];
-    builtElements: AdaptElement[];
+    mountedElements: AdaptMountedElement[];
+    builtElements: AdaptMountedElement[];
     stateChanged: boolean;
     partialBuild: boolean;
 
@@ -176,7 +178,7 @@ class BuildResults {
             if (clean) clean();
         } while (clean);
     }
-    toBuildOutput(): BuildOutput {
+    toBuildOutput(stateStore: StateStore): BuildOutput {
         if (this.buildErr && this.messages.length === 0) {
             throw new InternalError(`buildErr is true, but there are ` +
                 `no messages to describe why`);
@@ -197,12 +199,15 @@ class BuildResults {
         if (this.contents !== null && !isFinalDomElement(this.contents)) {
             throw new InternalError(`contents is not a valid built DOM element: ${this.contents}`);
         }
+        const builtElements = this.builtElements;
         return {
             partialBuild: false,
             buildErr: false,
             messages: this.messages,
             contents: this.contents,
-            mountedOrig: this.mountedOrig
+            mountedOrig: this.mountedOrig,
+            builtElements: this.builtElements,
+            processStateUpdates: () => processStateUpdates(builtElements, stateStore),
         };
     }
 }
@@ -237,8 +242,9 @@ function recordDomError(
 }
 
 export interface BuildHelpersOptions {
-    observerManager?: ObserverManagerDeployment;
     deployID: string;
+    deployOpID: DeployOpID;
+    observerManager?: ObserverManagerDeployment;
 }
 
 export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
@@ -256,7 +262,8 @@ export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
                 return undefined;
             }
         },
-        deployID: options.deployID
+        deployID: options.deployID,
+        deployOpID: options.deployOpID,
     };
 }
 
@@ -289,7 +296,7 @@ async function computeContentsFromElement<P extends object>(
     }
     let component: Component;
     try {
-        component = constructComponent(element, options.stateStore, options.observerManager);
+        component = constructComponent(element, options);
     } catch (e) {
         if (e instanceof BuildNotImplemented) return buildDone(e);
         if (isError(e)) {
@@ -414,8 +421,7 @@ function doOverride(
             if (!isMountedElement(element)) throw new InternalError(`Element should be mounted`);
             if (!isElementImpl(element)) throw new InternalError(`Element should be ElementImpl`);
             if (element.component == null) {
-                element.component = constructComponent(element,
-                    options.stateStore, options.observerManager);
+                element.component = constructComponent(element, options);
             }
         }
         const hand = getInternalHandle(element);
@@ -470,7 +476,7 @@ function mountElement(
 
     const finalPath = subLastPathElem(path, elem);
     elem.mount(parentStateNamespace, domPathToString(finalPath),
-        domPathToKeyPath(finalPath), options.deployID);
+        domPathToKeyPath(finalPath), options.deployID, options.deployOpID);
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
     out.mountedElements.push(elem);
@@ -507,7 +513,7 @@ async function buildElement(
     if (isPrimitiveElement(elem)) {
         const res = new BuildResults(options.recorder, elem, elem);
         try {
-            constructComponent(elem, options.stateStore, options.observerManager);
+            constructComponent(elem, options);
             res.builtElements.push(elem);
             elem.setBuilt();
         } catch (err) {
@@ -535,13 +541,19 @@ async function buildElement(
 }
 
 function constructComponent<P extends object = {}>(
-    elem: AdaptComponentElement<P>, stateStore: StateStore, observerManager: ObserverManagerDeployment): Component<P> {
+    elem: AdaptComponentElement<P>, options: BuildOptionsInternal): Component<P> {
+
+    const { deployID, deployOpID, observerManager, stateStore } = options;
 
     if (!isElementImpl(elem)) {
         throw new InternalError(`Element is not an ElementImpl`);
     }
 
     pushComponentConstructorData({
+        deployInfo: {
+            deployID,
+            deployOpID,
+        },
         getState: () => stateStore.elementState(elem.stateNamespace),
         setInitialState: (init) => stateStore.setElementState(elem.stateNamespace, init),
         stateUpdates: elem.stateUpdates,
@@ -566,6 +578,7 @@ export interface BuildOptions {
     maxBuildPasses?: number;
     buildOnce?: boolean;
     deployID?: string;
+    deployOpID?: DeployOpID;
 }
 
 export interface BuildOptionsInternal extends Required<BuildOptions> {
@@ -586,6 +599,7 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
         maxBuildPasses: 200,
         buildOnce: false,
         deployID: "<none>",
+        deployOpID: 0,
 
         matchInfoReg: css.createMatchInfoReg(),
         hookInfo: createHookInfo(),
@@ -620,9 +634,14 @@ export function isBuildOutputError(v: any): v is BuildOutputError {
     return isBuildOutputPartial(v) && v.buildErr === true;
 }
 
+export type ProcessStateUpdates = () => Promise<{ stateChanged: boolean }>;
+export const noStateUpdates = () => Promise.resolve({ stateChanged: false });
+
 export interface BuildOutputSuccess extends BuildOutputBase {
     buildErr: false;
+    builtElements: AdaptMountedElement[];
     partialBuild: false;
+    processStateUpdates: ProcessStateUpdates;
     contents: FinalDomElement | null;
 }
 export function isBuildOutputSuccess(v: any): v is BuildOutputSuccess {
@@ -656,7 +675,7 @@ export async function build(
         if (optionsReq.depth === 0) throw new Error(`build depth cannot be 0: ${options}`);
 
         await pathBuild([root], styleList, optionsReq, results);
-        return results.toBuildOutput();
+        return results.toBuildOutput(optionsReq.stateStore);
     } finally {
         debugBuildBuild(`done`);
         buildCount--;
@@ -751,16 +770,27 @@ async function pathBuildOnceGuts(
 
     debug(`postBuild`);
     options.recorder({ type: "done", root: results.contents });
-    const updates = results.builtElements.map(async (elem) => {
+
+    const { stateChanged } = await processStateUpdates(results.builtElements, options.stateStore);
+    if (stateChanged) results.stateChanged = true;
+    debug(`done (stateChanged=${results.stateChanged})`);
+}
+
+export async function processStateUpdates(
+    builtElements: AdaptElement[], stateStore: StateStore): Promise<{ stateChanged: boolean }> {
+
+    let stateChanged = false;
+
+    debugState(`State updates: start`);
+    const updates = builtElements.map(async (elem) => {
         if (isElementImpl(elem)) {
-            const { stateChanged } = await elem.postBuild(options.stateStore);
-            if (stateChanged) {
-                results.stateChanged = true;
-            }
+            const ret = await elem.postBuild(stateStore);
+            if (ret.stateChanged) stateChanged = true;
         }
     });
     await Promise.all(updates);
-    debug(`done (stateChanged=${results.stateChanged})`);
+    debugState(`State updates: complete (stateChanged=${stateChanged})`);
+    return { stateChanged };
 }
 
 function setOrigChildren(predecessor: AdaptElementImpl<AnyProps>, origChildren: any[]) {
@@ -833,6 +863,7 @@ async function buildChildren(
 export interface BuildData {
     id: string;
     deployID: string;
+    deployOpID: DeployOpID;
     successor?: AdaptMountedElement | null;
     //Only defined for deferred elements since other elements may never mount their children
     origChildren?: (AdaptMountedElement | null | unknown)[];

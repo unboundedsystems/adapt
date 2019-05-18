@@ -159,7 +159,9 @@ describe("Build Helper elementStatus", () => {
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         const statusGetter = mountedOrig.buildData.origChildren![1];
         if (!isElementImpl(statusGetter)) throw should(isElementImpl(statusGetter)).True();
-        should(stateStore.elementState(statusGetter.stateNamespace)).eql({});
+        should(stateStore.elementState(statusGetter.stateNamespace)).eql({
+            data: undefined
+        });
     });
 
     it("Should return status with observations", async () => {

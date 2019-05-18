@@ -1,10 +1,11 @@
-import { TaskObserver } from "@usys/utils";
+import { TaskObserver, TaskState } from "@usys/utils";
 import { inspect } from "util";
 import { InternalError } from "../error";
 import { isFinalDomElement } from "../jsx";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence, ElementStatus, ElementStatusMap, } from "../server/deployment_data";
+import { DeployOpID, DeployStepID, ElementStatus, ElementStatusMap } from "../server/deployment_data";
 import {
+    DeployOpStatus,
     DeployStatus,
     DeployStatusExt,
     ExecuteComplete,
@@ -26,7 +27,7 @@ export interface StatusTrackerOptions {
     dryRun: boolean;
     goalStatus: GoalStatus;
     nodes: EPNode[];
-    sequence: DeploymentSequence;
+    deployOpID: DeployOpID;
     taskObserver: TaskObserver;
 }
 
@@ -41,13 +42,16 @@ export class StatusTrackerImpl implements StatusTracker {
     readonly dryRun: boolean;
     readonly goalStatus: GoalStatus;
     readonly nodeStatus: Record<DeployStatus, number>;
+    readonly nonPrimStatus: Record<DeployStatus, number>;
+    readonly deployOpID: DeployOpID;
     readonly primStatus: Record<DeployStatus, number>;
     readonly statMap: Map<EPNode, DeployStatusExt>;
     readonly taskMap: Map<EPNode, TaskObserver>;
-    readonly sequence: DeploymentSequence;
+    stepID?: DeployStepID;
 
     constructor(options: StatusTrackerOptions) {
         this.deployment = options.deployment;
+        this.deployOpID = options.deployOpID;
         this.dryRun = options.dryRun;
         this.goalStatus = options.goalStatus;
 
@@ -55,25 +59,30 @@ export class StatusTrackerImpl implements StatusTracker {
         this.nodeStatus.Waiting = options.nodes.length;
 
         this.primStatus = this.newStatus();
+        this.nonPrimStatus = this.newStatus();
 
         this.taskMap = new Map<EPNode, TaskObserver>();
         const tGroup = options.taskObserver.childGroup({ serial: false });
 
         this.statMap = new Map<EPNode, DeployStatusExt>(options.nodes.map((n) => {
             if (n.element) {
-                this.primStatus.Waiting++;
-                const id = n.element.id;
-                const tasks = tGroup.add({ [id]: n.element.componentName });
-                this.taskMap.set(n, tasks[id]);
+                if (isFinalDomElement(n.element)) this.primStatus.Waiting++;
+                else this.nonPrimStatus.Waiting++;
+                if (shouldTrackStatus(n)) {
+                    const id = n.element.id;
+                    const tasks = tGroup.add({ [id]: n.element.componentName }, false);
+                    this.taskMap.set(n, tasks[id]);
+                }
             }
             return [n, DeployStatusExt.Waiting] as [EPNode, DeployStatusExt];
         }));
-        this.sequence = options.sequence;
     }
 
     async initDeploymentStatus() {
-        const deploymentDeployStatus = goalToInProgress(this.goalStatus);
         if (this.dryRun) return;
+
+        this.stepID = await this.deployment.newStepID(this.deployOpID);
+        const deploymentDeployStatus = goalToInProgress(this.goalStatus);
 
         const elementStatus: ElementStatusMap = {};
         this.statMap.forEach((extStatus, n) => {
@@ -81,7 +90,7 @@ export class StatusTrackerImpl implements StatusTracker {
             if (el == null) return;
             elementStatus[el.id] = { deployStatus: toDeployStatus(extStatus) };
         });
-        await this.deployment.status(this.sequence, {
+        await this.deployment.status(this.stepID, {
             deployStatus: deploymentDeployStatus,
             goalStatus: this.goalStatus,
             elementStatus,
@@ -109,7 +118,7 @@ export class StatusTrackerImpl implements StatusTracker {
         this.updateCount(n, toDeployStatus(oldStat), deployStatus);
 
         this.updateTask(n, oldStat, deployStatus, err, description);
-        await this.updateStatus(n, err);
+        await this.writeStatus(n, err);
 
         return true;
     }
@@ -123,13 +132,12 @@ export class StatusTrackerImpl implements StatusTracker {
     }
 
     output(n: EPNode, s: string) {
-        if (!n.element) return;
-        const task = this.taskMap.get(n);
-        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
+        const task = this.getTask(n);
+        if (!task) return;
         task.updateStatus(s);
     }
 
-    async complete(): Promise<ExecuteComplete> {
+    async complete(stateChanged: boolean): Promise<ExecuteComplete> {
         if (this.nodeStatus.Initial > 0) {
             throw new InternalError(`Nodes should not be in Initial state ${JSON.stringify(this.nodeStatus)}`);
         }
@@ -138,16 +146,19 @@ export class StatusTrackerImpl implements StatusTracker {
         const deploymentStatus =
             (this.nodeStatus.Failed > 0) ? DeployStatus.Failed :
             (atGoal === this.statMap.size) ? this.goalStatus :
+            stateChanged ? DeployOpStatus.StateChanged :
             goalToInProgress(this.goalStatus);
 
-        if (!this.dryRun) {
-            await this.deployment.status(this.sequence, { deployStatus: deploymentStatus });
+        if (this.stepID != null) {
+            await this.deployment.status(this.stepID, { deployStatus: deploymentStatus });
         }
 
         return {
             deploymentStatus,
             nodeStatus: this.nodeStatus,
+            nonPrimStatus: this.nonPrimStatus,
             primStatus: this.primStatus,
+            stateChanged,
         };
     }
 
@@ -158,42 +169,61 @@ export class StatusTrackerImpl implements StatusTracker {
         return `StatusTracker {\n${entries}\n}`;
     }
 
-    private async updateStatus(n: EPNode, err: Error | undefined) {
-        if (n.element == null || this.dryRun) return;
+    private getTask(n: EPNode) {
+        if (!shouldTrackStatus(n)) return undefined;
+        const task = this.taskMap.get(n);
+        if (!task) {
+            throw new InternalError(`No task observer found for node (${n.element && n.element.id})`);
+        }
+        return task;
+    }
+
+    private async writeStatus(n: EPNode, err: Error | undefined) {
+        if (n.element == null || this.stepID == null) return;
 
         const statExt = this.get(n);
         const deployStatus = toDeployStatus(statExt);
         const s: ElementStatus = { deployStatus };
         if (err) s.error = err.message;
-        await this.deployment.elementStatus(this.sequence, { [n.element.id]: s });
+        await this.deployment.elementStatus(this.stepID, { [n.element.id]: s });
     }
 
     private updateTask(n: EPNode, oldStat: DeployStatusExt, newStat: DeployStatus,
         err: Error | undefined, description: string | undefined) {
 
-        if (!n.element) return;
+        const task = this.getTask(n);
+        if (!task) return;
 
-        const task = this.taskMap.get(n);
-        if (!task) throw new InternalError(`No task observer found for node (${n.element.id})`);
         if (description) task.description = description;
 
         if (err) return task.failed(err);
 
         if (this.dryRun) {
-            if (isGoalStatus(newStat)) task.skipped();
+            if (isGoalStatus(newStat)) {
+                if (task.state === TaskState.Created ||
+                    task.state === TaskState.Started) task.skipped();
+            }
 
         } else {
-            if (isInProgress(newStat) && !isProxying(oldStat)) task.started();
-            else if (isGoalStatus(newStat)) task.complete();
+            if (isInProgress(newStat) && !isProxying(oldStat)) {
+                if (task.state === TaskState.Created) task.started();
+            } else if (isGoalStatus(newStat)) {
+                if (task.state === TaskState.Started) task.complete();
+            }
         }
     }
 
     private updateCount(n: EPNode, oldStat: DeployStatus, newStat: DeployStatus) {
         this.nodeStatus[oldStat]--;
         this.nodeStatus[newStat]++;
-        if (n.element && isFinalDomElement(n.element)) {
-            this.primStatus[oldStat]--;
-            this.primStatus[newStat]++;
+        if (n.element) {
+            if (isFinalDomElement(n.element)) {
+                this.primStatus[oldStat]--;
+                this.primStatus[newStat]++;
+            } else {
+                this.nonPrimStatus[oldStat]--;
+                this.nonPrimStatus[newStat]++;
+            }
         }
     }
 
@@ -202,4 +232,8 @@ export class StatusTrackerImpl implements StatusTracker {
         Object.keys(DeployStatus).forEach((k) => stat[k] = 0);
         return stat;
     }
+}
+
+export function shouldTrackStatus(n: EPNode) {
+    return n.element != null && (n.waitInfo != null || n.hardDeps != null);
 }

@@ -154,6 +154,7 @@ describeFixture("AWS CFStack API tests", () => {
         const options = {
             deployID,
             log: logger.info,
+            logger,
             dataDir: "/fake/datadir",
         };
 

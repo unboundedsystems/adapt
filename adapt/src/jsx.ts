@@ -29,6 +29,7 @@ import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
 import { adaptGqlExecute } from "./observers/query_transforms";
 import { findObserver } from "./observers/registry";
 import { registerConstructor } from "./reanimate";
+import { DeployOpID } from "./server/deployment_data";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
 import * as tySup from "./type_support";
@@ -150,13 +151,19 @@ export function componentStateNow<
     }
 }
 
-export interface BuildHelpers {
+export interface DeployInfo {
     deployID: string;
+    deployOpID: DeployOpID;
+}
+
+export interface BuildHelpers extends DeployInfo {
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 
 export abstract class Component<Props extends object = {}, State extends object = {}>
     implements GenericInstanceMethods {
+
+    deployInfo: DeployInfo;
 
     dependsOn?: DependsOnMethod;
     deployedWhen?: DeployedWhenMethod;
@@ -203,6 +210,7 @@ export abstract class Component<Props extends object = {}, State extends object 
             cData.setInitialState(init);
         }
         this.stateUpdates = cData.stateUpdates as any;
+        this.deployInfo = cData.deployInfo;
 
         // Prevent subclass constructors from accessing this.state too early
         // by waiting to init getState.
@@ -365,7 +373,9 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         Object.freeze(this.props);
     }
 
-    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath, deployID: string) {
+    mount(parentNamespace: StateNamespace, path: string, keyPath: KeyPath,
+        deployID: string, deployOpID: DeployOpID) {
+
         if (this.mounted) {
             throw new Error("Cannot remount elements!");
         }
@@ -380,6 +390,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         this.mounted = true;
         this.buildData.id = this.id;
         this.buildData.deployID = deployID;
+        this.buildData.deployOpID = deployOpID;
     }
 
     setBuilt = () => this.buildState = BuildState.built;
@@ -642,6 +653,7 @@ export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promis
 }
 
 export interface ComponentConstructorData {
+    deployInfo: DeployInfo;
     getState: () => any;
     setInitialState: <T extends object>(init: T) => void;
     stateUpdates: StateUpdater[];

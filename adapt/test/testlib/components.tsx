@@ -1,13 +1,7 @@
-import { findPackageDirs } from "@usys/utils";
 import should from "should";
-import Adapt, { AdaptElement, AdaptMountedElement, build, buildPrinter, StateStore } from "../src";
-import * as jsx from "../src/jsx";
-
-import { makeObserverManagerDeployment } from "../src/observers";
-
-export const packageDirs = findPackageDirs(__dirname);
-export const pkgRootDir = packageDirs.root;
-export const pkgTestDir = packageDirs.test;
+import Adapt from "../../src";
+import * as jsx from "../../src/jsx";
+import { makeObserverManagerDeployment } from "../../src/observers";
 
 export function checkChildComponents(element: Adapt.AdaptElement, ...children: any[]) {
     const childArray = jsx.childrenToArray(element.props.children);
@@ -59,10 +53,12 @@ export class WithDefaults extends Adapt.Component<WithDefaultsProps> {
     }
 }
 
-export { deepFilterElemsToPublic } from "../src";
-
 // Constructor data that doesn't actually keep track of state
 const noStoreConstructorData: jsx.ComponentConstructorData = {
+    deployInfo: {
+        deployID: "mockdeploy",
+        deployOpID: 0,
+    },
     getState: () => ({}),
     setInitialState: () => {/**/ },
     stateUpdates: [],
@@ -74,55 +70,4 @@ export function componentConstructorDataFixture(ccData = noStoreConstructorData)
         makeObserverManagerDeployment({}); //Make sure we call after registerObserver from modules are done
     before(() => jsx.pushComponentConstructorData(ccData));
     after(() => jsx.popComponentConstructorData());
-}
-
-export interface DoBuildOpts {
-    deployID?: string;
-    stateStore?: StateStore;
-    debug?: boolean;
-    style?: AdaptElement | null;
-}
-export interface DoBuildOptsNullOk extends DoBuildOpts {
-    nullDomOk: true;
-}
-
-export interface DoBuild {
-    mountedOrig: AdaptMountedElement;
-    dom: AdaptMountedElement;
-}
-export interface DoBuildNullOk {
-    mountedOrig: AdaptMountedElement | null;
-    dom: AdaptMountedElement | null;
-}
-
-const doBuildDefaults = {
-    deployID: "<none>",
-    debug: false,
-    style: null,
-    nullDomOk: false,
-};
-
-export async function doBuild(elem: AdaptElement, options?: DoBuildOpts): Promise<DoBuild>;
-export async function doBuild(elem: AdaptElement, options: DoBuildOptsNullOk): Promise<DoBuildNullOk>;
-export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial<DoBuildNullOk> = {}
-    ): Promise<DoBuild | DoBuildNullOk>  {
-
-    const { deployID, nullDomOk, stateStore, debug, style } = { ...doBuildDefaults, ...options };
-    const buildOpts = {
-        recorder: debug ? buildPrinter() : undefined,
-        deployID,
-        stateStore,
-    };
-    const { mountedOrig, contents: dom, messages, buildErr, partialBuild } =
-        await build(elem, style, buildOpts);
-    should(buildErr).be.False();
-    should(partialBuild).be.False();
-    should(messages).have.length(0);
-    if (!nullDomOk && dom == null) {
-        should(dom).not.Null();
-        should(dom).not.Undefined();
-        throw new Error("Unreachable");
-    }
-
-    return { mountedOrig, dom };
 }

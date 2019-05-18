@@ -22,12 +22,8 @@ export interface WidgetPair<E extends AdaptElement, O extends object> {
     observed?: O;
 }
 
-interface WidgetActions<E extends AdaptElement, O extends object> {
-    toCreate: WidgetPair<E, O>[];
-    toDestroy: WidgetPair<E, O>[];
-    toModify: WidgetPair<E, O>[];
-    toReplace: WidgetPair<E, O>[];
-}
+type WidgetActions<E extends AdaptElement, O extends object> =
+    Record<ChangeType, WidgetPair<E, O>[]>;
 
 export interface QueryDomain<Id, Secret> {
     id: Id;
@@ -166,17 +162,18 @@ export abstract class WidgetPlugin<
         );
         const ret: Action[] = [];
 
-        this.translatePairs(ret, actions.toCreate, "Creating",
+        this.translatePairs(ret, actions.create, "Creating",
                             (d, p) => this.createWidget(d, deployID, p));
-        this.translatePairs(ret, actions.toModify, "Modifying",
+        this.translatePairs(ret, actions.modify, "Modifying",
                             (d, p) => this.modifyWidget(d, deployID, p));
-        this.translatePairs(ret, actions.toReplace, "Replacing",
+        this.translatePairs(ret, actions.replace, "Replacing",
                             async (d, p) => {
                                 await this.destroyWidget(d, deployID, p);
                                 await this.createWidget(d, deployID, p);
                             });
-        this.translatePairs(ret, actions.toDestroy, "Destroying",
+        this.translatePairs(ret, actions.delete, "Destroying",
                             (d, p) => this.destroyWidget(d, deployID, p));
+        this.translatePairs(ret, actions.none, "Not modifying", () => {/**/});
         return ret;
     }
 
@@ -291,27 +288,25 @@ function diffArrays<E extends AdaptElement, O extends object>(
 
         actionInfo = computeChanges(e, o);
         const pair = { queryDomainKey, actionInfo };
+        const actionList = actions[actionInfo.type];
         switch (actionInfo.type) {
             case ChangeType.create:
-                actions.toCreate.push({...pair, element: e.to});
+            case ChangeType.none:
+                actionList.push({...pair, element: e.to});
                 break;
             case ChangeType.delete:
-                actions.toDestroy.push({...pair, observed: o});
+                actionList.push({...pair, observed: o});
                 break;
             case ChangeType.modify:
-                actions.toModify.push({...pair, element: e.to, observed: o});
-                break;
             case ChangeType.replace:
-                actions.toReplace.push({...pair, element: e.to, observed: o});
-                break;
-            case ChangeType.none:
+                actionList.push({...pair, element: e.to, observed: o});
                 break;
         }
     }
 
     for (const [id, o] of obsMap) {
         actionInfo = computeChanges({id}, o);
-        actions.toDestroy.push({queryDomainKey, actionInfo, observed: o});
+        actions.delete.push({queryDomainKey, actionInfo, observed: o});
     }
 }
 
@@ -322,10 +317,11 @@ function diffObservations<E extends AdaptElement, O extends object>(
     computeChanges: ComputeChanges<E, O>,
 ): WidgetActions<E, O> {
     const actions: WidgetActions<E, O> = {
-        toCreate: [],
-        toDestroy: [],
-        toModify: [],
-        toReplace: [],
+        create: [],
+        delete: [],
+        modify: [],
+        none: [],
+        replace: [],
     };
     // Clone so we can modify
     observed = {...observed};

@@ -22,9 +22,9 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { immediatePromise, MessageLogger, TaskObserver } from "@usys/utils";
+import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@usys/utils";
 import { createPluginManager } from "../deploy/plugin_support";
-import { isBuildOutputError, isBuildOutputPartial } from "../dom";
+import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
 import { InternalError } from "../error";
 import { AdaptMountedElement, FinalDomElement } from "../jsx";
@@ -32,12 +32,12 @@ import {
     ExecutedQuery,
 } from "../observers";
 import { Deployment } from "../server/deployment";
-import { DeploymentSequence } from "../server/deployment_data";
-import { HistoryStatus } from "../server/history";
+import { DeployOpID } from "../server/deployment_data";
+import { HistoryEntry, HistoryStatus, isStatusComplete } from "../server/history";
 import { createStateStore, StateStore } from "../state";
 import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
-import { DeployState, DeploySuccess, parseDebugString } from "./common";
+import { DeployState, parseDebugString } from "./common";
 import { parseFullObservationsJson, stringifyFullObservations } from "./serialize";
 
 const debugAction = db("adapt:ops:action");
@@ -51,15 +51,19 @@ export interface BuildOptions {
     stackName: string;
     taskObserver: TaskObserver;
 
-    sequence?: DeploymentSequence;
+    deployOpID?: DeployOpID;
     withStatus?: boolean;
     observationsJson?: string;
     prevStateJson?: string;
     projectRoot?: string;
 }
 
+export type CommitData = Omit<HistoryEntry, "fileName" | "projectRoot" | "stackName" | "stateJson">;
 export interface FullBuildOptions extends Required<BuildOptions> {
     ctx?: AdaptContext;
+    commit: (entry: CommitData) => Promise<void>;
+    stateStore: StateStore;
+    prevDomXml: string | undefined;
 }
 
 export function computePaths(options: BuildOptions): { fileName: string, projectRoot: string } {
@@ -70,32 +74,59 @@ export function computePaths(options: BuildOptions): { fileName: string, project
 
 export async function currentState(options: BuildOptions): Promise<FullBuildOptions> {
     const { deployment } = options;
+    let lastCommit: HistoryStatus | undefined;
     const paths = computePaths(options);
     const prev = await deployment.lastEntry(HistoryStatus.complete);
 
-    // Allocate a new sequence ID for this operation if not provided
-    const sequence = options.sequence !== undefined ?
-        options.sequence : await deployment.newSequence();
+    const observationsJson = options.observationsJson ||
+        (prev ? prev.observationsJson : "{}");
+    const prevStateJson = options.prevStateJson ||
+        (prev ? prev.stateJson : "{}");
 
-    if (!prev) return initialState();
-    return {
+    let stateStore: StateStore;
+    try {
+        stateStore = createStateStore(prevStateJson);
+    } catch (err) {
+        let msg = `Invalid previous state JSON`;
+        if (err.message) msg += `: ${err.message}`;
+        throw new Error(msg);
+    }
+
+    // Allocate a new opID for this operation if not provided
+    const deployOpID = options.deployOpID !== undefined ?
+        options.deployOpID : await deployment.newOpID();
+
+    const ret = {
         ...options,
         ...paths,
-        sequence,
+        commit,
+        observationsJson,
+        prevDomXml: prev && prev.domXml,
+        prevStateJson,
+        deployOpID,
+        stateStore,
         withStatus: options.withStatus || false,
-        observationsJson: options.observationsJson || prev.observationsJson,
-        prevStateJson: options.prevStateJson || prev.stateJson
     };
+    return ret;
 
-    function initialState() {
-        return {
-            ...options,
-            ...paths,
-            sequence,
-            withStatus: options.withStatus || false,
-            observationsJson: options.observationsJson || JSON.stringify({}),
-            prevStateJson: options.prevStateJson || "{}",
-        };
+    async function commit(entry: CommitData) {
+        if (lastCommit === HistoryStatus.preAct &&
+            entry.status === HistoryStatus.preAct) return;
+        if (lastCommit && isStatusComplete(lastCommit)) {
+            throw new InternalError(`Attempt to commit a repeated final ` +
+                `HistoryStatus (${entry.status})`);
+        }
+        lastCommit = entry.status;
+
+        if (!ret.dryRun) {
+            await deployment.commitEntry({
+                ...entry,
+                fileName: ret.fileName,
+                projectRoot: ret.projectRoot,
+                stackName: ret.stackName,
+                stateJson: stateStore.serialize(),
+            });
+        }
     }
 }
 
@@ -104,11 +135,13 @@ interface ExecutedQueries {
 }
 
 export interface BuildResults extends FullBuildOptions {
+    builtElements: AdaptMountedElement[];
     domXml: string;
     mountedOrigStatus: Status;
     executedQueries: ExecutedQueries;
     needsData: ExecutedQueries;
     newDom: FinalDomElement | null;
+    processStateUpdates: ProcessStateUpdates;
 }
 
 function podify<T>(x: T): T {
@@ -117,10 +150,9 @@ function podify<T>(x: T): T {
 
 export async function build(options: FullBuildOptions): Promise<BuildResults> {
     return withContext(options, async (ctx: AdaptContext) => {
-        const { deployment, taskObserver, stackName } = options;
+        const { deployment, taskObserver, stackName, stateStore } = options;
         const logger = taskObserver.logger;
 
-        const prevStateJson = options.prevStateJson;
         const observations = parseFullObservationsJson(options.observationsJson);
         const observerObservations = observations.observer || {};
         const debugFlags = parseDebugString(options.debug);
@@ -132,20 +164,13 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         const stacks = ctx.adaptStacks;
         if (!stacks) throw new InternalError(`No stacks found`);
         const stack = stacks.get(stackName);
-        if (!stack) throw new Error(`Adapt stack '${stackName}' not found`);
+        if (!stack) throw new UserError(`Adapt stack '${stackName}' not found`);
 
-        let stateStore: StateStore;
-        try {
-            stateStore = createStateStore(prevStateJson);
-        } catch (err) {
-            let msg = `Invalid previous state JSON`;
-            if (err.message) msg += `: ${err.message}`;
-            throw new Error(msg);
-        }
-
+        let builtElements: AdaptMountedElement[] = [];
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
         let executedQueries: ExecutedQueries = {};
+        let processStateUpdates: ProcessStateUpdates = () => Promise.resolve({ stateChanged: true });
 
         let needsData: ExecutedQueries = {};
         const root = await stack.root;
@@ -166,14 +191,17 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
                 throw new ProjectBuildError(inAdapt.serializeDom(results.contents));
             }
 
+            builtElements = results.builtElements;
             newDom = results.contents;
             mountedOrig = results.mountedOrig;
             executedQueries = podify(observeManager.executedQueries());
             needsData = podify(observeManager.executedQueriesThatNeededData());
+            processStateUpdates = results.processStateUpdates;
         }
 
         return {
             ...options,
+            builtElements,
             ctx,
             domXml: inAdapt.serializeDom(newDom, { reanimateable: true }),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
@@ -182,6 +210,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
             newDom,
             executedQueries,
             prevStateJson: stateStore.serialize(),
+            processStateUpdates,
         };
     });
 }
@@ -239,11 +268,12 @@ interface ReanimateOpts {
     domXml: string;
     stateJson: string;
     deployID: string;
+    deployOpID: DeployOpID;
     logger: MessageLogger;
 }
 async function reanimateAndBuild(opts: ReanimateOpts) {
     const inAdapt = opts.ctx.Adapt;
-    const { deployID, domXml, logger } = opts;
+    const { deployID, deployOpID, domXml, logger } = opts;
     let stateStore: StateStore;
     try {
         stateStore = createStateStore(opts.stateJson);
@@ -252,7 +282,7 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
         if (err.message) msg += `: ${err.message}`;
         throw new Error(msg);
     }
-    const zombie = await inAdapt.internal.reanimateDom(domXml, deployID);
+    const zombie = await inAdapt.internal.reanimateDom(domXml, deployID, deployOpID);
     if (zombie === null) return null;
     const buildRes = await inAdapt.build(zombie, null, {
         deployID,
@@ -275,160 +305,207 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
     return buildRes.contents;
 }
 
-export async function deploy(options: BuildResults): Promise<DeployState> {
-    const { deployment, newDom, stackName, taskObserver, fileName, projectRoot } = options;
-    const tasks = taskObserver.childGroup().add({
-        setup: "Setting up",
-        reanimatePrev: "Reconstituting previous DOM",
+export interface DeployPassOptions extends FullBuildOptions {
+    actTaskObserver: TaskObserver;
+    dataDir: string;
+    prevDom: FinalDomElement | null;
+}
+export interface DeployPassResults extends BuildResults {
+    deployComplete: boolean;
+    stateChanged: boolean;
+}
+
+export async function deployPass(options: DeployPassOptions): Promise<DeployPassResults> {
+    const { actTaskObserver, dataDir, deployment, prevDom, taskObserver, ...buildOpts } = options;
+
+    return withContext(options, async (ctx: AdaptContext): Promise<DeployPassResults> => {
+        // This is the inner context's copy of Adapt
+        const inAdapt = ctx.Adapt;
+
+        debugAction(`deployPass: rebuild`);
+        taskObserver.updateStatus("Rebuilding DOM");
+        const buildResults = await build({
+            ...buildOpts,
+            deployment,
+            withStatus: true,
+            taskObserver,
+        });
+        const { newDom, processStateUpdates } = buildResults;
+        if (debugDeployDom.enabled) {
+            debugDeployDom(inAdapt.serializeDom(newDom, { props: [ "key" ] }));
+        }
+
+        debugAction(`deployPass: observe`);
+        taskObserver.updateStatus("Observing and analyzing environment");
+        const mgr = createPluginManager(ctx.pluginModules);
+
+        await mgr.start(prevDom, newDom, {
+            dataDir: path.join(dataDir, "plugins"),
+            deployment,
+            logger: actTaskObserver.logger,
+        });
+        const newPluginObs = await mgr.observe();
+
+        debugAction(`deployPass: analyze`);
+        mgr.analyze();
+
+        const observationsJson = stringifyFullObservations({
+            plugin: newPluginObs,
+            observer: parseFullObservationsJson(options.observationsJson).observer
+        });
+
+        /*
+         * NOTE: There should be no deployment side effects prior to here, but
+         * once act is called the first time, that is no longer true.
+         */
+        let status = HistoryStatus.preAct;
+        await commit();
+        status = HistoryStatus.failed;
+
+        try {
+            debugAction(`deployPass: act`);
+            taskObserver.updateStatus("Applying changes to environment");
+            if (actTaskObserver.state === TaskState.Created) {
+                actTaskObserver.started();
+            }
+            const { deployComplete, stateChanged } = await mgr.act({
+                builtElements: buildResults.builtElements,
+                deployOpID: options.deployOpID,
+                dryRun: options.dryRun,
+                processStateUpdates,
+                taskObserver: actTaskObserver,
+            });
+            await mgr.finish();
+
+            debugAction(`deployPass: done (complete: ${deployComplete}, state changed: ${stateChanged})`);
+            return {
+                ...buildResults,
+                deployComplete,
+                stateChanged,
+                observationsJson,
+            };
+        } catch (err) {
+            await commit();
+            throw err;
+        }
+
+        async function commit() {
+            await options.commit({
+                status,
+                dataDir,
+                domXml: buildResults.domXml,
+                observationsJson,
+            });
+        }
+    });
+}
+
+export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
+    debugAction(`buildAndDeploy: start`);
+    const topTask = options.taskObserver;
+    const tasks = topTask.childGroup().add({
+        compile: "Compiling project",
+        build: "Building new DOM",
+        reanimatePrev: "Loading previous DOM",
         observe: "Observing environment",
-        analyze: "Analyzing environment",
+        deploy: "Deploying",
+    });
+    const deployTasks = tasks.deploy.childGroup({ serial: false }).add({
+        status: "Deployment progress",
         act: "Applying changes to environment",
     });
-    const logger = taskObserver.logger;
-    const deployID = deployment.deployID;
+    const initial = await currentState(options);
 
-    return withContext(options, async (ctx: AdaptContext): Promise<DeploySuccess> => {
+    return withContext(initial, async (ctx: AdaptContext): Promise<DeployState> => {
+        const { commit, deployment, stateStore } = initial;
+        const deployID = deployment.deployID;
+        // This is the inner context's copy of Adapt
+        const inAdapt = ctx.Adapt;
+
+        // This grabs a lock on the deployment's uncommitted data dir
+        const dataDir = await deployment.getDataDir(HistoryStatus.complete);
+
         try {
-            // This is the inner context's copy of Adapt
-            const inAdapt = ctx.Adapt;
+            debugAction(`buildAndDeploy: build`);
+            const build1 = await tasks.build.complete(() => build({
+                ...initial,
+                ctx,
+                withStatus: false,
+                taskObserver: tasks.build
+            }));
 
-            const { prev, mgr, dataDir } = await tasks.setup.complete(async () => {
-                return {
-                    prev: await deployment.lastEntry(HistoryStatus.complete),
-                    mgr: createPluginManager(ctx.pluginModules),
-                    // This grabs a lock on the deployment's uncommitted data dir
-                    dataDir: await deployment.getDataDir(HistoryStatus.complete),
-                };
-            });
-
+            debugAction(`buildAndDeploy: reanimate`);
             const prevDom = await tasks.reanimatePrev.complete(async () => {
-                return prev ? reanimateAndBuild({
-                    ctx,
-                    domXml: prev.domXml,
-                    stateJson: prev.stateJson,
-                    deployID,
-                    logger
-                }) : null;
+                return initial.prevDomXml ?
+                    reanimateAndBuild({
+                        ctx,
+                        deployOpID: initial.deployOpID,
+                        domXml: initial.prevDomXml,
+                        stateJson: initial.prevStateJson,
+                        deployID,
+                        logger: tasks.reanimatePrev.logger,
+                    }) : null;
             });
 
-            if (debugDeployDom.enabled) {
-                debugDeployDom(inAdapt.serializeDom(newDom, { props: [ "key" ] }));
-            }
+            debugAction(`buildAndDeploy: observe`);
+            const observeOptions = {
+                ...build1,
+                taskObserver: tasks.observe
+            };
+            const obs = await tasks.observe.complete(() => observe(observeOptions));
 
-            const newPluginObs = await tasks.observe.complete(async () => {
-                await mgr.start(prevDom, newDom, {
-                    dataDir: path.join(dataDir, "plugins"),
-                    deployment,
-                    logger: tasks.act.logger,
-                });
-                return mgr.observe();
-            });
-
-            await tasks.analyze.complete(() => mgr.analyze());
-
-            return await tasks.act.complete(async (): Promise<DeploySuccess> => {
-                const observationsJson = stringifyFullObservations({
-                    plugin: newPluginObs,
-                    observer: parseFullObservationsJson(options.observationsJson).observer
-                });
-
-                /*
-                 * NOTE: There should be no deployment side effects prior to here, but
-                 * once act is called, that is no longer true.
-                 */
-                let status = HistoryStatus.preAct;
-                await commit();
-
-                // Status is failed until we've completed everything
-                status = HistoryStatus.failed;
-
-                try {
-                    await mgr.act({
-                        dryRun: options.dryRun,
-                        sequence: options.sequence,
-                        taskObserver: tasks.act,
-                    });
-                    await mgr.finish();
-                    status = HistoryStatus.success;
-
-                    return {
-                        type: "success",
-                        deployID: options.dryRun ? "DRYRUN" : deployment.deployID,
-                        domXml: options.domXml,
-                        stateJson: options.prevStateJson,
-                        //Move data from inner adapt to outer adapt via JSON
-                        needsData: podify(inAdapt.internal.simplifyNeedsData(options.needsData)),
-                        messages: logger.messages,
-                        summary: logger.summary,
-                        mountedOrigStatus: options.mountedOrigStatus,
-                    };
-                } finally {
-                    await commit();
-                }
-
-                async function commit() {
-                    if (!options.dryRun) {
-                        await deployment.commitEntry({
-                            dataDir,
-                            domXml: options.domXml,
-                            fileName,
-                            observationsJson,
-                            projectRoot,
-                            stackName,
-                            stateJson: options.prevStateJson,
-                            status,
-                        });
+            debugAction(`buildAndDeploy: deploy`);
+            const { needsData, ...fromBuild } = obs;
+            const passOpts: DeployPassOptions = {
+                ...fromBuild,
+                actTaskObserver: deployTasks.act,
+                dataDir,
+                prevDom,
+                taskObserver: deployTasks.status,
+            };
+            const result = await tasks.deploy.complete(() =>
+                deployTasks.status.complete(async () => {
+                    try {
+                        while (true) {
+                            const res = await deployPass(passOpts);
+                            if (!res.deployComplete && !res.stateChanged) {
+                                throw new Error(`TODO: Need to implement retry/timeout still`);
+                            }
+                            if (res.deployComplete) {
+                                await commit({
+                                    status: HistoryStatus.success,
+                                    dataDir,
+                                    domXml: res.domXml,
+                                    observationsJson: res.observationsJson,
+                                });
+                                deployTasks.act.complete();
+                                return res;
+                            }
+                        }
+                    } catch (err) {
+                        deployTasks.act.failed(err);
+                        throw err;
                     }
-                }
-            });
+                })
+            );
+
+            debugAction(`buildAndDeploy: done`);
+
+            const logger = topTask.logger;
+            return {
+                type: "success",
+                deployID: initial.dryRun ? "DRYRUN" : deployment.deployID,
+                domXml: result.domXml,
+                stateJson: stateStore.serialize(),
+                //Move data from inner adapt to outer adapt via JSON
+                needsData: podify(inAdapt.internal.simplifyNeedsData(result.needsData)),
+                messages: logger.messages,
+                summary: logger.summary,
+                mountedOrigStatus: result.mountedOrigStatus,
+            };
 
         } finally {
             await deployment.releaseDataDir();
         }
     });
-
-}
-
-export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
-    debugAction(`buildAndDeploy: start`);
-    const initial = await currentState(options);
-    const topTask = options.taskObserver;
-    const tasks = topTask.childGroup().add({
-        compile: "Compiling project",
-        build: "Building DOM",
-        observe: "Observing environment",
-        rebuild: "Rebuilding DOM",
-        deploy: "Deploying",
-    });
-    await immediatePromise();
-
-    const ret = withContext(initial, async (ctx: AdaptContext) => {
-        debugAction(`buildAndDeploy: build`);
-        const build1 = await tasks.build.complete(() => build({
-            ...initial,
-            ctx,
-            withStatus: false,
-            taskObserver: tasks.build
-        }));
-        const observeOptions = {
-            ...build1,
-            taskObserver: tasks.observe
-        };
-        debugAction(`buildAndDeploy: observe`);
-        const obs = await tasks.observe.complete(() => observe(observeOptions));
-        const { needsData, ...build2Options } = obs;
-        debugAction(`buildAndDeploy: build 2`);
-        const build2 = await tasks.rebuild.complete(() => build({
-            ...build2Options,
-            withStatus: true,
-            taskObserver: tasks.rebuild
-        }));
-        debugAction(`buildAndDeploy: deploy`);
-        return tasks.deploy.complete(() => deploy({
-            ...build2,
-            taskObserver: tasks.deploy
-        }));
-    });
-    debugAction(`buildAndDeploy: done`);
-    return ret;
 }

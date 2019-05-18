@@ -1,15 +1,16 @@
 import { cloneDeep, isError } from "lodash";
 import * as randomstring from "randomstring";
 import { DeployStatus } from "../deploy";
-import { InternalError } from "../error";
+import { DeploymentNotActive, DeploymentOpIDNotActive, DeployStepIDNotFound, InternalError } from "../error";
 import { ElementID } from "../jsx";
 import { DeploymentInfo } from "../ops/listDeployments";
 import {
-    DeploymentSequence,
     DeploymentStored,
+    DeployOpID,
+    DeployStepID,
+    DeployStepInfo,
     ElementStatus,
     ElementStatusMap,
-    SequenceInfo,
 } from "./deployment_data";
 import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "./history";
 import { AdaptServer, ServerLock, withLock } from "./server";
@@ -22,12 +23,14 @@ export interface Deployment {
     historyEntry(historyName: HistoryName): Promise<HistoryEntry>;
     lastEntry(withStatus: HistoryStatus): Promise<HistoryEntry | undefined>;
 
-    currentSequence(): Promise<DeploymentSequence>;
-    newSequence(): Promise<DeploymentSequence>;
-    status(sequence: DeploymentSequence): Promise<SequenceInfo>;
-    status(sequence: DeploymentSequence, info: Partial<SequenceInfo>): Promise<void>;
-    elementStatus(sequence: DeploymentSequence, elementID: ElementID): Promise<ElementStatus>;
-    elementStatus(sequence: DeploymentSequence, statusMap: ElementStatusMap): Promise<void>;
+    currentOpID(): Promise<DeployOpID>;
+    newOpID(): Promise<DeployOpID>;
+    currentStepID(opID: DeployOpID): Promise<DeployStepID>;
+    newStepID(opID: DeployOpID): Promise<DeployStepID>;
+    status(stepID: DeployStepID): Promise<DeployStepInfo>;
+    status(stepID: DeployStepID, info: Partial<DeployStepInfo>): Promise<void>;
+    elementStatus(stepID: DeployStepID, elementID: ElementID): Promise<ElementStatus>;
+    elementStatus(stepID: DeployStepID, statusMap: ElementStatusMap): Promise<void>;
 }
 
 const deploymentPath = "/deployments";
@@ -74,8 +77,8 @@ export async function createDeployment(server: AdaptServer, projectName: string,
         deployID = options.fixedDeployID || makeName(baseName);
         const deployData: DeploymentStored = {
             deployID,
-            currentSequence: null,
-            sequenceInfo: {},
+            currentOpID: null,
+            deployOpInfo: {},
             stateDirs: [],
         };
         try {
@@ -179,14 +182,14 @@ class DeploymentImpl implements Deployment {
     historyEntry = (name: string) => this.historyStore.historyEntry(name);
     lastEntry = (withStatus: HistoryStatus) => this.historyStore.last(withStatus);
 
-    async status(sequence: DeploymentSequence): Promise<SequenceInfo>;
-    async status(sequence: DeploymentSequence, info: Partial<SequenceInfo>): Promise<void>;
-    async status(sequence: DeploymentSequence, info?: Partial<SequenceInfo>): Promise<SequenceInfo | void> {
-        const path = `${this.basePath_}/sequenceInfo/${sequence}`;
+    async status(stepID: DeployStepID): Promise<DeployStepInfo>;
+    async status(stepID: DeployStepID, info: Partial<DeployStepInfo>): Promise<void>;
+    async status(stepID: DeployStepID, info?: Partial<DeployStepInfo>): Promise<DeployStepInfo | void> {
+        const path = this.stepInfoPath(stepID);
         if (info !== undefined) {
             // Set
             return withLock(this.server, async (lock) => {
-                await this.assertCurrent(sequence, lock);
+                await this.assertCurrent(stepID, lock);
                 const cur = await this.server.get(path, { lock });
                 await this.server.set(path, { ...cur, ...info }, { lock });
                 return;
@@ -195,25 +198,25 @@ class DeploymentImpl implements Deployment {
 
         // Get
         try {
-            const i: SequenceInfo = await this.server.get(path);
+            const i: DeployStepInfo = await this.server.get(path);
             return cloneDeep(i);
         } catch (err) {
             if (!isPathNotFound(err)) throw err;
-            throw new Error(`Deployment sequence ${sequence} not found`);
+            throw new DeployStepIDNotFound(stepID.deployOpID, stepID.deployStepNum);
         }
     }
 
-    async elementStatus(sequence: DeploymentSequence, elementID: ElementID): Promise<ElementStatus>;
-    async elementStatus(sequence: DeploymentSequence, statusMap: ElementStatusMap): Promise<void>;
-    async elementStatus(sequence: DeploymentSequence, idOrMap: ElementID | ElementStatusMap):
+    async elementStatus(stepID: DeployStepID, elementID: ElementID): Promise<ElementStatus>;
+    async elementStatus(stepID: DeployStepID, statusMap: ElementStatusMap): Promise<void>;
+    async elementStatus(stepID: DeployStepID, idOrMap: ElementID | ElementStatusMap):
         Promise<ElementStatus | void> {
 
-        const path = `${this.basePath_}/sequenceInfo/${sequence}/elementStatus`;
+        const path = this.stepInfoPath(stepID) + `/elementStatus`;
 
         return withLock(this.server, async (lock) => {
             // Get
             if (typeof idOrMap === "string") {
-                await this.currentSequence(lock); // Throws if currentSequence===null
+                await this.currentOpID(lock); // Throws if currentOpID===null
                 try {
                     return await this.server.get(`${path}/${idOrMap}`, { lock });
                 } catch (err) {
@@ -223,7 +226,7 @@ class DeploymentImpl implements Deployment {
             }
 
             // Set
-            await this.assertCurrent(sequence, lock);
+            await this.assertCurrent(stepID, lock);
             let old: ElementStatusMap = {};
             try {
                 old = await this.server.get(path, { lock });
@@ -235,32 +238,70 @@ class DeploymentImpl implements Deployment {
         });
     }
 
-    async newSequence(): Promise<DeploymentSequence> {
+    async newOpID(): Promise<DeployOpID> {
         return withLock(this.server, async (lock) => {
-            const curPath = this.basePath_ + "/currentSequence";
-            const cur: DeploymentStored["currentSequence"] =
-                await this.server.get(curPath, { lock });
+            const opPath = this.basePath_ + "/currentOpID";
+            const cur: DeploymentStored["currentOpID"] =
+                await this.server.get(opPath, { lock });
             const next = cur == null ? 0 : cur + 1;
 
-            const info: SequenceInfo = {
-                deployStatus: DeployStatus.Initial,
-                goalStatus: DeployStatus.Initial,
-                elementStatus: {},
-            };
-            await this.server.set(`${this.basePath_}/sequenceInfo/${next}`, info, { lock });
-            await this.server.set(curPath, next, { lock });
+            const stepPath = this.stepNumPath(next);
+
+            await this.server.set(stepPath, null, { lock });
+            await this.server.set(opPath, next, { lock });
             return next;
         });
     }
 
-    async currentSequence(lock?: ServerLock): Promise<DeploymentSequence> {
-        const path = this.basePath_ + "/currentSequence";
-        const cur: DeploymentStored["currentSequence"] = await this.server.get(path, { lock });
-        if (cur == null) {
-            throw new Error(`This deployment is not yet active. ` +
-                `(Sequence 0 has not been deployed)`);
-        }
+    async currentOpID(lock?: ServerLock): Promise<DeployOpID> {
+        const path = this.basePath_ + "/currentOpID";
+        const cur: DeploymentStored["currentOpID"] = await this.server.get(path, { lock });
+        if (cur == null) throw new DeploymentNotActive(this.deployID);
         return cur;
+    }
+
+    async newStepID(deployOpID: DeployOpID): Promise<DeployStepID> {
+        return withLock(this.server, async (lock) => {
+            await this.assertCurrentOpID(deployOpID, lock);
+            const cur = await this.currentStepNum(deployOpID, lock);
+            const deployStepNum = cur == null ? 0 : cur + 1;
+
+            const info: DeployStepInfo = {
+                deployStatus: DeployStatus.Initial,
+                goalStatus: DeployStatus.Initial,
+                elementStatus: {},
+            };
+            const step: DeployStepID = {
+                deployOpID,
+                deployStepNum,
+            };
+            await this.server.set(this.stepInfoPath(step), info, { lock });
+            await this.server.set(this.stepNumPath(deployOpID), deployStepNum, { lock });
+            return step;
+        });
+    }
+
+    async currentStepID(deployOpID: DeployOpID): Promise<DeployStepID> {
+        return withLock(this.server, async (lock) => {
+            await this.assertCurrentOpID(deployOpID, lock);
+            const deployStepNum = await this.currentStepNum(deployOpID, lock);
+            if (deployStepNum == null) {
+                throw new DeploymentOpIDNotActive(this.deployID, deployOpID);
+            }
+            return {
+                deployOpID,
+                deployStepNum,
+            };
+        });
+    }
+
+    private stepInfoPath(stepID: DeployStepID) {
+        return `${this.basePath_}/deployOpInfo/` +
+            `${stepID.deployOpID}/${stepID.deployStepNum}`;
+    }
+
+    private stepNumPath(opID: DeployOpID) {
+        return this.basePath_ + `/deployOpInfo/${opID}/currentStepNum`;
     }
 
     private get historyStore() {
@@ -268,10 +309,28 @@ class DeploymentImpl implements Deployment {
         return this.historyStore_;
     }
 
-    private async assertCurrent(sequence: DeploymentSequence, lock: ServerLock) {
-        const current = await this.currentSequence(lock);
-        if (sequence !== current) {
-            throw new Error(`Requested sequence (${sequence}) is not current (${current})`);
+    private async currentStepNum(opID: DeployOpID, lock: ServerLock): Promise<number | null> {
+        const path = this.stepNumPath(opID);
+        return this.server.get(path, { lock });
+    }
+
+    private async assertCurrentOpID(opID: DeployOpID, lock: ServerLock) {
+        const current = await this.currentOpID(lock);
+        if (opID !== current) {
+            throw new Error(`Requested DeployOpID (${opID}) is not current (${current})`);
+        }
+    }
+
+    private async assertCurrent(stepID: DeployStepID, lock: ServerLock) {
+        await this.assertCurrentOpID(stepID.deployOpID, lock);
+        const current = await this.currentStepNum(stepID.deployOpID, lock);
+        if (current == null) {
+            throw new DeploymentOpIDNotActive(this.deployID, stepID.deployOpID);
+        }
+        if (stepID.deployStepNum !== current) {
+            throw new Error(`Requested DeployStepID ` +
+                `(${stepID.deployOpID}.${stepID.deployStepNum}) is not ` +
+                `current (${stepID.deployOpID}.${current})`);
         }
     }
 }

@@ -17,8 +17,8 @@ function minikubeContainer {
     fi
 }
 
-function minikube {
-    outerDocker exec $(minikubeContainer) minikube "$@"
+function services {
+    kubectl -o json get svc | "${DEMO_DIR}/services.js" ${DOCKER_HOST}
 }
 
 function selfContainer {

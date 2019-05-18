@@ -5,6 +5,7 @@ import {
     isApplyStyle,
     isMountedElement,
     serializeDom,
+    useImperativeMethods,
     useState,
 } from "@usys/adapt";
 import ld from "lodash";
@@ -97,4 +98,11 @@ export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: 
     return useAsync<T>(async () => {
        return callInstanceMethod<T>(hand, initial, method, ...args);
     }, initial);
+}
+
+export function useMethodFrom(hand: Handle, methodName: string, defaultVal?: any,
+    ...args: any[]) {
+    useImperativeMethods(() => ({
+        [methodName]: () => callInstanceMethod(hand, defaultVal, methodName, ...args)
+    }));
 }

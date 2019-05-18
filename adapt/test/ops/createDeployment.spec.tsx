@@ -457,8 +457,8 @@ describe("createDeployment Tests", async function () {
         should(ds1.domXml).equal(defaultDomXmlOutput(["ObserverToSimple", "ObserverToSimple-Observer", "Simple"]));
 
         let lstdout = client.stdout;
-//        should(lstdout).match(/Props: undefined null/);
-//        should(lstdout).match(/Props: {"mockById":{"idSquared":1}} null/);
+        should(lstdout).match(/Props: undefined null/);
+        should(lstdout).match(/Props: {"mockById":{"idSquared":1}} null/);
 
         should(lstdout).match(/EchoPlugin: start/);
         should(lstdout).match(/EchoPlugin: observe/);

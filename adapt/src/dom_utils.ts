@@ -7,39 +7,48 @@ import {
     isMountedElement,
 } from "./jsx";
 
-export interface DomDiff {
-    added: Set<AdaptMountedElement>;
-    deleted: Set<AdaptMountedElement>;
-    commonOld: Set<AdaptMountedElement>;
-    commonNew: Set<AdaptMountedElement>;
+export interface DomDiff<E extends AdaptMountedElement = AdaptMountedElement> {
+    added: Set<E>;
+    deleted: Set<E>;
+    commonOld: Set<E>;
+    commonNew: Set<E>;
 }
 
-export function domForEach(dom: AdaptMountedElement | null, f: (el: AdaptMountedElement) => void): void {
+export function domForEach
+    <E extends AdaptMountedElement = AdaptMountedElement>(dom: E | null, f: (el: E) => void): void {
     if (dom == null) return;
 
     f(dom);
     childrenToArray(dom.props.children)
-        .forEach((c) => isMountedElement(c) && domForEach(c, f));
+        .forEach((c) => isMountedElement(c) && domForEach(c as E, f));
 }
 
-export function domMap<T>(dom: AdaptMountedElement | null, f: (el: AdaptMountedElement) => T): T[] {
+export function domMap
+    <T, E extends AdaptMountedElement = AdaptMountedElement>(dom: E | null, f: (el: E) => T): T[] {
     const ret: T[] = [];
     domForEach(dom, (el) => ret.push(f(el)));
     return ret;
 }
 
-export function domDiff(
-    oldDom: AdaptMountedElement | null, newDom: AdaptMountedElement | null): DomDiff {
+export type DomDiffIdFunc = (el: AdaptMountedElement) => string;
 
-    const byId = new Map<ElementID, AdaptMountedElement>();
-    const added = new Set<AdaptMountedElement>();
-    const deleted = new Set<AdaptMountedElement>();
-    const commonOld = new Set<AdaptMountedElement>();
-    const commonNew = new Set<AdaptMountedElement>();
+export const defaultDomDiffId: DomDiffIdFunc = (el) => el.id;
 
-    domForEach(oldDom, (el) => byId.set(el.id, el));
+export function domDiff<E extends AdaptMountedElement = AdaptMountedElement> (
+    oldDom: E | null,
+    newDom: E | null,
+    idFunc = defaultDomDiffId
+    ): DomDiff<E> {
+
+    const byId = new Map<ElementID, E>();
+    const added = new Set<E>();
+    const deleted = new Set<E>();
+    const commonOld = new Set<E>();
+    const commonNew = new Set<E>();
+
+    domForEach(oldDom, (el) => byId.set(idFunc(el), el));
     domForEach(newDom, (el) => {
-        const id = el.id;
+        const id = idFunc(el);
         const old = byId.get(id);
         if (old) {
             commonOld.add(old);
@@ -60,12 +69,13 @@ export function domDiff(
  * all of the Elements in the new DOM plus the deleted Elements from the
  * old DOM.
  */
-export function domActiveElems(diff: DomDiff): AdaptMountedElement[] {
+export function domActiveElems
+    <E extends AdaptMountedElement = AdaptMountedElement>(diff: DomDiff<E>): E[] {
     // This implementation (with Array.from & concat) may seem slightly
     // odd to look at, but if we have really large DOMs, it avoids the
     // JS arg length hard limits that could happen when using the spread
     // operator or apply.
-    const a: AdaptMountedElement[] = [];
+    const a: E[] = [];
     return a.concat(
         Array.from(diff.added),
         Array.from(diff.commonNew),

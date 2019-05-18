@@ -7,22 +7,16 @@ export function usePreloadedPostgres(mockDbName: string, mockDataPath: string) {
         const prefix = `CREATE DATABASE ${mockDbName};\n\\c ${mockDbName}\n`;
         const mockData = Buffer.concat([Buffer.from(prefix), rawMockData]);
         return {
-            dockerfile: "Dockerfile",
+            dockerfile: `
+                FROM postgres:11
+                COPY --from=files mockdata.sql /docker-entrypoint-initdb.d/mockdata.sql
+            `,
             dockerHost: process.env.DOCKER_HOST,
             options: { imageName: "preloaded-postgres" },
-            files: [
-                {
-                    path: "Dockerfile",
-                    contents: `
-FROM postgres:11
-COPY mockdata.sql /docker-entrypoint-initdb.d/mockdata.sql
-`
-                },
-                {
+            files: [{
                     path: "mockdata.sql",
                     contents: mockData
-                }
-            ]
+            }]
         };
     });
 }
