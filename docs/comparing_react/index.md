@@ -4,7 +4,7 @@
 >
 > This guide is an in-depth comparison meant for developers who are already familiar with [ReactJS](https://reactjs.org). If you're not already familiar with React, we suggest reading [Adapt Concepts](../user/concepts/index.md) from our user manual instead.
 >
-> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../gsg/index.md).
+> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -46,7 +46,7 @@ Since you're a developer familiar with React, the sample app that we'll use is a
 - A web server to serve static content like HTML, CSS, and images.
 - A URL router to steer HTTP requests to either the REST API microservice or the static web server.
 
-![Movie database app diagram](sample_app.png)
+![Movie database app diagram](./sample_app.png)
 
 Below is the Adapt description of the movie database app.
 The rest of this tutorial will explain all the parts that make up this app description.

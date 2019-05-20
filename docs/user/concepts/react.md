@@ -4,7 +4,7 @@
 >
 > This section explains Adapt in depth, using concepts from [ReactJS](https://reactjs.org). If you're not already familiar with ReactJS, we suggest starting with [Adapt Concepts -- For Everyone Else](non_react.md) instead.
 >
-> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../../gsg/index.md).
+> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../../getting_started/index.md).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->

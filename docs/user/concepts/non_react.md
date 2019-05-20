@@ -12,5 +12,5 @@
 >
 > If you're already familiar with [ReactJS](https://reactjs.org), you might want to take a look at [Adapt Concepts -- For React Developers](react.md) instead.
 >
-> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../../gsg/index.md).
+> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../../getting_started/index.md).
 
