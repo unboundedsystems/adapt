@@ -78,9 +78,9 @@ testutils-build: utils-build
 setup: $(SETUP_TARGETS)
 .PHONY: setup
 
-DOCS_FILES := $(shell find docs/ -type f -name '*.md')
-.docs-updated: $(NODE_INSTALL_DONE) $(DOCS_FILES)
-	doctoc --gitlab --title '## Table of Contents' docs
+DOCTOC_FILES := $(shell grep -rL 'DOCTOC SKIP' docs | grep '\.md$$')
+.docs-updated: $(NODE_INSTALL_DONE) $(DOCTOC_FILES)
+	doctoc --gitlab --title '## Table of Contents' $(DOCTOC_FILES)
 	touch .docs-updated
 
 endif # IN_DOCKER
