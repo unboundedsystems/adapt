@@ -91,17 +91,17 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && yarn run docs",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",
+    "docs": "oclif-dev readme",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "postpack": "rm -f oclif.manifest.json",
-    "prepack": "make build && oclif-dev manifest && oclif-dev readme",
+    "prepack": "make build && oclif-dev manifest",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts",
-    "version": "oclif-dev readme && git add README.md"
+    "test": "mocha --opts mocha.opts"
   },
   "publishConfig": {
     "access": "restricted"
