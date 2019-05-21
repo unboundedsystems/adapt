@@ -7,12 +7,12 @@ import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 import { UpdateBaseCommand } from "./update";
 
 export default class DestroyCommand extends UpdateBaseCommand {
-    static description = "Stop an existing deployment of an Adapt project";
+    static description = "Destroy an existing deployment of an Adapt project";
 
     static examples = [
         `
-Stop the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
-    $ adapt deploy:stop myproj-dev-abcd`,
+Destroy the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
+    $ adapt deploy:destroy myproj-dev-abcd`,
     ];
 
     static flags = {

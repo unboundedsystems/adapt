@@ -66,7 +66,7 @@ _See code: [dist/src/commands/deploy/create.ts](https://gitlab.com/unboundedsyst
 
 ## `adapt deploy:destroy DEPLOYID`
 
-Stop an existing deployment of an Adapt project
+Destroy an existing deployment of an Adapt project
 
 ```
 USAGE
@@ -88,15 +88,15 @@ OPTIONS
 
 EXAMPLE
 
-  Stop the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
-       $ adapt deploy:stop myproj-dev-abcd
+  Destroy the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
+       $ adapt deploy:destroy myproj-dev-abcd
 ```
 
 _See code: [dist/src/commands/deploy/destroy.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.2-next.3/dist/src/commands/deploy/destroy.ts)_
 
 ## `adapt deploy:list`
 
-Create a new deployment for an Adapt project
+List active Adapt deployments
 
 ```
 USAGE
