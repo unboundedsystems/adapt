@@ -872,16 +872,11 @@ async function checkStateUpdateState(count: number): Promise<void> {
     }
 }
 
-const stateIncrementTestChain =
-    testBase
-    .do(async () => {
-        const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
-        await createProject(basicPackageJson, indexTsx, "index.tsx");
-    });
+const stateIncrementTestChain = testBase;
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-describe("Deploy update basic tests", function () {
+describe("Deploy update and status tests", function () {
     this.slow(5 * 1000);
     this.timeout(10 * 1000);
     let deployID = "NOTFOUND";
@@ -889,6 +884,11 @@ describe("Deploy update basic tests", function () {
     // These tests must all use a single temp directory where the
     // state_history can be shared and built upon
     mochaTmpdir.all("adapt-cli-test-deploy");
+
+    before(async () => {
+        const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
+        await createProject(basicPackageJson, indexTsx, "index.tsx");
+    });
 
     stateIncrementTestChain
     .timeout(20 * 1000)
