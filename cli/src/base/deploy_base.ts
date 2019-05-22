@@ -36,6 +36,14 @@ export abstract class DeployBase extends AdaptBase {
 
     static flags = {
         ...AdaptBase.flags,
+        debug: flags.string({
+            char: "d",
+            description:
+                "Enable additional debug output. Should be a comma-separated " +
+                "list of debug flags. Valid debug flags are: build",
+            default: "",
+            helpValue: "debugFlags",
+        }),
         serverUrl: flags.string({
             description: "URL of Adapt server. Defaults to using local system.",
             env: "ADAPT_SERVER_URL",
@@ -46,8 +54,6 @@ export abstract class DeployBase extends AdaptBase {
         }),
     };
 
-    args?: any;
-    flags?: any;
     ctx: DeployCtx;
     tasks_?: Listr;
 
@@ -59,16 +65,14 @@ export abstract class DeployBase extends AdaptBase {
     async init() {
         await super.init();
 
-        // tslint:disable-next-line:no-shadowed-variable
-        const { args, flags } = this.parse();
-        this.flags = flags;
-        this.args = args;
+        this.parse();
+        const f = this.flags(DeployBase);
 
         this.tasks_ = new Listr(this.outputSettings.listrOptions);
 
         let adaptUrl: string;
-        if (this.flags.serverUrl) {
-            adaptUrl = this.flags.serverUrl;
+        if (f.serverUrl) {
+            adaptUrl = f.serverUrl;
         } else {
             const dbFile = path.join(this.config.dataDir, "local_deploy");
             adaptUrl = filePathToUrl(dbFile);
@@ -77,13 +81,15 @@ export abstract class DeployBase extends AdaptBase {
         const pair = createLoggerPair("deploy", this.outputSettings.logging);
         this.ctx = {
             adaptUrl,
-            debug: this.flags.debug,
+            debug: f.debug || "",
             ...pair,
         };
 
-        const projectFile = path.resolve(this.flags.rootFile);
-        if (projectFile && await fs.pathExists(projectFile)) {
-            this.ctx.projectFile = projectFile;
+        if (f.rootFile) {
+            const projectFile = path.resolve(f.rootFile);
+            if (await fs.pathExists(projectFile)) {
+                this.ctx.projectFile = projectFile;
+            }
         }
     }
 }
@@ -93,14 +99,6 @@ export abstract class DeployOpBase extends DeployBase {
         ...DeployBase.flags,
         dryRun: flags.boolean({
             description: "Show what would happen during deploy, but do not modify the deployment",
-        }),
-        debug: flags.string({
-            char: "d",
-            description:
-                "Enable additional debug output. Should be a comma-separated " +
-                "list of debug flags. Valid debug flags are: build",
-            default: "",
-            helpValue: "debugFlags",
         }),
         registry: flags.string({
             description: "URL of alternate NPM registry to use",
@@ -115,13 +113,13 @@ export abstract class DeployOpBase extends DeployBase {
 
         const stackName: string = this.args.stackName;
         const cacheDir = path.join(this.config.cacheDir, "npmcache");
+        const { rootFile, dryRun = false, registry } = this.flags(DeployOpBase);
 
-        if (this.flags.rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
-        if (this.flags.dryRun === undefined) this.flags.dryRun = false;
+        if (rootFile == null) throw new Error(`Internal error: rootFile cannot be null`);
 
         this.ctx = {
             ...this.ctx,
-            dryRun: this.flags.dryRun,
+            dryRun,
             stackName,
         };
 
@@ -130,7 +128,7 @@ export abstract class DeployOpBase extends DeployBase {
                 title: "Installing node modules",
                 task: async () => {
                     if (! await fs.pathExists(this.ctx.projectFile)) {
-                        this.error(`Project file '${this.flags.rootFile}' does not exist`);
+                        this.error(`Project file '${rootFile}' does not exist`);
                     }
                     const projectRoot = path.dirname(this.ctx.projectFile);
 
@@ -145,7 +143,7 @@ export abstract class DeployOpBase extends DeployBase {
                     };
 
                     try {
-                        if (this.flags.registry) projOpts.registry = this.flags.registry;
+                        if (registry) projOpts.registry = registry;
                         this.ctx.project = await load(projectRoot, projOpts);
                     } catch (err) {
                         if (err.code === "ENOPACKAGEJSON") {
