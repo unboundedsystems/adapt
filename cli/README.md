@@ -6,8 +6,8 @@
 * [`adapt deploy:create STACKNAME`](#adapt-deploycreate-stackname)
 * [`adapt deploy:destroy DEPLOYID`](#adapt-deploydestroy-deployid)
 * [`adapt deploy:list`](#adapt-deploylist)
-* [`adapt deploy:status DEPLOYID STACKNAME`](#adapt-deploystatus-deployid-stackname)
-* [`adapt deploy:update DEPLOYID STACKNAME`](#adapt-deployupdate-deployid-stackname)
+* [`adapt deploy:status DEPLOYID`](#adapt-deploystatus-deployid)
+* [`adapt deploy:update DEPLOYID [STACKNAME]`](#adapt-deployupdate-deployid-stackname)
 * [`adapt help [COMMAND]`](#adapt-help-command)
 
 ## `adapt autocomplete [SHELL]`
@@ -58,6 +58,7 @@ OPTIONS
 EXAMPLES
   Deploy the stack named "dev" from the default project description file, index.tsx:
        $ adapt deploy:create dev
+
   Deploy the stack named "dev" from an alternate description file:
        $ adapt deploy:create --rootFile somefile.tsx dev
 ```
@@ -103,9 +104,14 @@ USAGE
   $ adapt deploy:list
 
 OPTIONS
-  -q, --quiet            Suppress status output messages. Still outputs any result output.
-  --rootFile=rootFile    [default: index.tsx] Project description file to deploy (.ts or .tsx)
-  --serverUrl=serverUrl  URL of Adapt server. Defaults to using local system.
+  -d, --debug=debugFlags  Enable additional debug output. Should be a comma-separated list of debug flags. Valid debug
+                          flags are: build
+
+  -q, --quiet             Suppress status output messages. Still outputs any result output.
+
+  --rootFile=rootFile     [default: index.tsx] Project description file to deploy (.ts or .tsx)
+
+  --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
 
 EXAMPLE
   List all deployments from the server
@@ -114,13 +120,13 @@ EXAMPLE
 
 _See code: [dist/src/commands/deploy/list.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.2-next.3/dist/src/commands/deploy/list.ts)_
 
-## `adapt deploy:status DEPLOYID STACKNAME`
+## `adapt deploy:status DEPLOYID`
 
 Fetch the status of an existing deployment of an Adapt project
 
 ```
 USAGE
-  $ adapt deploy:status DEPLOYID STACKNAME
+  $ adapt deploy:status DEPLOYID
 
 OPTIONS
   -d, --debug=debugFlags  Enable additional debug output. Should be a comma-separated list of debug flags. Valid debug
@@ -136,26 +142,23 @@ OPTIONS
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
 
-EXAMPLE
+EXAMPLES
+  Fetch the status of deployment "myproj-dev-abcd" from the default project description file, "index.tsx":
+       $ adapt deploy:status myproj-dev-abcd
 
-  Fetch the status of deployment "myproj-dev-abcd", for the stack named "dev" from
-  the default project description file, "index.tsx":
-       $ adapt deploy:status myproj-dev-abcd dev
-
-  Fetch the status of deployment "myproj-dev-abcd", for the stack named "dev" from
-  an alternate description file, "somefile.tsx":
-       $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd dev
+  Fetch the status of deployment "myproj-dev-abcd" from an alternate description file, "somefile.tsx":
+       $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd
 ```
 
 _See code: [dist/src/commands/deploy/status.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.2-next.3/dist/src/commands/deploy/status.ts)_
 
-## `adapt deploy:update DEPLOYID STACKNAME`
+## `adapt deploy:update DEPLOYID [STACKNAME]`
 
 Update an existing deployment of an Adapt project
 
 ```
 USAGE
-  $ adapt deploy:update DEPLOYID STACKNAME
+  $ adapt deploy:update DEPLOYID [STACKNAME]
 
 OPTIONS
   -d, --debug=debugFlags  Enable additional debug output. Should be a comma-separated list of debug flags. Valid debug
@@ -171,14 +174,12 @@ OPTIONS
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
 
-EXAMPLE
+EXAMPLES
+  Update the deployment "myproj-dev-abcd", from the default project description file, "index.tsx":
+       $ adapt deploy:update myproj-dev-abcd
 
-  Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-  the default project description file, "index.tsx":
-       $ adapt deploy:update myproj-dev-abcd dev
-
-  Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-  an alternate description file, "somefile.tsx":
+  Update the deployment "myproj-dev-abcd", using the stack named "dev" from an alternate description file, 
+  "somefile.tsx":
        $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev
 ```
 

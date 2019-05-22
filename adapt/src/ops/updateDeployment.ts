@@ -13,6 +13,7 @@ export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
     prevStateJson?: string;
     observationsJson?: string;
+    stackName?: string;
 }
 
 const defaultOptions = {

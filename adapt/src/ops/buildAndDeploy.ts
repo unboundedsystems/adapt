@@ -48,7 +48,6 @@ export interface BuildOptions {
     deployment: Deployment;
     dryRun: boolean;
     fileName: string;
-    stackName: string;
     taskObserver: TaskObserver;
 
     deployOpID?: DeployOpID;
@@ -56,6 +55,7 @@ export interface BuildOptions {
     observationsJson?: string;
     prevStateJson?: string;
     projectRoot?: string;
+    stackName?: string;
 }
 
 export type CommitData = Omit<HistoryEntry, "fileName" | "projectRoot" | "stackName" | "stateJson">;
@@ -96,6 +96,12 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
     const deployOpID = options.deployOpID !== undefined ?
         options.deployOpID : await deployment.newOpID();
 
+    const stackName = options.stackName || (prev && prev.stackName);
+    if (!stackName) {
+        throw new Error(`stackName option not provided and previous ` +
+            `stackName not present`);
+    }
+
     const ret = {
         ...options,
         ...paths,
@@ -104,6 +110,7 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         prevDomXml: prev && prev.domXml,
         prevStateJson,
         deployOpID,
+        stackName,
         stateStore,
         withStatus: options.withStatus || false,
     };

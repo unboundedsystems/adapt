@@ -18,6 +18,7 @@ import { forkExports } from "./fork";
 
 export interface CreateOptions extends DeployCommonOptions {
     projectName: string;
+    stackName: string;
 
     initLocalServer?: boolean;
     initialStateJson?: string;

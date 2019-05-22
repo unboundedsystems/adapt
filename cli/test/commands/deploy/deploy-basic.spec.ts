@@ -915,9 +915,9 @@ describe("Deploy update and status tests", function () {
     stateIncrementTestChain
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 2 })")))
-    .delayedcommand(() => ["deploy:update", deployID, "dev"])
+    .delayedcommand(() => ["deploy:update", deployID])
 
-    .it("Should create second state", async (ctx) => {
+    .it("Should create second state (without stack arg)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
@@ -934,7 +934,7 @@ describe("Deploy update and status tests", function () {
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 3 })")))
     .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
-    .it("Should create third state", async (ctx) => {
+    .it("Should create third state (with stack arg)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
@@ -947,7 +947,7 @@ describe("Deploy update and status tests", function () {
     });
 
     stateIncrementTestChain
-    .delayedcommand(() => ["deploy:status", deployID, "dev"])
+    .delayedcommand(() => ["deploy:status", deployID])
 
     .it("Should report status", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -992,7 +992,7 @@ describe("Build negative tests", () => {
 
     basicTestChain
     .command(["deploy:create", "dev"])
-    .command(["deploy:update", "abc123", "dev"])
+    .command(["deploy:update", "abc123"])
     .catch((err: any) => {
         expect(err.message).contains(
             "Deployment 'abc123' does not exist");

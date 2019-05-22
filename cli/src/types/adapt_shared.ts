@@ -118,7 +118,6 @@ export interface WithLogger {
 export interface DeployCommonOptions extends WithLogger {
     adaptUrl: string;
     fileName: string;
-    stackName: string;
 
     debug?: string;
     dryRun?: boolean;
@@ -169,6 +168,7 @@ export interface ListResponse extends ApiResponse {
  */
 export interface CreateOptions extends DeployCommonOptions {
     projectName: string;
+    stackName: string;
 
     initLocalServer?: boolean;
     initialStateJson?: string;
@@ -182,6 +182,7 @@ export interface UpdateOptions extends DeployCommonOptions {
     deployID: string;
     prevStateJson?: string;
     observationsJson?: string;
+    stackName?: string;
 }
 
 /*

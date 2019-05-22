@@ -106,7 +106,10 @@ export abstract class DeployOpBase extends DeployBase {
         }),
     };
 
-    ctx: ReplaceT<Required<DeployCtx>, { project?: Project }>;
+    ctx: ReplaceT<Required<DeployCtx>, {
+        project?: Project;
+        stackName?: string;
+    }>;
 
     async init() {
         await super.init();
