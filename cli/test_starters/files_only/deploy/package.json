@@ -1,0 +1,14 @@
+{
+  "name": "files_only",
+  "version": "0.0.1",
+  "description": "Adapt starter: files_only",
+  "scripts": {},
+  "author": "",
+  "dependencies": {
+    "@types/node": "^10.15",
+    "@usys/adapt": "latest",
+    "@usys/cloud": "latest",
+    "source-map-support": "^0.5.5",
+    "typescript": "^3.0.3"
+  }
+}
