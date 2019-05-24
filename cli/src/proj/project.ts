@@ -13,6 +13,7 @@ import {
     verifyAdaptModule,
     verifyDeployState,
 } from "../types/adapt_shared";
+import { isLocal } from "../utils";
 import { VersionString } from "./gen";
 
 export interface Session {
@@ -183,10 +184,6 @@ export class Project {
             throw err;
         }
     }
-}
-
-function isLocal(filename: string) {
-    return (filename.startsWith(".") || filename.startsWith("/"));
 }
 
 export async function tempSession(): Promise<Session> {
