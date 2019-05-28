@@ -5,13 +5,13 @@ import fs from "fs-extra";
 import { uniq } from "lodash";
 import path from "path";
 import should from "should";
-import { createActionPlugin } from "../src/action/action_plugin";
-import { MockDeploy } from "./testlib";
+import { createActionPlugin } from "../../src/action/action_plugin";
+import { MockDeploy } from "../testlib";
 
 import {
     TypescriptBuildOptions,
     useTypescriptBuild,
-} from "../src/useTypescriptBuild";
+} from "../../src/nodejs/useTypescriptBuild";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);

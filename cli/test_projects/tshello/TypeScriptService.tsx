@@ -1,7 +1,6 @@
 import Adapt, { Group, handle } from "@usys/adapt";
-import { useTypescriptBuild } from "@usys/cloud";
-// tslint:disable-next-line:no-submodule-imports
 import { K8sContainer, Pod, Service } from "@usys/cloud/k8s";
+import { useTypescriptBuild } from "@usys/cloud/nodejs";
 
 function kubeconfig() {
     // tslint:disable-next-line:no-var-requires

@@ -8,8 +8,8 @@ import {
     NetworkService,
     NetworkServiceScope,
     Service,
-    useBuildNodeContainer
 } from "@usys/cloud";
+import { useBuildNodeContainer } from "@usys/cloud/nodejs";
 
 export type Env = Environment;
 
