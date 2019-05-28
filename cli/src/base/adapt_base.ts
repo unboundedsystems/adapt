@@ -99,6 +99,7 @@ export abstract class AdaptBase extends Command {
     };
 
     _args?: { [name: string]: any };
+    _cmdArgv?: string[];
     _flags?: { [name: string]: any };
     finalOutput: OutputBlob[] = [];
     outputSettings_?: OutputSettings;
@@ -106,6 +107,11 @@ export abstract class AdaptBase extends Command {
     get args() {
         if (this._args == null) throw new InternalError(`_args is null`);
         return this._args;
+    }
+
+    get cmdArgv() {
+        if (this._cmdArgv == null) throw new InternalError(`_cmdArgv is null`);
+        return this._cmdArgv;
     }
 
     get outputSettings(): OutputSettings {
@@ -199,6 +205,7 @@ export abstract class AdaptBase extends Command {
         const ret = super.parse<F, A>(options, argv);
         this._flags = ret.flags;
         this._args = ret.args;
+        this._cmdArgv = ret.argv;
         this.outputSettings_ = getOutputSettings(ret.flags);
         this.about(ret.flags);
         return ret;
