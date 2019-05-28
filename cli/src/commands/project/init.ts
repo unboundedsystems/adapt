@@ -34,6 +34,11 @@ export default class InitCommand extends AdaptBase {
         }
     ];
 
+    static usage = [
+        "project:init STARTER [DIRECTORY]",
+        "project:init STARTER DIRECTORY [STARTER_ARGS...]",
+    ];
+
     async init() {
         await super.init();
         this.parse();
@@ -42,6 +47,7 @@ export default class InitCommand extends AdaptBase {
     async run() {
         const spec = this.args.starter;
         const dest = this.args.directory;
+        const argv = this.cmdArgv.length >= 3 ? this.cmdArgv.slice(2) : [];
 
         if (!spec) {
             throw new UserError(`Missing 1 required arg:\nstarter\nSee more help with --help`);
@@ -50,7 +56,7 @@ export default class InitCommand extends AdaptBase {
             throw new UserError(`Directory argument is not a string`);
         }
 
-        const starter = createStarter(spec, path.resolve(dest));
+        const starter = createStarter(spec, path.resolve(dest), argv);
         try {
             await starter.init();
 

@@ -271,4 +271,55 @@ describe("project:init scripts", () => {
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error on non-zero exit code");
+
+    async function createArgsStarter() {
+        await fs.ensureDir("./starter");
+        // A little script that just outputs its args
+        await fs.writeFile("./starter/init.sh",
+            `#!/bin/sh
+            echo -n > output
+            arg="$1"
+            while [ -n "$arg" ] ; do
+                echo "$arg" >> output
+                shift
+                arg="$1"
+            done
+            `);
+        await fs.chmod("./starter/init.sh", "0777");
+        await fs.writeJson("./starter/adapt_starter.json", {
+            // tslint:disable-next-line: no-invalid-template-strings
+            init: "${ADAPT_STARTER_DIR}/init.sh",
+        });
+    }
+
+    basicTestChain
+    .do(createArgsStarter)
+    .command(["project:init", "./starter", "project"])
+    .it("Should handle no args", async () => {
+        const output = (await fs.readFile("./project/output")).toString();
+        expect(output).equals("");
+    });
+
+    basicTestChain
+    .do(createArgsStarter)
+    .command(["project:init", "./starter", "project", "arg1", "arg2"])
+    .it("Should handle simple args", async () => {
+        const output = (await fs.readFile("./project/output")).toString();
+        expect(output).equals("arg1\narg2\n");
+    });
+
+    const specialArgs = [
+        `arg one`,
+        ` "arg2'`,
+        ` ; arg3 | `,
+        ` \\ arg4`,
+    ];
+
+    basicTestChain
+    .do(createArgsStarter)
+    .command(["project:init", "./starter", "project", ...specialArgs])
+    .it("Should handle args with special chars", async () => {
+        const output = (await fs.readFile("./project/output")).toString();
+        expect(output).equals(specialArgs.join("\n") + "\n");
+    });
 });

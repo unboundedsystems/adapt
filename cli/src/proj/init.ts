@@ -7,6 +7,7 @@ import json5 from "json5";
 import { isArray, isObject, isString } from "lodash";
 import pacote from "pacote";
 import path from "path";
+import escape from "shell-escape";
 import { isLocal } from "../utils";
 
 const debugInit = db("adapt:project:init");
@@ -18,6 +19,7 @@ export interface AdaptStarter {
     readonly isLocal: boolean;
     readonly name?: string;
     readonly spec: string;
+    readonly args: string[];
 
     init(): Promise<void>;
     download(log: LogString): Promise<void>;
@@ -57,8 +59,8 @@ const pacoteLog = {
     resume: debugInit,
 };
 
-export function createStarter(spec: string, dest: string): AdaptStarter {
-    return new AdaptStarterImpl(spec, dest);
+export function createStarter(spec: string, dest: string, args: string[]): AdaptStarter {
+    return new AdaptStarterImpl(spec, dest, args);
 }
 
 class AdaptStarterImpl {
@@ -68,7 +70,7 @@ class AdaptStarterImpl {
     protected tmpDir_?: string;
     protected rmDir?: () => Promise<void>;
 
-    constructor(readonly spec: string, readonly dest: string) {
+    constructor(readonly spec: string, readonly dest: string, readonly args: string[]) {
         this.isLocal = isLocal(spec);
     }
 
@@ -114,7 +116,7 @@ class AdaptStarterImpl {
 
             await fs.ensureDir(this.dest);
             await copyFiles(config, log, this.starterDir, this.dest);
-            await runScripts(config, log, this.starterDir, this.dest);
+            await runScripts(config, log, this.starterDir, this.dest, this.args);
 
         } catch (err) {
             err = ensureError(err);
@@ -237,18 +239,23 @@ async function copyFiles(config: StarterConfig, log: LogString,
 }
 
 async function runScripts(config: StarterConfig, log: LogString,
-    starterDir: string, dest: string) {
+    starterDir: string, dest: string, args: string[]) {
 
     if (!config.init) return;
 
+    let cmd = config.init;
+    // Node does the stupidest thing possible with the args array when
+    // options.shell is true; it joins them with a space. Ugh.
+    if (args.length > 0) cmd += " " + escape(args);
+
     log(`Running init script`);
-    debugInit(`Init script: ${config.init}`);
+    debugInit(`Init script: ${cmd}`);
 
     try {
         const env = {
             ADAPT_STARTER_DIR: starterDir,
         };
-        const ret = await execa(config.init, { cwd: dest, env, shell: true });
+        const ret = await execa(cmd, { cwd: dest, env, shell: true });
         debugInit(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
 
     } catch (err) {

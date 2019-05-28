@@ -210,6 +210,7 @@ Initialize a new Adapt project
 ```
 USAGE
   $ adapt project:init STARTER [DIRECTORY]
+  $ adapt project:init STARTER DIRECTORY [STARTER_ARGS...]
 
 ARGUMENTS
   STARTER    Adapt starter to use. May be the name of a starter from the starter gallery, a URL, a local file path, or
