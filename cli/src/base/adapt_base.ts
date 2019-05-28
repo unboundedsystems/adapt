@@ -3,6 +3,7 @@ import * as Parser from "@oclif/parser";
 import {
     getErrors,
     getWarnings,
+    InternalError,
     isUserError,
     MessageClient,
     MessageLogger,
@@ -13,6 +14,7 @@ import chalk from "chalk";
 import { PassThrough } from "stream";
 import { UserError } from "../error";
 import { ApiResponse, ApiSuccess } from "../types/adapt_shared";
+import { HasFlags, OutputFlags } from "../types/common";
 
 export interface OutputSettings {
     // NOTE: type is any because the types for ListrOptions do not include the
@@ -96,14 +98,36 @@ export abstract class AdaptBase extends Command {
         }),
     };
 
+    _args?: { [name: string]: any };
+    _cmdArgv?: string[];
+    _flags?: { [name: string]: any };
     finalOutput: OutputBlob[] = [];
     outputSettings_?: OutputSettings;
 
+    get args() {
+        if (this._args == null) throw new InternalError(`_args is null`);
+        return this._args;
+    }
+
+    get cmdArgv() {
+        if (this._cmdArgv == null) throw new InternalError(`_cmdArgv is null`);
+        return this._cmdArgv;
+    }
+
     get outputSettings(): OutputSettings {
         if (!this.outputSettings_) {
-            throw new Error(`Internal error: must call this.parse before accessing outputSettings`);
+            throw new InternalError(`must call this.parse before accessing outputSettings`);
         }
         return this.outputSettings_;
+    }
+
+    // This allows retrieval of flags with correct typings (or at least as
+    // correct as oclif currently provides us).
+    // The argument is the derived class constructor (which contains the
+    // flags configuration from which the types are derived).
+    flags<Ctor extends HasFlags>(_: Ctor): OutputFlags<Ctor> {
+        if (this._flags == null) throw new InternalError(`_flags is null`);
+        return this._flags as any;
     }
 
     async finally(err?: Error) {
@@ -179,6 +203,9 @@ export abstract class AdaptBase extends Command {
         (options?: Parser.Input<F>, argv?: string[]): Parser.Output<F, A> {
 
         const ret = super.parse<F, A>(options, argv);
+        this._flags = ret.flags;
+        this._args = ret.args;
+        this._cmdArgv = ret.argv;
         this.outputSettings_ = getOutputSettings(ret.flags);
         this.about(ret.flags);
         return ret;

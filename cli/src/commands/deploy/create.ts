@@ -1,3 +1,4 @@
+import { InternalError } from "@usys/utils";
 import { DeployOpBase } from "../../base";
 import { CreateOptions } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
@@ -7,7 +8,7 @@ export default class CreateCommand extends DeployOpBase {
 
     static examples = [
 `Deploy the stack named "dev" from the default project description file, index.tsx:
-    $ adapt deploy:create dev`,
+    $ adapt deploy:create dev\n`,
 `Deploy the stack named "dev" from an alternate description file:
     $ adapt deploy:create --rootFile somefile.tsx dev`,
     ];
@@ -23,9 +24,10 @@ export default class CreateCommand extends DeployOpBase {
 
     async run() {
         const ctx = this.ctx;
-        if (ctx == null) {
-            throw new Error(`Internal error: ctx cannot be null`);
-        }
+        if (ctx == null) throw new InternalError(`ctx cannot be null`);
+
+        const { stackName } = ctx;
+        if (stackName == null) throw new InternalError(`stackName cannot be null`);
 
         const logger = ctx.logger.createChild("create");
         const loggerId = logger.from;
@@ -35,7 +37,7 @@ export default class CreateCommand extends DeployOpBase {
             title: "Creating new project deployment",
             adoptable: true,
             initiate: () => {
-                if (ctx.project == null) throw new Error(`Internal error: project cannot be null`);
+                if (ctx.project == null) throw new InternalError(`project cannot be null`);
 
                 const createOptions: CreateOptions = {
                     adaptUrl: ctx.adaptUrl,
@@ -46,7 +48,7 @@ export default class CreateCommand extends DeployOpBase {
                     logger,
                     loggerId,
                     projectName: ctx.project.name,
-                    stackName: ctx.stackName,
+                    stackName,
                     initLocalServer: true,
                 };
 

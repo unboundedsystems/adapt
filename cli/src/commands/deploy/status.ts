@@ -6,14 +6,12 @@ export default class StatusCommand extends DeployOpBase {
     static description = "Fetch the status of an existing deployment of an Adapt project";
 
     static examples = [
-`
-Fetch the status of deployment "myproj-dev-abcd", for the stack named "dev" from
-the default project description file, "index.tsx":
-    $ adapt deploy:status myproj-dev-abcd dev
-
-Fetch the status of deployment "myproj-dev-abcd", for the stack named "dev" from
-an alternate description file, "somefile.tsx":
-    $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd dev`,
+`Fetch the status of deployment "myproj-dev-abcd" from the default project ` +
+`description file, "index.tsx":
+    $ adapt deploy:status myproj-dev-abcd\n`,
+`Fetch the status of deployment "myproj-dev-abcd" from an alternate ` +
+`description file, "somefile.tsx":
+    $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd`,
     ];
 
     static flags = {
@@ -25,10 +23,6 @@ an alternate description file, "somefile.tsx":
             name: "deployID",
             required: true,
         },
-        {
-            name: "stackName",
-            required: true,
-        }
     ];
 
     async run() {
@@ -62,7 +56,6 @@ an alternate description file, "somefile.tsx":
                     fileName: ctx.projectFile,
                     logger,
                     loggerId,
-                    stackName: ctx.stackName,
                 };
 
                 return ctx.project.status(statusOptions);

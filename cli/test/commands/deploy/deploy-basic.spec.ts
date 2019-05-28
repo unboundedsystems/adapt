@@ -872,16 +872,11 @@ async function checkStateUpdateState(count: number): Promise<void> {
     }
 }
 
-const stateIncrementTestChain =
-    testBase
-    .do(async () => {
-        const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
-        await createProject(basicPackageJson, indexTsx, "index.tsx");
-    });
+const stateIncrementTestChain = testBase;
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-describe("Deploy update basic tests", function () {
+describe("Deploy update and status tests", function () {
     this.slow(5 * 1000);
     this.timeout(10 * 1000);
     let deployID = "NOTFOUND";
@@ -889,6 +884,11 @@ describe("Deploy update basic tests", function () {
     // These tests must all use a single temp directory where the
     // state_history can be shared and built upon
     mochaTmpdir.all("adapt-cli-test-deploy");
+
+    before(async () => {
+        const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
+        await createProject(basicPackageJson, indexTsx, "index.tsx");
+    });
 
     stateIncrementTestChain
     .timeout(20 * 1000)
@@ -915,9 +915,9 @@ describe("Deploy update basic tests", function () {
     stateIncrementTestChain
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 2 })")))
-    .delayedcommand(() => ["deploy:update", deployID, "dev"])
+    .delayedcommand(() => ["deploy:update", deployID])
 
-    .it("Should create second state", async (ctx) => {
+    .it("Should create second state (without stack arg)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
@@ -934,7 +934,7 @@ describe("Deploy update basic tests", function () {
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 3 })")))
     .delayedcommand(() => ["deploy:update", deployID, "dev"])
 
-    .it("Should create third state", async (ctx) => {
+    .it("Should create third state (with stack arg)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
@@ -947,7 +947,7 @@ describe("Deploy update basic tests", function () {
     });
 
     stateIncrementTestChain
-    .delayedcommand(() => ["deploy:status", deployID, "dev"])
+    .delayedcommand(() => ["deploy:status", deployID])
 
     .it("Should report status", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -992,7 +992,7 @@ describe("Build negative tests", () => {
 
     basicTestChain
     .command(["deploy:create", "dev"])
-    .command(["deploy:update", "abc123", "dev"])
+    .command(["deploy:update", "abc123"])
     .catch((err: any) => {
         expect(err.message).contains(
             "Deployment 'abc123' does not exist");

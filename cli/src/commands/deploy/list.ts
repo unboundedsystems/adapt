@@ -15,7 +15,7 @@ function getErrorMsg(e: any) {
 }
 
 export default class ListCommand extends DeployBase {
-    static description = "Create a new deployment for an Adapt project";
+    static description = "List active Adapt deployments";
 
     static examples = [
         `List all deployments from the server

@@ -65,13 +65,11 @@ export default class UpdateCommand extends UpdateBaseCommand {
     static description = "Update an existing deployment of an Adapt project";
 
     static examples = [
-        `
-Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-the default project description file, "index.tsx":
-    $ adapt deploy:update myproj-dev-abcd dev
-
-Update the deployment "myproj-dev-abcd", using the stack named "dev" from
-an alternate description file, "somefile.tsx":
+`Update the deployment "myproj-dev-abcd", from the default project ` +
+`description file, "index.tsx":
+    $ adapt deploy:update myproj-dev-abcd\n`,
+`Update the deployment "myproj-dev-abcd", using the stack named "dev" from ` +
+`an alternate description file, "somefile.tsx":
     $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev`,
     ];
 
@@ -86,7 +84,6 @@ an alternate description file, "somefile.tsx":
         },
         {
             name: "stackName",
-            required: true,
         },
     ];
 

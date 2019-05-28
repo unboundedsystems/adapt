@@ -384,7 +384,6 @@ describe("createDeployment Tests", async function () {
             deployID: ds.deployID,
             fileName: "index.tsx",
             client,
-            stackName: "default",
         });
 
         if (!isDeploySuccess(dsStatus)) {

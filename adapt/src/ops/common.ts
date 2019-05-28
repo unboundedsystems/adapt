@@ -53,7 +53,6 @@ export interface WithLogger {
 export interface DeployCommonOptions extends WithLogger {
     adaptUrl: string;
     fileName: string;
-    stackName: string;
 
     debug?: string;
     dryRun?: boolean;
