@@ -1,8 +1,6 @@
 import Adapt, { Style, } from "@usys/adapt";
 import { Service, ServiceProps } from "@usys/cloud";
-// tslint:disable-next-line:no-submodule-imports
 import { ServiceDeployment } from "@usys/cloud/k8s";
-// tslint:disable-next-line:no-submodule-imports
 import { Postgres, TestPostgres } from "@usys/cloud/postgres";
 import { ProdPostgres } from "./postgres";
 

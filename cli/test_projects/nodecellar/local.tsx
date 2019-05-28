@@ -10,7 +10,6 @@ import {
     NetworkService,
     NetworkServiceProps,
 } from "@usys/cloud";
-// tslint:disable:no-submodule-imports
 import { AnsibleContainer, AnsibleDockerHost } from "@usys/cloud/ansible";
 
 export const localStyle =
