@@ -10,7 +10,7 @@ app.use(express.json());
 /*
  * Movie API
  */
-app.get('/api/search/:query', (req, res) => {
+app.get('/search/:query', (req, res) => {
     moviedb.find(req.params.query)
         .then(rows => res.json(rows.map(r => ({
             title: r.title,

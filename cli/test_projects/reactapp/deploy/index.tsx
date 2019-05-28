@@ -18,7 +18,7 @@ function App() {
         <NginxUrlRouter key="url-router"
             port={8080}
             routes={[
-                { path: "/api/", endpoint: api, upstreamPath: "/api/" },
+                { path: "/api/", endpoint: api },
                 { path: "/", endpoint: stat }
             ]} />
 
@@ -27,8 +27,7 @@ function App() {
 
         <Postgres handle={pg} />
 
-        <NginxStatic key="static-service" handle={stat}
-            localAddRoot="../public" scope="cluster-internal"
+        <NginxStatic key="static-service" handle={stat} scope="cluster-internal"
             add={[{ type: "image", image: api, stage: "app",
                     files: [{ src: "/app/build", dest: "/www/static" }]}]} />
 
