@@ -84,9 +84,8 @@ function useMakeNginxConf(props: UrlRouterProps) {
         const upPath = r.upstreamPath;
         return `
             set $${varName} ${protocol}//${hostname}:${port};
-            location ${r.path} {
-                rewrite ^/${r.path}(.*) /${upPath}$1 break;
-                proxy_pass $${varName};
+            location ~ ^${r.path}(.*)$ {
+                proxy_pass $${varName + upPath}$1;
                 proxy_set_header Host $host;
             }
         `;
@@ -178,7 +177,7 @@ export function NginxUrlRouter(props: UrlRouterProps) {
                 WORKDIR /router
                 COPY --from=files / .
                 RUN apt-get update && \
-                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools && \
+                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools curl procps vim && \
                     chmod a+x start_nginx.sh make_resolvers.sh && \
                     apt-get clean
                 CMD [ "/router/start_nginx.sh" ]
