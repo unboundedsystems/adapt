@@ -1,10 +1,9 @@
 import Adapt, { Group, handle } from "@usys/adapt";
 import { useMethod } from "@usys/cloud";
-// tslint:disable-next-line:no-submodule-imports
+import { NodeService } from "@usys/cloud/nodejs";
 import { Postgres } from "@usys/cloud/postgres";
 import NginxStatic from "./NginxStatic";
 import NginxUrlRouter from "./NginxUrlRouter";
-import NodeService from "./NodeService";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {
