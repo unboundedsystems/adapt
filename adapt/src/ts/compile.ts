@@ -18,7 +18,7 @@ import { ModuleResolver } from "./modules";
 
 const debugCompile = false;
 const debugPreprocessing = false;
-let debugIntermediateDom = true;
+let debugIntermediateDom = false;
 if (debugCompile || debugPreprocessing) debugIntermediateDom = true;
 
 const debugAction = db("adapt:compile:action");

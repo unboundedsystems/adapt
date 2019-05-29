@@ -1,5 +1,5 @@
 import { Handle } from "@usys/adapt";
-import { NetworkServiceScope } from "@usys/cloud";
+import { NetworkServiceScope, Stage } from "..";
 
 /*
  * Match types
@@ -61,6 +61,11 @@ export function isFilesResolved(f: Files): f is FilesResolved {
     return f.type !== "image" || typeof f.image === "string";
 }
 
+export interface FilesInfo {
+    dockerCommands: string;
+    stage?: Stage;
+}
+
 /*
  * HttpServer configuration
  */
@@ -82,6 +87,6 @@ export interface HttpServerProps {
     localAddRoot?: string;
     // TODO: Port should be virtual server specific, not one for the whole component
     port: number;
-    scope?: NetworkServiceScope;
+    scope: NetworkServiceScope;
     servers?: VirtualServer[];
 }

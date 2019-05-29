@@ -1,6 +1,5 @@
 import Adapt, { Group, handle, Style, useImperativeMethods } from "@usys/adapt";
 import { useMethod } from "@usys/cloud";
-// tslint:disable-next-line:no-submodule-imports
 import { K8sContainer, Pod, Service } from "@usys/cloud/k8s";
 import { Postgres, usePreloadedPostgres } from "./lib";
 import { kubeconfig } from "./TypeScriptService";

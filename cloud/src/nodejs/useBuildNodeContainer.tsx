@@ -9,8 +9,8 @@ import Adapt, {
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
-import { callInstanceMethod, getInstanceValue } from "./hooks";
-import { DockerBuildOptions, ImageInfo, useDockerBuild } from "./LocalDockerBuild";
+import { callInstanceMethod, getInstanceValue } from "../hooks";
+import { DockerBuildOptions, ImageInfo, useDockerBuild } from "../LocalDockerBuild";
 
 export interface LocalNodeContainerProps extends Partial<BuiltinProps> {
     srcDir: string;

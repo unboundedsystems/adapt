@@ -26,6 +26,10 @@
             "dev"
         ],
         "no-namespace": false,
+        "no-submodule-imports": [
+            true,
+            "@usys/cloud"
+        ],
         "no-unused-expression": false,
         "object-literal-sort-keys": [
             false,

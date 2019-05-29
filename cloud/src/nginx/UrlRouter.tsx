@@ -1,21 +1,12 @@
 import Adapt, {
     DeployStatus,
-    Handle,
+    SFCBuildProps,
+    SFCDeclProps,
     useDeployedWhen,
     useState,
     waiting,
 } from "@usys/adapt";
 
-import {
-    callInstanceMethod,
-    Container,
-    handles,
-    ImageInfo,
-    NetworkService,
-    Service,
-    useAsync,
-    useDockerBuild
-} from "@usys/cloud";
 import {
     notNull,
     withTmpDir
@@ -25,25 +16,24 @@ import { writeFile } from "fs-extra";
 import * as path from "path";
 import { URL } from "url";
 import { isString, promisify } from "util";
+import {
+    callInstanceMethod,
+    Container,
+    handles,
+    ImageInfo,
+    NetworkService,
+    Service,
+    useAsync,
+    useDockerBuild
+} from "..";
+import {
+    checkUrlEndpoints,
+    ResolvedRoute,
+    UrlRouter as AbsUrlRouter,
+    UrlRouterProps as AbsUrlRouterProps,
+} from "../http";
 
 const nginxImg = "nginx:latest";
-
-export interface UrlRouterRoute {
-    path: string;
-    endpoint: Handle | string;
-    upstreamPath?: string;
-}
-export interface UrlRouterProps {
-    port: number;
-    externalPort?: number;
-    routes: UrlRouterRoute[];
-}
-
-interface ResolvedRoute {
-    path: string;
-    upstreamPath: string;
-    url: string;
-}
 
 function upstream(_r: ResolvedRoute, i: number, _url: URL) {
     return `upstream_url_${i}`;
@@ -82,11 +72,14 @@ function useMakeNginxConf(props: UrlRouterProps) {
         const { hostname, protocol } = lurl;
         const port = getPort(lurl);
         const upPath = r.upstreamPath;
+        // NOTE: the set $encoded line is required because the captured
+        // portion of the regex ($1) has been URL-decoded. The set line
+        // re-encodes it. But using $1 directly on the proxy_pass line does not.
         return `
             set $${varName} ${protocol}//${hostname}:${port};
-            location ${r.path} {
-                rewrite ^/${r.path}(.*) /${upPath}$1 break;
-                proxy_pass $${varName};
+            location ~ ^${r.path}(.*)$ {
+                set $encoded $${varName + upPath}$1;
+                proxy_pass $encoded;
                 proxy_set_header Host $host;
             }
         `;
@@ -100,7 +93,12 @@ function useMakeNginxConf(props: UrlRouterProps) {
         `;
     }
 
+    const mainConfig: string[] = [];
+    if (props.debug) mainConfig.push("error_log stderr debug;");
+
     return `
+${mainConfig.join("\n")}
+
 events {
     worker_connections 1024;
 }
@@ -147,22 +145,17 @@ ${conf}
     });
 }
 
-function checkUrlEndpoints(routes: UrlRouterRoute[]) {
-    const errs: string[] = [];
-    for (const route of routes) {
-        const ep = route.endpoint;
-        if (!isString(ep)) continue;
-        try {
-            new URL(ep);
-        } catch (e) {
-            errs.push(`Invalid endpoint URL for "${route.path}": ${ep} `);
-            continue;
-        }
-    }
-    if (errs.length !== 0) throw new Error(`Error in routes for UrlRouter: \n${errs.join("\n")} \n`);
+const defaultProps = {
+    ...AbsUrlRouter.defaultProps,
+    debug: false,
+};
+
+export interface UrlRouterProps extends AbsUrlRouterProps {
+    debug: boolean;
 }
 
-export function NginxUrlRouter(props: UrlRouterProps) {
+export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultProps>) {
+    const props = propsIn as SFCBuildProps<UrlRouterProps, typeof defaultProps>;
     const h = handles();
     const [oldImage, setOldImage] = useState<ImageInfo | undefined>(undefined);
 
@@ -171,6 +164,8 @@ export function NginxUrlRouter(props: UrlRouterProps) {
     //FIXME(manishv) nginx config check will only pass if all hostnames can be resolved locally, how to fix?
     if (false) useAsync(async () => checkNginxConf(nginxConf), undefined);
 
+    const nginxExec = props.debug ? "nginx-debug" : "nginx";
+
     const { image, buildObj } = useDockerBuild(() => {
         return {
             dockerfile: `
@@ -178,7 +173,7 @@ export function NginxUrlRouter(props: UrlRouterProps) {
                 WORKDIR /router
                 COPY --from=files / .
                 RUN apt-get update && \
-                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools && \
+                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools curl procps vim && \
                     chmod a+x start_nginx.sh make_resolvers.sh && \
                     apt-get clean
                 CMD [ "/router/start_nginx.sh" ]
@@ -189,7 +184,7 @@ export function NginxUrlRouter(props: UrlRouterProps) {
                     `#!/bin/sh
                     mkdir conf.d
                     ./make_resolvers.sh
-                    nginx -g "daemon off;" -c /router/nginx.conf
+                    ${nginxExec} -g "daemon off;" -c /router/nginx.conf
                     `
             },
             {
@@ -243,4 +238,4 @@ export function NginxUrlRouter(props: UrlRouterProps) {
     </Service >;
 }
 
-export default NginxUrlRouter;
+export default UrlRouter;
