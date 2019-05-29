@@ -90,7 +90,7 @@ describeLong("Nodecellar system tests", function () {
     });
 
     systemTestChain
-    .command(["deploy:create", "dev"])
+    .command(["run", "dev"])
 
     .it("Should deploy local style", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -124,7 +124,7 @@ describeLong("Nodecellar system tests", function () {
     });
 
     systemTestChain
-    .command(["deploy:create", "k8s"])
+    .command(["run", "k8s"])
 
     .it("Should deploy k8s style", async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -176,7 +176,7 @@ describeLong("Nodecellar system tests", function () {
     }
 
     systemTestChain
-    .command(["deploy:create", "aws"])
+    .command(["run", "aws"])
 
     .it("Should deploy AWS style", async (ctx) => {
         expect(ctx.stderr).equals("");

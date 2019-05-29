@@ -59,7 +59,7 @@ describeLong("tshello system tests", function () {
 
     systemTestChain
     .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
-    .command(["deploy:create", "prod"])
+    .command(["run", "prod"])
 
     .it("Should deploy tshello to k8s", async ({ stdout, stderr }) => {
         expect(stderr).equals("");

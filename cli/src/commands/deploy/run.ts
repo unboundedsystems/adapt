@@ -3,14 +3,16 @@ import { DeployOpBase } from "../../base";
 import { CreateOptions } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 
-export default class CreateCommand extends DeployOpBase {
+export default class RunCommand extends DeployOpBase {
     static description = "Create a new deployment for an Adapt project";
+
+    static aliases = [ "run" ];
 
     static examples = [
 `Deploy the stack named "dev" from the default project description file, index.tsx:
-    $ adapt deploy:create dev\n`,
+    $ adapt <%- command.id %> dev\n`,
 `Deploy the stack named "dev" from an alternate description file:
-    $ adapt deploy:create --rootFile somefile.tsx dev`,
+    $ adapt <%- command.id %> --rootFile somefile.tsx dev`,
     ];
 
     static flags = DeployOpBase.flags;
@@ -29,7 +31,7 @@ export default class CreateCommand extends DeployOpBase {
         const { stackName } = ctx;
         if (stackName == null) throw new InternalError(`stackName cannot be null`);
 
-        const logger = ctx.logger.createChild("create");
+        const logger = ctx.logger.createChild("run");
         const loggerId = logger.from;
 
         addDynamicTask(this.tasks, ctx.logger.from, ctx.client, {

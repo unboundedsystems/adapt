@@ -75,7 +75,7 @@ describeLong("reactapp system tests", function () {
     systemTestChain
     .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
     .do(() => process.chdir("deploy"))
-    .command(["deploy:create", "k8s"])
+    .command(["run", "k8s"])
 
     .it("Should deploy reactapp to k8s", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
