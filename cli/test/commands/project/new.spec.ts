@@ -117,6 +117,19 @@ describe("project:new files", () => {
     .do(async () => {
         await fs.ensureDir("./starter");
         await fs.writeJson("./starter/adapt_starter.json", {
+            files: ["test.js", "deploy"]
+        });
+        await writeFiles(files1, "./starter");
+    })
+    .command(["new", "./starter", "project"])
+    .it("Should create new project and copy files using alias", async () => {
+        await checkFiles(files1, "project");
+    });
+
+    basicTestChain
+    .do(async () => {
+        await fs.ensureDir("./starter");
+        await fs.writeJson("./starter/adapt_starter.json", {
             files: ["deploy"]
         });
         await writeFiles(dirOnly, "./starter");

@@ -201,7 +201,7 @@ OPTIONS
   --all  see all commands in CLI
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.1.3/src/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.1.6/src/commands/help.ts)_
 
 ## `adapt project:new STARTER [DIRECTORY]`
 
@@ -221,6 +221,9 @@ ARGUMENTS
 
 OPTIONS
   -q, --quiet  Suppress status output messages. Still outputs any result output.
+
+ALIASES
+  $ adapt new
 
 EXAMPLE
   Create a new project into the directory './myproj' using the starter named 'blank' from the Adapt starter gallery:

@@ -9,6 +9,7 @@ const logString = (task: Listr.ListrTaskWrapper) => (msg: string) => task.output
 
 export default class NewCommand extends AdaptBase {
     static description = "Create a new Adapt project";
+    static aliases = [ "new" ];
 
     static examples = [
         `Create a new project into the directory './myproj' using the starter ` +
