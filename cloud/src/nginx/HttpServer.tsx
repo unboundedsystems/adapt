@@ -1,33 +1,30 @@
 import Adapt, {
-    Defaultize,
     DeployStatus,
     handle,
+    SFCBuildProps,
+    SFCDeclProps,
     useDeployedWhen,
     useImperativeMethods,
     useState,
     waiting,
 } from "@usys/adapt";
+import { Dispatcher, notNull } from "@usys/utils";
 import {
     callInstanceMethod,
     Container,
-    getInstanceValue,
     ImageInfo,
     NetworkService,
     Service,
-    Stage,
     useDockerBuild,
-} from "@usys/cloud";
-import { Dispatcher, notNull } from "@usys/utils";
-import { isObject, isString } from "lodash";
+} from "..";
 import {
     Destination,
-    Files,
-    FilesResolved,
+    HttpServer as AbsHttpServer,
     HttpServerProps,
-    isFilesResolved,
     Location,
     Match,
-} from "./http_server_types";
+    useFilesInfo,
+} from "../http";
 
 const nginxImg = "nginx:latest";
 
@@ -54,34 +51,6 @@ const locationConfig = (loc: Location) => `
             ${destConfig(loc.dest)}
         }
 `;
-
-/*
- * Files
- */
-interface FilesInfo {
-    dockerCommands: string;
-    stage?: Stage;
-}
-const filesFrom = new Dispatcher<FilesResolved, FilesInfo>("Files");
-
-filesFrom.add("local", (fObj) => {
-    const dockerCommands = fObj.files
-        .map(({ src, dest }) => `COPY ${src} ${dest}`)
-        .join("\n");
-    return { dockerCommands };
-});
-
-filesFrom.add("image", (fObj) => {
-    const dockerCommands = fObj.files
-        .map(({ src, dest }) => `COPY --from=${fObj.stage} ${src} ${dest}`)
-        .join("\n");
-
-    return { dockerCommands, stage: { image: fObj.image, name: fObj.stage } };
-});
-
-function getFilesInfo(files: FilesResolved[]) {
-    return files.map((f) => filesFrom.dispatch(f));
-}
 
 function useMakeNginxConf(props: HttpServerProps) {
     const servers = props.servers || [];
@@ -118,35 +87,8 @@ ${serverConf.join("\n")}
 `;
 }
 
-function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
-    const [resolved, setResolved] = useState<FilesResolved[] | undefined>(undefined);
-
-    setResolved(() => {
-        const done: FilesResolved[] = [];
-
-        for (const f of files) {
-            if (isFilesResolved(f)) {
-                done.push(f);
-                continue;
-            }
-            const image = getInstanceValue<ImageInfo | undefined>(f.image, undefined, "image");
-            if (image && isObject(image) && isString(image.id)) {
-                done.push({
-                    ...f,
-                    image: image.id
-                });
-            } else {
-                return undefined;
-            }
-        }
-        return done;
-    });
-
-    return resolved;
-}
-
 const defaultProps = {
-    port: 80,
+    ...AbsHttpServer.defaultProps,
     servers: [{
         filesRoot: "/www/static",
         locations: [{
@@ -156,17 +98,15 @@ const defaultProps = {
     }]
 };
 
-export function NginxStatic(propsIn: Defaultize<HttpServerProps, typeof defaultProps>) {
-    const props = propsIn as HttpServerProps;
+export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof defaultProps>) {
+    const props = propsIn as SFCBuildProps<HttpServerProps, typeof defaultProps>;
     const netSvc = handle();
     const nginx = handle();
     const [oldImage, setOldImage] = useState<ImageInfo | undefined>(undefined);
 
-    const scope = props.scope || "external";
     const nginxConf = useMakeNginxConf(props);
 
-    const files = useResolvedFiles(props.add);
-    const fileInfo = files && getFilesInfo(files) || [];
+    const fileInfo = useFilesInfo(props.add) || [];
     const commands = fileInfo.map((f) => f.dockerCommands).join("\n");
     const stages = fileInfo.map((f) => f.stage).filter(notNull);
 
@@ -225,7 +165,7 @@ export function NginxStatic(propsIn: Defaultize<HttpServerProps, typeof defaultP
             endpoint={nginx}
             port={props.port}
             targetPort={props.port}
-            scope={scope}
+            scope={props.scope}
         />
         {curImage ?
             <Container
@@ -242,6 +182,6 @@ export function NginxStatic(propsIn: Defaultize<HttpServerProps, typeof defaultP
 }
 
 // FIXME(mark): The "as any" can be removed when we upgrade to TS > 3.2
-(NginxStatic as any).defaultProps = defaultProps;
+(HttpServer as any).defaultProps = defaultProps;
 
-export default NginxStatic;
+export default HttpServer;
