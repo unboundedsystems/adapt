@@ -56,6 +56,9 @@ OPTIONS
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
 
+ALIASES
+  $ adapt destroy
+
 EXAMPLE
 
   Destroy the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":
@@ -81,6 +84,9 @@ OPTIONS
   --rootFile=rootFile     [default: index.tsx] Project description file to deploy (.ts or .tsx)
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
+
+ALIASES
+  $ adapt list
 
 EXAMPLE
   List all deployments from the server
@@ -146,6 +152,9 @@ OPTIONS
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
 
+ALIASES
+  $ adapt status
+
 EXAMPLES
   Fetch the status of deployment "myproj-dev-abcd" from the default project description file, "index.tsx":
        $ adapt deploy:status myproj-dev-abcd
@@ -177,6 +186,9 @@ OPTIONS
   --rootFile=rootFile     [default: index.tsx] Project description file to deploy (.ts or .tsx)
 
   --serverUrl=serverUrl   URL of Adapt server. Defaults to using local system.
+
+ALIASES
+  $ adapt update
 
 EXAMPLES
   Update the deployment "myproj-dev-abcd", from the default project description file, "index.tsx":

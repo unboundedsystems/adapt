@@ -5,6 +5,8 @@ import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
 export default class StatusCommand extends DeployOpBase {
     static description = "Fetch the status of an existing deployment of an Adapt project";
 
+    static aliases = [ "status" ];
+
     static examples = [
 `Fetch the status of deployment "myproj-dev-abcd" from the default project ` +
 `description file, "index.tsx":

@@ -9,6 +9,8 @@ import { UpdateBaseCommand } from "./update";
 export default class DestroyCommand extends UpdateBaseCommand {
     static description = "Destroy an existing deployment of an Adapt project";
 
+    static aliases = [ "destroy" ];
+
     static examples = [
         `
 Destroy the deployment "myproj-dev-abcd" using the default project description file, "index.tsx":

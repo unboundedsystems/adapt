@@ -321,7 +321,7 @@ function checkPluginStdout(stdout: string, dryRun = false) {
     }
 }
 
-describe("Deploy list tests", function () {
+describe("deploy:list tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
@@ -331,6 +331,18 @@ describe("Deploy list tests", function () {
     .command(["deploy:list"])
 
     .it("Should list deployments", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
+        expect(ctx.stdout).not.contains("using internal adapt module");
+    });
+
+    basicTestChain
+    .command(["deploy:run", "dev"])
+    .command(["list"])
+
+    .it("Should list deployments (with alias)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
@@ -353,7 +365,7 @@ describe("Deploy list tests", function () {
 
 });
 
-describe("Deploy destroy tests", function () {
+describe("deploy:destroy tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     let deployID: string;
@@ -372,6 +384,25 @@ describe("Deploy destroy tests", function () {
     .command(["deploy:list"])
 
     .it("Should stop and destroy created deployment", async (ctx) => {
+        expect(ctx.stdout).contains("Stopping project deployment [completed]");
+        expect(ctx.stdout).contains("Listing Deployments [completed]");
+        expect(ctx.stdout).does.not.contain("Listing Deployments [completed]\n\ntest::dev-");
+        expect(ctx.stdout).does.not.contain("WARNING");
+    });
+
+    basicTestChain
+    .command(["run", "dev"])
+    .do((ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        expect(ctx.stdout).does.not.contain("WARNING");
+        deployID = getNewDeployID(ctx.stdout);
+    })
+    .delayedcommand(() => ["destroy", deployID!])
+    .command(["list"])
+
+    .it("Should stop and destroy created deployment (with aliases)", async (ctx) => {
         expect(ctx.stdout).contains("Stopping project deployment [completed]");
         expect(ctx.stdout).contains("Listing Deployments [completed]");
         expect(ctx.stdout).does.not.contain("Listing Deployments [completed]\n\ntest::dev-");
@@ -898,7 +929,7 @@ const stateIncrementTestChain = testBase;
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
-describe("Deploy update and status tests", function () {
+describe("deploy:update and deploy:status tests", function () {
     this.slow(5 * 1000);
     this.timeout(10 * 1000);
     let deployID = "NOTFOUND";
@@ -937,9 +968,9 @@ describe("Deploy update and status tests", function () {
     stateIncrementTestChain
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 2 })")))
-    .delayedcommand(() => ["deploy:update", deployID])
+    .delayedcommand(() => ["update", deployID])
 
-    .it("Should create second state (without stack arg)", async (ctx) => {
+    .it("Should create second state (without stack arg, using alias)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Updating project deployment [completed]");
@@ -972,6 +1003,18 @@ describe("Deploy update and status tests", function () {
     .delayedcommand(() => ["deploy:status", deployID])
 
     .it("Should report status", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains(`Deployment ${deployID} status:`);
+        expect(ctx.stdout).contains(`{
+      "noStatus": "element has no children"
+    }`);
+        expect(ctx.stdout).does.not.contain("WARNING");
+    });
+
+    stateIncrementTestChain
+    .delayedcommand(() => ["status", deployID])
+
+    .it("Should report status (using alias)", async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains(`Deployment ${deployID} status:`);
         expect(ctx.stdout).contains(`{
