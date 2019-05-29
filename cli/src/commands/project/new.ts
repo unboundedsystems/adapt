@@ -7,13 +7,13 @@ import { createStarter } from "../../proj";
 
 const logString = (task: Listr.ListrTaskWrapper) => (msg: string) => task.output = msg;
 
-export default class InitCommand extends AdaptBase {
-    static description = "Initialize a new Adapt project";
+export default class NewCommand extends AdaptBase {
+    static description = "Create a new Adapt project";
 
     static examples = [
-        `Initialize a new project into the directory './myproj' using the starter ` +
+        `Create a new project into the directory './myproj' using the starter ` +
         `named 'blank' from the Adapt starter gallery:\n` +
-        `    $ adapt project:init blank myproj`,
+        `    $ adapt <%- command.id %> blank myproj`,
     ];
 
     static flags = { ...AdaptBase.flags };
@@ -35,8 +35,8 @@ export default class InitCommand extends AdaptBase {
     ];
 
     static usage = [
-        "project:init STARTER [DIRECTORY]",
-        "project:init STARTER DIRECTORY [STARTER_ARGS...]",
+        "<%- command.id %> STARTER [DIRECTORY]",
+        "<%- command.id %> STARTER DIRECTORY [STARTER_ARGS...]",
     ];
 
     async init() {
@@ -68,7 +68,7 @@ export default class InitCommand extends AdaptBase {
                     task: (_ctx, task) => starter.download(logString(task)),
                 },
                 {
-                    title: "Initializing new project",
+                    title: "Creating new project",
                     task: (_ctx, task) => starter.run(logString(task)),
                 },
             ]);

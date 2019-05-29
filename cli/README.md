@@ -9,7 +9,7 @@
 * [`adapt deploy:status DEPLOYID`](#adapt-deploystatus-deployid)
 * [`adapt deploy:update DEPLOYID [STACKNAME]`](#adapt-deployupdate-deployid-stackname)
 * [`adapt help [COMMAND]`](#adapt-help-command)
-* [`adapt project:init STARTER [DIRECTORY]`](#adapt-projectinit-starter-directory)
+* [`adapt project:new STARTER [DIRECTORY]`](#adapt-projectnew-starter-directory)
 
 ## `adapt autocomplete [SHELL]`
 
@@ -203,14 +203,14 @@ OPTIONS
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.1.3/src/commands/help.ts)_
 
-## `adapt project:init STARTER [DIRECTORY]`
+## `adapt project:new STARTER [DIRECTORY]`
 
-Initialize a new Adapt project
+Create a new Adapt project
 
 ```
 USAGE
-  $ adapt project:init STARTER [DIRECTORY]
-  $ adapt project:init STARTER DIRECTORY [STARTER_ARGS...]
+  $ adapt project:new STARTER [DIRECTORY]
+  $ adapt project:new STARTER DIRECTORY [STARTER_ARGS...]
 
 ARGUMENTS
   STARTER    Adapt starter to use. May be the name of a starter from the starter gallery, a URL, a local file path, or
@@ -223,9 +223,9 @@ OPTIONS
   -q, --quiet  Suppress status output messages. Still outputs any result output.
 
 EXAMPLE
-  Initialize a new project into the directory './myproj' using the starter named 'blank' from the Adapt starter gallery:
-       $ adapt project:init blank myproj
+  Create a new project into the directory './myproj' using the starter named 'blank' from the Adapt starter gallery:
+       $ adapt project:new blank myproj
 ```
 
-_See code: [dist/src/commands/project/init.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.2-next.3/dist/src/commands/project/init.ts)_
+_See code: [dist/src/commands/project/new.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.2-next.3/dist/src/commands/project/new.ts)_
 <!-- commandsstop -->

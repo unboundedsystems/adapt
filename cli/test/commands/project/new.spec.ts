@@ -9,11 +9,11 @@ const basicTestChain =
     .stderr()
     .stub(process.stdout, "isTTY", false); // Turn off progress, etc
 
-describe("project:init errors", () => {
-    mochaTmpdir.each("adapt-cli-test-init");
+describe("project:new errors", () => {
+    mochaTmpdir.each("adapt-cli-test-new");
 
     basicTestChain
-    .command(["project:init"])
+    .command(["project:new"])
     .catch((err) => {
         expect(err.message).matches(/Missing 1 required arg:/);
         expect((err as any).oclif.exit).equals(2);
@@ -21,7 +21,7 @@ describe("project:init errors", () => {
     .it("Should error if not enough args");
 
     basicTestChain
-    .command(["project:init", "./doesntexist"])
+    .command(["project:new", "./doesntexist"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './doesntexist' as a starter: ` +
@@ -32,7 +32,7 @@ describe("project:init errors", () => {
 
     basicTestChain
     .do(() => fs.writeFile("./empty", ""))
-    .command(["project:init", "./empty"])
+    .command(["project:new", "./empty"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './empty' as a starter: ` +
@@ -43,7 +43,7 @@ describe("project:init errors", () => {
 
     basicTestChain
     .do(() => fs.ensureDir("./empty"))
-    .command(["project:init", "./empty"])
+    .command(["project:new", "./empty"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './empty' as a starter: ` +
@@ -57,7 +57,7 @@ describe("project:init errors", () => {
         await fs.ensureDir("./invalid");
         await fs.writeFile("./invalid/adapt_starter.json", "foo:");
     })
-    .command(["project:init", "./invalid"])
+    .command(["project:new", "./invalid"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './invalid' as a starter: ` +
@@ -97,8 +97,8 @@ const dirOnly = {
     "deploy/package.json": "package.json\n",
 };
 
-describe("project:init files", () => {
-    mochaTmpdir.each("adapt-cli-test-init");
+describe("project:new files", () => {
+    mochaTmpdir.each("adapt-cli-test-new");
 
     basicTestChain
     .do(async () => {
@@ -108,8 +108,8 @@ describe("project:init files", () => {
         });
         await writeFiles(files1, "./starter");
     })
-    .command(["project:init", "./starter", "project"])
-    .it("Should init new project and copy files", async () => {
+    .command(["project:new", "./starter", "project"])
+    .it("Should create new project and copy files", async () => {
         await checkFiles(files1, "project");
     });
 
@@ -121,8 +121,8 @@ describe("project:init files", () => {
         });
         await writeFiles(dirOnly, "./starter");
     })
-    .command(["project:init", "./starter", "project"])
-    .it("Should init new project with a single dir to copy", async () => {
+    .command(["project:new", "./starter", "project"])
+    .it("Should create new project with a single dir to copy", async () => {
         await checkFiles(dirOnly, "project");
     });
 
@@ -134,26 +134,26 @@ describe("project:init files", () => {
         });
         await writeFiles(files1, "./starter");
     })
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .catch((err) => {
         const f = path.resolve("starter/foo");
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
-            `Error copying files during init: '${f}' not found`);
+            `Error copying files: '${f}' not found`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error if files are not present in starter");
 });
 
-describe("project:init download", () => {
-    mochaTmpdir.each("adapt-cli-test-init");
+describe("project:new download", () => {
+    mochaTmpdir.each("adapt-cli-test-new");
 
     basicTestChain
-    .command(["project:init", "git+https://gitlab.com/adpt/starters/blank", "project"])
+    .command(["project:new", "git+https://gitlab.com/adpt/starters/blank", "project"])
     .it("Should download from git+https URL", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
-        expect(stdout).matches(/Initializing new project \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
 
         const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
         const pkg = await fs.readJson(pjPath);
@@ -161,11 +161,11 @@ describe("project:init download", () => {
     });
 
     basicTestChain
-    .command(["project:init", "gitlab:mterrel/blank", "project"])
+    .command(["project:new", "gitlab:mterrel/blank", "project"])
     .it("Should download from gitlab: URL", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
-        expect(stdout).matches(/Initializing new project \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
 
         const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
         const pkg = await fs.readJson(pjPath);
@@ -173,11 +173,11 @@ describe("project:init download", () => {
     });
 
     basicTestChain
-    .command(["project:init", "blank", "project"])
+    .command(["project:new", "blank", "project"])
     .it("Should download from adpt gallery", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
-        expect(stdout).matches(/Initializing new project \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
 
         const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
         const pkg = await fs.readJson(pjPath);
@@ -185,7 +185,7 @@ describe("project:init download", () => {
     });
 
     basicTestChain
-    .command(["project:init", "is-promise", "project"])
+    .command(["project:new", "is-promise", "project"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use 'is-promise' as a starter: ` +
@@ -196,8 +196,8 @@ describe("project:init download", () => {
 
 });
 
-describe("project:init scripts", () => {
-    mochaTmpdir.each("adapt-cli-test-init");
+describe("project:new scripts", () => {
+    mochaTmpdir.each("adapt-cli-test-new");
 
     basicTestChain
     .do(async () => {
@@ -206,7 +206,7 @@ describe("project:init scripts", () => {
             init: "echo newfile > newfile",
         });
     })
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .it("Should run script in project directory", async () => {
         const files = {
             newfile: "newfile\n"
@@ -227,7 +227,7 @@ describe("project:init scripts", () => {
             `);
         await fs.chmod("./starter/setup.sh", "0777");
     })
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .it("Should provide starter environment variable", async () => {
         const files = {
             setup_done: "Setup done\n"
@@ -242,7 +242,7 @@ describe("project:init scripts", () => {
             init: "badcommand",
         });
     })
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
@@ -260,7 +260,7 @@ describe("project:init scripts", () => {
             init: "echo To stdout ; echo To stderr 1>&2; false",
         });
     })
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
@@ -294,7 +294,7 @@ describe("project:init scripts", () => {
 
     basicTestChain
     .do(createArgsStarter)
-    .command(["project:init", "./starter", "project"])
+    .command(["project:new", "./starter", "project"])
     .it("Should handle no args", async () => {
         const output = (await fs.readFile("./project/output")).toString();
         expect(output).equals("");
@@ -302,7 +302,7 @@ describe("project:init scripts", () => {
 
     basicTestChain
     .do(createArgsStarter)
-    .command(["project:init", "./starter", "project", "arg1", "arg2"])
+    .command(["project:new", "./starter", "project", "arg1", "arg2"])
     .it("Should handle simple args", async () => {
         const output = (await fs.readFile("./project/output")).toString();
         expect(output).equals("arg1\narg2\n");
@@ -317,7 +317,7 @@ describe("project:init scripts", () => {
 
     basicTestChain
     .do(createArgsStarter)
-    .command(["project:init", "./starter", "project", ...specialArgs])
+    .command(["project:new", "./starter", "project", ...specialArgs])
     .it("Should handle args with special chars", async () => {
         const output = (await fs.readFile("./project/output")).toString();
         expect(output).equals(specialArgs.join("\n") + "\n");

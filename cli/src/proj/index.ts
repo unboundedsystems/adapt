@@ -1,3 +1,3 @@
 export * from "./genlist";
-export * from "./init";
+export * from "./new";
 export * from "./project";
