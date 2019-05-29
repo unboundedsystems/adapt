@@ -30,7 +30,7 @@ import {
     checkUrlEndpoints,
     ResolvedRoute,
     UrlRouter as AbsUrlRouter,
-    UrlRouterProps,
+    UrlRouterProps as AbsUrlRouterProps,
 } from "../http";
 
 const nginxImg = "nginx:latest";
@@ -93,7 +93,12 @@ function useMakeNginxConf(props: UrlRouterProps) {
         `;
     }
 
+    const mainConfig: string[] = [];
+    if (props.debug) mainConfig.push("error_log stderr debug;");
+
     return `
+${mainConfig.join("\n")}
+
 events {
     worker_connections 1024;
 }
@@ -142,7 +147,12 @@ ${conf}
 
 const defaultProps = {
     ...AbsUrlRouter.defaultProps,
+    debug: false,
 };
+
+export interface UrlRouterProps extends AbsUrlRouterProps {
+    debug: boolean;
+}
 
 export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<UrlRouterProps, typeof defaultProps>;
@@ -153,6 +163,8 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
     const nginxConf = useMakeNginxConf(props);
     //FIXME(manishv) nginx config check will only pass if all hostnames can be resolved locally, how to fix?
     if (false) useAsync(async () => checkNginxConf(nginxConf), undefined);
+
+    const nginxExec = props.debug ? "nginx-debug" : "nginx";
 
     const { image, buildObj } = useDockerBuild(() => {
         return {
@@ -172,7 +184,7 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
                     `#!/bin/sh
                     mkdir conf.d
                     ./make_resolvers.sh
-                    nginx -g "daemon off;" -c /router/nginx.conf
+                    ${nginxExec} -g "daemon off;" -c /router/nginx.conf
                     `
             },
             {
