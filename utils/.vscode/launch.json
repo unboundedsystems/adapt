@@ -35,7 +35,9 @@
             "smartStep": false,
             "skipFiles": [
                 "<node_internals>/**/async_hooks.js",
-                "<node_internals>/**/inspector_async_hook.js"
+                "<node_internals>/**/domain.js",
+                "<node_internals>/**/inspector_async_hook.js",
+                "<node_internals>/**/next_tick.js"
             ],
             "stopOnEntry": false,
             "protocol": "inspector",
