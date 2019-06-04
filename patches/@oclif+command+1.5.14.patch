@@ -1,0 +1,39 @@
+diff --git a/node_modules/@oclif/command/lib/command.js b/node_modules/@oclif/command/lib/command.js
+index 21348d3..4cb7904 100644
+--- a/node_modules/@oclif/command/lib/command.js
++++ b/node_modules/@oclif/command/lib/command.js
+@@ -113,7 +113,7 @@ class Command {
+         }
+     }
+     _help() {
+-        const HHelp = require('@oclif/plugin-help').default;
++        const HHelp = require('@unboundedsystems/plugin-help').default;
+         const help = new HHelp(this.config);
+         const cmd = Config.Command.toCached(this.ctor);
+         if (!cmd.id)
+diff --git a/node_modules/@oclif/command/lib/main.js b/node_modules/@oclif/command/lib/main.js
+index 37667b7..2a81de6 100644
+--- a/node_modules/@oclif/command/lib/main.js
++++ b/node_modules/@oclif/command/lib/main.js
+@@ -36,7 +36,7 @@ class Main extends _1.Command {
+         return false;
+     }
+     _help() {
+-        const HHelp = require('@oclif/plugin-help').default;
++        const HHelp = require('@unboundedsystems/plugin-help').default;
+         const help = new HHelp(this.config);
+         help.showHelp(this.argv);
+         return this.exit(0);
+diff --git a/node_modules/@oclif/command/package.json b/node_modules/@oclif/command/package.json
+index 105b5f1..8495d75 100644
+--- a/node_modules/@oclif/command/package.json
++++ b/node_modules/@oclif/command/package.json
+@@ -44,7 +44,7 @@
+   "main": "lib/index.js",
+   "oclif": {
+     "devPlugins": [
+-      "@oclif/plugin-help",
++      "@unboundedsystems/plugin-help",
+       "@oclif/plugin-plugins"
+     ]
+   },
