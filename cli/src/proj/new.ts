@@ -10,7 +10,7 @@ import path from "path";
 import escape from "shell-escape";
 import { isLocal } from "../utils";
 
-const debugInit = db("adapt:project:init");
+const debugNew = db("adapt:project:new");
 
 export type LogString = (msg: string) => void;
 
@@ -49,14 +49,14 @@ class SpecError extends UserError {
 }
 
 const pacoteLog = {
-    error: debugInit,
-    warn: debugInit,
-    info: debugInit,
-    verbose: debugInit,
-    silly: debugInit,
-    http: debugInit,
-    pause: debugInit,
-    resume: debugInit,
+    error: debugNew,
+    warn: debugNew,
+    info: debugNew,
+    verbose: debugNew,
+    silly: debugNew,
+    http: debugNew,
+    pause: debugNew,
+    resume: debugNew,
 };
 
 export function createStarter(spec: string, dest: string, args: string[]): AdaptStarter {
@@ -84,7 +84,7 @@ class AdaptStarterImpl {
 
         const specs: string[] = [];
         const opts: pacote.Options = { cache };
-        if (debugInit.enabled) opts.log = pacoteLog;
+        if (debugNew.enabled) opts.log = pacoteLog;
 
         if (mightBeGallerySpec(this.spec)) specs.push(galleryUrl(this.spec));
         specs.push(this.spec);
@@ -156,7 +156,7 @@ class AdaptStarterImpl {
     }
 
     protected async mkTmp() {
-        const tmpPromise = mkdtmp("adapt-init");
+        const tmpPromise = mkdtmp("adapt-new");
         this.rmDir = tmpPromise.remove;
         this.tmpDir_ = await tmpPromise;
         const dir = path.join(this.tmpDir_, "starter");
@@ -229,7 +229,7 @@ async function copyFiles(config: StarterConfig, log: LogString,
         }
     } catch (err) {
         err = ensureError(err);
-        const prefix = "Error copying files during init: ";
+        const prefix = "Error copying files: ";
         if (err.code === "ENOENT" && err.path) {
             throw new Error(prefix + `'${err.path}' not found`);
         } else {
@@ -249,14 +249,14 @@ async function runScripts(config: StarterConfig, log: LogString,
     if (args.length > 0) cmd += " " + escape(args);
 
     log(`Running init script`);
-    debugInit(`Init script: ${cmd}`);
+    debugNew(`Init script: ${cmd}`);
 
     try {
         const env = {
             ADAPT_STARTER_DIR: starterDir,
         };
         const ret = await execa(cmd, { cwd: dest, env, shell: true });
-        debugInit(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
+        debugNew(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
 
     } catch (err) {
         throw new UserError(`Error running init script:\n${err.message}`);

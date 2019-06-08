@@ -10,7 +10,6 @@ export * from "./Service";
 
 import * as ansible from "./ansible";
 import * as aws from "./aws";
-import * as cloudify from "./cloudify";
 import * as http from "./http";
 import * as k8s from "./k8s";
 import * as nginx from "./nginx";
@@ -19,7 +18,6 @@ import * as postgres from "./postgres";
 export {
     ansible,
     aws,
-    cloudify,
     http,
     k8s,
     nginx,

@@ -12,12 +12,12 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@oclif/command": "^1.5.4",
+    "@oclif/command": "^1.5.14",
     "@oclif/config": "^1.8.8",
     "@oclif/parser": "^3.6.1",
-    "@oclif/plugin-help": "^2.1.3",
     "@samverschueren/stream-to-observable": "^0.3.0",
     "@unboundedsystems/plugin-autocomplete": "0.1.0-unb2",
+    "@unboundedsystems/plugin-help": "2.1.6-unb1",
     "@usys/adapt": "0.0.2-next.3",
     "@usys/utils": "0.0.2-next.1",
     "chalk": "^2.4.1",
@@ -31,6 +31,7 @@
     "lodash": "^4.17.10",
     "p-defer": "^1.0.0",
     "pacote": "^8.1.6",
+    "read-pkg-up": "^4.0.0",
     "rxjs": "^6.3.3",
     "semver": "^5.6.0",
     "shell-escape": "^0.2.0",
@@ -41,7 +42,7 @@
     "type-ops": "^3.0.1"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1.19.4",
+    "@oclif/dev-cli": "^1.22.0",
     "@oclif/test": "^1.2.2",
     "@oclif/tslint": "^3.1.1",
     "@types/chai": "^4.1.3",
@@ -57,6 +58,7 @@
     "@types/mocha": "^5.2.1",
     "@types/node": "^10.11.7",
     "@types/p-defer": "^1.0.3",
+    "@types/read-pkg-up": "^3.0.1",
     "@types/semver": "^5.5.0",
     "@types/shell-escape": "^0.2.0",
     "@types/split": "^1.0.0",
@@ -71,6 +73,7 @@
     "mocha-slow-options": "^0.0.2",
     "nyc": "^12.0.2",
     "stdout-stderr": "^0.1.9",
+    "ts-node": "^8.2.0",
     "tslint": "^5.10.0",
     "typescript": "^3.0.3"
   },
@@ -87,10 +90,28 @@
     "description": "Command line interface for Adapt",
     "dirname": "adapt",
     "hooks": {},
+    "help": {
+      "showAliases": [
+        "destroy",
+        "list",
+        "new",
+        "run",
+        "status",
+        "update"
+      ]
+    },
     "plugins": [
       "@unboundedsystems/plugin-autocomplete",
-      "@oclif/plugin-help"
-    ]
+      "@unboundedsystems/plugin-help"
+    ],
+    "topics": {
+      "deploy": {
+        "description": "Manage deployments of Adapt projects"
+      },
+      "project": {
+        "description": "Manage Adapt projects"
+      }
+    }
   },
   "repository": {
     "type": "git",

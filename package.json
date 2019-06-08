@@ -16,10 +16,13 @@
     },
     "devDependencies": {
         "doctoc": "^1.4.0",
-        "lerna": "^3.13.0"
+        "lerna": "^3.13.0",
+        "patch-package": "^6.1.2",
+        "postinstall-postinstall": "^2.0.0"
     },
     "name": "adapt-root",
     "scripts": {
+        "postinstall": "patch-package",
         "prepublishOnly": "make build"
     }
 }

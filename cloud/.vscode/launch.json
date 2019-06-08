@@ -36,19 +36,21 @@
             "port": 5858,
             "timeout": 30000,
             "outFiles": [
-                "${workspaceRoot}/dist/**/*.js",
-                "${workspaceRoot}/node_modules/**/*.js"
+                "${workspaceFolder}/dist/**/*.js",
+                "${workspaceFolder}/node_modules/**/*.js"
             ],
             "sourceMaps": true,
             "smartStep": false,
             "skipFiles": [
                 "<node_internals>/**/async_hooks.js",
-                "<node_internals>/**/inspector_async_hook.js"
+                "<node_internals>/**/domain.js",
+                "<node_internals>/**/inspector_async_hook.js",
+                "<node_internals>/**/next_tick.js"
             ],
             "stopOnEntry": false,
             "protocol": "inspector",
-            "localRoot": "${workspaceFolder}",
-            "remoteRoot": "/src/cloud",
+            "localRoot": "${workspaceFolder}/..",
+            "remoteRoot": "/src",
             "windows": {
                 // WSL incorrectly handles the path backslashes in
                 // ${workspaceFolder} if present. BUT, Mac won't allow a

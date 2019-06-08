@@ -64,6 +64,8 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
 export default class UpdateCommand extends UpdateBaseCommand {
     static description = "Update an existing deployment of an Adapt project";
 
+    static aliases = [ "update" ];
+
     static examples = [
 `Update the deployment "myproj-dev-abcd", from the default project ` +
 `description file, "index.tsx":
