@@ -9,7 +9,7 @@ import Adapt, {
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
-import { callInstanceMethod, getInstanceValue } from "../hooks";
+import { getInstanceValue } from "../hooks";
 import { DockerBuildOptions, ImageInfo, useDockerBuild } from "../LocalDockerBuild";
 
 export interface LocalNodeContainerProps extends Partial<BuiltinProps> {
@@ -79,14 +79,8 @@ export function useBuildNodeContainer(srcDir: string,
     const buildHand = handle();
     const buildObj = <LocalNodeContainer handle={buildHand} srcDir={srcDir} options={opts} />;
 
-    if (!buildState) {
-        setBuildState(async () => {
-            if (callInstanceMethod(buildHand, false, "buildComplete")) {
-                return getInstanceValue(buildHand, undefined, "image");
-            }
-            return undefined;
-        });
-    }
+    setBuildState(async () =>
+        buildHand.mountedOrig ? getInstanceValue(buildHand, undefined, "image") : undefined);
 
     return { image: buildState, buildObj };
 }

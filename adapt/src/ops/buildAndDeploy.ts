@@ -188,6 +188,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
             const results = await inAdapt.build(
                 root, style, {
                     deployID: deployment.deployID,
+                    deployOpID: options.deployOpID,
                     observerManager: observeManager,
                     recorder,
                     stateStore,
@@ -293,6 +294,7 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
     if (zombie === null) return null;
     const buildRes = await inAdapt.build(zombie, null, {
         deployID,
+        deployOpID,
         buildOnce: true,
         stateStore,
     });
@@ -433,7 +435,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         const dataDir = await deployment.getDataDir(HistoryStatus.complete);
 
         try {
-            debugAction(`buildAndDeploy: build`);
+            debugAction(`buildAndDeploy: build deployOpID: ${initial.deployOpID}`);
             const build1 = await tasks.build.complete(() => build({
                 ...initial,
                 ctx,
