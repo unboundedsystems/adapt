@@ -496,7 +496,6 @@ export class Style extends jsx.Component<StyleProps> {
  * rules. Always returns a new Style element and does not modify
  * the Style element parameters.
  *
- * @export
  * @param {...jsx.AdaptElement[]} styles
  *   Zero or more Style elements, each containing style rules.
  * @returns {jsx.AdaptElement}
