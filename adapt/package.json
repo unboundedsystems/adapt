@@ -10,8 +10,9 @@
     "mock_adapt_context.js"
   ],
   "scripts": {
-    "clean": "rm -rf dist generated",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
+    "docs": "../scripts/make_docs.js adapt",
     "pretest": "make build",
     "gql-gen:test_observer": "gql-gen --out generated/test/observers/test_observer_schema_types.ts --schema ./test/observers/test_observer.graphql --template graphql-codegen-typescript-template -c",
     "gql-gen:mock_observer": "gql-gen --out generated/src/observers/mock_observer_schema_types.ts --schema ./src/observers/mock_observer.graphql --template graphql-codegen-typescript-template -c",
@@ -19,8 +20,8 @@
     "tsc": "tsc -p tsconfig.json",
     "build": "npm run gql-gen && npm run tsc",
     "build:watch": "make build && tsc -w -p tsconfig.json",
-    "lint": "tslint --project .",
-    "lint-and-fix": "tslint --project . --fix",
+    "lint": "tslint -e '**/*.json' --project .",
+    "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "test": "mocha --opts mocha.opts"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",

@@ -27,6 +27,10 @@
 	],
 	"settings": {
 		"files.eol": "\n",
+		"files.associations": {
+			"api-extractor.json": "jsonc",
+			"api-extractor-base.json": "jsonc",
+		},
 		"typescript.tsdk": "adapt/node_modules/typescript/lib",
 	}
 }

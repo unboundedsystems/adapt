@@ -30,7 +30,7 @@ MAKEFLAGS += $(ADAPT_PARALLEL_MAKE)
 # the targets created below are:
 #   adapt-build, adapt-test, cli-build, cli-test, etc.
 #
-SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush coverage
+SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush coverage docs
 
 $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 
@@ -38,13 +38,14 @@ $(foreach target,$(SUBMAKE_TARGETS),$(eval $(call submake-target,$(target))))
 #
 # User-friendly targets: build, test, clean, etc.
 #
-build: $(build_submakes) .docs-updated
+build: $(build_submakes) docs
 $(build_submakes): setup $(NODE_INSTALL_DONE)
 
 test: $(test_submakes)
 $(test_submakes): build
 
 clean: $(clean_submakes)
+	rm -f .docs-updated
 
 cleaner: $(cleaner_submakes)
 	rm -rf node_modules
@@ -78,7 +79,10 @@ testutils-build: utils-build
 setup: $(SETUP_TARGETS)
 .PHONY: setup
 
-DOCTOC_FILES := $(shell grep -rL 'DOCTOC SKIP' docs | grep '\.md$$')
+docs: $(docs_submakes) .docs-updated
+$(docs_submakes): $(build_submakes)
+
+DOCTOC_FILES := $(shell grep -rL 'DOCTOC SKIP' --exclude-dir=api docs | grep '\.md$$')
 .docs-updated: $(NODE_INSTALL_DONE) $(DOCTOC_FILES)
 	doctoc --gitlab --title '## Table of Contents' $(DOCTOC_FILES)
 	touch .docs-updated

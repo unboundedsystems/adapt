@@ -12,10 +12,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "make build && tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
-    "lint": "tslint -e **/*.json --project .",
-    "lint-and-fix": "tslint -e **/*.json --project . --fix",
+    "docs": "../scripts/make_docs.js cloud",
+    "lint": "tslint -e '**/*.json' --project .",
+    "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },

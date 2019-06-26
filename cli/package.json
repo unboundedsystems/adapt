@@ -118,13 +118,13 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && yarn run docs",
+    "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
     "docs": "oclif-dev readme",
-    "lint": "tslint --project .",
-    "lint-and-fix": "tslint --project . --fix",
+    "lint": "tslint -e '**/*.json' --project .",
+    "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "make build && oclif-dev manifest",
     "pretest": "make build",
