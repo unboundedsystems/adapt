@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "make build && tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
     "docs": "../scripts/make_docs.js cloud",
     "lint": "tslint -e '**/*.json' --project .",

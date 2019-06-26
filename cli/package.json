@@ -120,7 +120,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
     "docs": "oclif-dev readme",
     "lint": "tslint -e '**/*.json' --project .",

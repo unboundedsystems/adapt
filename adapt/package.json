@@ -10,7 +10,7 @@
     "mock_adapt_context.js"
   ],
   "scripts": {
-    "clean": "rm -rf dist generated",
+    "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
     "docs": "../scripts/make_docs.js adapt",
     "pretest": "make build",
