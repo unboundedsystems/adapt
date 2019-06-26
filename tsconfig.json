@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "alwaysStrict": true,
-    "declaration": true,  
+    "declaration": true,
+    "declarationMap": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
