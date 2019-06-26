@@ -36,8 +36,8 @@
     "clean": "rm -rf dist",
     "docs": "true",
     "coverage": "nyc mocha --opts mocha.opts",
-    "lint": "tslint --project .",
-    "lint-and-fix": "tslint --project . --fix",
+    "lint": "tslint -e '**/*.json' --project .",
+    "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
   },
