@@ -14,6 +14,7 @@
     "build:watch": "make build && tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",
+    "docs": "../scripts/make_docs.js cloud",
     "lint": "tslint -e **/*.json --project .",
     "lint-and-fix": "tslint -e **/*.json --project . --fix",
     "pretest": "make build",

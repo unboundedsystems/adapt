@@ -118,7 +118,7 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && yarn run docs",
+    "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",

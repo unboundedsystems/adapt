@@ -22,6 +22,7 @@ TS_SRC_FILES := $(shell find src/ -type f -regex '.*\.tsx?')
 TS_TEST_FILES := $(shell find test/ -type f -regex '.*\.tsx?')
 TS_FILES := $(TS_SRC_FILES) $(TS_TEST_FILES)
 JS_FILES := $(addprefix dist/, $(addsuffix .js, $(basename $(filter-out %.d.ts,$(TS_FILES)))))
+DTS_SRC_FILES := $(addprefix dist/, $(addsuffix .d.ts, $(basename $(filter-out %.d.ts,$(TS_SRC_FILES)))))
 
 
 build: $(NODE_INSTALL_DONE) $(JS_FILES)
@@ -35,7 +36,7 @@ cleaner: clean
 	rm -rf node_modules DebugOut
 .PHONY: cleaner
 
-$(JS_FILES): $(NODE_INSTALL_DONE) $(TS_FILES) tsconfig.json
+$(JS_FILES) $(DTS_SRC_FILES): $(NODE_INSTALL_DONE) $(TS_FILES) tsconfig.json
 	npm run build
 
 
@@ -73,5 +74,12 @@ pack: build
 	mkdir $(NPM_PACK_DIR)
 	cd $(NPM_PACK_DIR) && npm pack ../..
 .PHONY: pack
+
+docs: dist/.docs_success
+.PHONY: docs
+
+dist/.docs_success: $(DTS_SRC_FILES)
+	npm run docs
+	touch $@
 
 endif # IN_DOCKER

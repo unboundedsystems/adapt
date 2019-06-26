@@ -58,6 +58,7 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf dist",
     "coverage": "nyc mocha --opts mocha.opts",
+    "docs": "true",
     "lint": "tslint --project .",
     "lint-and-fix": "tslint --project . --fix",
     "pretest": "make build",
