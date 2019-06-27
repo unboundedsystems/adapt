@@ -5,19 +5,38 @@
 // Copyright 2019 Andy Chou
 // Apache 2.0 license
 
-const { readdir, createReadStream, ensureDir, writeFile } = require("fs-extra");
+const { readdir, copy, createReadStream, ensureDir, writeFile } = require("fs-extra");
 const { createInterface } = require("readline");
 const { join, parse } = require("path");
 const { exec } = require("child_process");
 
+const projects = {
+    core: {
+        name: "Adapt Core",
+    },
+    cloud: {
+        name: "Adapt Cloud",
+    },
+}
+
+function usage(message) {
+    console.log(`Error:`, message);
+    console.log(`Usage: make_docs.js core|cloud`);
+    return process.exit(1);
+}
+
 function parseArgs() {
     if (process.argv.length !== 3) {
-        console.log(`Error: wrong number of args`);
-        console.log(`usage: make_docs.js core|cloud`);
-        process.exit(1);
+        return usage(`wrong number of arguments`);
     }
+
+    const project = process.argv[2];
+    if (!(project in projects)) {
+        return usage(`project must be one of: ${Object.keys(projects).join(", ")}`);
+    }
+
     return {
-        project: process.argv[2],
+        project,
     };
 }
 
@@ -28,7 +47,10 @@ function parseArgs() {
 async function main() {
     const args = parseArgs();
     const buildDir = join(".", "build");
-    const outDir = join("..", "docs", "api", args.project);
+    const apiDir = join("..", "docs", "api");
+    const outDir = join(apiDir, args.project);
+    const indexSrc = join(apiDir, `${args.project}.index.md`);
+    const indexDst = join(outDir, "index.md");
 
     await ensureDir(buildDir);
 
@@ -66,7 +88,6 @@ async function main() {
 
             let title = "";
             lines.on("line", line => {
-                let skip = false;
                 if (!title) {
                     const titleLine = line.match(/## (.*)/);
                     if (titleLine) {
@@ -75,15 +96,12 @@ async function main() {
                 }
                 const homeLink = line.match(/\[Home\]\(.\/index\.md\) &gt; (.*)/);
                 if (homeLink) {
-                    // Skip the breadcrumb for the toplevel index file.
-                    if (id !== args.project) {
-                        output.push(homeLink[1]);
-                    }
-                    skip = true;
+                    line =
+                        `[API Reference](../index.md) &gt; ` +
+                        `[${projects[args.project].name}](./index.md) &gt; ` +
+                        homeLink[1];
                 }
-                if (!skip) {
-                    output.push(line);
-                }
+                output.push(line);
             });
 
             await new Promise(resolve => lines.once("close", resolve));
@@ -102,6 +120,7 @@ async function main() {
             console.error(`Could not process ${docFile}: ${err}`);
         }
     }
+    await copy(indexSrc, indexDst);
 }
 
 main();
