@@ -4,8 +4,8 @@ import {
     dockerutils,
     k8sutils,
     mochaTmpdir,
-} from "@usys/testutils";
-import { sleep } from "@usys/utils";
+} from "@adpt/testutils";
+import { sleep } from "@adpt/utils";
 import Docker = require("dockerode");
 import execa from "execa";
 import * as fs from "fs-extra";
@@ -31,7 +31,7 @@ const { deleteContainer } = dockerutils;
 // triggering the AWS plugin to register. The modules should probably be
 // reorganized to better allow this import.
 // tslint:disable-next-line:no-submodule-imports no-var-requires
-const awsCredentials = require("@usys/cloud/dist/src/aws/credentials");
+const awsCredentials = require("@adpt/cloud/dist/src/aws/credentials");
 const { loadAwsCreds } = awsCredentials;
 
 const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;

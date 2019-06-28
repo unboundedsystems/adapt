@@ -2,7 +2,7 @@ import {
     FinalDomElement,
     isFinalDomElement,
     PrimitiveComponent,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { AnsibleHost } from "./ansible_host";
 import { Vars } from "./common";
 

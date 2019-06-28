@@ -1,4 +1,4 @@
-import Adapt, { BuiltinProps, handle, Style, useImperativeMethods } from "@usys/adapt";
+import Adapt, { BuiltinProps, handle, Style, useImperativeMethods } from "@adpt/core";
 import should from "should";
 import { notReplacedByStyle, useAsync, useMethod } from "../src/hooks";
 import { doBuild } from "./testlib";

@@ -1,4 +1,4 @@
-import { isInstance, sha256hex, tagConstructor } from "@usys/utils";
+import { isInstance, sha256hex, tagConstructor } from "@adpt/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";

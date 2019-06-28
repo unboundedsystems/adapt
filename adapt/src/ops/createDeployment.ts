@@ -1,4 +1,4 @@
-import { formatUserError } from "@usys/utils";
+import { formatUserError } from "@adpt/utils";
 import { ProjectRunError } from "../error";
 import { adaptServer, AdaptServer } from "../server";
 import {

@@ -3,8 +3,8 @@ import {
     FinalDomElement,
     isFinalDomElement,
     PrimitiveComponent,
-} from "@usys/adapt";
-import { isInstance, MessageLogger, tagConstructor } from "@usys/utils";
+} from "@adpt/core";
+import { isInstance, MessageLogger, tagConstructor } from "@adpt/utils";
 import { isObject } from "lodash";
 import { isBoolean } from "util";
 

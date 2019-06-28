@@ -1,5 +1,5 @@
 --require source-map-support/register
---require @usys/adapt/mock_adapt_context
+--require @adpt/core/mock_adapt_context
 --recursive
 --reporter mocha-slow-options
 dist/test

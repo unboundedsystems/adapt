@@ -1,5 +1,5 @@
 {
-  "name": "@usys/adapt",
+  "name": "@adpt/core",
   "version": "0.0.2-next.3",
   "description": "Unbounded Adapt core library",
   "main": "dist/src/index.js",
@@ -54,7 +54,7 @@
     "@types/sinon": "^5.0.1",
     "@types/type-name": "^1.0.27",
     "@types/xmlbuilder": "0.0.32",
-    "@usys/testutils": "0.0.2-next.1",
+    "@adpt/testutils": "0.0.2-next.1",
     "execa": "^0.10.0",
     "fs-extra": "^6.0.1",
     "graphql-code-generator": "^0.11.0",
@@ -70,9 +70,9 @@
     "typescript": "^3.0.3"
   },
   "dependencies": {
-    "@usys/dom-parser": "0.0.2-next.1",
+    "@adpt/dom-parser": "0.0.2-next.1",
     "@usys/fork-require": "1.0.9-unb1",
-    "@usys/utils": "0.0.2-next.1",
+    "@adpt/utils": "0.0.2-next.1",
     "async-lock": "^1.2.0",
     "callsites": "^2.0.0",
     "css-what": "^2.1.0",

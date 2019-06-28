@@ -1,4 +1,4 @@
-import * as uutil from "@usys/utils";
+import * as uutil from "@adpt/utils";
 import * as fs from "fs";
 import {
     GraphQLSchema,

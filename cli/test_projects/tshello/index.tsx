@@ -1,4 +1,4 @@
-import Adapt, { Group } from "@usys/adapt";
+import Adapt, { Group } from "@adpt/core";
 import TypeScriptService from "./TypeScriptService";
 
 function App() {

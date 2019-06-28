@@ -1,4 +1,4 @@
-import { isEqualUnorderedArrays } from "@usys/utils";
+import { isEqualUnorderedArrays } from "@adpt/utils";
 import { DocumentNode as GraphQLDocument, ExecutionResult, printError } from "graphql";
 import {
     AdaptElement,

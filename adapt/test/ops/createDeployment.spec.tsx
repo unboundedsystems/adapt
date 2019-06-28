@@ -5,12 +5,12 @@ import {
     mochaTmpdir as tmpdir,
     MockLoggerClient,
     repoVersions,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 import {
     messagesToString,
     MessageType,
     yarn,
-} from "@usys/utils";
+} from "@adpt/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import should from "should";
@@ -27,14 +27,14 @@ const simplePackageJson = {
     dependencies: {
         "source-map-support": "^0.5.5",
         "@types/node": "^8.10.20",
-        "@usys/adapt": repoVersions.adapt,
+        "@adpt/core": repoVersions.adapt,
         "typescript": "^3.0.3",
     }
 };
 
 const simpleIndexTsx = `
-import Adapt, { Component, Constructor, gql, Observer, PrimitiveComponent, registerObserver } from "@usys/adapt";
-import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
+import Adapt, { Component, Constructor, gql, Observer, PrimitiveComponent, registerObserver } from "@adpt/core";
+import MockObserver from "@adpt/core/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
 class Simple extends PrimitiveComponent<{}> {
@@ -121,7 +121,7 @@ import {
     Plugin,
     PluginOptions,
     registerPlugin,
-} from "@usys/adapt";
+} from "@adpt/core";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];

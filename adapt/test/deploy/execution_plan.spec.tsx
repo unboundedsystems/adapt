@@ -1,4 +1,4 @@
-import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
+import { createMockLogger, mochaTmpdir, MockLogger } from "@adpt/testutils";
 import {
     createTaskObserver,
     inDebugger,
@@ -7,7 +7,7 @@ import {
     TaskObserver,
     TaskObserversUnknown,
     TaskState,
-} from "@usys/utils";
+} from "@adpt/utils";
 import { uniq } from "lodash";
 import pDefer from "p-defer";
 import should from "should";

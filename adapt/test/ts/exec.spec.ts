@@ -1,5 +1,5 @@
-import { mochaTmpdir as tmpdir } from "@usys/testutils";
-import { yarn } from "@usys/utils";
+import { mochaTmpdir as tmpdir } from "@adpt/testutils";
+import { yarn } from "@adpt/utils";
 import should from "should";
 
 import * as path from "path";

@@ -2,7 +2,7 @@ import {
     FinalDomElement,
     isFinalDomElement,
     PrimitiveComponent,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { Env, Vars } from "./common";
 
 export interface Common {

@@ -1,4 +1,4 @@
-import { PrimitiveComponent } from "@usys/adapt";
+import { PrimitiveComponent } from "@adpt/core";
 import { ContainerProps } from "./Container";
 
 export type LocalContainerProps = ContainerProps;

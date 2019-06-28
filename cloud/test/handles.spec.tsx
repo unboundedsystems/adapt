@@ -3,7 +3,7 @@ import Adapt, {
     isHandle,
     PrimitiveComponent,
     useImperativeMethods
-} from "@usys/adapt";
+} from "@adpt/core";
 import should from "should";
 import {
     handles,

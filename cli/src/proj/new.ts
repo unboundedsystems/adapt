@@ -1,4 +1,4 @@
-import { ensureError, InternalError, mkdtmp, UserError } from "@usys/utils";
+import { ensureError, InternalError, mkdtmp, UserError } from "@adpt/utils";
 import copy from "copy";
 import db from "debug";
 import execa from "execa";

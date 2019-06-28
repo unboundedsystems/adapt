@@ -7,7 +7,7 @@ import Adapt, {
     SFCDeclProps,
     useContext,
     waiting
-} from "@usys/adapt";
+} from "@adpt/core";
 import { CFStackContext } from "./stack_context";
 
 export interface AnyProperties {

@@ -4,14 +4,14 @@ import {
     TaskObserver,
     TaskObserversUnknown,
     TaskState,
-} from "@usys/utils";
+} from "@adpt/utils";
 import * as fs from "fs-extra";
 import { last } from "lodash";
 import * as path from "path";
 import should from "should";
 import * as sinon from "sinon";
 
-import { createMockLogger, mochaTmpdir, MockLogger } from "@usys/testutils";
+import { createMockLogger, mochaTmpdir, MockLogger } from "@adpt/testutils";
 import Adapt, { AdaptElementOrNull, AdaptMountedElement, FinalDomElement, Group } from "../../src";
 import {
     Action,

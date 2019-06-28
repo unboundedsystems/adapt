@@ -22,7 +22,7 @@ import AdaptDontUse, {
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@usys/utils";
+import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@adpt/utils";
 import { createPluginManager } from "../deploy/plugin_support";
 import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";

@@ -1,5 +1,5 @@
-import Adapt, { Component, ObserveForStatus } from "@usys/adapt";
-import { FIXME_NeedsProperType, removeUndef } from "@usys/utils";
+import Adapt, { Component, ObserveForStatus } from "@adpt/core";
+import { FIXME_NeedsProperType, removeUndef } from "@adpt/utils";
 import { Container, ContainerProps, Links, mergeEnvSimple, PortBinding } from "../Container";
 import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";

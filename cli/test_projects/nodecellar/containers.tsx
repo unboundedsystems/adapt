@@ -1,5 +1,5 @@
-import * as Adapt from "@usys/adapt";
-import * as cloud from "@usys/cloud";
+import * as Adapt from "@adpt/core";
+import * as cloud from "@adpt/cloud";
 
 export interface AppProps {
     mongoHostname: string;

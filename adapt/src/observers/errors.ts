@@ -1,4 +1,4 @@
-import { MultiError, notNull } from "@usys/utils";
+import { MultiError, notNull } from "@adpt/utils";
 import { ExecutionResult, GraphQLError } from "graphql";
 import { flatten } from "lodash";
 import { CustomError } from "ts-custom-error";

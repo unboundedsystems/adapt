@@ -1,4 +1,4 @@
-import Adapt, { AdaptElement, childrenToArray, DeferredComponent, Group, handle } from "@usys/adapt";
+import Adapt, { AdaptElement, childrenToArray, DeferredComponent, Group, handle } from "@adpt/core";
 import { ContainerProps, isContainerElement } from "../Container";
 import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService";
 import { ServiceProps as AbsServiceProps } from "../Service";

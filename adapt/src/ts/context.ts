@@ -1,4 +1,4 @@
-import { findPackageDirs } from "@usys/utils";
+import { findPackageDirs } from "@adpt/utils";
 import * as path from "path";
 import * as vm from "vm";
 // tslint:disable-next-line:variable-name no-var-requires

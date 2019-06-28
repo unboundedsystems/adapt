@@ -10,7 +10,7 @@ import {
     validateMessage,
     validateProps,
     ValidationError,
-} from "@usys/utils";
+} from "@adpt/utils";
 
 /*
  * Types related to AdaptModule

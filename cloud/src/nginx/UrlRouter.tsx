@@ -5,12 +5,12 @@ import Adapt, {
     useDeployedWhen,
     useState,
     waiting,
-} from "@usys/adapt";
+} from "@adpt/core";
 
 import {
     notNull,
     withTmpDir
-} from "@usys/utils";
+} from "@adpt/utils";
 import { exec } from "child_process";
 import { writeFile } from "fs-extra";
 import * as path from "path";

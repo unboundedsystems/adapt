@@ -7,8 +7,8 @@ import Adapt, {
     useImperativeMethods,
     useState,
     waiting,
-} from "@usys/adapt";
-import { Dispatcher, notNull } from "@usys/utils";
+} from "@adpt/core";
+import { Dispatcher, notNull } from "@adpt/utils";
 import {
     callInstanceMethod,
     Container,

@@ -1,4 +1,4 @@
-import { findPackageDirs, sourceDir } from "@usys/utils";
+import { findPackageDirs, sourceDir } from "@adpt/utils";
 
 export const packageDirs = findPackageDirs(__dirname);
 export const pkgRootDir = packageDirs.root;

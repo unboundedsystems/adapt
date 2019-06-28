@@ -9,7 +9,7 @@ import {
     MessageLogger,
     MessageStreamClient,
     MessageStreamServer,
-} from "@usys/utils";
+} from "@adpt/utils";
 import chalk from "chalk";
 import { PassThrough } from "stream";
 import { UserError } from "../error";

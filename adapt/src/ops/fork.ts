@@ -1,4 +1,4 @@
-import { isMessageClient, MessageStreamClient } from "@usys/utils";
+import { isMessageClient, MessageStreamClient } from "@adpt/utils";
 import db from "debug";
 // tslint:disable-next-line:no-var-requires
 const forkRequire = require("@usys/fork-require");

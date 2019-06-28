@@ -10,7 +10,7 @@ import {
     Message,
     MessageType,
     tagConstructor,
-} from "@usys/utils";
+} from "@adpt/utils";
 import { printError as gqlPrintError } from "graphql";
 import {
     DependsOn,

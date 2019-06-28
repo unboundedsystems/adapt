@@ -1,5 +1,5 @@
 {
-  "name": "@usys/dom-parser",
+  "name": "@adpt/dom-parser",
   "description": "Unbounded Adapt DOM Parser",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",

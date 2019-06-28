@@ -1,4 +1,4 @@
-import { ExecutedQuery, gql, ObserverResponse } from "@usys/adapt";
+import { ExecutedQuery, gql, ObserverResponse } from "@adpt/core";
 import { execute } from "graphql";
 import should from "should";
 import { DockerObserver } from "../../src/docker/docker_observer";

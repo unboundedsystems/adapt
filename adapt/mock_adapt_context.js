@@ -5,7 +5,7 @@
  * Load this file prior to requiring any of your files that register
  * plugins or observers.
  * Example usage with mocha:
- *   mocha --register @usys/adapt/mock_adapt_context mytests/*
+ *   mocha --register @adpt/core/mock_adapt_context mytests/*
  */
 const ts = require("./dist/src/ts");
 ts.mockAdaptContext();

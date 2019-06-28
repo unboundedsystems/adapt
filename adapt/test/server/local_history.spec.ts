@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir } from "@adpt/testutils";
 import * as fs from "fs-extra";
 import JsonDB from "node-json-db";
 import * as path from "path";

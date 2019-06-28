@@ -5,7 +5,7 @@ import {
     ObserverResponse,
     registerObserver,
     throwObserverErrors,
-} from "@usys/adapt";
+} from "@adpt/core";
 import * as fs from "fs-extra";
 import {
     execute,

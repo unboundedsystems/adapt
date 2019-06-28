@@ -5,7 +5,7 @@ import {
     ObserverResponse,
     registerObserver,
     throwObserverErrors,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { execute, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON = require("graphql-type-json");
 import * as https from "https";

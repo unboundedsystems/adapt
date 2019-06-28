@@ -8,8 +8,8 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@types/node": "^8.10.20",
-    "@usys/adapt": "unit-tests",
-    "@usys/cloud": "unit-tests",
+    "@adpt/core": "unit-tests",
+    "@adpt/cloud": "unit-tests",
     "source-map-support": "^0.5.5",
     "typescript": "^3.0.3"
   }

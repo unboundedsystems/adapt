@@ -1,5 +1,5 @@
-import { createMockLogger } from "@usys/testutils";
-import { createTaskObserver } from "@usys/utils";
+import { createMockLogger } from "@adpt/testutils";
+import { createTaskObserver } from "@adpt/utils";
 import fs from "fs-extra";
 import * as path from "path";
 import { ActComplete, PluginModule } from "../../src/deploy";
@@ -44,7 +44,7 @@ export class MockDeploy {
     deployOpID_?: DeployOpID;
     plugins = new Map<string, PluginModule>();
     // NOTE: Adding type "StateStore" here may seem redundant, but if it's
-    // not explicit, the generated .d.ts file contains an import of @usys/adapt
+    // not explicit, the generated .d.ts file contains an import of @adpt/core
     // that causes builds in the cloud directory to try to add all of
     // adapt's SOURCE FILES to the cloud build...which creates huge compile
     // errors in cloud.

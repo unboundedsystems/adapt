@@ -1,4 +1,4 @@
-import { toArray } from "@usys/utils";
+import { toArray } from "@adpt/utils";
 import { flatten } from "lodash";
 import { Handle, isHandle } from "../handle";
 import { isMountedElement } from "../jsx";

@@ -1,4 +1,4 @@
-import { Handle, PrimitiveComponent } from "@usys/adapt";
+import { Handle, PrimitiveComponent } from "@adpt/core";
 import { URL } from "url";
 import { isString } from "util";
 

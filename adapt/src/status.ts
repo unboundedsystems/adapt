@@ -1,4 +1,4 @@
-import { isMultiError, MultiError } from "@usys/utils";
+import { isMultiError, MultiError } from "@adpt/utils";
 import { DocumentNode as Query } from "graphql";
 import ld from "lodash";
 import pSettle from "p-settle";

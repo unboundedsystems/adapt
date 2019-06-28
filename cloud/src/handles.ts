@@ -1,4 +1,4 @@
-import { AdaptElement, Handle, handle } from "@usys/adapt";
+import { AdaptElement, Handle, handle } from "@adpt/core";
 import ld from "lodash";
 import { useMethod } from "./hooks";
 

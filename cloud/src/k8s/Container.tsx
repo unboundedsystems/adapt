@@ -1,5 +1,5 @@
-import { AdaptElement, BuiltinProps, PrimitiveComponent } from "@usys/adapt";
-import { mapMap } from "@usys/utils";
+import { AdaptElement, BuiltinProps, PrimitiveComponent } from "@adpt/core";
+import { mapMap } from "@adpt/utils";
 import * as ctr from "../Container";
 
 export interface ContainerSpec {

@@ -1,4 +1,4 @@
-import { isInstance, tagConstructor } from "@usys/utils";
+import { isInstance, tagConstructor } from "@adpt/utils";
 import {
     Action,
     AdaptElement,

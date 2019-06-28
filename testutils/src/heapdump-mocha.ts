@@ -1,4 +1,4 @@
-import { getEnvAsBoolean } from "@usys/utils";
+import { getEnvAsBoolean } from "@adpt/utils";
 import * as heapdumpType from "heapdump";
 import { padStart } from "lodash";
 import moment from "moment";

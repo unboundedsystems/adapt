@@ -1,4 +1,4 @@
-import { removeUndef } from "@usys/utils";
+import { removeUndef } from "@adpt/utils";
 import {
     parse as gqlParse,
     print as gqlPrint

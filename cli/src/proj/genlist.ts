@@ -10,7 +10,7 @@ const gen0: Gen = {
     name: "gen0",
     match: matchDeps,
     dependencies: {
-        "@usys/adapt": { allowed: "*", preferred: "*" },
+        "@adpt/core": { allowed: "*", preferred: "*" },
         "@types/node": { allowed: "^8", preferred: "^8"},
         "source-map-support": { allowed: "^0.5.6", preferred: "^0.5.6" },
         "typescript": { allowed: ">=3.0", preferred: "^3.0.3" },

@@ -7,8 +7,8 @@ import Adapt, {
     handle,
     useState,
     waiting,
-} from "@usys/adapt";
-import { InternalError, withTmpDir } from "@usys/utils";
+} from "@adpt/core";
+import { InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
 import execa from "execa";
 import fs from "fs-extra";

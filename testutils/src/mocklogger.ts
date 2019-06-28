@@ -1,4 +1,4 @@
-import { MessageClient, MessageLogger, MessageStreamClient, MessageStreamer } from "@usys/utils";
+import { MessageClient, MessageLogger, MessageStreamClient, MessageStreamer } from "@adpt/utils";
 import { WritableStreamBuffer } from "stream-buffers";
 
 export interface MockLogger extends MessageLogger {

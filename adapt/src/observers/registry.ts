@@ -1,4 +1,4 @@
-import { MessageLogger, MessageStreamer } from "@usys/utils";
+import { MessageLogger, MessageStreamer } from "@adpt/utils";
 import db from "debug";
 import * as ld from "lodash";
 import * as util from "util";

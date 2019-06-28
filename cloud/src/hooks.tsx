@@ -7,7 +7,7 @@ import {
     serializeDom,
     useImperativeMethods,
     useState,
-} from "@usys/adapt";
+} from "@adpt/core";
 import ld from "lodash";
 
 export function useAsync<T>(f: () => Promise<T> | T, initial: T): T {

@@ -1,4 +1,4 @@
-import { ensureError, formatUserError, notNull, sleep, UserError } from "@usys/utils";
+import { ensureError, formatUserError, notNull, sleep, UserError } from "@adpt/utils";
 import AsyncLock from "async-lock";
 import db from "debug";
 import { alg, Graph } from "graphlib";

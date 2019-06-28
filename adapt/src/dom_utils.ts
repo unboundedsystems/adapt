@@ -1,4 +1,4 @@
-import { Logger } from "@usys/utils";
+import { Logger } from "@adpt/utils";
 import {
     AdaptElement,
     AdaptMountedElement,

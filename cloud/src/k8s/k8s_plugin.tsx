@@ -17,8 +17,8 @@ import Adapt, {
     WidgetChange,
     WidgetPair,
     WidgetPlugin,
-} from "@usys/adapt";
-import { sha256hex } from "@usys/utils";
+} from "@adpt/core";
+import { sha256hex } from "@adpt/utils";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 

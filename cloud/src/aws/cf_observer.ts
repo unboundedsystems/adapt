@@ -5,7 +5,7 @@ import {
     ObserverResponse,
     registerObserver,
     throwObserverErrors,
-} from "@usys/adapt";
+} from "@adpt/core";
 import AWS from "aws-sdk";
 import fs from "fs-extra";
 import {

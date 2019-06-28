@@ -4,7 +4,7 @@ import Adapt, {
     ChangeType,
     Group,
     PluginOptions,
-} from "@usys/adapt";
+} from "@adpt/core";
 import * as fs from "fs-extra";
 import * as path from "path";
 import should from "should";
@@ -14,9 +14,9 @@ import {
     dockerMocha,
     mochaTmpdir,
     MockLogger,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 // tslint:disable-next-line:no-submodule-imports
-import { dockerExec } from "@usys/testutils/dist/src/dockerutils";
+import { dockerExec } from "@adpt/testutils/dist/src/dockerutils";
 import { act, doBuild } from "../testlib";
 
 import {

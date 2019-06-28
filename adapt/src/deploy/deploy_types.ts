@@ -2,7 +2,7 @@ import {
     Logger,
     MessageLogger,
     TaskObserver,
-} from "@usys/utils";
+} from "@adpt/utils";
 import { isFunction, isObject, isString } from "lodash";
 import { DomDiff } from "../dom_utils";
 import { InternalError } from "../error";

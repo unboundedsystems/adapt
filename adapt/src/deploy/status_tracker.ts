@@ -1,4 +1,4 @@
-import { TaskObserver, TaskState } from "@usys/utils";
+import { TaskObserver, TaskState } from "@adpt/utils";
 import { inspect } from "util";
 import { InternalError } from "../error";
 import { isFinalDomElement } from "../jsx";

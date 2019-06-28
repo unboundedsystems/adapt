@@ -1,4 +1,4 @@
-import Adapt, { Style } from "@usys/adapt";
+import Adapt, { Style } from "@adpt/core";
 
 import {
     Compute, ComputeProps,

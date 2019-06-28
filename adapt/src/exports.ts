@@ -118,7 +118,7 @@ export {
     Logger,
     Message,
     MessageLogger,
-} from "@usys/utils";
+} from "@adpt/utils";
 
 export {
     deepFilterElemsToPublic

@@ -1,4 +1,4 @@
-import { repoRootDir, yarn } from "@usys/utils";
+import { repoRootDir, yarn } from "@adpt/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";

@@ -10,7 +10,7 @@ import {
     MessageStreamServer,
     MessageSummary,
     TaskObserver,
-} from "@usys/utils";
+} from "@adpt/utils";
 import { PassThrough } from "stream";
 import { ObserversThatNeedData } from "../observers";
 

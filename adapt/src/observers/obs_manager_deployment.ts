@@ -4,7 +4,7 @@
 // The ObserverDataManager (not written yet) manages fetching of observed
 // data via poll or watch.
 
-import { removeUndef } from "@usys/utils";
+import { removeUndef } from "@adpt/utils";
 import {
     DocumentNode as Query,
     ExecutionResult,

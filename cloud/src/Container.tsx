@@ -1,5 +1,5 @@
-import { AdaptElement, PrimitiveComponent, } from "@usys/adapt";
-import { FIXME_NeedsProperType, } from "@usys/utils";
+import { AdaptElement, PrimitiveComponent, } from "@adpt/core";
+import { FIXME_NeedsProperType, } from "@adpt/utils";
 
 export type PortDescription = string | number;
 

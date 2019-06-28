@@ -42,7 +42,7 @@ export default class ListCommand extends DeployBase {
             title: "Checking for project-level adapt module",
             skip: () => {
                 if (this.ctx.projectFile === undefined) {
-                    this.adapt = require("@usys/adapt");
+                    this.adapt = require("@adpt/core");
                     return "Project root file not found, using internal adapt module";
                 }
             },
@@ -55,7 +55,7 @@ export default class ListCommand extends DeployBase {
                 } catch (e) {
                     const msg = getErrorMsg(e);
                     task.skip(`${msg}, using internal adapt module`);
-                    this.adapt = require("@usys/adapt");
+                    this.adapt = require("@adpt/core");
                 }
             }
         });

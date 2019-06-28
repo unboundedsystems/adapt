@@ -1,4 +1,4 @@
-import Adapt, { handle, useImperativeMethods } from "@usys/adapt";
+import Adapt, { handle, useImperativeMethods } from "@adpt/core";
 import { Container, NetworkService, Service, useMethod } from "..";
 import { usePreloadedPostgres } from "./usePreloadedPostgres";
 

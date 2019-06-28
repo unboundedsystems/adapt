@@ -1,4 +1,4 @@
-import Adapt from "@usys/adapt";
+import Adapt from "@adpt/core";
 
 import Nodecellar from "./app";
 import awsStyle from "./aws";

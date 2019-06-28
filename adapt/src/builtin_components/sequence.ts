@@ -1,4 +1,4 @@
-import { notNull } from "@usys/utils";
+import { notNull } from "@adpt/utils";
 import * as util from "util";
 import { Handle, isHandle } from "../handle";
 import {

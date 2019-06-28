@@ -4,12 +4,12 @@ import {
     Package,
     repoVersions,
     writePackage,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 import {
     Constructor,
     repoDirs,
     yarn,
-} from "@usys/utils";
+} from "@adpt/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import * as os from "os";
@@ -80,7 +80,7 @@ describe("Reanimate basic tests", () => {
         should(parsed).eql({
             name: "Victim",
             namespace: "",
-            pkgName: "@usys/adapt",
+            pkgName: "@adpt/core",
             pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_victim.js",
         });
@@ -91,7 +91,7 @@ describe("Reanimate basic tests", () => {
         const mummyUrn = findMummyUrn(firstVictim.Victim);
         should(mummyUrn).equal(
             // tslint:disable-next-line:max-line-length
-            `urn:Adapt:@usys/adapt:${currentAdaptVersion}::../test/reanimate/test_victim.js:Victim`);
+            `urn:Adapt:@adpt/core:${currentAdaptVersion}::../test/reanimate/test_victim.js:Victim`);
         const obj2 = await reanimateUrn(mummyUrn);
         should(obj2).equal(firstVictim.Victim);
     });
@@ -112,7 +112,7 @@ describe("Reanimate basic tests", () => {
         should(parsed).eql({
             name: "Victim",
             namespace: "",
-            pkgName: "@usys/adapt",
+            pkgName: "@adpt/core",
             pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_victim.js",
         });
@@ -157,7 +157,7 @@ describe("Reanimate basic tests", () => {
             // name: "LateExport", namespace: ""
             name: "LateExportReg",
             namespace: "$adaptExports",
-            pkgName: "@usys/adapt",
+            pkgName: "@adpt/core",
             pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_lateExport.js",
         });
@@ -165,7 +165,7 @@ describe("Reanimate basic tests", () => {
         const mummyUrn = findMummyUrn(curMod.lateExport.LateExport);
         should(mummyUrn).equal(
             // tslint:disable-next-line:max-line-length
-            `urn:Adapt:@usys/adapt:${currentAdaptVersion}:$adaptExports:../test/reanimate/test_lateExport.js:LateExportReg`);
+            `urn:Adapt:@adpt/core:${currentAdaptVersion}:$adaptExports:../test/reanimate/test_lateExport.js:LateExportReg`);
 
         const firstObj = await reanimate(firstMummyLate);
         // The reanimated object should still be an instance of Living
@@ -223,7 +223,7 @@ describe("Reanimate basic tests", () => {
         should(parsed).eql({
             name: "InFunc",
             namespace: "",
-            pkgName: "@usys/adapt",
+            pkgName: "@adpt/core",
             pkgVersion: currentAdaptVersion,
             relFilePath: "../test/reanimate/test_inFunc.js",
         });
@@ -269,7 +269,7 @@ async function basicTestConstructor<M extends ModName, R extends ModCtorNames<M>
     should(mummy).eql({
         name: regName,
         namespace: "",
-        pkgName: "@usys/adapt",
+        pkgName: "@adpt/core",
         pkgVersion: currentAdaptVersion,
         relFilePath: `../test/reanimate/test_${modName}.js`,
     });
@@ -430,7 +430,7 @@ const reanimatePackage: Package = {
     pkgJson: {
         name: "@usys/reanimate",
         dependencies: {
-            "@usys/utils": repoVersions.utils,
+            "@adpt/utils": repoVersions.utils,
             "callsites": "2.0.0",
             "json-stable-stringify": "1.0.1",
             "read-pkg-up": "4.0.0",

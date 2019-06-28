@@ -1,4 +1,4 @@
-import { inDebugger } from "@usys/utils";
+import { inDebugger } from "@adpt/utils";
 import plf from "proper-lockfile";
 
 export const lockDefaults = {

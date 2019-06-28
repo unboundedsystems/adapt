@@ -1,4 +1,4 @@
-import { UserError } from "@usys/utils";
+import { UserError } from "@adpt/utils";
 import Listr = require("listr");
 import { isString } from "lodash";
 import path from "path";

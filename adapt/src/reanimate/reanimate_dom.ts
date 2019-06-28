@@ -1,5 +1,5 @@
-import { domFromString, DOMNode, isDOMNode } from "@usys/dom-parser";
-import { Constructor } from "@usys/utils";
+import { domFromString, DOMNode, isDOMNode } from "@adpt/dom-parser";
+import { Constructor } from "@adpt/utils";
 import * as ld from "lodash";
 import * as util from "util";
 import { InternalError } from "../error";

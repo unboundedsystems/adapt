@@ -1,5 +1,5 @@
-import Adapt, { Component, Handle } from "@usys/adapt";
-import { tuple } from "@usys/utils";
+import Adapt, { Component, Handle } from "@adpt/core";
+import { tuple } from "@adpt/utils";
 import { pick } from "lodash";
 import { CFResource } from "./CFResource";
 import { withCredentials, WithCredentials } from "./credentials";

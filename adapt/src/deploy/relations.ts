@@ -1,4 +1,4 @@
-import { toArray } from "@usys/utils";
+import { toArray } from "@adpt/utils";
 import { isFunction } from "lodash";
 import {
     Dependency,

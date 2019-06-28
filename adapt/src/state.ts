@@ -3,7 +3,7 @@ import * as util from "util";
 
 import * as ld from "lodash";
 
-import { diffObjects } from "@usys/utils";
+import { diffObjects } from "@adpt/utils";
 import { InternalError } from "./error";
 import { AdaptElement, AnyProps, AnyState, isElementImpl, isMountedElement } from "./jsx";
 

@@ -1,6 +1,6 @@
 import {
     TaskObserver,
-} from "@usys/utils";
+} from "@adpt/utils";
 import { isFunction, isObject, isString } from "lodash";
 import {
     AdaptMountedElement,

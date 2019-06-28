@@ -1,5 +1,5 @@
-import Adapt, { Group, handle } from "@usys/adapt";
-import { useMethod } from "@usys/cloud";
+import Adapt, { Group, handle } from "@adpt/core";
+import { useMethod } from "@adpt/cloud";
 import { Postgres } from "./lib";
 import { localStyle, prodStyle } from "./styles";
 import TypeScriptService, { Env } from "./TypeScriptService";

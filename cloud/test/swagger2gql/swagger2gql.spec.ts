@@ -1,4 +1,4 @@
-import { gql } from "@usys/adapt";
+import { gql } from "@adpt/core";
 import express = require("express");
 import { Express } from "express";
 import { execute, GraphQLError, GraphQLResolveInfo, GraphQLSchema, printSchema } from "graphql";

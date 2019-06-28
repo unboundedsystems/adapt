@@ -49,8 +49,8 @@ export function projectExec(projectRoot: string, rootFileName: string) {
 
     const wrapper = `
         require("source-map-support").install();
-        import * as Adapt from "@usys/adapt";
-        import { getAdaptContext } from "@usys/adapt/dist/src/ts";
+        import * as Adapt from "@adpt/core";
+        import { getAdaptContext } from "@adpt/core/dist/src/ts";
 
         getAdaptContext().Adapt = Adapt;
 

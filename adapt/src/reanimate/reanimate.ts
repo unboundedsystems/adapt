@@ -1,4 +1,4 @@
-import { createPackageRegistry } from "@usys/utils";
+import { createPackageRegistry } from "@adpt/utils";
 import callsites = require("callsites");
 import stringify from "json-stable-stringify";
 import * as path from "path";

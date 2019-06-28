@@ -10,7 +10,7 @@ import Adapt, {
     AdaptElement,
     build,
     serializeDom,
-} from "@usys/adapt";
+} from "@adpt/core";
 
 import localStyle from "./localStyle";
 import Nodecellar from "./Nodecellar";

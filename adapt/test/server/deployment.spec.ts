@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir } from "@adpt/testutils";
 import * as fs from "fs-extra";
 import should from "should";
 

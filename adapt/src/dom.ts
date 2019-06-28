@@ -44,7 +44,7 @@ import {
     createObserverManagerDeployment, isObserverNeedsData, ObserverManagerDeployment
 } from "./observers";
 
-import { Message, MessageType, notNull, removeUndef } from "@usys/utils";
+import { Message, MessageType, notNull, removeUndef } from "@adpt/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {

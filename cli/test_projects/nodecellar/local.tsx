@@ -1,4 +1,4 @@
-import Adapt, { rule, Style } from "@usys/adapt";
+import Adapt, { rule, Style } from "@adpt/core";
 import {
     Compute,
     ComputeProps,
@@ -9,8 +9,8 @@ import {
     LocalCompute,
     NetworkService,
     NetworkServiceProps,
-} from "@usys/cloud";
-import { AnsibleContainer, AnsibleDockerHost } from "@usys/cloud/ansible";
+} from "@adpt/cloud";
+import { AnsibleContainer, AnsibleDockerHost } from "@adpt/cloud/ansible";
 
 export const localStyle =
     <Style>

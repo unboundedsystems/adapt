@@ -12,7 +12,7 @@ import Adapt, {
     PluginOptions,
     PrimitiveComponent,
     Style,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { compact } from "lodash";
 import should from "should";
 
@@ -21,7 +21,7 @@ import {
     createMockLogger,
     describeLong,
     MockLogger,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,

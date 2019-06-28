@@ -7,8 +7,8 @@ import Adapt, {
     ObserveForStatus,
     Status,
     WithChildren,
-} from "@usys/adapt";
-import { removeUndef } from "@usys/utils";
+} from "@adpt/core";
+import { removeUndef } from "@adpt/utils";
 import AWS from "aws-sdk";
 import { flatten } from "lodash";
 import { ComputeProps } from "../Compute";

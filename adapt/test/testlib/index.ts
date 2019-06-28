@@ -1,4 +1,4 @@
-import { findPackageDirs } from "@usys/utils";
+import { findPackageDirs } from "@adpt/utils";
 
 export * from "./components";
 export * from "./deploy_mocks";

@@ -1,4 +1,4 @@
-import { repoVersions } from "@usys/testutils";
+import { repoVersions } from "@adpt/testutils";
 import * as Adapt from "../src";
 import { doBuild } from "./testlib";
 
@@ -136,9 +136,9 @@ describe("DOM Reanimateable Serialization", () => {
             { reanimateable: true }
         );
         should(ser).equal(`<Adapt>
-  <Group xmlns="urn:Adapt:@usys/adapt:${aVer}::builtin_components/group.js:Group">
-    <Flex id="1" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
-    <Flex id="2" xmlns="urn:Adapt:@usys/adapt:${aVer}::../test/dom_serializer.spec.js:Flex"/>
+  <Group xmlns="urn:Adapt:@adpt/core:${aVer}::builtin_components/group.js:Group">
+    <Flex id="1" xmlns="urn:Adapt:@adpt/core:${aVer}::../test/dom_serializer.spec.js:Flex"/>
+    <Flex id="2" xmlns="urn:Adapt:@adpt/core:${aVer}::../test/dom_serializer.spec.js:Flex"/>
   </Group>
 </Adapt>
 `);

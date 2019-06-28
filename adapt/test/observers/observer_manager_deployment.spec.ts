@@ -1,4 +1,4 @@
-import * as uutils from "@usys/utils";
+import * as uutils from "@adpt/utils";
 import * as ld from "lodash";
 import should from "should";
 import { createObserverManagerDeployment, gql, ObserverManagerDeployment, ObserverPlugin } from "../../src/observers";

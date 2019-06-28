@@ -1,4 +1,4 @@
-import { waitFor } from "@usys/utils";
+import { waitFor } from "@adpt/utils";
 import Docker = require("dockerode");
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";

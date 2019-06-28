@@ -3,7 +3,7 @@
 //Alternatively, this should become some sort of generic observer that makes it easier to write observers
 //that follow a certain pattern.
 
-import * as uutil from "@usys/utils";
+import * as uutil from "@adpt/utils";
 import * as fs from "fs";
 import {
     execute as gqlExecute,

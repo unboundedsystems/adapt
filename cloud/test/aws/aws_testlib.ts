@@ -1,4 +1,4 @@
-import { AdaptElement } from "@usys/adapt";
+import { AdaptElement } from "@adpt/core";
 import { findStackElems } from "../../src/aws/aws_plugin";
 
 export function getStackNames(dom: AdaptElement): string[] {

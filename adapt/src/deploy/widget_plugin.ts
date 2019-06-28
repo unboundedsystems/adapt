@@ -1,4 +1,4 @@
-import { Logger } from "@usys/utils";
+import { Logger } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { InternalError } from "../error";
 import {

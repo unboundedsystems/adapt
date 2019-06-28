@@ -1,8 +1,8 @@
-import { UserError } from "@usys/utils";
+import { UserError } from "@adpt/utils";
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
 
-export { InternalError } from "@usys/utils";
+export { InternalError } from "@adpt/utils";
 
 export class BuildNotImplemented extends CustomError {
     public constructor(message?: string) {

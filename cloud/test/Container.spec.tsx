@@ -8,12 +8,12 @@ import Adapt, {
     Group,
     rule,
     Style,
-} from "@usys/adapt";
+} from "@adpt/core";
 import {
     createMockLogger,
     dockerutils,
     mochaTmpdir,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 import Docker = require("dockerode");
 import fs from "fs-extra";
 import path from "path";
