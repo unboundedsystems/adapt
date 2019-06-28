@@ -1,6 +1,6 @@
-import Adapt, { Group, handle, Handle, Sequence } from "@adpt/core";
 import { EnvVar, K8sContainer, Pod, Service } from "@adpt/cloud/k8s";
 import { useTypescriptBuild } from "@adpt/cloud/nodejs";
+import Adapt, { Group, handle, Handle, Sequence } from "@adpt/core";
 
 export function kubeconfig() {
     // tslint:disable-next-line:no-var-requires

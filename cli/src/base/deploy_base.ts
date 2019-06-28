@@ -1,5 +1,5 @@
-import { flags } from "@oclif/command";
 import { filePathToUrl, MessageClient, MessageLogger } from "@adpt/utils";
+import { flags } from "@oclif/command";
 import * as fs from "fs-extra";
 import Listr = require("listr");
 import * as path from "path";

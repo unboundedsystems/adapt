@@ -1,5 +1,5 @@
-import Adapt, { Component, Group } from "@adpt/core";
 import { Compute, DockerHost, NetworkService } from "@adpt/cloud";
+import Adapt, { Component, Group } from "@adpt/core";
 
 import { AppContainer, MongoContainer } from "./containers";
 

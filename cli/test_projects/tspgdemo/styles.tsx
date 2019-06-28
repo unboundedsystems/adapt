@@ -1,6 +1,6 @@
-import Adapt, { Group, handle, Style, useImperativeMethods } from "@adpt/core";
 import { useMethod } from "@adpt/cloud";
 import { K8sContainer, Pod, Service } from "@adpt/cloud/k8s";
+import Adapt, { Group, handle, Style, useImperativeMethods } from "@adpt/core";
 import { Postgres, usePreloadedPostgres } from "./lib";
 import { kubeconfig } from "./TypeScriptService";
 

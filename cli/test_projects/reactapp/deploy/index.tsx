@@ -1,8 +1,8 @@
-import Adapt, { Group, handle } from "@adpt/core";
 import { useMethod } from "@adpt/cloud";
 import { HttpServer, UrlRouter } from "@adpt/cloud/http";
 import { NodeService } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
+import Adapt, { Group, handle } from "@adpt/core";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {

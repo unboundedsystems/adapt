@@ -1,4 +1,3 @@
-import Adapt, { rule, Style } from "@adpt/core";
 import {
     Compute,
     ComputeProps,
@@ -9,6 +8,7 @@ import {
     NetworkService,
     NetworkServiceProps,
 } from "@adpt/cloud";
+import Adapt, { rule, Style } from "@adpt/core";
 
 function kubeconfig() {
     // tslint:disable-next-line:no-var-requires
