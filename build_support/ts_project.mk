@@ -33,7 +33,7 @@ clean:
 .PHONY: clean
 
 cleaner: clean
-	rm -rf node_modules DebugOut
+	rm -rf node_modules DebugOut .nyc_output
 .PHONY: cleaner
 
 $(JS_FILES) $(DTS_SRC_FILES): $(NODE_INSTALL_DONE) $(TS_FILES) tsconfig.json

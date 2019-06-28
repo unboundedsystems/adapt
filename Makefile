@@ -48,7 +48,7 @@ clean: $(clean_submakes)
 	rm -f .docs-updated
 
 cleaner: $(cleaner_submakes)
-	rm -rf node_modules
+	rm -rf node_modules .nyc_output
 
 pack: $(pack_submakes)
 $(pack_submakes): build
