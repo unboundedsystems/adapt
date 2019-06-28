@@ -1,6 +1,6 @@
 {
   "name": "@adpt/testutils",
-  "version": "0.0.2-next.4",
+  "version": "0.0.2",
   "description": "Unbounded Adapt Test Utilities Library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -9,7 +9,7 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@adpt/utils": "0.0.2-next.4",
+    "@adpt/utils": "0.0.2",
     "aws-sdk": "^2.302.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.5",

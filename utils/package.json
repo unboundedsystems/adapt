@@ -1,6 +1,6 @@
 {
   "name": "@adpt/utils",
-  "version": "0.0.2-next.4",
+  "version": "0.0.2",
   "description": "Unbounded Adapt Utilities Library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
