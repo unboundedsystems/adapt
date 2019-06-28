@@ -20,6 +20,8 @@ Usage:
 
   FLAGS:
       --dev         Allow publishing from a non-release branch
+      -f | --force  Ensure lerna publishes even if this commit has been
+                    published before.
       -h | --help   Display help for command
 
 Example:
@@ -78,6 +80,10 @@ while [[ $# -gt 0 ]]; do
 
         --dev)
             PUBLISH_DEV=1
+            ;;
+
+        -f|--force)
+            LERNA_ARGS+=" --force-publish"
             ;;
 
         -*)
