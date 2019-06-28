@@ -1,6 +1,6 @@
 {
   "name": "@adpt/cli",
-  "version": "0.0.2-next.3",
+  "version": "0.0.2-next.4",
   "description": "Unbounded Adapt CLI",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -12,14 +12,14 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
+    "@adpt/core": "0.0.2-next.4",
+    "@adpt/utils": "0.0.2-next.4",
     "@oclif/command": "^1.5.14",
     "@oclif/config": "^1.8.8",
     "@oclif/parser": "^3.6.1",
     "@samverschueren/stream-to-observable": "^0.3.0",
     "@unboundedsystems/plugin-autocomplete": "0.1.0-unb2",
     "@unboundedsystems/plugin-help": "2.1.6-unb1",
-    "@adpt/core": "0.0.2-next.3",
-    "@adpt/utils": "0.0.2-next.1",
     "chalk": "^2.4.1",
     "copy": "^0.3.2",
     "debug": "^4.1.0",
@@ -42,6 +42,8 @@
     "type-ops": "^3.0.1"
   },
   "devDependencies": {
+    "@adpt/cloud": "0.0.2-next.4",
+    "@adpt/testutils": "0.0.2-next.4",
     "@oclif/dev-cli": "^1.22.0",
     "@oclif/test": "^1.2.2",
     "@oclif/tslint": "^3.1.1",
@@ -62,8 +64,6 @@
     "@types/semver": "^5.5.0",
     "@types/shell-escape": "^0.2.0",
     "@types/split": "^1.0.0",
-    "@adpt/cloud": "0.0.2-next.3",
-    "@adpt/testutils": "0.0.2-next.1",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "execa": "^0.10.0",

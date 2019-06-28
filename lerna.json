@@ -1,8 +1,8 @@
 {
     "packages": [
-        "core",
         "cli",
         "cloud",
+        "core",
         "dom-parser",
         "testutils",
         "utils"
@@ -18,5 +18,5 @@
         }
     },
     "npmClient": "yarn",
-    "version": "0.0.2-next.3"
+    "version": "0.0.2-next.4"
 }
