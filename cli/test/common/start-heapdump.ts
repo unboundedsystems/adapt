@@ -1,4 +1,4 @@
-import { heapdumpMocha } from "@usys/testutils";
+import { heapdumpMocha } from "@adpt/testutils";
 
 heapdumpMocha.use({
     modName: "cli",

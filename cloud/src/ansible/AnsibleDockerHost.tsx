@@ -2,7 +2,7 @@ import Adapt, {
     BuiltinProps,
     childrenToArray,
     WithChildren,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { AnsibleHost } from "./ansible_host";
 import AnsibleRole from "./AnsibleRole";
 

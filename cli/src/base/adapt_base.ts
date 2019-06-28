@@ -1,5 +1,3 @@
-import { Command, flags } from "@oclif/command";
-import * as Parser from "@oclif/parser";
 import {
     getErrors,
     getWarnings,
@@ -9,7 +7,9 @@ import {
     MessageLogger,
     MessageStreamClient,
     MessageStreamServer,
-} from "@usys/utils";
+} from "@adpt/utils";
+import { Command, flags } from "@oclif/command";
+import * as Parser from "@oclif/parser";
 import chalk from "chalk";
 import { PassThrough } from "stream";
 import { UserError } from "../error";

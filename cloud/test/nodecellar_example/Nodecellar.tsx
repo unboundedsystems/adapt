@@ -1,4 +1,4 @@
-import Adapt, { Component } from "@usys/adapt";
+import Adapt, { Component } from "@adpt/core";
 import {
     Compute,
     DockerHost,

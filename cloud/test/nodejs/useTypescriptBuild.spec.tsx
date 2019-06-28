@@ -1,5 +1,5 @@
-import Adapt, { FinalDomElement, Group, PrimitiveComponent } from "@usys/adapt";
-import { mochaTmpdir, writePackage } from "@usys/testutils";
+import Adapt, { FinalDomElement, Group, PrimitiveComponent } from "@adpt/core";
+import { mochaTmpdir, writePackage } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import { uniq } from "lodash";

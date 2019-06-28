@@ -1,4 +1,4 @@
-import { tuple } from "@usys/utils";
+import { tuple } from "@adpt/utils";
 
 export interface Swagger2Contact {
     name?: string;

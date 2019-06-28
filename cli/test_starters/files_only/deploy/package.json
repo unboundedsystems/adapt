@@ -6,8 +6,8 @@
   "author": "",
   "dependencies": {
     "@types/node": "^10.15",
-    "@usys/adapt": "latest",
-    "@usys/cloud": "latest",
+    "@adpt/core": "latest",
+    "@adpt/cloud": "latest",
     "source-map-support": "^0.5.5",
     "typescript": "^3.0.3"
   }

@@ -1,4 +1,4 @@
-import Adapt, { Handle, handle, Sequence, SFCDeclProps, useImperativeMethods } from "@usys/adapt";
+import Adapt, { Handle, handle, Sequence, SFCDeclProps, useImperativeMethods } from "@adpt/core";
 import {
     callInstanceMethod,
     Container,

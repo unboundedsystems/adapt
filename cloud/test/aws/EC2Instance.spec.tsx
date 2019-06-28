@@ -5,12 +5,12 @@ import Adapt, {
     createStateStore,
     PrimitiveComponent,
     serializeDom,
-} from "@usys/adapt";
-import { waitFor } from "@usys/utils";
+} from "@adpt/core";
+import { waitFor } from "@adpt/utils";
 import describeFixture from "mocha-nock";
 import should from "should";
 
-import { awsutils, createMockLogger } from "@usys/testutils";
+import { awsutils, createMockLogger } from "@adpt/testutils";
 import {
     AwsCredentialsProps,
     awsDefaultCredentialsContext,

@@ -12,8 +12,8 @@ import Adapt, {
     WidgetChange,
     WidgetPair,
     WidgetPlugin,
-} from "@usys/adapt";
-import { isEqualUnorderedArrays } from "@usys/utils";
+} from "@adpt/core";
+import { isEqualUnorderedArrays } from "@adpt/utils";
 import AWS = require("aws-sdk");
 import { compact, pick } from "lodash";
 

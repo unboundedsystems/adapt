@@ -1,4 +1,4 @@
-import { repoRootDir, yarn } from "@usys/utils";
+import { repoRootDir, yarn } from "@adpt/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -82,20 +82,9 @@ export const config: Config = {
         }
     },
     packages: {
-        // Packages from @usys that are not part of our repo workspaces
-        "@usys/collections-ts": {
-            access: "$all",
-            publish: "$all",
-            proxy: "npmjs"
-        },
-        "@usys/fork-require": {
-            access: "$all",
-            publish: "$all",
-            proxy: "npmjs"
-        },
-        // We don't proxy the remaining @usys packages so we can locally
+        // We don't proxy @adpt packages so we can locally
         // publish the same versions as are on npmjs.
-        "@usys/*": {
+        "@adpt/*": {
             access: "$all",
             publish: "$all",
         },

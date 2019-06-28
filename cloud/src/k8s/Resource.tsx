@@ -12,7 +12,7 @@ import Adapt, {
     ObserveForStatus,
     PrimitiveComponent,
     waiting,
-} from "@usys/adapt";
+} from "@adpt/core";
 import * as ld from "lodash";
 
 import { ResourceProps } from "./common";

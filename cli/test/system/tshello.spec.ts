@@ -2,8 +2,8 @@ import {
     describeLong,
     k8sutils,
     mochaTmpdir,
-} from "@usys/testutils";
-import { sleep } from "@usys/utils";
+} from "@adpt/testutils";
+import { sleep } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";

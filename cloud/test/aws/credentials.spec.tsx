@@ -1,4 +1,4 @@
-import Adapt, { AnyProps, PrimitiveComponent } from "@usys/adapt";
+import Adapt, { AnyProps, PrimitiveComponent } from "@adpt/core";
 import * as fs from "fs-extra";
 import * as os from "os";
 import * as path from "path";

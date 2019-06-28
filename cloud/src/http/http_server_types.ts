@@ -1,4 +1,4 @@
-import { Handle } from "@usys/adapt";
+import { Handle } from "@adpt/core";
 import { NetworkServiceScope, Stage } from "..";
 
 /*

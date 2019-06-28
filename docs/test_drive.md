@@ -64,7 +64,7 @@ Platforms not currently tested with this guide:
 
     **NOTE:** This will install the pre-release `next` version of Adapt.
     ```
-    npm install -g @usys/cli@next
+    npm install -g @adpt/cli@next
     ```
 
 1. Get an example app

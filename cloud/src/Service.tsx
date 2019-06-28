@@ -1,4 +1,4 @@
-import { Component, WithChildren } from "@usys/adapt";
+import { Component, WithChildren } from "@adpt/core";
 
 export interface ServiceProps extends WithChildren {
     name?: string;

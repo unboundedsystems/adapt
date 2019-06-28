@@ -1,4 +1,3 @@
-import Adapt, { Group, rule, ruleNoRematch, Style } from "@usys/adapt";
 import {
     aws,
     Compute,
@@ -11,7 +10,8 @@ import {
     LocalDockerHost,
     NetworkService,
     NetworkServiceProps,
-} from "@usys/cloud";
+} from "@adpt/cloud";
+import Adapt, { Group, rule, ruleNoRematch, Style } from "@adpt/core";
 const {
     CFStack,
     EC2Instance,

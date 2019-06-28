@@ -1,5 +1,5 @@
-import { Component, gql, NoStatus, ObserveForStatus } from "@usys/adapt";
-import { MultiError } from "@usys/utils";
+import { Component, gql, NoStatus, ObserveForStatus } from "@adpt/core";
+import { MultiError } from "@adpt/utils";
 import { isError } from "lodash";
 import { Container, ContainerProps, ContainerStatus } from "../Container";
 import { DockerObserver } from "./docker_observer";

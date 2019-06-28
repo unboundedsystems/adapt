@@ -1,4 +1,4 @@
-import { waitFor } from "@usys/utils";
+import { waitFor } from "@adpt/utils";
 import * as fs from "fs-extra";
 import path from "path";
 

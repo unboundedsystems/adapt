@@ -7,8 +7,8 @@ import {
     Plugin,
     PluginOptions,
     registerPlugin,
-} from "@usys/adapt";
-import { notNull } from "@usys/utils";
+} from "@adpt/core";
+import { notNull } from "@adpt/utils";
 import {
     ActionContext,
     getActionInstance,

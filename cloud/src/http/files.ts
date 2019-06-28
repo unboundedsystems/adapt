@@ -1,7 +1,7 @@
 import {
     useState,
-} from "@usys/adapt";
-import { Dispatcher } from "@usys/utils";
+} from "@adpt/core";
+import { Dispatcher } from "@adpt/utils";
 import { isObject, isString } from "lodash";
 import {
     getInstanceValue,

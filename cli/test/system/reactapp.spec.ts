@@ -1,8 +1,8 @@
 import {
     describeLong,
     k8sutils,
-} from "@usys/testutils";
-import { waitForNoThrow } from "@usys/utils";
+} from "@adpt/testutils";
+import { waitForNoThrow } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";

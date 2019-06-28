@@ -1,8 +1,8 @@
-import Adapt, { Group, handle } from "@usys/adapt";
-import { useMethod } from "@usys/cloud";
-import { HttpServer, UrlRouter } from "@usys/cloud/http";
-import { NodeService } from "@usys/cloud/nodejs";
-import { Postgres } from "@usys/cloud/postgres";
+import { useMethod } from "@adpt/cloud";
+import { HttpServer, UrlRouter } from "@adpt/cloud/http";
+import { NodeService } from "@adpt/cloud/nodejs";
+import { Postgres } from "@adpt/cloud/postgres";
+import Adapt, { Group, handle } from "@adpt/core";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {

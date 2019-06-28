@@ -1,5 +1,5 @@
-import Adapt from "@usys/adapt";
-import { mochaTmpdir } from "@usys/testutils";
+import Adapt from "@adpt/core";
+import { mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import { uniq } from "lodash";

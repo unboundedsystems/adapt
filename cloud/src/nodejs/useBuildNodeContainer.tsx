@@ -5,7 +5,7 @@ import Adapt, {
     useImperativeMethods,
     useState,
     waiting
-} from "@usys/adapt";
+} from "@adpt/core";
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";

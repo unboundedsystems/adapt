@@ -1,5 +1,5 @@
-import { mochaTmpdir, repoVersions  } from "@usys/testutils";
-import { filePathToUrl, yarn } from "@usys/utils";
+import { mochaTmpdir, repoVersions  } from "@adpt/testutils";
+import { filePathToUrl, yarn } from "@adpt/utils";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
 import * as path from "path";
@@ -23,7 +23,7 @@ const basicPackageJson = {
     license: "UNLICENSED",
     dependencies: {
         "@types/node": "^8.10",
-        "@usys/adapt": repoVersions.adapt,
+        "@adpt/core": repoVersions.core,
         "source-map-support": "^0.5.6",
         "typescript": "^3.0.3",
     },
@@ -40,7 +40,7 @@ import {
     Plugin,
     PluginOptions,
     registerPlugin
-} from "@usys/adapt";
+} from "@adpt/core";
 
 class EchoPlugin implements Plugin<{}> {
     _log?: PluginOptions["log"];
@@ -174,7 +174,7 @@ const testBaseTty =
  */
 
 const basicIndexTsx = `
-    import Adapt, { AnyProps, Constructor, PrimitiveComponent } from "@usys/adapt";
+    import Adapt, { AnyProps, Constructor, PrimitiveComponent } from "@adpt/core";
     import "./simple_plugin";
 
     export class DevStack extends PrimitiveComponent { }
@@ -193,8 +193,8 @@ const basicIndexTsx = `
 
 function observerIndexTsx(id1: number, id2: number) {
     return `
-        import Adapt, { AnyProps, Constructor, gql, Observer, PrimitiveComponent } from "@usys/adapt";
-        import MockObserver from "@usys/adapt/dist/src/observers/MockObserver";
+        import Adapt, { AnyProps, Constructor, gql, Observer, PrimitiveComponent } from "@adpt/core";
+        import MockObserver from "@adpt/core/dist/src/observers/MockObserver";
         import "./simple_plugin";
 
         export class DevStack extends PrimitiveComponent { }
@@ -850,7 +850,7 @@ describe("Observer Needs Data Reporting", function () {
 
 function stateUpdateIndexTsx(initialStateStr: string, newStateStr: string) {
     return `
-    import Adapt, { AnyState, Component, PrimitiveComponent } from "@usys/adapt";
+    import Adapt, { AnyState, Component, PrimitiveComponent } from "@adpt/core";
     import "./simple_plugin";
 
     export class Empty extends PrimitiveComponent<{ id: number; children?: any }> { }

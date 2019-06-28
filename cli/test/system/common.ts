@@ -1,5 +1,5 @@
-import { mochaTmpdir } from "@usys/testutils";
-import { filePathToUrl } from "@usys/utils";
+import { mochaTmpdir } from "@adpt/testutils";
+import { filePathToUrl } from "@adpt/utils";
 import fs from "fs-extra";
 import path from "path";
 import { clitest } from "../common/fancy";

@@ -13,8 +13,8 @@ import Adapt, {
     useImperativeMethods,
     useState,
     waiting
-} from "@usys/adapt";
-import { removeUndef } from "@usys/utils";
+} from "@adpt/core";
+import { removeUndef } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, isObject, pick } from "lodash";
 import * as abs from "../NetworkService";

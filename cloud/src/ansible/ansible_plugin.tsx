@@ -12,8 +12,8 @@ import Adapt, {
     WidgetChange,
     WidgetPair,
     WidgetPlugin,
-} from "@usys/adapt";
-import { Logger, mapMap, mkdtmp, ObjectSet, removeUndef, sha256hex } from "@usys/utils";
+} from "@adpt/core";
+import { Logger, mapMap, mkdtmp, ObjectSet, removeUndef, sha256hex } from "@adpt/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import { safeDump } from "js-yaml";

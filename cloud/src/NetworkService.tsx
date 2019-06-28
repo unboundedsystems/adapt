@@ -5,7 +5,7 @@ import {
     isElement,
     PrimitiveComponent,
     WithChildren,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { callNextInstanceMethod } from "./hooks";
 
 export type ServicePort = number | string;

@@ -1,4 +1,4 @@
-import { sleep } from "@usys/utils";
+import { sleep } from "@adpt/utils";
 import { filter } from "lodash";
 import * as util from "util";
 

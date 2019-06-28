@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir } from "@adpt/testutils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import { cloneDeep } from "lodash";

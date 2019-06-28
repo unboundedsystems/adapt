@@ -1,4 +1,4 @@
-import { minikubeMocha } from "@usys/testutils";
+import { minikubeMocha } from "@adpt/testutils";
 
 // This runs one shared instance of minikube that starts before the first
 // cloud test and stops after all tests are done.

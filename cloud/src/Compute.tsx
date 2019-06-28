@@ -1,4 +1,4 @@
-import { Component, WithChildren } from "@usys/adapt";
+import { Component, WithChildren } from "@adpt/core";
 
 export interface ComputeProps extends WithChildren {
     name?: string;

@@ -8,8 +8,8 @@ import Adapt, {
     isElement,
     ObserveForStatus,
     waiting
-} from "@usys/adapt";
-import { removeUndef } from "@usys/utils";
+} from "@adpt/core";
+import { removeUndef } from "@adpt/utils";
 import * as ld from "lodash";
 import { computeNamespaceFromMetadata, ResourceProps } from "./common";
 import { ContainerSpec, isContainerElement, K8sContainer, K8sContainerProps } from "./Container";

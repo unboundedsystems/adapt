@@ -1,5 +1,5 @@
-import { ChangeType } from "@usys/adapt";
-import { ensureError, MessageLogger } from "@usys/utils";
+import { ChangeType } from "@adpt/core";
+import { ensureError, MessageLogger } from "@adpt/utils";
 import execa from "execa";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldActDetail } from "./Action";

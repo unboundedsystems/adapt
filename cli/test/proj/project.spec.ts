@@ -1,4 +1,4 @@
-import { mochaTmpdir, repoVersions } from "@usys/testutils";
+import { mochaTmpdir, repoVersions } from "@adpt/testutils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -114,9 +114,9 @@ describe("Project basic tests", function () {
         this.slow(20 * 1000);
         this.timeout(50 * 1000);
         const opts = { ...cliLocalRegistry.yarnProxyOpts, ...projOpts };
-        const p = await proj.load("@usys/dom-parser@unit-tests", opts);
+        const p = await proj.load("@adpt/dom-parser@unit-tests", opts);
         expect(p).to.be.an("object");
-        expect(p.manifest.name).equal("@usys/dom-parser");
+        expect(p.manifest.name).equal("@adpt/dom-parser");
         expect(p.manifest.version).equal(repoVersions["dom-parser"]);
         expect(p.manifest.dependencies.tslib).equal("^1.9.3");
         await p.installModules();

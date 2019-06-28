@@ -1,4 +1,4 @@
-import { tuple, TupleToUnion } from "@usys/utils";
+import { tuple, TupleToUnion } from "@adpt/utils";
 import { isEqual, isNull } from "lodash";
 import * as randomstring from "randomstring";
 import { RequiredDeepT } from "type-ops";

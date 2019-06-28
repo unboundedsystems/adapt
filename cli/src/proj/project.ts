@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as pacote from "pacote";
 import * as path from "path";
 
-import { mkdtmp, ValidationError, yarn } from "@usys/utils";
+import { mkdtmp, ValidationError, yarn } from "@adpt/utils";
 import { UserError } from "../error";
 import {
     AdaptModule,
@@ -88,13 +88,13 @@ export async function load(projectSpec: string, projectOpts?: ProjectOptions) {
 }
 
 export async function projectAdaptModule(projectRoot: string): Promise<AdaptModule> {
-    const entryFile = require.resolve("@usys/adapt", { paths: [projectRoot]});
+    const entryFile = require.resolve("@adpt/core", { paths: [projectRoot]});
 
     // Load Adapt at runtime. We've already done some version
     // verification before getting here, but we don't
     // have types.
     // TODO(mark): What's the right way to type this? We actually
-    // don't want to have a dependency on @usys/adapt.
+    // don't want to have a dependency on @adpt/core.
 
     // tslint:disable-next-line:no-implicit-dependencies
     return verifyAdaptModule(await require(entryFile));

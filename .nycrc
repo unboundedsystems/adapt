@@ -1,7 +1,7 @@
 {
     "extends": "./nyc.json",
     "include": [
-        "adapt/dist/src/**",
+        "core/dist/src/**",
         "cli/dist/src/**",
         "cloud/dist/src/**",
         "dom-parser/dist/src/**",

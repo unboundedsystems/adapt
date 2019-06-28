@@ -51,7 +51,7 @@ Destroy the deployment "myproj-dev-abcd" using the default project description f
                     task.report(e);
                 }
             }
-            if (adapt === undefined) adapt = require("@usys/adapt");
+            if (adapt === undefined) adapt = require("@adpt/core");
             if (adapt === undefined) throw new Error("Internal Error: adapt is undefined");
 
             return adapt.destroyDeployment({

@@ -17,7 +17,7 @@ import Adapt, {
     Status,
     waiting,
     WithChildren,
-} from "@usys/adapt";
+} from "@adpt/core";
 import { OverwriteT } from "type-ops";
 import {
     getResourceIds,

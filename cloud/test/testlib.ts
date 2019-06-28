@@ -1,11 +1,11 @@
-import { Action, AdaptElement, ChangeType } from "@usys/adapt";
-import { toArray } from "@usys/utils";
+import { Action, AdaptElement, ChangeType } from "@adpt/core";
+import { toArray } from "@adpt/utils";
 import * as randomstring from "randomstring";
 import should from "should";
 import * as util from "util";
 
 // tslint:disable-next-line:no-submodule-imports
-export { doBuild, MockDeploy } from "@usys/adapt/dist/test/testlib";
+export { doBuild, MockDeploy } from "@adpt/core/dist/test/testlib";
 
 export async function act(actions: Action[]) {
     for (const action of actions) {

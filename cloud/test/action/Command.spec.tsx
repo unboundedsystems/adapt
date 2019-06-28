@@ -1,5 +1,5 @@
-import Adapt, { ChangeType, FinalDomElement, Group, PluginOptions } from "@usys/adapt";
-import { createMockLogger, MockLogger } from "@usys/testutils";
+import Adapt, { ChangeType, FinalDomElement, Group, PluginOptions } from "@adpt/core";
+import { createMockLogger, MockLogger } from "@adpt/testutils";
 import should from "should";
 import { ActionPlugin, idFunc } from "../../src/action/action_plugin";
 import { Command } from "../../src/action/Command";

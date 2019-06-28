@@ -9,17 +9,17 @@ const actualRepoRoot = "/src";
 
 describe("Paths tests", () => {
     it("Should have correct repo root", () => {
-        expect(paths.utilsDirs.repoRoot === actualRepoRoot);
-        expect(paths.repoRootDir === actualRepoRoot);
+        expect(paths.utilsDirs.repoRoot).equals(actualRepoRoot);
+        expect(paths.repoRootDir).equals(actualRepoRoot);
     });
 
     it("Should have correct adapt package root", () => {
-        expect(paths.repoDirs.adapt === path.join(actualRepoRoot, "adapt"));
+        expect(paths.repoDirs.core).equals(path.join(actualRepoRoot, "core"));
     });
     it("Should have correct utils dist", () => {
-        expect(paths.utilsDirs.dist === path.join(actualRepoRoot, "utils", "dist"));
+        expect(paths.utilsDirs.dist).equals(path.join(actualRepoRoot, "utils", "dist"));
     });
     it("Should have correct utils test", () => {
-        expect(paths.repoDirs.adapt === path.join(actualRepoRoot, "utils", "test"));
+        expect(paths.utilsDirs.test).equals(path.join(actualRepoRoot, "utils", "test"));
     });
 });

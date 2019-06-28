@@ -4,7 +4,7 @@
 			"path": "."
 		},
 		{
-			"path": "adapt"
+			"path": "core"
 		},
 		{
 			"path": "cloud"
@@ -31,6 +31,6 @@
 			"api-extractor.json": "jsonc",
 			"api-extractor-base.json": "jsonc",
 		},
-		"typescript.tsdk": "adapt/node_modules/typescript/lib",
+		"typescript.tsdk": "core/node_modules/typescript/lib",
 	}
 }

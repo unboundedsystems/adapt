@@ -1,4 +1,4 @@
-import { BuildData, ObserveForStatus } from "@usys/adapt";
+import { BuildData, ObserveForStatus } from "@adpt/core";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 

@@ -3,11 +3,11 @@ import Adapt, {
     Group,
     isMountedElement,
     PluginOptions
-} from "@usys/adapt";
+} from "@adpt/core";
 import should from "should";
 
-import { createMockLogger, k8sutils, MockLogger } from "@usys/testutils";
-import { sleep } from "@usys/utils";
+import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
+import { sleep } from "@adpt/utils";
 import {
     createK8sPlugin,
     K8sPlugin,

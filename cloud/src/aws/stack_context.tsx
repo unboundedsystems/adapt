@@ -1,7 +1,7 @@
 import {
     createContext,
     Handle,
-} from "@usys/adapt";
+} from "@adpt/core";
 
 // tslint:disable-next-line: variable-name
 export const CFStackContext = createContext<Handle | undefined>(undefined);

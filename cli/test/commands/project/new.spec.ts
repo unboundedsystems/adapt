@@ -1,4 +1,4 @@
-import { mochaTmpdir } from "@usys/testutils";
+import { mochaTmpdir } from "@adpt/testutils";
 import fs from "fs-extra";
 import path from "path";
 import { clitest, expect } from "../../common/fancy";

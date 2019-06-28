@@ -1,4 +1,4 @@
-import { PrimitiveComponent } from "@usys/adapt";
+import { PrimitiveComponent } from "@adpt/core";
 import { DockerHostProps } from "./DockerHost";
 
 export class LocalDockerHost extends PrimitiveComponent<DockerHostProps> {

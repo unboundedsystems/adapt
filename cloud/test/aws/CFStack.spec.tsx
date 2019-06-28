@@ -5,13 +5,13 @@ import Adapt, {
     createStateStore,
     Group,
     serializeDom,
-} from "@usys/adapt";
+} from "@adpt/core";
 import should from "should";
 
 import {
     awsutils,
     createMockLogger,
-} from "@usys/testutils";
+} from "@adpt/testutils";
 import describeFixture from "mocha-nock";
 import {
     AwsCredentials,

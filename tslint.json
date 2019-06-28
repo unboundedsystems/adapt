@@ -28,7 +28,7 @@
         "no-namespace": false,
         "no-submodule-imports": [
             true,
-            "@usys/cloud"
+            "@adpt/cloud"
         ],
         "no-unused-expression": false,
         "object-literal-sort-keys": [

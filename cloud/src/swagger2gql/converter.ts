@@ -19,7 +19,7 @@ import {
     isObjectType
 } from "graphql";
 
-import { tuple } from "@usys/utils";
+import { tuple } from "@adpt/utils";
 import GraphQLJSON = require("graphql-type-json");
 import * as ld from "lodash";
 import * as util from "util";

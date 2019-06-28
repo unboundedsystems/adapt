@@ -28,7 +28,7 @@ MAKEFLAGS += $(ADAPT_PARALLEL_MAKE)
 # Submake targets
 # Define some targets that run a make target in all PROJ_DIRS. Examples of
 # the targets created below are:
-#   adapt-build, adapt-test, cli-build, cli-test, etc.
+#   core-build, core-test, cli-build, cli-test, etc.
 #
 SUBMAKE_TARGETS:=build test clean cleaner pack lint prepush coverage docs
 
@@ -48,7 +48,7 @@ clean: $(clean_submakes)
 	rm -f .docs-updated
 
 cleaner: $(cleaner_submakes)
-	rm -rf node_modules
+	rm -rf node_modules .nyc_output
 
 pack: $(pack_submakes)
 $(pack_submakes): build
@@ -68,9 +68,9 @@ coverage: build
 #
 # Build dependencies between directories
 #
-adapt-build: utils-build dom-parser-build testutils-build
-cli-build: adapt-build cloud-build utils-build testutils-build
-cloud-build: adapt-build utils-build testutils-build
+core-build: utils-build dom-parser-build testutils-build
+cli-build: core-build cloud-build utils-build testutils-build
+cloud-build: core-build utils-build testutils-build
 testutils-build: utils-build
 
 #

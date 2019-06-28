@@ -11,7 +11,7 @@
 - [Note on Test Performance](#note-on-test-performance)
 - [Parallel make](#parallel-make)
 - [Memory usage debugging](#memory-usage-debugging)
-- [Debugging the CLI and other users of the `adapt/src/ops` module](#debugging-the-cli-and-other-users-of-the-adaptsrcops-module)
+- [Debugging the CLI and other users of the `core/src/ops` module](#debugging-the-cli-and-other-users-of-the-coresrcops-module)
 - [Setting up CI for your fork](#setting-up-ci-for-your-fork)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -95,7 +95,7 @@ ADAPT_PARALLEL_MAKE= make
 ```
 
 ## Memory usage debugging
-Some of the projects in the repo use heapdump-mocha (currently adapt and cli
+Some of the projects in the repo use heapdump-mocha (currently core and cli
 enable it). For those projects, setting the environment variable
 `ADAPT_TEST_HEAPDUMP=1` enables heap usage warning messages after each mocha
 test if that test leaks more than a certain threshold of memory. It also enables
@@ -107,8 +107,8 @@ enable troubleshooting of memory leaks by changing the options passed into
 the heapdump-mocha `use()` function. Modify start-heapdump.ts in each
 project to enable heap snapshotting.
 
-## Debugging the CLI and other users of the `adapt/src/ops` module
-The `adapt/src/ops` module is unique because it creates a child process to run
+## Debugging the CLI and other users of the `core/src/ops` module
+The `core/src/ops` module is unique because it creates a child process to run
 the major API functions it exposes. Because that can make debugging more
 difficult, you can run everything in the same process by defining the environment
 variable:

@@ -9,7 +9,7 @@ import Adapt, {
     PropsType,
     useReadyFrom,
     WithChildren,
-} from "@usys/adapt";
+} from "@adpt/core";
 
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;

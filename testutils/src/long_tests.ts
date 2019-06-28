@@ -1,4 +1,4 @@
-import { getEnvAsBoolean } from "@usys/utils";
+import { getEnvAsBoolean } from "@adpt/utils";
 
 const runLongTests = getEnvAsBoolean("ADAPT_RUN_LONG_TESTS");
 

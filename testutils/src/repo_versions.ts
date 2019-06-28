@@ -1,4 +1,4 @@
-import { repoDirs } from "@usys/utils";
+import { repoDirs } from "@adpt/utils";
 import fs from "fs-extra";
 import path from "path";
 

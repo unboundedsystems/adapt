@@ -1,4 +1,4 @@
-import { removeUndef, sleep } from "@usys/utils";
+import { removeUndef, sleep } from "@adpt/utils";
 import AWS = require("aws-sdk");
 import { isNumber, xor } from "lodash";
 import should from "should";

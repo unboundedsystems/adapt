@@ -1,4 +1,4 @@
-import { InternalError } from "@usys/utils";
+import { InternalError } from "@adpt/utils";
 import { DeployOpBase } from "../../base";
 import { CreateOptions } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";

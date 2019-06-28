@@ -3,7 +3,7 @@ import Adapt, {
     BuildNotImplemented,
     Component,
     PrimitiveComponent
-} from "@usys/adapt";
+} from "@adpt/core";
 
 export interface ExternalDockerHostProps {
     dockerHost: string;
