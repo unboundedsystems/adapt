@@ -132,7 +132,7 @@ describe("DOM Parse Tests", () => {
                     <__props__>
                         <prop name="x">{ "z": 3 }</prop>
                     </__props__>
-                    <Foo    xmlns='urn:Adapt:%40usys%2Fadapt/0.0.1/builtin_components.js'>
+                    <Foo    xmlns='urn:Adapt:%40adpt%2Fcore/0.0.1/builtin_components.js'>
                         <__props__>
                             <prop name="a">{ "b": 3 }</prop>
                         </__props__>
@@ -151,7 +151,7 @@ describe("DOM Parse Tests", () => {
             "Foo",
             { a: { b: 3 } },
             undefined,
-            "urn:Adapt:%40usys%2Fadapt/0.0.1/builtin_components.js"
+            "urn:Adapt:%40adpt%2Fcore/0.0.1/builtin_components.js"
         );
         const foo3 = new DOMNode(
             "Foo",

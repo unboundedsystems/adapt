@@ -27,7 +27,7 @@ const simplePackageJson = {
     dependencies: {
         "source-map-support": "^0.5.5",
         "@types/node": "^8.10.20",
-        "@adpt/core": repoVersions.adapt,
+        "@adpt/core": repoVersions.core,
         "typescript": "^3.0.3",
     }
 };

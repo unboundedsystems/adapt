@@ -13,7 +13,7 @@ const { exec } = require("child_process");
 function parseArgs() {
     if (process.argv.length !== 3) {
         console.log(`Error: wrong number of args`);
-        console.log(`usage: make_docs.js adapt|cloud`);
+        console.log(`usage: make_docs.js core|cloud`);
         process.exit(1);
     }
     return {

@@ -34,7 +34,7 @@ import * as firstLateExport from "./test_lateExport";
 import { isLiving } from "./test_living";
 import * as firstVictim from "./test_victim";
 
-const currentAdaptVersion = repoVersions.adapt;
+const currentAdaptVersion = repoVersions.core;
 
 const curMod = {
     victim: firstVictim,

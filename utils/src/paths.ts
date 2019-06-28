@@ -61,7 +61,7 @@ export function findPackageDirs(dirname: string) {
 export const utilsDirs = findPackageDirs(__dirname);
 export const repoRootDir = utilsDirs.repoRoot;
 export const repoDirs = {
-    "adapt": path.join(repoRootDir, "adapt"),
+    "core": path.join(repoRootDir, "core"),
     "cli": path.join(repoRootDir, "cli"),
     "cloud": path.join(repoRootDir, "cloud"),
     "dom-parser": path.join(repoRootDir, "dom-parser"),

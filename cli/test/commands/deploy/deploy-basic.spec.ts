@@ -23,7 +23,7 @@ const basicPackageJson = {
     license: "UNLICENSED",
     dependencies: {
         "@types/node": "^8.10",
-        "@adpt/core": repoVersions.adapt,
+        "@adpt/core": repoVersions.core,
         "source-map-support": "^0.5.6",
         "typescript": "^3.0.3",
     },

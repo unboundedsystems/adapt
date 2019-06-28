@@ -1,6 +1,6 @@
 {
     "packages": [
-        "adapt",
+        "core",
         "cli",
         "cloud",
         "dom-parser",

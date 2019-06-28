@@ -16,7 +16,7 @@ import { reanimateDom } from "../src/internal";
 
 import { doBuild, Empty, MakeEmpty } from "./testlib";
 
-const aVer = repoVersions.adapt;
+const aVer = repoVersions.core;
 
 class Anything extends PrimitiveComponent<AnyProps> {
 }

@@ -4,7 +4,7 @@ import { doBuild } from "./testlib";
 
 import should from "should";
 
-const aVer = repoVersions.adapt;
+const aVer = repoVersions.core;
 
 export class Flex extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
 
