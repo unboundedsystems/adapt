@@ -181,6 +181,7 @@ const basicIndexTsx = `
     export class ActError extends PrimitiveComponent {}
     export class AnalyzeError extends PrimitiveComponent<{}> {}
 
+    Adapt.stack("default", makeTwo(DevStack));
     Adapt.stack("dev", makeTwo(DevStack));
     Adapt.stack("ActError", makeTwo(ActError));
     Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -528,6 +529,7 @@ describe("deploy:run basic tests", function () {
     });
 
     const namespaces = {
+        default: ["DevStack"],
         dev: ["DevStack"],
         ActError: ["ActError"],
         AnalyzeError: ["AnalyzeError"],
@@ -579,6 +581,28 @@ describe("deploy:run basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
+            namespaces,
+            "DevStack"
+        );
+    });
+
+    testBaseTty
+    .do(async () => {
+        await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    })
+    .command(["run"])
+
+    .it("Should build basic with TTY output (using default stack)", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("✔ Validating project");
+        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
+        expect(ctx.stdout).does.not.contain("WARNING");
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "default",
             namespaces,
             "DevStack"
         );

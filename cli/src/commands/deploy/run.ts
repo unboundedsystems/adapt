@@ -9,6 +9,8 @@ export default class RunCommand extends DeployOpBase {
     static aliases = [ "run" ];
 
     static examples = [
+`Deploy the stack named "default" from the default project description file, index.tsx:
+    $ adapt <%- command.id %>\n`,
 `Deploy the stack named "dev" from the default project description file, index.tsx:
     $ adapt <%- command.id %> dev\n`,
 `Deploy the stack named "dev" from an alternate description file:
@@ -20,7 +22,8 @@ export default class RunCommand extends DeployOpBase {
     static args = [
         {
             name: "stackName",
-            required: true,
+            default: "default",
+            description: "Name of the stack you wish to run",
         },
     ];
 

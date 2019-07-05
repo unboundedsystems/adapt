@@ -5,7 +5,7 @@
 * [`adapt autocomplete [SHELL]`](#adapt-autocomplete-shell)
 * [`adapt deploy:destroy DEPLOYID`](#adapt-deploydestroy-deployid)
 * [`adapt deploy:list`](#adapt-deploylist)
-* [`adapt deploy:run STACKNAME`](#adapt-deployrun-stackname)
+* [`adapt deploy:run [STACKNAME]`](#adapt-deployrun-stackname)
 * [`adapt deploy:status DEPLOYID`](#adapt-deploystatus-deployid)
 * [`adapt deploy:update DEPLOYID [STACKNAME]`](#adapt-deployupdate-deployid-stackname)
 * [`adapt help [COMMAND]`](#adapt-help-command)
@@ -95,13 +95,16 @@ EXAMPLE
 
 _See code: [dist/src/commands/deploy/list.ts](https://gitlab.com/unboundedsystems/adapt/blob/v0.0.3-next.0/dist/src/commands/deploy/list.ts)_
 
-## `adapt deploy:run STACKNAME`
+## `adapt deploy:run [STACKNAME]`
 
 Create a new deployment for an Adapt project
 
 ```
 USAGE
-  $ adapt deploy:run STACKNAME
+  $ adapt deploy:run [STACKNAME]
+
+ARGUMENTS
+  STACKNAME  [default: default] Name of the stack you wish to run
 
 OPTIONS
   -d, --debug=debugFlags  Enable additional debug output. Should be a comma-separated list of debug flags. Valid debug
@@ -121,6 +124,9 @@ ALIASES
   $ adapt run
 
 EXAMPLES
+  Deploy the stack named "default" from the default project description file, index.tsx:
+       $ adapt deploy:run
+
   Deploy the stack named "dev" from the default project description file, index.tsx:
        $ adapt deploy:run dev
 
