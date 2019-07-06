@@ -35,7 +35,7 @@ export async function createMockDeployment(options: MockDeploymentOptions = {}):
     const { projectName, stackName, deployID } = opts;
     const server = new MockServer();
 
-    return createDeployment(server, projectName, stackName, { fixedDeployID: deployID });
+    return createDeployment(server, projectName, stackName, { deployID });
 }
 
 const toLpath = (p: string) => {

@@ -14,6 +14,7 @@ import {
     GetOptions,
     ServerLock,
     ServerOptions,
+    ServerPathExists,
     SetOptions,
 } from "./server";
 import { Locker, ServerBase } from "./server_base";
@@ -130,7 +131,7 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
             if (options.mustCreate) {
                 try {
                     this.db.getData(dataPath);
-                    throw new Error(`Local server: path '${dataPath}' already exists`);
+                    throw new ServerPathExists(dataPath);
                 } catch (err) {
                     if (err.name !== "DataError") throw err;
                 }

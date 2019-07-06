@@ -265,21 +265,26 @@ describe("createDeployment Tests", async function () {
         should(list).have.length(0);
     });
 
-    async function doCreate(stackName: string): Promise<DeployState> {
+    interface DoCreate {
+        deployID?: string;
+        stackName: string;
+    }
+
+    async function doCreate(ops: DoCreate): Promise<DeployState> {
         return createDeployment({
+            ...ops,
             adaptUrl,
             fileName: "index.tsx",
             initLocalServer: true,
             initialStateJson: "{}",
             client,
             projectName: "myproject",
-            stackName,
         });
     }
 
     async function createError(stackName: string, expectedErrs: ExpectedMsg[],
         expectedWarnings?: ExpectedMsg[], actError = false): Promise<DeployError> {
-        const ds = await doCreate(stackName);
+        const ds = await doCreate({ stackName });
         if (isDeploySuccess(ds)) {
             should(isDeploySuccess(ds)).be.False();
             throw new Error();
@@ -302,8 +307,10 @@ describe("createDeployment Tests", async function () {
         return ds;
     }
 
-    async function createSuccess(stackName: string): Promise<DeploySuccess> {
-        const ds = await doCreate(stackName);
+    async function createSuccess(stackNameOrOpts: string | DoCreate): Promise<DeploySuccess> {
+        const opts = typeof stackNameOrOpts === "object" ?
+            stackNameOrOpts : { stackName: stackNameOrOpts };
+        const ds = await doCreate(opts);
         if (!isDeploySuccess(ds)) {
             throw new Error("Failure: " + messagesToString(ds.messages));
         }
@@ -355,6 +362,35 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/action1/);
         should(lstdout).match(/action2/);
         should(lstdout).match(/EchoPlugin: finish/);
+    });
+
+    it("Should build a single file with DeployID and error on existing DeployID", async () => {
+        const deployID = "someID";
+        const opts = {
+            stackName: "default",
+            deployID,
+        };
+        const ds = await createSuccess(opts);
+
+        should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
+        should(ds.stateJson).equal("{}");
+        should(ds.deployID).equal(deployID);
+        should(ds.mountedOrigStatus).eql({ status: "Here I am!" });
+
+        const lstdout = client.stdout;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/action1/);
+        should(lstdout).match(/action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
+
+        const ds2 = await doCreate(opts);
+        if (isDeploySuccess(ds2)) {
+            throw new Error("Second deployment should not have been created with same deployID");
+        }
+
+        checkMessages(ds2, [/Error creating deployment: DeployID 'someID' already exists/], MessageType.error);
     });
 
     it("Should log error on analyze", async () => {

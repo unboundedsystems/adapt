@@ -20,6 +20,7 @@ export interface CreateOptions extends DeployCommonOptions {
     projectName: string;
     stackName: string;
 
+    deployID?: string;
     initLocalServer?: boolean;
     initialStateJson?: string;
     initialObservationsJson?: string;
@@ -41,6 +42,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
     const {
         adaptUrl,
         client,
+        deployID,
         initLocalServer,
         initialStateJson,
         initialObservationsJson,
@@ -66,8 +68,12 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             server = await adaptServer(adaptUrl, {
                 init: finalOptions.initLocalServer,
             });
-            deployment = await createDeploymentObj(server, projectName,
-                finalOptions.stackName);
+            deployment = await createDeploymentObj(
+                server,
+                projectName,
+                finalOptions.stackName, {
+                    deployID,
+                });
             ds = await buildAndDeploy({
                 deployment,
                 prevStateJson: initialStateJson,

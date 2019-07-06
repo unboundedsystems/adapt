@@ -112,6 +112,9 @@ OPTIONS
 
   -q, --quiet             Suppress status output messages. Still outputs any result output.
 
+  --deployID=deployID     A fixed deployID to use for this deployment. Will error if the specified deployID already
+                          exists.
+
   --dryRun                Show what would happen during deploy, but do not modify the deployment
 
   --registry=registry     URL of alternate NPM registry to use

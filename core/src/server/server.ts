@@ -1,3 +1,5 @@
+import { isInstance, tagConstructor } from "@adpt/utils";
+import { CustomError } from "ts-custom-error";
 import { URL } from "url";
 import { HistoryStore } from "./history";
 
@@ -83,4 +85,15 @@ export async function withLock<T>(server: AdaptServer, f: (l: ServerLock) => Pro
     } finally {
         await server.unlock(lock);
     }
+}
+
+export class ServerPathExists extends CustomError {
+    public constructor(public path: string) {
+        super(`Server: path '${path}' already exists`);
+    }
+}
+tagConstructor(ServerPathExists, "adapt");
+
+export function isServerPathExists(val: any): val is ServerPathExists {
+    return isInstance(val, ServerPathExists, "adapt");
 }

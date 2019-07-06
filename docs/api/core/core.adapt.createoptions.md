@@ -19,6 +19,7 @@ export interface CreateOptions extends DeployCommonOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
+|  [deployID](./core.adapt.createoptions.deployid.md) | <code>string</code> |  |
 |  [initialObservationsJson](./core.adapt.createoptions.initialobservationsjson.md) | <code>string</code> |  |
 |  [initialStateJson](./core.adapt.createoptions.initialstatejson.md) | <code>string</code> |  |
 |  [initLocalServer](./core.adapt.createoptions.initlocalserver.md) | <code>boolean</code> |  |
