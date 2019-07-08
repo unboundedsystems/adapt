@@ -2,6 +2,21 @@
 
 require('source-map-support').install();
 
-require('@oclif/command').run()
+/* We use our own version of plugin-help, but in order for it to work fully,
+ * @oclif/command must also use it. So this little bit of ugliness is to
+ * force an unmodified version of @oclif/command to load
+ * @unboundedsystems/plugin-help instead of @oclif/plugin-help.
+ */
+const proxyquire = require('proxyquire');
+const helpPlugin = require('@unboundedsystems/plugin-help');
+const stubs = {
+    '@oclif/plugin-help': {
+        ...helpPlugin,
+        '@global': true,
+        '@noCallThru': true,
+    }
+};
+
+proxyquire('@oclif/command', stubs).run()
 .then(require('@oclif/command/flush'))
 .catch(require('@oclif/errors/handle'))

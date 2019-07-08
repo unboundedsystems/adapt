@@ -23,3 +23,20 @@ export function findPackageInfo(dir: string): PackageInfo {
         version: pkgJson.version,
     };
 }
+
+/**
+ * Traverse up the directory hierarchy from `dir` to find the parent of the
+ * node_modules directory closest to root.
+ * If no node_modules directory exists in the directory hierarchy, returns
+ * undefined.
+ */
+export function findNodeModulesParent(dir: string): string | undefined {
+    let lastParent: string | undefined;
+    dir = path.resolve(dir);
+    while (true) {
+        const parsed = path.parse(dir);
+        if (parsed.base === "node_modules") lastParent = parsed.dir;
+        if (parsed.dir === dir) return lastParent;
+        dir = parsed.dir;
+    }
+}

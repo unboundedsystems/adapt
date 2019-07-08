@@ -1,11 +1,11 @@
-import { createPackageRegistry } from "@adpt/utils";
+import { createPackageRegistry, ensureError, PackageRegistry } from "@adpt/utils";
 import callsites = require("callsites");
 import stringify from "json-stable-stringify";
 import * as path from "path";
 import URN = require("urn-lib");
 import { inspect } from "util";
 import { InternalError } from "../error";
-import { findPackageInfo } from "../packageinfo";
+import { findNodeModulesParent, findPackageInfo } from "../packageinfo";
 
 // As long as utilsTypes is not used as a value, TS will only pull in the
 // types. Then dynamically load utils, if available. Since we use this file
@@ -33,7 +33,27 @@ type PackageId = string;
 export class MummyRegistry {
     jsonToObj = new Map<MummyJson, any>();
     objToJson = new Map<any, MummyJson>();
-    packageRegistry = createPackageRegistry(".");
+    packageRegistry: PackageRegistry;
+
+    constructor() {
+        try {
+            this.packageRegistry = createPackageRegistry(".");
+        } catch (err) {
+            err = ensureError(err);
+            if (!err.message.includes("does not contain a node_modules folder")) {
+                throw err;
+            }
+
+            // We don't have a project directory, so use the parent of the
+            // node_modules directory this file is in.
+            const dir = findNodeModulesParent(__dirname);
+            if (dir) this.packageRegistry = createPackageRegistry(dir);
+        }
+        if (!this.packageRegistry) {
+            throw new InternalError(
+                `Unable to find a project folder or containing node_modules directory`);
+        }
+    }
 
     async awaken(mummyJson: MummyJson): Promise<any> {
         let obj = this.jsonToObj.get(mummyJson);
