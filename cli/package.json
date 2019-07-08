@@ -1,6 +1,6 @@
 {
   "name": "@adpt/cli",
-  "version": "0.0.2-next.4",
+  "version": "0.0.3-next.0",
   "description": "Unbounded Adapt CLI",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -12,8 +12,8 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "dependencies": {
-    "@adpt/core": "0.0.2-next.4",
-    "@adpt/utils": "0.0.2-next.4",
+    "@adpt/core": "0.0.3-next.0",
+    "@adpt/utils": "0.0.3-next.0",
     "@oclif/command": "^1.5.14",
     "@oclif/config": "^1.8.8",
     "@oclif/parser": "^3.6.1",
@@ -42,8 +42,8 @@
     "type-ops": "^3.0.1"
   },
   "devDependencies": {
-    "@adpt/cloud": "0.0.2-next.4",
-    "@adpt/testutils": "0.0.2-next.4",
+    "@adpt/cloud": "0.0.3-next.0",
+    "@adpt/testutils": "0.0.3-next.0",
     "@oclif/dev-cli": "^1.22.0",
     "@oclif/test": "^1.2.2",
     "@oclif/tslint": "^3.1.1",
