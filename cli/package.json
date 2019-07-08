@@ -128,7 +128,8 @@
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "make build && oclif-dev manifest",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts"
+    "test": "mocha --opts mocha.opts",
+    "version": "npm run docs && git add README.md"
   },
   "publishConfig": {
     "access": "restricted"
