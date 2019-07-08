@@ -37,10 +37,22 @@ if [ -n "${PREID}" ]; then
     VERSION="${VERSION}-${PREID}.0"
 fi
 
-LERNA_ARGS="version --no-push ${VERSION}"
+if ! $(isTreeClean) ; then
+    error "ERROR: Working directory must be clean to run this command"
+    exit 1
+fi
+
+VERSION=$(sanitizeSemver "${VERSION}") || exit 1
+
+LERNA_ARGS="version --force-publish=* --amend --no-git-tag-version ${VERSION}"
 echo "Running:  lerna ${LERNA_ARGS}"
 "${REPO_ROOT}/node_modules/.bin/lerna" ${LERNA_ARGS} || exit 1
 
+git add -A || exit 1
+echo "Committing the following files:"
+git status -s
+git commit -m "Update base version: ${VERSION}" || exit 1
+
 echo
-echo "Complete. Branch and tag may now be pushed if desired."
+echo "Complete. Branch may now be pushed if desired."
  

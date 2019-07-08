@@ -31,3 +31,20 @@ function prereleaseId {
             ;;
     esac
 }
+
+function isTreeClean {
+    [ -z "$(git status --porcelain)" ]
+}
+
+function sanitizeSemver {
+    # Translate some characters that are valid in branches, but not versions
+    # For now, just translate "_" to "-"
+    local UPDATED="${1//_/-}"
+
+    # Check that the resulting version is valid
+    if [ -z "$(node_modules/.bin/semver ${UPDATED})" ]; then
+        error "ERROR: version ${UPDATED} is not a valid semver version"
+        exit 1
+    fi
+    echo "${UPDATED}"
+}

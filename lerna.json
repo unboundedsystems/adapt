@@ -9,12 +9,15 @@
     ],
     "command": {
         "version": {
+            "allowBranch": "*",
+            "exact": true,
+            "gitRemote": "fork"
+        },
+        "publish": {
             "allowBranch": [
                 "master",
                 "release-*"
-            ],
-            "exact": true,
-            "gitRemote": "fork"
+            ]
         }
     },
     "npmClient": "yarn",
