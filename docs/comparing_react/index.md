@@ -2,7 +2,7 @@
 
 > **Tip**
 >
-> This guide is an in-depth comparison meant for developers who are already familiar with [ReactJS](https://reactjs.org). If you're not already familiar with React, we suggest reading [Adapt Concepts](../user/concepts/index.md) from our user manual instead.
+> This guide is an in-depth comparison meant for developers who are already familiar with [ReactJS](https://reactjs.org). If you're not already familiar with React, we suggest the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/index.md) instead.
 >
 > Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
 
