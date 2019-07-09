@@ -1,8 +1,10 @@
 import * as path from "path";
-import * as ts from "typescript";
 import { InternalError } from "../error";
 import { trace, tracef } from "../utils";
 import { ChainableHost } from "./hosts";
+import * as ts from "./tsmod";
+
+const tsmod = ts.tsmod;
 
 const debugModuleResolution = false;
 
@@ -51,7 +53,7 @@ export class ModuleResolver extends ChainableHost {
 
         if (mod !== undefined) return mod === null ? undefined : mod;
 
-        const r = ts.resolveModuleName(modName, containingFile,
+        const r = tsmod().resolveModuleName(modName, containingFile,
                                        this.compilerOptions, this);
         if (r) {
             mod = r.resolvedModule;
@@ -99,8 +101,8 @@ function resolveJS(modName: string, containingFile: string,
     // exported, but marked @internal. They also changed the name of the
     // function somewhere in the 3.x series.
     const tsResolve =
-        (ts as any).resolveJSModule ||       // > 3.x name
-        (ts as any).resolveJavaScriptModule; // < 3.x name
+        (tsmod() as any).resolveJSModule ||       // > 3.x name
+        (tsmod() as any).resolveJavaScriptModule; // < 3.x name
     if (!tsResolve) {
         throw new InternalError(`Unable to locate the Javascript resolver ` +
             `function from the TypeScript library`);
@@ -114,11 +116,11 @@ function resolveJS(modName: string, containingFile: string,
 
     let ext: ts.Extension;
     switch (path.extname(jsFile)) {
-        case ts.Extension.Js:
-            ext = ts.Extension.Js;
+        case tsmod().Extension.Js:
+            ext = tsmod().Extension.Js;
             break;
-        case ts.Extension.Jsx:
-            ext = ts.Extension.Jsx;
+        case tsmod().Extension.Jsx:
+            ext = tsmod().Extension.Jsx;
             break;
         default:
             throw new Error(`Module file extension ` +

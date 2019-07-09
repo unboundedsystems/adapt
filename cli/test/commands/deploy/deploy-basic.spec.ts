@@ -1,5 +1,6 @@
 import { mochaTmpdir, repoVersions  } from "@adpt/testutils";
 import { filePathToUrl, yarn } from "@adpt/utils";
+import execa from "execa";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
 import * as path from "path";
@@ -181,6 +182,7 @@ const basicIndexTsx = `
     export class ActError extends PrimitiveComponent {}
     export class AnalyzeError extends PrimitiveComponent<{}> {}
 
+    Adapt.stack("default", makeTwo(DevStack));
     Adapt.stack("dev", makeTwo(DevStack));
     Adapt.stack("ActError", makeTwo(ActError));
     Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -320,6 +322,69 @@ function checkPluginStdout(stdout: string, dryRun = false) {
         else expect(stdout).to.not.contain(line);
     }
 }
+
+function registryOpts() {
+    if (!cliLocalRegistry.yarnProxyOpts.registry) return [];
+    return ["--registry", cliLocalRegistry.yarnProxyOpts.registry];
+}
+
+/*
+ * NOTE: yarn cannot be used here because it ignores the --registry option
+ * when used with "yarn global". See https://github.com/yarnpkg/yarn/issues/5056
+ */
+export function globalAdd(pkg: string) {
+    return execa("npm", ["install", ...registryOpts(), "-g", pkg]);
+}
+
+function globalRemove(pkg: string) {
+    return execa("npm", ["uninstall", "-g", pkg]);
+}
+
+/**
+ * basicTestChain, but with the environment PATH filtered to remove all
+ * paths in the source tree.
+ */
+const basicNoSrcDirChain = basicTestChain
+    .delayedenv(() => {
+        const pOrig = process.env.PATH || "";
+        const pNew = pOrig.split(":").filter((el) => !el.startsWith("/src/")).join(":");
+        return { PATH: pNew };
+    });
+
+describe("Global CLI install", function () {
+    this.slow(30 * 1000);
+    this.timeout(3 * 60 * 1000);
+    let tmpDir = "";
+
+    mochaTmpdir.all("adapt-cli-test-global");
+
+    before(async () => {
+        tmpDir = process.cwd();
+        await globalAdd("@adpt/cli@unit-tests");
+    });
+
+    after(async () => {
+        await globalRemove("@adpt/cli");
+    });
+
+    basicNoSrcDirChain
+    .finally(() => process.chdir(tmpDir))
+    .command(["run", "dev"])
+    .do(async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("Validating project [completed]");
+        expect(ctx.stdout).contains("Creating new project deployment [completed]");
+        const deployID = getNewDeployID(ctx.stdout);
+
+        process.chdir("/");
+        // Call the globally installed adapt
+        const ret = await execa("adapt", ["list"]);
+        expect(ret.stderr).equals("");
+        expect(ret.stdout).contains(`Listing Deployments [completed]\n\n${deployID}`);
+        expect(ret.stdout).contains("using internal adapt module");
+    })
+    .it("Should list deployments from non-project with global install");
+});
 
 describe("deploy:list tests", function () {
     this.slow(30 * 1000);
@@ -528,6 +593,7 @@ describe("deploy:run basic tests", function () {
     });
 
     const namespaces = {
+        default: ["DevStack"],
         dev: ["DevStack"],
         ActError: ["ActError"],
         AnalyzeError: ["AnalyzeError"],
@@ -579,6 +645,28 @@ describe("deploy:run basic tests", function () {
             path.join(process.cwd(), "index.tsx"),
             process.cwd(),
             "dev",
+            namespaces,
+            "DevStack"
+        );
+    });
+
+    testBaseTty
+    .do(async () => {
+        await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    })
+    .command(["run"])
+
+    .it("Should build basic with TTY output (using default stack)", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).contains("✔ Validating project");
+        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
+        expect(ctx.stdout).does.not.contain("WARNING");
+
+        await checkBasicIndexTsxState(
+            path.join(process.cwd(), "index.tsx"),
+            process.cwd(),
+            "default",
             namespaces,
             "DevStack"
         );

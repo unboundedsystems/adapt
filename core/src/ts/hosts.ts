@@ -16,11 +16,14 @@
  */
 import * as fs from "fs";
 import { dirname, resolve, sep } from "path";
-import * as ts from "typescript";
 import { InternalError } from "../error";
 import { trace, tracef } from "../utils";
+import * as ts from "./tsmod";
+
 // tslint:disable-next-line:no-var-requires
 const typeName = require("type-name");
+
+const tsmod = ts.tsmod;
 
 export let debugChainableHosts = false;
 export let debugChainableHostsVerbose = false;
@@ -207,18 +210,18 @@ export class FileSystemHost extends ChainableHost {
         excludes?: ReadonlyArray<string>,
         includes?: ReadonlyArray<string>, depth?: number): string[] {
         if (!this.allowed(path)) return [];
-        return ts.sys.readDirectory(path, extensions, excludes, includes,
+        return tsmod().sys.readDirectory(path, extensions, excludes, includes,
                                     depth);
     }
 
     getDirectories(fileName: string) {
         if (!this.allowed(fileName)) return [];
-        return ts.sys.getDirectories(fileName);
+        return tsmod().sys.getDirectories(fileName);
     }
 
     directoryExists(path: string) {
         if (!this.allowed(path)) return false;
-        return ts.sys.directoryExists(path);
+        return tsmod().sys.directoryExists(path);
     }
 
     @tracef(debugChainableHosts)
@@ -241,7 +244,7 @@ export class FileSystemHost extends ChainableHost {
 
     @tracef(debugChainableHosts)
     fileExists(path: string) {
-        return this.allowed(path) && ts.sys.fileExists(path);
+        return this.allowed(path) && tsmod().sys.fileExists(path);
     }
     realFilename(fileName: string) { return fileName; }
     writeFile() { throw new Error(`FileSystemHost is not writable`); }

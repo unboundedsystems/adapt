@@ -6,7 +6,6 @@ import * as fs from "fs";
 import * as mkdirp from "mkdirp";
 import * as path from "path";
 import { CustomError } from "ts-custom-error";
-import * as ts from "typescript";
 import { trace, tracef } from "../utils/trace";
 import { VmModule } from "./context";
 import {
@@ -15,6 +14,9 @@ import {
     debugChainableHosts
     } from "./hosts";
 import { ModuleResolver } from "./modules";
+import * as ts from "./tsmod";
+
+const tsmod = ts.tsmod;
 
 const debugCompile = false;
 const debugPreprocessing = false;
@@ -23,19 +25,21 @@ if (debugCompile || debugPreprocessing) debugIntermediateDom = true;
 
 const debugAction = db("adapt:compile:action");
 
-const compilerDefaults: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES2016,
-    module: ts.ModuleKind.CommonJS,
-    experimentalDecorators: true,
-    inlineSourceMap: true,
-    allowJs: true,
-    jsx: ts.JsxEmit.React,
-    jsxFactory: "Adapt.createElement",
-    resolveJsonModule: true,
-    noErrorTruncation: true,
-    esModuleInterop: true,
-    //traceResolution: true,
-};
+function compilerDefaults(): ts.CompilerOptions {
+    return {
+        target: tsmod().ScriptTarget.ES2016,
+        module: tsmod().ModuleKind.CommonJS,
+        experimentalDecorators: true,
+        inlineSourceMap: true,
+        allowJs: true,
+        jsx: tsmod().JsxEmit.React,
+        jsxFactory: "Adapt.createElement",
+        resolveJsonModule: true,
+        noErrorTruncation: true,
+        esModuleInterop: true,
+        //traceResolution: true,
+    };
+}
 
 export class CompileError extends CustomError {
     constructor(public diags: ts.Diagnostic[], msg: string) {
@@ -70,7 +74,7 @@ function diagText(diags: ts.Diagnostic[], cwd: string, lineOffset: number):
             }
             msg += ": ";
         }
-        msg += ts.flattenDiagnosticMessageText(d.messageText, "\n");
+        msg += tsmod().flattenDiagnosticMessageText(d.messageText, "\n");
         msg += ` (${d.code})`;
         msg += src;
         return msg;
@@ -105,7 +109,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
     getScriptFileNames = () => this.rootFiles;
     getScriptVersion = (filename: string) => this.getFileVersion(filename);
     getCompilationSettings = () => this.compilerOptions;
-    getDefaultLibFileName() { return ts.getDefaultLibFilePath(this.compilerOptions); }
+    getDefaultLibFileName() { return tsmod().getDefaultLibFilePath(this.compilerOptions); }
 
     cacheEntry(fileName: string) {
         const curVer = this.getScriptVersion(fileName);
@@ -135,7 +139,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
 
         if (!c.contents) throw new Error(`Unable to create snapshot`);
         trace(debugChainableHosts, `New snapshot: ${fileName}`);
-        c.snapshot = ts.ScriptSnapshot.fromString(c.contents);
+        c.snapshot = tsmod().ScriptSnapshot.fromString(c.contents);
         return c.snapshot;
     }
 
@@ -156,7 +160,7 @@ class DomCompileHost extends ChainableHost implements ts.LanguageServiceHost {
         trace(debugChainableHosts, `New sourceFile: ${fileName}`);
         if (!c.contents) throw new Error(`Unable to create source file`);
 
-        const sf = ts.createSourceFile(fileName, c.contents, languageVersion,
+        const sf = tsmod().createSourceFile(fileName, c.contents, languageVersion,
                                        true);
         if (cacheSourceFiles) c.sourceFile = sf;
 
@@ -191,7 +195,7 @@ export class Compiler {
     constructor(projectRoot: string, rootFiles: string[],
                 chainHost: ChainableHost,
                 compilerOptions?: ts.CompilerOptions) {
-        const finalOptions = {...compilerDefaults,
+        const finalOptions = {...compilerDefaults(),
                               ...compilerOptions};
         (finalOptions as any).allowNonTsExtensions = true;
         // This stops the compiler from searching parent directories
@@ -209,7 +213,7 @@ export class Compiler {
             new DomCompileHost(rootFiles, finalOptions, partialChain,
                                                "Prim", verFunc);
 
-        this.service = ts.createLanguageService(this.primaryChain);
+        this.service = tsmod().createLanguageService(this.primaryChain);
     }
 
     get host(): ChainableHost {

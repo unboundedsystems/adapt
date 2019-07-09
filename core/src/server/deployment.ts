@@ -1,3 +1,4 @@
+import { UserError } from "@adpt/utils";
 import { cloneDeep, isError } from "lodash";
 import * as randomstring from "randomstring";
 import { DeployStatus } from "../deploy";
@@ -13,7 +14,7 @@ import {
     ElementStatusMap,
 } from "./deployment_data";
 import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore } from "./history";
-import { AdaptServer, ServerLock, withLock } from "./server";
+import { AdaptServer, isServerPathExists, ServerLock, withLock } from "./server";
 
 export interface Deployment {
     readonly deployID: string;
@@ -64,7 +65,7 @@ function isPathNotFound(err: any) {
 }
 
 export interface DeploymentOptions {
-    fixedDeployID?: string; // For use with unit testing
+    deployID?: string;
 }
 
 export async function createDeployment(server: AdaptServer, projectName: string,
@@ -74,7 +75,7 @@ export async function createDeployment(server: AdaptServer, projectName: string,
     let deployID = "";
 
     for (let i = 0; i < maxTries; i++) {
-        deployID = options.fixedDeployID || makeName(baseName);
+        deployID = options.deployID || makeName(baseName);
         const deployData: DeploymentStored = {
             deployID,
             currentOpID: null,
@@ -85,10 +86,10 @@ export async function createDeployment(server: AdaptServer, projectName: string,
             await server.set(dpath(deployID), deployData, { mustCreate: true });
             break;
         } catch (err) {
-            if (!isPathNotFound(err)) throw err;
-            if (options.fixedDeployID) {
-                throw new Error(`Fixed deployID '${deployID}' already exists`);
+            if (isServerPathExists(err) && options.deployID) {
+                throw new UserError(`DeployID '${deployID}' already exists`);
             }
+            if (!isPathNotFound(err)) throw err;
             // continue
         }
     }

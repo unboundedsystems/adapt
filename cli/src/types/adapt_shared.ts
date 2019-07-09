@@ -170,6 +170,7 @@ export interface CreateOptions extends DeployCommonOptions {
     projectName: string;
     stackName: string;
 
+    deployID?: string;
     initLocalServer?: boolean;
     initialStateJson?: string;
     initialObservationsJson?: string;

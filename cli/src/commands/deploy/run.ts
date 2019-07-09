@@ -1,4 +1,5 @@
 import { InternalError } from "@adpt/utils";
+import { flags } from "@oclif/command";
 import { DeployOpBase } from "../../base";
 import { CreateOptions } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
@@ -9,18 +10,28 @@ export default class RunCommand extends DeployOpBase {
     static aliases = [ "run" ];
 
     static examples = [
+`Deploy the stack named "default" from the default project description file, index.tsx:
+    $ adapt <%- command.id %>\n`,
 `Deploy the stack named "dev" from the default project description file, index.tsx:
     $ adapt <%- command.id %> dev\n`,
 `Deploy the stack named "dev" from an alternate description file:
     $ adapt <%- command.id %> --rootFile somefile.tsx dev`,
     ];
 
-    static flags = DeployOpBase.flags;
+    static flags = {
+        ...DeployOpBase.flags,
+        deployID: flags.string({
+            description:
+                "A fixed deployID to use for this deployment. Will error if " +
+                "the specified deployID already exists.",
+        }),
+    };
 
     static args = [
         {
             name: "stackName",
-            required: true,
+            default: "default",
+            description: "Name of the stack you wish to run",
         },
     ];
 
@@ -30,6 +41,9 @@ export default class RunCommand extends DeployOpBase {
 
         const { stackName } = ctx;
         if (stackName == null) throw new InternalError(`stackName cannot be null`);
+
+        const f = this.flags(RunCommand);
+        const { deployID } = f;
 
         const logger = ctx.logger.createChild("run");
         const loggerId = logger.from;
@@ -44,6 +58,7 @@ export default class RunCommand extends DeployOpBase {
                 const createOptions: CreateOptions = {
                     adaptUrl: ctx.adaptUrl,
                     debug: ctx.debug,
+                    deployID,
                     dryRun: ctx.dryRun,
                     client: ctx.client,
                     fileName: ctx.projectFile,
