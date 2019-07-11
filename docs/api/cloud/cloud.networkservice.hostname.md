@@ -9,11 +9,13 @@ hide_title: true
 
 ## NetworkService.hostname() method
 
+Returns the hostname of the NetworkService, once it is known.
+
 <b>Signature:</b>
 
 ```typescript
-hostname(): () => undefined;
+hostname(): string | undefined;
 ```
 <b>Returns:</b>
 
-`() => undefined`
+`string | undefined`

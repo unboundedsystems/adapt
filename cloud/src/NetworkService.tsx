@@ -25,22 +25,31 @@ export interface NetworkServiceProps extends WithChildren {
     endpoint?: Handle;
 }
 
+/**
+ * An abstract component that represents a network service.
+ */
 export abstract class NetworkService extends PrimitiveComponent<NetworkServiceProps> {
     static defaultProps = {
         protocol: "TCP",
         scope: "cluster-internal",
     };
 
-    hostname() {
+    /**
+     * Returns the hostname of the NetworkService, once it is known.
+     */
+    hostname(): string | undefined {
         const hand = this.props.handle;
         if (!hand) throw new Error(`Internal error: Element props.handle is null`);
-        return callNextInstanceMethod(hand, () => undefined, "hostname");
+        return callNextInstanceMethod(hand, undefined, "hostname");
     }
 
-    port() {
+    /**
+     * Returns the port number of the NetworkService, once it is known.
+     */
+    port(): number | undefined {
         const hand = this.props.handle;
         if (!hand) throw new Error(`Internal error: Element props.handle is null`);
-        return callNextInstanceMethod(hand, () => undefined, "port");
+        return callNextInstanceMethod(hand, undefined, "port");
     }
 }
 export default NetworkService;

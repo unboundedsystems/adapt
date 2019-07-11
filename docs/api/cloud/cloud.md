@@ -21,7 +21,7 @@ hide_title: true
 |  [LocalContainer](./cloud.localcontainer.md) |  |
 |  [LocalDockerHost](./cloud.localdockerhost.md) |  |
 |  [LocalDockerImage](./cloud.localdockerimage.md) |  |
-|  [NetworkService](./cloud.networkservice.md) |  |
+|  [NetworkService](./cloud.networkservice.md) | An abstract component that represents a network service. |
 |  [Service](./cloud.service.md) | An abstract component that represents a group of components that implements a service. Note that this is not necessarily a network service, but will often be. |
 
 ## Functions

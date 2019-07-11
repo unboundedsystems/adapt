@@ -9,11 +9,13 @@ hide_title: true
 
 ## NetworkService.port() method
 
+Returns the port number of the NetworkService, once it is known.
+
 <b>Signature:</b>
 
 ```typescript
-port(): () => undefined;
+port(): number | undefined;
 ```
 <b>Returns:</b>
 
-`() => undefined`
+`number | undefined`
