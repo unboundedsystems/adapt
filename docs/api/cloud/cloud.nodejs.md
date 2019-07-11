@@ -22,9 +22,9 @@ export * from "./useTypescriptBuild";
 
 |  Function | Description |
 |  --- | --- |
-|  [default(props)](./cloud.nodejs.default.md) |  |
+|  [default(props)](./cloud.nodejs.default.md) | A partially abstract component that builds Node.js source code into a Container and exposes a NetworkService. |
 |  [LocalNodeContainer(props)](./cloud.nodejs.localnodecontainer.md) |  |
-|  [NodeService(props)](./cloud.nodejs.nodeservice.md) |  |
+|  [NodeService(props)](./cloud.nodejs.nodeservice.md) | A partially abstract component that builds Node.js source code into a Container and exposes a NetworkService. |
 |  [useBuildNodeContainer(srcDir, options)](./cloud.nodejs.usebuildnodecontainer.md) |  |
 |  [useTypescriptBuild(srcDir, options)](./cloud.nodejs.usetypescriptbuild.md) |  |
 

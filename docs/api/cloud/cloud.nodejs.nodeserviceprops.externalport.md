@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.externalPort property
 
+The port that the NetworkService will expose.
+
 <b>Signature:</b>
 
 ```typescript

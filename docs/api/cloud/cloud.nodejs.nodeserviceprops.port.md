@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.port property
 
+The port number that the Node Container will use.
+
 <b>Signature:</b>
 
 ```typescript

@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.scope property
 
+Scope within which the NetworkService will be exposed.
+
 <b>Signature:</b>
 
 ```typescript

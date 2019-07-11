@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.srcDir property
 
+Root directory (which contains package.json) for the Node.js app source code.
+
 <b>Signature:</b>
 
 ```typescript

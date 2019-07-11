@@ -9,8 +9,14 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.deps property
 
+Dependencies that must be deployed before the Container image will build.
+
 <b>Signature:</b>
 
 ```typescript
 deps: Handle | Handle[];
 ```
+
+## Remarks
+
+Note that the NetworkService will also not deploy before the Container image has been built.

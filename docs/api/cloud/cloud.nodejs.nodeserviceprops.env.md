@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps.env property
 
+Object containing environment variables that the Container will be started with.
+
 <b>Signature:</b>
 
 ```typescript

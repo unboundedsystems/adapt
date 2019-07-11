@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.default() function
 
+A partially abstract component that builds Node.js source code into a Container and exposes a NetworkService.
+
 <b>Signature:</b>
 
 ```typescript
@@ -24,3 +26,43 @@ export declare function NodeService(props: SFCDeclProps<NodeServiceProps, typeof
 <b>Returns:</b>
 
 `Adapt.AdaptElement<Adapt.AnyProps>`
+
+## Remarks
+
+To use this component, the `srcDir` prop must be the path to the root of a Node.js project, which contains a package.json file. The component will build a Docker container image by:
+
+- starting with an official Node.js base image
+
+- copying `srcDir` into the container image
+
+- executing `npm run build`
+
+- setting the container CMD to execute the `main` file specified in package.json
+
+Abstract components:
+
+This component uses the following abstract components which must be replaced via style sheet rules:
+
+- [Service](./cloud.service.md)
+
+- [NetworkService](./cloud.networkservice.md)
+
+- [Container](./cloud.container.md)
+
+The [NetworkService](./cloud.networkservice.md) and [Container](./cloud.container.md) components are both children of the [Service](./cloud.service.md) component.
+
+Instance methods:
+
+- hostname(): string \| undefined
+
+Returns the hostname of the NetworkService, once it is known.
+
+- port(): number \| undefined
+
+Returns the port number of the NetworkService, once it is known.
+
+Instance properties:
+
+- image: [ImageInfo](./cloud.imageinfo.md) \| undefined
+
+Information about the successfully built image, once it has been built.
