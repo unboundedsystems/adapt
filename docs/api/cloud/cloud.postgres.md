@@ -22,6 +22,6 @@ export * from "./usePreloadedPostgres";
 
 |  Function | Description |
 |  --- | --- |
-|  [Postgres()](./cloud.postgres.postgres.md) |  |
+|  [Postgres()](./cloud.postgres.postgres.md) | An abstract component representing a Postgres database within a Postgres server or service. |
 |  [TestPostgres(props)](./cloud.postgres.testpostgres.md) |  |
 |  [usePreloadedPostgres(mockDbName, mockDataPath)](./cloud.postgres.usepreloadedpostgres.md) |  |

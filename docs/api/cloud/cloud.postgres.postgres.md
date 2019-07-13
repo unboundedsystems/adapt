@@ -9,6 +9,8 @@ hide_title: true
 
 ## postgres.Postgres() function
 
+An abstract component representing a Postgres database within a Postgres server or service.
+
 <b>Signature:</b>
 
 ```typescript
@@ -17,3 +19,19 @@ export declare function Postgres(): null;
 <b>Returns:</b>
 
 `null`
+
+## Remarks
+
+Instance methods:
+
+- connectEnv(): Environment \| undefined
+
+Returns the set of environment variables that have all the information needed for a Postgres client to connect to this database. The returned environment variables are named such that some common Postgres clients can use them directly:
+
+`PGHOST`<!-- -->: The host to connect to.
+
+`PGDATABASE`<!-- -->: The name of the database.
+
+`PGUSER`<!-- -->: Username to use to authenticate to the database server or service.
+
+`PGPASSWORD`<!-- -->: Password to use to authenticate to the database server or service.
