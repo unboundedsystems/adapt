@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export interface BuildData 
+export interface BuildData extends BuildId 
 ```
 
 ## Properties

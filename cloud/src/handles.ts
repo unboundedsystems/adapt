@@ -26,6 +26,7 @@ function proxyToHandle(hand: Handle, prop: string | number | symbol) {
     const propDesc = Object.getOwnPropertyDescriptor(hand, prop);
     if (propDesc && propDesc.get) return true;
     const proto = Object.getPrototypeOf(hand);
+    if (Object.hasOwnProperty.call(proto, prop)) return true;
     const protoPropDesc = Object.getOwnPropertyDescriptor(proto, prop);
     if (protoPropDesc && protoPropDesc.get) return true;
     return false;

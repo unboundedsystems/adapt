@@ -52,7 +52,7 @@ import {
     BuildOp,
 } from "./dom_build_data_recorder";
 import { BuildNotImplemented, InternalError, isError, ThrewNonError } from "./error";
-import { getInternalHandle, Handle } from "./handle";
+import { BuildId, getInternalHandle, Handle } from "./handle";
 import { createHookInfo, finishHooks, HookInfo, startHooks } from "./hooks";
 import { assignKeysAtPlacement, computeMountKey, ElementKey } from "./keys";
 import { DeployOpID } from "./server/deployment_data";
@@ -75,7 +75,6 @@ class BuildResults {
 
     // These accumulate across build passes
     buildErr = false;
-    buildPassStarts = 0;
     private messages: Message[] = [];
 
     constructor(
@@ -163,12 +162,10 @@ class BuildResults {
         this.buildErr = this.buildErr || other.buildErr;
         this.partialBuild = this.partialBuild || other.partialBuild;
         this.stateChanged = this.stateChanged || other.stateChanged;
-        this.buildPassStarts += other.buildPassStarts;
         other.messages = [];
         other.cleanups = [];
         other.builtElements = [];
         other.mountedElements = [];
-        other.buildPassStarts = 0;
         return this;
     }
     cleanup() {
@@ -241,29 +238,36 @@ function recordDomError(
     return { domError, message };
 }
 
-export interface BuildHelpersOptions {
+export interface BuildHelpersOptions extends BuildId {
     deployID: string;
     deployOpID: DeployOpID;
     observerManager?: ObserverManagerDeployment;
 }
 
-export function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
+export function makeElementStatus(observerManager?: ObserverManagerDeployment) {
+    return async function elementStatus(handle: Handle) {
+        const elem = handle.mountedOrig;
+        if (elem == null) return { noStatus: true };
+        if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
+        try {
+            return await (observerManager ?
+                elem.statusWithMgr(observerManager) :
+                elem.status());
+        } catch (e) {
+            if (!isObserverNeedsData(e)) throw e;
+            return undefined;
+        }
+    };
+}
+
+function buildHelpers(options: BuildHelpersOptions): BuildHelpers {
+    const { buildNum, deployID, deployOpID } = options;
+    const elementStatus = makeElementStatus(options.observerManager);
     return {
-        async elementStatus(handle: Handle) {
-            const elem = handle.mountedOrig;
-            if (elem == null) return { noStatus: true };
-            if (!isElementImpl(elem)) throw new InternalError("Element is not ElementImpl");
-            try {
-                return await (options.observerManager ?
-                    elem.statusWithMgr(options.observerManager) :
-                    elem.status());
-            } catch (e) {
-                if (!isObserverNeedsData(e)) throw e;
-                return undefined;
-            }
-        },
-        deployID: options.deployID,
-        deployOpID: options.deployOpID,
+        buildNum,
+        deployID,
+        deployOpID,
+        elementStatus,
     };
 }
 
@@ -363,7 +367,7 @@ async function computeContents(
 
     // Default behavior if the component doesn't explicitly call
     // handle.replaceTarget is to do the replace for them.
-    if (!hand.targetReplaced) hand.replaceTarget(out.contents);
+    if (!hand.targetReplaced(options)) hand.replaceTarget(out.contents, options);
 
     options.recorder({
         type: "step",
@@ -374,19 +378,20 @@ async function computeContents(
     return out;
 }
 
-function ApplyStyle(
-    props: {
-        override: css.BuildOverride<AnyProps>,
-        element: AdaptElement,
-        matchInfoReg: css.MatchInfoReg,
-    }) {
+interface ApplyStyleProps extends BuildId {
+    override: css.BuildOverride<AnyProps>;
+    element: AdaptElement;
+    matchInfoReg: css.MatchInfoReg;
+}
 
+function ApplyStyle(props: ApplyStyleProps) {
     const origBuild = () => {
         return props.element;
     };
 
     const hand = getInternalHandle(props.element);
     const ret = props.override(props.element.props, {
+        buildNum: props.buildNum,
         origBuild,
         origElement: props.element,
         [css.$matchInfoReg]: props.matchInfoReg,
@@ -394,7 +399,9 @@ function ApplyStyle(
 
     // Default behavior if they don't explicitly call
     // handle.replaceTarget is to do the replace for them.
-    if (!hand.targetReplaced) hand.replaceTarget(ret);
+    if (ret !== props.element && !hand.targetReplaced(props)) {
+        hand.replaceTarget(ret, props);
+    }
 
     return ret;
 }
@@ -428,9 +435,15 @@ function doOverride(
         const oldEl = element;
         element = cloneElement(element, key, element.props.children);
         css.copyRuleMatches(matchInfoReg, oldEl, element);
-        hand.replaceTarget(element);
+        hand.replaceTarget(element, options);
         const { style, override } = overrideFound;
-        const props = { ...key, override, element, matchInfoReg };
+        const props = {
+            ...key,
+            override,
+            element,
+            matchInfoReg,
+            buildNum: options.buildNum,
+        };
         const newElem = createElement(ApplyStyle, props);
         // The ApplyStyle element should never match any CSS rule
         css.neverMatch(matchInfoReg, newElem);
@@ -468,7 +481,7 @@ function mountElement(
     const oldEl = elem;
     elem = cloneElement(elem, newKey, elem.props.children);
     css.copyRuleMatches(options.matchInfoReg, oldEl, elem);
-    if (!hand.targetReplaced) hand.replaceTarget(elem);
+    if (!hand.targetReplaced(options)) hand.replaceTarget(elem, options);
 
     if (!isElementImpl(elem)) {
         throw new Error("Elements must derive from ElementImpl");
@@ -581,12 +594,15 @@ export interface BuildOptions {
     deployOpID?: DeployOpID;
 }
 
-export interface BuildOptionsInternal extends Required<BuildOptions> {
+export interface BuildOptionsInternalNoId extends Required<BuildOptions> {
+    buildPass: number;
     matchInfoReg: css.MatchInfoReg;
     hookInfo: HookInfo;
 }
 
-function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
+export interface BuildOptionsInternal extends BuildOptionsInternalNoId, BuildId {}
+
+function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternalNoId {
     if (optionsIn != null) optionsIn = removeUndef(optionsIn);
     const defaultBuildOptions = {
         depth: -1,
@@ -604,9 +620,10 @@ function computeOptions(optionsIn?: BuildOptions): BuildOptionsInternal {
         matchInfoReg: css.createMatchInfoReg(),
         hookInfo: createHookInfo(),
     };
-    return { ...defaultBuildOptions, ...optionsIn };
+    return { ...defaultBuildOptions, ...optionsIn, buildPass: 0 };
 }
 
+// Simultaneous builds
 let buildCount = 0;
 
 export interface BuildOutputBase {
@@ -705,7 +722,7 @@ async function nextTick(): Promise<void> {
 async function pathBuild(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsInternal,
+    options: BuildOptionsInternalNoId,
     results: BuildResults): Promise<void> {
 
     options.matchInfoReg = css.createMatchInfoReg();
@@ -717,28 +734,35 @@ async function pathBuild(
     }
 }
 
+// Unique identifier for a build pass
+let nextBuildNum = 1;
+
 async function pathBuildOnceGuts(
     path: DomPath,
     styles: css.StyleList,
-    options: BuildOptionsInternal,
+    options: BuildOptionsInternalNoId,
     results: BuildResults): Promise<void> {
 
     const root = path[path.length - 1];
 
-    if (results.buildPassStarts++ > options.maxBuildPasses) {
+    const buildNum = nextBuildNum++;
+    const buildPass = options.buildPass;
+
+    if (buildPass > options.maxBuildPasses) {
         results.error(`DOM build exceeded maximum number of build iterations ` +
             `(${options.maxBuildPasses})`);
         return;
     }
 
-    const debug = debugBuild.extend(`pathBuildOnceGuts:${results.buildPassStarts}`);
+    const debug = debugBuild.extend(`pathBuildOnceGuts:${buildPass}`);
 
-    debug(`start (pass ${results.buildPassStarts})`);
+    debug(`start (pass ${buildPass})`);
     options.recorder({ type: "start", root });
     results.buildPassReset();
 
     try {
-        const once = await realBuildOnce(path, null, styles, options, null);
+        const once = await realBuildOnce(path, null, styles,
+            { ...options, buildNum }, null);
         debug(`build finished`);
         once.cleanup();
         results.combine(once);
@@ -860,7 +884,7 @@ async function buildChildren(
     return { newChildren, childBldResults: out };
 }
 
-export interface BuildData {
+export interface BuildData extends BuildId {
     id: string;
     deployID: string;
     deployOpID: DeployOpID;

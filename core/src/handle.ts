@@ -3,14 +3,14 @@ import { InternalError } from "./error";
 import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, KeyPath } from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
-export interface Handle {
+export interface Handle extends Readonly<Partial<BuildId>> {
     readonly associated: boolean;
     readonly target: AdaptElement | null | undefined;
     readonly origTarget: AdaptElement | null | undefined;
     readonly mountedOrig: AdaptMountedElement | null | undefined;
     readonly name?: string;
     nextMounted(pred?: ElementPredicate): AdaptMountedElement | null | undefined;
-    replaceTarget(child: AdaptElement | null): void;
+    replaceTarget(child: AdaptElement | null, buildId: BuildId): void;
 }
 
 export function isHandle(val: unknown): val is Handle {
@@ -18,10 +18,14 @@ export function isHandle(val: unknown): val is Handle {
 }
 
 export interface HandleInternal extends Handle {
-    targetReplaced: boolean;
     unresolvedTarget?: KeyPath | null;
 
     associate(el: AdaptElement): void;
+    targetReplaced(buildId: BuildId): boolean;
+}
+
+export interface BuildId {
+    buildNum: number;
 }
 
 export function isHandleInternal(val: unknown): val is HandleInternal {
@@ -87,6 +91,7 @@ class HandleImpl implements HandleInternal {
     unresolvedTarget?: KeyPath | null;
     [origElement]?: AdaptElement | null;
     [id]: number; // For debugging
+    buildNum?: number;
 
     // childElement is:
     //   a) undefined before origElement is associated & built
@@ -124,19 +129,37 @@ class HandleImpl implements HandleInternal {
         return this[origElement] !== undefined;
     }
 
-    replaceTarget = (el: AdaptElement | null) => {
-        if (this.targetReplaced) {
+    replaceTarget = (el: AdaptElement | null, buildId: BuildId) => {
+        const orig = this[origElement];
+        if (orig == null) {
+            throw new Error(`A Handle must first be associated with an ` +
+                `Element before replaceTarget can be called`);
+        }
+
+        if (this.buildNum === undefined || buildId.buildNum > this.buildNum) {
+            this.buildNum = buildId.buildNum;
+
+            // Replacing with origElement doesn't modify anything (and importantly,
+            // doesn't create a loop for target).
+            if (el === this[origElement]) return;
+
+            this.childElement = el;
+            return; // Success
+        }
+
+        if (this.buildNum === buildId.buildNum) {
             throw new Error(`Cannot call replaceTarget on a Handle more than once`);
         }
-        // Replacing with origElement doesn't modify anything (and importantly,
-        // doesn't create a loop for target).
-        if (el === this[origElement]) return;
 
-        this.childElement = el;
+        throw new Error(`Cannot call replaceTarget on a Handle with an ` +
+            `older build iteration. ${this.origDebug()} ` +
+            `(this.buildNum=${this.buildNum} ` +
+            `buildId.buildNum=${buildId.buildNum})`);
     }
 
-    get targetReplaced(): boolean {
-        return this.childElement !== undefined;
+    targetReplaced(buildId: BuildId): boolean {
+        return this.buildNum === buildId.buildNum &&
+            this.childElement !== undefined;
     }
 
     get id() {
@@ -179,6 +202,15 @@ class HandleImpl implements HandleInternal {
             target,
             urn: handleUrn
         };
+    }
+
+    origDebug() {
+        const orig = this[origElement];
+        if (orig === undefined) return "Original element: <unassociated>";
+        if (orig === null) return "Original element: <null>";
+        const path = isMountedElement(orig) ? orig.path : "<not mounted>";
+        const name = orig.componentName || "<anonymous>";
+        return `Original element type ${name}, path: ${path}`;
     }
 }
 tagConstructor(HandleImpl, "adapt");

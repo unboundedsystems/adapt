@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export interface Handle 
+export interface Handle extends Readonly<Partial<BuildId>> 
 ```
 
 ## Properties
@@ -30,4 +30,4 @@ export interface Handle
 |  Method | Description |
 |  --- | --- |
 |  [nextMounted(pred)](./core.handle.nextmounted.md) |  |
-|  [replaceTarget(child)](./core.handle.replacetarget.md) |  |
+|  [replaceTarget(child, buildId)](./core.handle.replacetarget.md) |  |

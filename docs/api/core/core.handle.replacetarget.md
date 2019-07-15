@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-replaceTarget(child: AdaptElement | null): void;
+replaceTarget(child: AdaptElement | null, buildId: BuildId): void;
 ```
 
 ## Parameters
@@ -20,6 +20,7 @@ replaceTarget(child: AdaptElement | null): void;
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  child | <code>AdaptElement &#124; null</code> |  |
+|  buildId | <code>BuildId</code> |  |
 
 <b>Returns:</b>
 

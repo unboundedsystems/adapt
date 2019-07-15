@@ -2,6 +2,7 @@ import { repoVersions } from "@adpt/testutils";
 import should from "should";
 import Adapt, {
     AnyProps,
+    BuildHelpers,
     Component,
     Group,
     handle,
@@ -11,10 +12,13 @@ import Adapt, {
     rule,
     serializeDom,
     Style,
+    useImperativeMethods,
+    useState,
 } from "../src";
+import { isHandleInternal } from "../src/handle";
 import { reanimateDom } from "../src/internal";
 
-import { doBuild, Empty, MakeEmpty } from "./testlib";
+import { doBuild, Empty, Info, MakeEmpty, MethodValue } from "./testlib";
 
 const aVer = repoVersions.core;
 
@@ -28,10 +32,10 @@ class BuildNull extends Component<{}> {
 }
 
 class CallReplace extends Component<{}> {
-    build() {
+    build(helpers: BuildHelpers) {
         const a1 = <Anything id={1} />;
         const a2 = <Anything id={2} />;
-        this.props.handle!.replaceTarget(a2);
+        this.props.handle!.replaceTarget(a2, helpers);
 
         return (
             <Group handle={handle()}>
@@ -40,6 +44,16 @@ class CallReplace extends Component<{}> {
             </Group>
         );
     }
+}
+
+function Counter() {
+    const [ count, setCount ] = useState(0);
+    if (count < 2) setCount(count + 1);
+    useImperativeMethods(() => ({
+        current: () => count
+    }));
+
+    return <Info count={count} />;
 }
 
 describe("Element Handle", () => {
@@ -180,9 +194,9 @@ describe("Element Handle", () => {
             </Group>;
         const style =
             <Style>
-                {Empty} {rule((props) => {
+                {Empty} {rule((props, info) => {
                     const a3 = <Anything id={3} />;
-                    props.handle!.replaceTarget(a3);
+                    props.handle!.replaceTarget(a3, info);
                     return (
                         <Group>
                             <Anything id={2} />
@@ -346,4 +360,57 @@ describe("Element Handle", () => {
         should(newDom.props.children.props.ref.target).be.Null();
     });
 
+    it("Should resolve to the last built version of a component", async () => {
+        const hand = handle();
+        const orig =
+            <Group>
+                <Counter handle={hand} />
+                <MethodValue target={hand} method="current" />
+            </Group>;
+        const { dom } = await doBuild(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        const domXml = serializeDom(dom);
+        should(domXml).equal(
+`<Adapt>
+  <Group key="Group">
+    <Info count="2">
+      <__props__>
+        <prop name="key">"Counter-Info"</prop>
+      </__props__>
+    </Info>
+    <Info value="2">
+      <__props__>
+        <prop name="key">"MethodValue-Info"</prop>
+      </__props__>
+    </Info>
+  </Group>
+</Adapt>
+`);
+
+    });
+
+    it("Should replaceTarget not allow second replace", async () => {
+        const orig = <Group />;
+        const hand = orig.props.handle;
+        if (!isHandleInternal(hand)) throw new Error(`Handle is not an impl`);
+        const repl1 = <Group />;
+        const repl2 = <Group />;
+
+        // Replace the first time
+        hand.replaceTarget(repl1, { buildNum: 1 });
+        should(hand.target).equal(repl1);
+        should(hand.targetReplaced({ buildNum: 1 })).be.True();
+        should(hand.targetReplaced({ buildNum: 2 })).be.False();
+
+        // Try again with same buildNum
+        should(() => hand.replaceTarget(repl2, { buildNum: 1 }))
+            .throwError("Cannot call replaceTarget on a Handle more than once");
+
+        // Then with new buildNum
+        hand.replaceTarget(repl2, { buildNum: 2 });
+        should(hand.target).equal(repl2);
+        should(hand.targetReplaced({ buildNum: 2 })).be.True();
+        should(hand.targetReplaced({ buildNum: 3 })).be.False();
+    });
 });
