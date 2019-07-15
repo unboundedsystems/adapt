@@ -1,19 +1,18 @@
+import ld from "lodash";
+import { serializeDom } from "../dom_serialize";
+import { Handle } from "../handle";
 import {
     AdaptElement,
     ElementPredicate,
-    Handle,
     isApplyStyle,
     isMountedElement,
-    serializeDom,
-    useImperativeMethods,
-    useState,
-} from "@adpt/core";
-import ld from "lodash";
+} from "../jsx";
+import { useAsync } from "./use_async";
 
-export function useAsync<T>(f: () => Promise<T> | T, initial: T): T {
-    const [val, setVal] = useState(initial);
-    setVal(f);
-    return val;
+export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: any[]) {
+    return useAsync<T>(async () => {
+       return callInstanceMethod<T>(hand, initial, method, ...args);
+    }, initial);
 }
 
 export function hasInstanceMethod(name: string, skip?: AdaptElement | null): ElementPredicate {
@@ -140,17 +139,4 @@ export function getInstanceValue<T = any>(hand: Handle, def: T, field: string, o
  */
 export function useInstanceValue<T>(hand: Handle, initial: T, field: string) {
     return useAsync<T>(async () => getInstanceValue(hand, initial, field), initial);
-}
-
-export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: any[]) {
-    return useAsync<T>(async () => {
-        return callInstanceMethod<T>(hand, initial, method, ...args);
-    }, initial);
-}
-
-export function useMethodFrom(hand: Handle, methodName: string, defaultVal?: any,
-    ...args: any[]) {
-    useImperativeMethods(() => ({
-        [methodName]: () => callInstanceMethod(hand, defaultVal, methodName, ...args)
-    }));
 }

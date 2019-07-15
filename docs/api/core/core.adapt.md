@@ -65,6 +65,8 @@ export { internal, };
 |  [AllOf(h, deps)](./core.adapt.allof.md) |  |
 |  [AnyOf(h, deps)](./core.adapt.anyof.md) |  |
 |  [buildPrinter()](./core.adapt.buildprinter.md) |  |
+|  [callInstanceMethod(hand, def, methodName, args)](./core.adapt.callinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call method on instance pointed to by handle |
+|  [callNextInstanceMethod(hand, def, methodName, args)](./core.adapt.callnextinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call a method on the successor instance of the one pointed to by handle. |
 |  [createDeployment(options)](./core.adapt.createdeployment.md) |  |
 |  [createHookInfo()](./core.adapt.createhookinfo.md) |  |
 |  [currentContext()](./core.adapt.currentcontext.md) |  |
@@ -75,7 +77,9 @@ export { internal, };
 |  [domMap(dom, f)](./core.adapt.dommap.md) |  |
 |  [fetchStatus(options)](./core.adapt.fetchstatus.md) |  |
 |  [finishHooks()](./core.adapt.finishhooks.md) |  |
+|  [getInstanceValue(hand, def, field, optionsIn)](./core.adapt.getinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of a field on an element instance |
 |  [goalToInProgress(stat)](./core.adapt.goaltoinprogress.md) |  |
+|  [hasInstanceMethod(name, skip)](./core.adapt.hasinstancemethod.md) |  |
 |  [isDeployStatus(val)](./core.adapt.isdeploystatus.md) |  |
 |  [isDomErrorElement(element)](./core.adapt.isdomerrorelement.md) |  |
 |  [isFinalStatus(ds)](./core.adapt.isfinalstatus.md) |  |
@@ -86,15 +90,20 @@ export { internal, };
 |  [listDeployments(options)](./core.adapt.listdeployments.md) |  |
 |  [logElements(msg, elements, logger)](./core.adapt.logelements.md) |  |
 |  [None()](./core.adapt.none.md) |  |
+|  [notReplacedByStyle()](./core.adapt.notreplacedbystyle.md) |  |
 |  [Only(h, dep)](./core.adapt.only.md) |  |
 |  [registerPlugin(plugin)](./core.adapt.registerplugin.md) |  |
 |  [startHooks(context)](./core.adapt.starthooks.md) |  |
 |  [toDeployStatus(stat)](./core.adapt.todeploystatus.md) |  |
 |  [updateDeployment(options)](./core.adapt.updatedeployment.md) |  |
+|  [useAsync(f, initial)](./core.adapt.useasync.md) |  |
 |  [useBuildHelpers()](./core.adapt.usebuildhelpers.md) |  |
 |  [useDependsOn(f)](./core.adapt.usedependson.md) |  |
 |  [useDeployedWhen(f)](./core.adapt.usedeployedwhen.md) |  |
 |  [useImperativeMethods(create)](./core.adapt.useimperativemethods.md) |  |
+|  [useInstanceValue(hand, initial, field)](./core.adapt.useinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of field from the instance referenced by handled instance. |
+|  [useMethod(hand, initial, method, args)](./core.adapt.usemethod.md) |  |
+|  [useMethodFrom(hand, methodName, defaultVal, args)](./core.adapt.usemethodfrom.md) |  |
 |  [useReadyFrom(targetHand)](./core.adapt.usereadyfrom.md) |  |
 |  [useState(init)](./core.adapt.usestate.md) |  |
 
@@ -127,6 +136,7 @@ export { internal, };
 |  [ExecuteOptions](./core.adapt.executeoptions.md) |  |
 |  [ExecutionPlan](./core.adapt.executionplan.md) |  |
 |  [ExecutionPlanOptions](./core.adapt.executionplanoptions.md) |  |
+|  [GetInstanceValueOptions](./core.adapt.getinstancevalueoptions.md) |  |
 |  [GroupProps](./core.adapt.groupprops.md) |  |
 |  [HookInfo](./core.adapt.hookinfo.md) |  |
 |  [ListOptions](./core.adapt.listoptions.md) |  |
@@ -163,6 +173,7 @@ export { internal, };
 |  --- | --- |
 |  [And](./core.adapt.and.md) |  |
 |  [defaultDomDiffId](./core.adapt.defaultdomdiffid.md) |  |
+|  [defaultGetInstanceValueOptions](./core.adapt.defaultgetinstancevalueoptions.md) |  |
 |  [Edge](./core.adapt.edge.md) |  |
 |  [False](./core.adapt.false.md) |  |
 |  [Identity](./core.adapt.identity.md) |  |

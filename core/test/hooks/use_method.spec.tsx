@@ -1,20 +1,7 @@
-import Adapt, { BuiltinProps, handle, Style, useImperativeMethods } from "@adpt/core";
 import should from "should";
-import { notReplacedByStyle, useAsync, useMethod } from "../src/hooks";
-import { doBuild } from "./testlib";
-
-describe("useAsync hook tests", () => {
-    it("Should return default and computed value", async () => {
-        const val: number[] = [];
-        function Test(_props: {}) {
-            val.push(useAsync(async () => 10, 3));
-            return null;
-        }
-
-        await Adapt.build(<Test />, null);
-        should(val).eql([3, 10]);
-    });
-});
+import Adapt, { BuiltinProps, handle, Style } from "../../src";
+import { notReplacedByStyle, useImperativeMethods, useMethod } from "../../src/hooks";
+import { doBuild } from "../testlib";
 
 describe("useMethod hook tests", () => {
     it("Should return default and computed value", async () => {

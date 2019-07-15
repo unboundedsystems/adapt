@@ -1,14 +1,15 @@
 import Adapt, {
+    callInstanceMethod,
     handle,
     Sequence,
     SFCBuildProps,
     SFCDeclProps,
     useImperativeMethods,
+    useMethod,
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import { Container } from "../Container";
 import { ImageInfo, LocalDockerImage } from "../docker";
-import { callInstanceMethod, useMethod } from "../hooks";
 import {
     Destination,
     HttpServer as AbsHttpServer,

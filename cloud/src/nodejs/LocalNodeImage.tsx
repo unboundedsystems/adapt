@@ -1,11 +1,15 @@
 import Adapt, {
-    BuiltinProps, handle, useImperativeMethods, useState
+    BuiltinProps,
+    callInstanceMethod,
+    handle,
+    useImperativeMethods,
+    useInstanceValue,
+    useState,
 } from "@adpt/core";
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
 import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps } from "../docker";
-import { callInstanceMethod, useInstanceValue } from "../hooks";
 
 /**
  * Props for {@link nodejs.LocalNodeImage}

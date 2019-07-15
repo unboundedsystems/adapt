@@ -1,6 +1,5 @@
-import { AdaptElement, Handle, handle } from "@adpt/core";
+import { AdaptElement, Handle, handle, useMethod } from "@adpt/core";
 import ld from "lodash";
-import { useMethod } from "./hooks";
 
 //Move to separate file
 interface HandleIndex {
