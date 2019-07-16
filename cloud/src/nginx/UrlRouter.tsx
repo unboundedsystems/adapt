@@ -170,12 +170,12 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
         return {
             dockerfile: `
                 FROM ${nginxImg}
+                RUN apt-get update && \
+                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools && \
+                    apt-get clean
                 WORKDIR /router
                 COPY --from=files / .
-                RUN apt-get update && \
-                    apt-get install --no-install-recommends --no-install-suggests -y inotify-tools curl procps vim && \
-                    chmod a+x start_nginx.sh make_resolvers.sh && \
-                    apt-get clean
+                RUN chmod a+x start_nginx.sh make_resolvers.sh
                 CMD [ "/router/start_nginx.sh" ]
             `,
             files: [{
