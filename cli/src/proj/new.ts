@@ -213,6 +213,7 @@ async function copyFiles(config: StarterConfig, log: LogString,
         overwrite: false,
         cwd: starterDir,
         srcBase: starterDir,
+        dot: true,
     };
 
     try {

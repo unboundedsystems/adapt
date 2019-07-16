@@ -19,4 +19,5 @@ export interface NodeContainerBuildOptions extends DockerBuildOptions
 
 |  Property | Type | Description |
 |  --- | --- | --- |
+|  [packageManager](./cloud.nodejs.nodecontainerbuildoptions.packagemanager.md) | <code>&quot;npm&quot; &#124; &quot;yarn&quot; &#124; string</code> |  |
 |  [runNpmScripts](./cloud.nodejs.nodecontainerbuildoptions.runnpmscripts.md) | <code>string &#124; string[]</code> |  |

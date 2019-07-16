@@ -18,29 +18,32 @@ export interface LocalNodeContainerProps extends Partial<BuiltinProps> {
 }
 
 export function LocalNodeContainer(props: LocalNodeContainerProps) {
+    const opts = { ...defaultContainerBuildOptions, ...(props.options || {})};
+
     const { image, buildObj } = useDockerBuild(
         async () => {
             const srcDir = path.resolve(props.srcDir);
             if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
             const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
             const main = pkgInfo.main ? pkgInfo.main : "index.js";
-            const runNpmScripts = props.options && props.options.runNpmScripts;
+            const runNpmScripts = opts.runNpmScripts;
             const scripts =
                 isArray(runNpmScripts) ? runNpmScripts :
                 isString(runNpmScripts) ?  [ runNpmScripts ] :
                 [];
-            const runCommands = scripts.map((s) => `RUN npm run ${s}`).join("\n");
+            const runCommands =
+                scripts.map((s) => `RUN ${opts.packageManager} run ${s}`).join("\n");
             return {
                 dockerfile: `
                     FROM node:10-stretch-slim
                     WORKDIR /app
                     ADD . /app
-                    RUN npm install
+                    RUN ${opts.packageManager} install
                     ${runCommands}
                     CMD ["node", "${main}"]
                 `,
                 contextDir: srcDir,
-                options: props.options,
+                options: opts,
             };
         });
 
@@ -57,11 +60,13 @@ export function LocalNodeContainer(props: LocalNodeContainerProps) {
 }
 
 export interface NodeContainerBuildOptions extends DockerBuildOptions {
+    packageManager?: "npm" | "yarn" | string;
     runNpmScripts?: string | string[];
 }
 
 const defaultContainerBuildOptions = {
     imageName: "node-service",
+    packageManager: "npm",
     uniqueTag: true,
 };
 
@@ -73,11 +78,10 @@ export interface NodeContainerBuildStatus {
 export function useBuildNodeContainer(srcDir: string,
     options: NodeContainerBuildOptions = {}): NodeContainerBuildStatus {
 
-    const opts = { ...defaultContainerBuildOptions, ...options };
     const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
 
     const buildHand = handle();
-    const buildObj = <LocalNodeContainer handle={buildHand} srcDir={srcDir} options={opts} />;
+    const buildObj = <LocalNodeContainer handle={buildHand} srcDir={srcDir} options={options} />;
 
     setBuildState(async () =>
         buildHand.mountedOrig ? getInstanceValue(buildHand, undefined, "image") : undefined);

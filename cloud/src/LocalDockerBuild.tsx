@@ -16,6 +16,7 @@ import stringify from "json-stable-stringify";
 import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
+import { Readable } from "stream";
 import { WithPartialT } from "type-ops";
 import { Action, ActionContext, ShouldAct } from "./action";
 import { useAsync } from "./hooks";
@@ -33,9 +34,19 @@ export const pickGlobals = (opts: DockerGlobalOptions): DockerGlobalOptions =>
     ld.pick(opts, "dockerHost");
 
 const debug = db("adapt:cloud:docker");
+// Enable with DEBUG=adapt:cloud:docker:out*
+const debugOut = db("adapt:cloud:docker:out");
+let cmdId = 0;
 
 interface ExecDockerOptions extends DockerGlobalOptions {
     stdin?: string;
+}
+
+// Should move to utils
+function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
+    prefix = prefix ? `[${prefix}] ` : "";
+    s.on("data", (chunk) => d(prefix + chunk.toString()));
+    s.on("error", (err) => debug(prefix, err));
 }
 
 async function execDocker(args: string[], options: ExecDockerOptions) {
@@ -45,9 +56,17 @@ async function execDocker(args: string[], options: ExecDockerOptions) {
     args = globalArgs.concat(args);
     const opts = options.stdin ? { input: options.stdin } : undefined;
 
-    debug(`Running: ${"docker " + args.join(" ")}`);
+    const cmdDebug =
+        debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
+        debug.enabled ? debug :
+        null;
+    if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
     const ret = execa("docker", args, opts);
-    //ret.then((r) => debug(`${cmdline} stdout:\n${r.stdout}\n${cmdline} stderr:\n${r.stderr}`));
+    if (debugOut.enabled && cmdDebug) {
+        streamToDebug(ret.stdout, cmdDebug);
+        streamToDebug(ret.stderr, cmdDebug);
+    }
+
     return ret;
 }
 

@@ -115,8 +115,10 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
 
     const dockerfile = `
         FROM ${nginxImg}
+        RUN apt-get update && \
+            apt-get install --no-install-recommends --no-install-suggests -y inotify-tools && \
+            apt-get clean
         WORKDIR /nginx
-        RUN apt-get update && apt-get install -y inotify-tools curl
         COPY --from=files / .
         ${commands}
         CMD bash /nginx/start_nginx.sh
