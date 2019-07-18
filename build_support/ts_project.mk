@@ -78,7 +78,7 @@ pack: build
 docs: dist/.docs_success
 .PHONY: docs
 
-dist/.docs_success: $(DTS_SRC_FILES)
+dist/.docs_success: $(DTS_SRC_FILES) ../scripts/make_docs.js
 	npm run docs
 	touch $@
 
