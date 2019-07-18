@@ -1,6 +1,6 @@
 {
   "name": "@adpt/core",
-  "version": "0.0.3-next.0",
+  "version": "0.0.3",
   "description": "Unbounded Adapt core library",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
@@ -31,7 +31,7 @@
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.0.3-next.0",
+    "@adpt/testutils": "0.0.3",
     "@types/async-lock": "^1.1.1",
     "@types/callsites": "^2.0.0",
     "@types/debug": "^0.0.31",
@@ -70,8 +70,8 @@
     "typescript": "^3.0.3"
   },
   "dependencies": {
-    "@adpt/dom-parser": "0.0.3-next.0",
-    "@adpt/utils": "0.0.3-next.0",
+    "@adpt/dom-parser": "0.0.3",
+    "@adpt/utils": "0.0.3",
     "@usys/fork-require": "1.0.9-unb1",
     "async-lock": "^1.2.0",
     "callsites": "^2.0.0",
