@@ -28,6 +28,7 @@ For this tutorial, we've chosen to build an app that's a Node.js REST API server
 So we'll use the `hello-node` starter, which will give us the complete framework for a Node.js HTTP server app that responds with "Hello World!".
 
 Let's go ahead and create our new app:
+<!-- testdoc command -->
 ```
 adapt new hello-node ./tutorial
 ```

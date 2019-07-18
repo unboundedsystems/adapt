@@ -13,11 +13,13 @@
 ## Cleaning up
 
 When you're done, destroy the app deployment:
+<!-- testdoc command -->
 ```
 adapt destroy movieapp
 ```
 
 Then, return the `DOCKER_HOST` environment variable to its original setting and remove the k3s container and its image:
+<!-- testdoc command -->
 ```
 DOCKER_HOST="${ORIG_DOCKER_HOST}"
 docker stop k3s

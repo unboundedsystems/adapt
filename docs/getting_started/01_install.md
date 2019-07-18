@@ -51,6 +51,7 @@ If you use a different shell, you may need to adjust some commands slightly.
 > 
 
 We can now install the `adapt` CLI globally:
+<!-- testdoc command -->
 ```
 npm install -g @adpt/cli
 ```

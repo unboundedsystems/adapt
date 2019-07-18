@@ -16,6 +16,7 @@
 
 We'll base our movie database off of an Adapt starter template called `hello-react-node-postgres`:
 
+<!-- testdoc command -->
 ```
 adapt new hello-react-node-postgres ./moviedb
 
@@ -47,10 +48,11 @@ In order to keep everything self-contained and easy to clean up, we'll use a Doc
 
 To deploy the local cluster and get the credentials:
 
+<!-- testdoc command -->
 ```
 docker run --rm --privileged -d -p10001:2375 -p8443:8443 -p8080:8080 --name k3s unboundedsystems/k3s-dind
 
-docker exec -it k3s get-kubeconfig.sh -json > kubeconfig.json
+docker exec k3s get-kubeconfig.sh -json > kubeconfig.json
 ```
 
 You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes three ports, making them available on the host system:
@@ -60,6 +62,7 @@ You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes t
 
 To make sure all the rest of the steps in this guide use the new Docker-in-Docker instance we just created, we need to change your `DOCKER_HOST` environment variable.
 We'll also save the old value, so we can set it back after we're done.
+<!-- testdoc command -->
 ```
 ORIG_DOCKER_HOST="${DOCKER_HOST}"
 export DOCKER_HOST=localhost:10001
@@ -67,6 +70,7 @@ export DOCKER_HOST=localhost:10001
 
 ## Run!
 Now, let's run a new deployment of the Hello World app in your newly created local Kubernetes cluster:
+<!-- testdoc command -->
 ```
 adapt run --deployID movieapp
 ```

@@ -16,6 +16,7 @@
 
 If we were actually building our own REST API server that fetches movie titles from a database, we'd start writing that code now and could do end-to-end testing against an actual Postgres database, populated with some test data.
 But for this tutorial, we'll just copy in some already-written code:
+<!-- testdoc command -->
 ```
 curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v1/tutorial-concepts.tar.gz | tar -zxv --strip=1 -C ..
 ```
@@ -38,6 +39,11 @@ It then applies only those changes required to make your infrastructure match wh
 
 Test your newly deployed API by using `curl` or your browser with these links:
 -  [http://localhost:8080/api/search?batman](http://localhost:8080/api/search?batman)
+
+<!-- testdoc command -->
+```
+curl http://localhost:8080/api/search?batman
+```
 
 > **IMPORTANT**
 >

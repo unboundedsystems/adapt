@@ -15,15 +15,18 @@
 Now, let's deploy our Hello World app that's described in the `index.tsx` spec we just looked at in the previous step.
 
 First, make sure you're in the Adapt project directory:
+<!-- testdoc command -->
 ```
 cd tutorial/deploy
 ```
 The starter we're using expects to find Kubernetes cluster information in the project directory, so move the `kubeconfig.json` file we created during setup:
+<!-- testdoc command -->
 ```
 mv ../../kubeconfig.json .
 ```
 
 Then run the app:
+<!-- testdoc command -->
 ```
 adapt run --deployID myapp k8s
 ```
@@ -55,6 +58,7 @@ Hello World!
 ```
 
 You can also get a list of all your active Adapt deployments:
+<!-- testdoc command -->
 ```
 adapt list
 ```
