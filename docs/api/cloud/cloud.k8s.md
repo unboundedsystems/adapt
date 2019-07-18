@@ -29,7 +29,7 @@ export { K8sPlugin, createK8sPlugin, resourceElementToName, registerResourceKind
 |  [K8sContainer](./cloud.k8s.k8scontainer.md) |  |
 |  [Pod](./cloud.k8s.pod.md) |  |
 |  [Resource](./cloud.k8s.resource.md) |  |
-|  [ServiceDeployment](./cloud.k8s.servicedeployment.md) |  |
+|  [ServiceDeployment](./cloud.k8s.servicedeployment.md) | A component for mapping a group of abstract [Container](./cloud.container.md)<!-- -->s and [NetworkService](./cloud.networkservice.md)<!-- -->s to Kubernetes [k8s.Pod](./cloud.k8s.pod.md)<!-- -->s and [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->s. |
 
 ## Functions
 

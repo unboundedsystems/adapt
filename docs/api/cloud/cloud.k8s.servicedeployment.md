@@ -9,6 +9,8 @@ hide_title: true
 
 ## k8s.ServiceDeployment class
 
+A component for mapping a group of abstract [Container](./cloud.container.md)<!-- -->s and [NetworkService](./cloud.networkservice.md)<!-- -->s to Kubernetes [k8s.Pod](./cloud.k8s.pod.md)<!-- -->s and [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->s.
+
 <b>Signature:</b>
 
 ```typescript
@@ -20,3 +22,40 @@ export declare class ServiceDeployment extends DeferredComponent<ServiceDeployme
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [build()](./cloud.k8s.servicedeployment.build.md) |  |  |
+
+## Remarks
+
+This component is intended to be used to replace [Container](./cloud.container.md) and [NetworkService](./cloud.networkservice.md) components that are grouped together, as the only children of a common parent in a pattern that looks like this:
+
+```tsx
+<Service>
+  <Container ... />
+  <Container ... />
+  <NetworkService ... />
+</Service>
+
+```
+`ServiceDeployment` would map those abstract components into corresponding k8s components like this:
+
+```tsx
+<Group>
+  <k8s.Pod ... >
+    <k8s.K8sContainer ... />
+  </k8s.Pod>
+  <k8s.Pod ... >
+    <k8s.K8sContainer ... />
+  </k8s.Pod>
+  <k8s.Service ... />
+</Group>
+
+```
+An example style rule to do this is:
+
+```tsx
+{Adapt.rule((matchedProps) => {
+    const { handle, ...remainingProps } = matchedProps;
+    return <ServiceDeployment config={kubeconfig} {...remainingProps} />;
+})}
+
+```
+`ServiceDeployment` also requires the `config` prop which specifies connection and authentication information for the Kubernetes cluster on which these objects should be created.
