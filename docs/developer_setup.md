@@ -72,8 +72,7 @@ spent starting and stopping a local kubernetes instance.  You can avoid this
 by starting a long running kubernetes instance and adding ADAPT_TEST_K8S
 to your environment like so:
 ```
-docker network create k3s
-docker run --privileged --rm -d --name k3s --hostname k3s --network k3s unboundedsystems/k3s-dind
+./bin/k3s
 ```
 
 Then run the tests:
