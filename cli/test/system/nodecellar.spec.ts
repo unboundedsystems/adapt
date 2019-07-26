@@ -3,24 +3,22 @@ import {
     describeLong,
     dockerutils,
     k8sutils,
-    mochaTmpdir,
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import Docker = require("dockerode");
 import execa from "execa";
 import * as fs from "fs-extra";
-import * as path from "path";
 import { expect } from "../common/fancy";
-import { findDeploymentDir, findHistoryDirs } from "../common/local_server";
 import { mkInstance } from "../common/start-minikube";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { getNewDeployID, stdoutDivide, stdoutDivider } from "../common/testlib";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 const {
     checkStackStatus,
     deleteAllStacks,
     getAwsClient,
-    waitForStacks,
+    getStacks,
 } = awsutils;
 const { deleteContainer } = dockerutils;
 
@@ -49,8 +47,7 @@ describeLong("Nodecellar system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "nodecellar");
-    mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
+    systemAppSetup.all("nodecellar");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
@@ -161,24 +158,10 @@ describeLong("Nodecellar system tests", function () {
         // TODO: Should be able to curl the web interface and get HTML
     });
 
-    function getStackName(stateStore: any): string {
-        if (typeof stateStore !== "object") throw new Error(`Bad state`);
-        for (const ns of Object.keys(stateStore)) {
-            const state = stateStore[ns];
-            const ids = state.adaptResourceIds;
-            if (!ids) continue;
-            const sn = ids.StackName;
-            if (!sn) continue;
-            const id = sn.currentId;
-            if (id) return id;
-        }
-        throw new Error(`Unable to find StackName in state store`);
-    }
-
     systemTestChain
-    .command(["run", "aws"])
 
-    .it("Should deploy AWS style", async (ctx) => {
+    .command(["run", "aws"])
+    .do(async (ctx) => {
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
@@ -187,24 +170,28 @@ describeLong("Nodecellar system tests", function () {
         // claimed by plugins. Uncomment this when fixed.
         //expect(ctx.stdout).does.not.contain("WARNING");
 
-        const matches = ctx.stdout.match(newDeployRegex);
-        expect(matches).to.be.an("array").with.length(2);
-        if (matches && matches[1]) aDeployID = matches[1];
-        else throw new Error(`No DeployID found in CLI output`);
-        expect(aDeployID).to.be.a("string").with.length.greaterThan(0);
+        aDeployID = getNewDeployID(ctx.stdout);
 
-        // FIXME(mark): I need the generated StackName here to check if
-        // things actually deployed, but we don't have status working yet,
-        // so rummage around in the deployment history to get it. Yuck.
-        const deployDir = findDeploymentDir(aDeployID);
-        const historyDirs = await findHistoryDirs(deployDir);
-        expect(historyDirs).to.have.length(2);
-        const store = await fs.readJson(path.join(historyDirs[0], "adapt_state.json"));
-        const stackName = getStackName(store);
+        stdoutDivider();
+    })
 
-        const stacks = await waitForStacks(aClient, aDeployID, [stackName],
-            {timeoutMs: 4 * 60 * 1000});
-        expect(stacks).to.have.length(1, "wrong number of stacks");
+    .delayedcommand(() => ["status", "-q", aDeployID!])
+
+    .it("Should deploy AWS style", async (ctx) => {
+        expect(ctx.stderr).equals("");
+
+        const chunks = stdoutDivide(ctx.stdout);
+        expect(chunks).to.have.length(2);
+
+        // Remove first line of output
+        const status = chunks[1].replace(`Deployment ${aDeployID} status:`, "");
+
+        const statObj = JSON.parse(status);
+        const stackId = statObj.StackId;
+        expect(stackId).to.be.a("string", "StackId of status is not a string");
+
+        const stacks = await getStacks(aClient, aDeployID, stackId);
+        expect(stacks).to.have.length(1);
         await checkStackStatus(stacks[0], "CREATE_COMPLETE", true, aClient);
 
         // TODO: Should be able to curl the web interface and get HTML

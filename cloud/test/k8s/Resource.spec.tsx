@@ -150,9 +150,8 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         await plugin.finish();
     });
 
-    async function createPod(name: string) {
-        if (!deployID) throw new Error(`Missing deployID?`);
-        const resElem =
+    function createPodDom(name: string) {
+        return (
             <Resource key={name}
                 config={kubeconfig}
                 kind="Pod"
@@ -164,7 +163,13 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
                     }],
                     terminationGracePeriodSeconds: 0
                 }}>
-            </Resource>;
+            </Resource>
+        );
+    }
+
+    async function createPod(name: string) {
+        if (!deployID) throw new Error(`Missing deployID?`);
+        const resElem = createPodDom(name);
 
         const { mountedOrig, dom } = await doBuild(resElem, { deployID });
         if (!isMountedElement(dom)) {
@@ -338,4 +343,42 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         await client.api.v1.namespaces("default").pods(manifest.metadata.name).delete();
     });
 
+    it("Should handle deleted pod", async () => {
+        if (!deployID) throw new Error(`Missing deployID?`);
+        const oldDom = await createPod("test");
+
+        // Check that the pod was created
+        const podName = resourceElementToName(oldDom, options.deployID);
+        let pods = await getAll("pods", { client, deployID });
+        should(pods).length(1);
+        should(pods[0].metadata.name).equal(podName);
+
+        const result = await client.api.v1.namespaces("default").pods(podName).delete();
+        should(result.statusCode).equal(200);
+
+        // No change in DOM
+        const updateDom = createPodDom("test");
+
+        const { dom } = await doBuild(updateDom, { deployID });
+
+        await plugin.start(options);
+        const obs = await plugin.observe(oldDom, dom);
+        const actions = plugin.analyze(oldDom, dom, obs);
+        should(actions).length(1);
+        should(actions[0].type).equal(ChangeType.create);
+        should(actions[0].detail).equal("Creating Pod");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.create);
+        should(actions[0].changes[0].detail).equal("Creating Pod");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
+
+        await act(actions);
+
+        pods = await getAll("pods", { client, deployID });
+        should(pods).length(1);
+        should(pods[0].metadata.name).equal(podName);
+
+        await plugin.finish();
+    });
 });

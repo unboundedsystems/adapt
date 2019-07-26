@@ -291,10 +291,21 @@ function diffArrays<E extends AdaptElement, O extends object>(
         const actionList = actions[actionInfo.type];
         switch (actionInfo.type) {
             case ChangeType.create:
-            case ChangeType.none:
                 actionList.push({...pair, element: e.to});
                 break;
+            case ChangeType.none:
+                const element = e.to || e.from;
+                if (element == null) throw new InternalError(`WidgetChange with no 'from' or 'to' properties`);
+                actionList.push({...pair, element });
+                break;
             case ChangeType.delete:
+                if (o == null) {
+                    throw new Error(
+                        `Error in deployment plugin. Plugin computeChanges ` +
+                        `method returned ChangeType.delete for Element type ` +
+                        `${e.from!.componentName} but no corresponding ` +
+                        `object was observed in the environment.`);
+                }
                 actionList.push({...pair, observed: o});
                 break;
             case ChangeType.modify:

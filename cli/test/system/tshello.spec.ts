@@ -1,16 +1,14 @@
 import {
     describeLong,
     k8sutils,
-    mochaTmpdir,
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
-import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -24,8 +22,7 @@ describeLong("tshello system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "tshello");
-    mochaTmpdir.all("adapt-cli-test-tshello", { copy: copyDir });
+    systemAppSetup.all("tshello");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
@@ -59,12 +56,13 @@ describeLong("tshello system tests", function () {
 
     systemTestChain
     .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
-    .command(["run", "prod"])
 
-    .it("Should deploy tshello to k8s", async ({ stdout, stderr }) => {
+    .command(["run", "prod"])
+    .do(async ({ stdout, stderr }) => {
         expect(stderr).equals("");
-        expect(stdout).contains("Validating project [completed]");
-        expect(stdout).contains("Creating new project deployment [completed]");
+        expect(grep(stdout, "Validating project [completed]")).has.length(1);
+        expect(grep(stdout, "Creating new project deployment [completed]")).has.length(1);
+        expect(grep(stdout, "INFO: Doing Creating Pod")).has.length(1);
 
         kDeployID = getNewDeployID(stdout);
 
@@ -92,5 +90,31 @@ describeLong("tshello system tests", function () {
             `http://${dockerHost}:8080/`
         ]);
         expect(ret.stdout).equals("Hello World! via TypeScript");
+
+        // Delete the pod out from under the deployment
+        const result = await kClient.api.v1.namespaces("default").pods(pods[0].metadata.name).delete();
+        expect(result.statusCode).equals(200);
+    })
+
+    // Update with no change to spec
+    .delayedcommand(() => ["update", kDeployID!])
+    .it("Should deploy tshello to k8s and handle deleted pod", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+
+        // Should have re-created pod
+        expect(grep(stdout, "INFO: Doing Creating Pod")).has.length(2);
+
+        const ret = await execa("curl", [
+            ...curlOptions,
+            `http://${dockerHost}:8080/`
+        ]);
+        expect(ret.stdout).equals("Hello World! via TypeScript");
     });
 });
+
+function grep(s: string, pat: RegExp | string): string[] {
+    return s.split("\n").filter((l) => {
+        return (typeof pat === "string") ?
+            l.includes(pat) : pat.test(l);
+    });
+}
