@@ -258,7 +258,9 @@ function computeResourceChanges(
     }
 
     if (to == null) {
-        return actionInfo(ChangeType.delete, `Destroying removed ${kind}`);
+        return actual ?
+            actionInfo(ChangeType.delete, `Destroying removed ${kind}`) :
+            actionInfo(ChangeType.none, "No changes required");
     }
 
     if (actual == null) {

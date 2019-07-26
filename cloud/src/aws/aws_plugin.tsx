@@ -276,8 +276,10 @@ export function computeStackChanges(
     }
 
     if (to == null) {
-        return actionInfo(ChangeType.delete, "Destroying CFStack",
-            "Destroying {TYPE} due to CFStack deletion");
+        return actual ?
+            actionInfo(ChangeType.delete, "Destroying CFStack",
+                "Destroying {TYPE} due to CFStack deletion") :
+            actionInfo(ChangeType.none, "No changes required");
     }
 
     if (actual == null) {
