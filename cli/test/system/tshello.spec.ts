@@ -1,16 +1,14 @@
 import {
     describeLong,
     k8sutils,
-    mochaTmpdir,
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
-import path from "path";
 import { expect } from "../common/fancy";
 import { mkInstance } from "../common/start-minikube";
 import { getNewDeployID } from "../common/testlib";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -24,8 +22,7 @@ describeLong("tshello system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "tshello");
-    mochaTmpdir.all("adapt-cli-test-tshello", { copy: copyDir });
+    systemAppSetup.all("tshello");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);

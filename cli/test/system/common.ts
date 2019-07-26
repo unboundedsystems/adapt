@@ -22,7 +22,7 @@ export const systemTestChain =
     .delayedenv(() => {
         return {
             ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
-            ADAPT_SERVER_URL: filePathToUrl("local_server"),
+            ADAPT_SERVER_URL: filePathToUrl("../local_server"),
         };
     });
 

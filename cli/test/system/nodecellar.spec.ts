@@ -3,7 +3,6 @@ import {
     describeLong,
     dockerutils,
     k8sutils,
-    mochaTmpdir,
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import Docker = require("dockerode");
@@ -13,7 +12,7 @@ import * as path from "path";
 import { expect } from "../common/fancy";
 import { findDeploymentDir, findHistoryDirs } from "../common/local_server";
 import { mkInstance } from "../common/start-minikube";
-import { curlOptions, projectsRoot, systemTestChain } from "./common";
+import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 const {
@@ -49,8 +48,7 @@ describeLong("Nodecellar system tests", function () {
 
     this.timeout(6 * 60 * 1000);
 
-    const copyDir = path.join(projectsRoot, "nodecellar");
-    mochaTmpdir.all("adapt-cli-test-nodecellar", { copy: copyDir });
+    systemAppSetup.all("nodecellar");
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
