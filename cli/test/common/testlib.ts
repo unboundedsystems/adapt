@@ -30,3 +30,17 @@ export async function destroyAll(options: { env?: Env } = {}) {
     expect(final.stderr).equals("");
     expect(final.stdout).equals("");
 }
+
+const marker = "\n-- DIVIDER --";
+/**
+ * Put a marker in stdout. This is needed because our current method of
+ * capturing stdout doesn't allow for it to be reset during a test.
+ */
+export function stdoutDivider() {
+    // tslint:disable-next-line: no-console
+    console.log(marker);
+}
+
+export function stdoutDivide(output: string) {
+    return output.split(marker);
+}
