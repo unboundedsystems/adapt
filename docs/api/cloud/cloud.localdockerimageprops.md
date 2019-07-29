@@ -9,6 +9,8 @@ hide_title: true
 
 ## LocalDockerImageProps interface
 
+Props for [LocalDockerImage](./cloud.localdockerimage.md)
+
 <b>Signature:</b>
 
 ```typescript
@@ -19,9 +21,9 @@ export interface LocalDockerImageProps
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [contextDir](./cloud.localdockerimageprops.contextdir.md) | <code>string</code> |  |
-|  [dockerfile](./cloud.localdockerimageprops.dockerfile.md) | <code>string</code> |  |
-|  [dockerfileName](./cloud.localdockerimageprops.dockerfilename.md) | <code>string</code> |  |
-|  [files](./cloud.localdockerimageprops.files.md) | <code>File[]</code> |  |
-|  [options](./cloud.localdockerimageprops.options.md) | <code>DockerBuildOptions</code> |  |
-|  [stages](./cloud.localdockerimageprops.stages.md) | <code>Stage[]</code> |  |
+|  [contextDir](./cloud.localdockerimageprops.contextdir.md) | <code>string</code> | Directory for use as the build context in docker build |
+|  [dockerfile](./cloud.localdockerimageprops.dockerfile.md) | <code>string</code> | Contents of the dockerfile |
+|  [dockerfileName](./cloud.localdockerimageprops.dockerfilename.md) | <code>string</code> | Location of the dockerfile |
+|  [files](./cloud.localdockerimageprops.files.md) | <code>File[]</code> | Extra files that should be included during the docker build |
+|  [options](./cloud.localdockerimageprops.options.md) | <code>DockerBuildOptions</code> | Options to control the behavior of docker build |
+|  [stages](./cloud.localdockerimageprops.stages.md) | <code>Stage[]</code> | Extra stages to include in a multi-stage docker build |

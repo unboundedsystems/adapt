@@ -1,10 +1,9 @@
 import Adapt, {
-    DeployStatus,
+    handle,
+    Sequence,
     SFCBuildProps,
     SFCDeclProps,
-    useDeployedWhen,
     useState,
-    waiting,
 } from "@adpt/core";
 
 import {
@@ -21,10 +20,11 @@ import {
     Container,
     handles,
     ImageInfo,
+    LocalDockerImage,
     NetworkService,
     Service,
     useAsync,
-    useDockerBuild
+    useMethod
 } from "..";
 import {
     checkUrlEndpoints,
@@ -157,7 +157,6 @@ export interface UrlRouterProps extends AbsUrlRouterProps {
 export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<UrlRouterProps, typeof defaultProps>;
     const h = handles();
-    const [oldImage, setOldImage] = useState<ImageInfo | undefined>(undefined);
 
     checkUrlEndpoints(props.routes);
     const nginxConf = useMakeNginxConf(props);
@@ -166,9 +165,15 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
 
     const nginxExec = props.debug ? "nginx-debug" : "nginx";
 
-    const { image, buildObj } = useDockerBuild(() => {
-        return {
-            dockerfile: `
+    const img = handle();
+    const curImage = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
+
+    const externalPort = props.externalPort || props.port;
+
+    return <Sequence>
+        <LocalDockerImage
+            handle={img}
+            dockerfile={`
                 FROM ${nginxImg}
                 RUN apt-get update && \
                     apt-get install --no-install-recommends --no-install-suggests -y inotify-tools && \
@@ -177,21 +182,21 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
                 COPY --from=files / .
                 RUN chmod a+x start_nginx.sh make_resolvers.sh
                 CMD [ "/router/start_nginx.sh" ]
-            `,
-            files: [{
+            `}
+            files={[{
                 path: "start_nginx.sh",
                 contents:
                     `#!/bin/sh
                     mkdir conf.d
                     ./make_resolvers.sh
                     ${nginxExec} -g "daemon off;" -c /router/nginx.conf
-                    `
+`
             },
             {
                 path: "make_resolvers.sh",
                 contents:
                     `#!/bin/sh
-                    conf="resolver $(/usr/bin/awk 'BEGIN{ORS=" "} $1=="nameserver" {print $2}' /etc/resolv.conf);"
+                    conf="resolver $(/usr/bin/awk 'BEGIN{ORS = " "} $1=="nameserver" {print $2}' /etc/resolv.conf);"
                     [ "$conf" = "resolver ;" ] && exit 0
                     confpath=conf.d/resolvers.conf
                     echo "$conf" > $confpath
@@ -200,42 +205,30 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
             {
                 path: "nginx.conf",
                 contents: nginxConf
-            }],
-            options: {
+            }]}
+            options={{
                 imageName: "nginx-url-router",
                 uniqueTag: true
-            }
-        };
-    });
-
-    useDeployedWhen((gs) => {
-        if (gs !== DeployStatus.Deployed) return true;
-        if (image) return true;
-        return waiting(`Waiting for container image to ${oldImage ? "re-" : ""}build`);
-    });
-
-    const externalPort = props.externalPort || props.port;
-    const curImage = image || oldImage;
-    setOldImage(curImage);
-
-    return <Service>
-        {buildObj}
-        <NetworkService
-            endpoint={h.create.nginx}
-            port={externalPort}
-            targetPort={props.port}
-            scope="external"
+            }}
         />
-        {curImage ?
-            <Container
-                handle={h.nginx}
-                name="nginx-url-router"
-                image={curImage.nameTag!}
-                ports={[props.port]}
-                imagePullPolicy="Never"
+        <Service>
+            <NetworkService
+                endpoint={h.create.nginx}
+                port={externalPort}
+                targetPort={props.port}
+                scope="external"
             />
-            : null}
-    </Service >;
+            {curImage ?
+                <Container
+                    handle={h.nginx}
+                    name="nginx-url-router"
+                    image={curImage.nameTag!}
+                    ports={[props.port]}
+                    imagePullPolicy="Never"
+                />
+                : null}
+        </Service >
+    </Sequence>;
 }
 
 export default UrlRouter;

@@ -9,10 +9,15 @@ hide_title: true
 
 ## getInstanceValue() function
 
+> This API is provided as a preview for developers and may change based on feedback that we receive. Do not use this API in a production environment.
+> 
+
+Get the value of a field on an element instance
+
 <b>Signature:</b>
 
 ```typescript
-export declare function getInstanceValue<T = any>(hand: Handle, def: T | undefined, field: string, pred?: ElementPredicate): T;
+export declare function getInstanceValue<T = any>(hand: Handle, def: T, field: string, optionsIn?: GetInstanceValueOptions): T;
 ```
 
 ## Parameters
@@ -20,9 +25,9 @@ export declare function getInstanceValue<T = any>(hand: Handle, def: T | undefin
 |  Parameter | Type | Description |
 |  --- | --- | --- |
 |  hand | <code>Handle</code> |  |
-|  def | <code>T &#124; undefined</code> |  |
+|  def | <code>T</code> |  |
 |  field | <code>string</code> |  |
-|  pred | <code>ElementPredicate</code> |  |
+|  optionsIn | <code>GetInstanceValueOptions</code> |  |
 
 <b>Returns:</b>
 

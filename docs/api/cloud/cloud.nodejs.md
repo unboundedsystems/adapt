@@ -13,8 +13,7 @@ hide_title: true
 
 ```typescript
 export * from "./NodeService";
-export * from "./useBuildNodeContainer";
-export * from "./useTypescriptBuild";
+export * from "./LocalNodeImage";
 //# sourceMappingURL=index.d.ts.map
 ```
 
@@ -23,17 +22,13 @@ export * from "./useTypescriptBuild";
 |  Function | Description |
 |  --- | --- |
 |  [default(props)](./cloud.nodejs.default.md) | A partially abstract component that builds Node.js source code into a Container and exposes a NetworkService. |
-|  [LocalNodeContainer(props)](./cloud.nodejs.localnodecontainer.md) |  |
+|  [LocalNodeImage(props)](./cloud.nodejs.localnodeimage.md) | Locally builds a docker image for a [Node.js](https://www.nodejs.org) program. |
 |  [NodeService(props)](./cloud.nodejs.nodeservice.md) | A partially abstract component that builds Node.js source code into a Container and exposes a NetworkService. |
-|  [useBuildNodeContainer(srcDir, options)](./cloud.nodejs.usebuildnodecontainer.md) |  |
-|  [useTypescriptBuild(srcDir, options)](./cloud.nodejs.usetypescriptbuild.md) |  |
 
 ## Interfaces
 
 |  Interface | Description |
 |  --- | --- |
-|  [LocalNodeContainerProps](./cloud.nodejs.localnodecontainerprops.md) |  |
-|  [NodeContainerBuildOptions](./cloud.nodejs.nodecontainerbuildoptions.md) |  |
-|  [NodeContainerBuildStatus](./cloud.nodejs.nodecontainerbuildstatus.md) |  |
+|  [LocalNodeImageProps](./cloud.nodejs.localnodeimageprops.md) | Props for [nodejs.LocalNodeImage()](./cloud.nodejs.localnodeimage.md) |
+|  [NodeImageBuildOptions](./cloud.nodejs.nodeimagebuildoptions.md) |  |
 |  [NodeServiceProps](./cloud.nodejs.nodeserviceprops.md) |  |
-|  [TypescriptBuildOptions](./cloud.nodejs.typescriptbuildoptions.md) |  |

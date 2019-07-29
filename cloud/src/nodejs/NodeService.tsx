@@ -3,12 +3,14 @@ import {
     callInstanceMethod,
     Container,
     Environment,
+    ImageInfo,
     mergeEnvPairs,
     NetworkService,
     NetworkServiceScope,
     Service,
+    useMethod,
 } from "..";
-import { useBuildNodeContainer } from "./useBuildNodeContainer";
+import { LocalNodeImage } from "./LocalNodeImage";
 
 export interface NodeServiceProps {
     /**
@@ -105,22 +107,24 @@ const defaultProps = {
  */
 export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof defaultProps>) {
     const { deps, env, externalPort, port: targetPort, scope, srcDir } = props as NodeServiceProps;
-    const { image, buildObj } =
-        useBuildNodeContainer(srcDir, {runNpmScripts: "build"});
 
     const netSvc = handle();
     const nodeCtr = handle();
-    useImperativeMethods(() => ({
-        hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
-        port: () => callInstanceMethod(netSvc, undefined, "port"),
-        image,
-    }));
 
     const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, env);
 
+    const img = handle();
+    const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
+
+    useImperativeMethods(() => ({
+        hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
+        port: () => callInstanceMethod(netSvc, undefined, "port"),
+        image
+    }));
+
     return <Sequence>
         {deps}
-        {buildObj}
+        <LocalNodeImage handle={img} srcDir={srcDir} options={{ runNpmScripts: "build" }} />
         <Service>
             <NetworkService
                 handle={netSvc}
@@ -135,7 +139,7 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
                     handle={nodeCtr}
                     environment={finalEnv}
                     image={image.nameTag!}
-                    ports={[ targetPort ]}
+                    ports={[targetPort]}
                     imagePullPolicy="Never"
                 />
                 : null}

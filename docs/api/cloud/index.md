@@ -59,10 +59,6 @@ However, there are technology-specific Components that can be used in Style Shee
 
 ## Docker
 
-### Hooks
-
-- [useDockerBuild(prepOrArgs)](./cloud.usedockerbuild.md)
-
 ## Kubernetes
 
 ### Components
@@ -89,18 +85,12 @@ However, there are technology-specific Components that can be used in Style Shee
 ## Node.js
 
 ### Components
-- [LocalNodeContainer(props)](./cloud.nodejs.localnodecontainer.md)
+- [LocalNodeImage(props)](./cloud.nodejs.localnodeimage.md)
 - [NodeService(props)](./cloud.nodejs.nodeservice.md)
-
-### Hooks
-- [useBuildNodeContainer(srcDir, options)](./cloud.nodejs.usebuildnodecontainer.md)
-- [useTypescriptBuild(srcDir, options)](./cloud.nodejs.usetypescriptbuild.md)
 
 ## Postgres
 ### Components
 - [Postgres()](./cloud.postgres.postgres.md)
 - [TestPostgres(props)](./cloud.postgres.testpostgres.md)
-
-### Hooks
-- [usePreloadedPostgres(mockDbName, mockDataPath)](./cloud.postgres.usepreloadedpostgres.md)
+- [PreloadedPostgresImage(props)](./cloud.postgres.preloadedpostgresimage.md)
 

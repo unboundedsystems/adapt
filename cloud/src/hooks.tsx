@@ -40,8 +40,7 @@ export function notReplacedByStyle(): ElementPredicate {
  *  Immediately call method on instance pointed to by handle
  */
 export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: string, ...args: any[]): T {
-    const method = getInstanceValue<(...args: any[]) => T>(hand, () => def,
-        methodName, notReplacedByStyle());
+    const method = getInstanceValue<(...args: any[]) => T>(hand, () => def, methodName);
     const mountedOrig = hand.associated ? hand.mountedOrig : null;
     if (!ld.isFunction(method)) {
         throw new Error(`${methodName} exists but is not a function on handle instance:\n` +
@@ -51,9 +50,9 @@ export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: st
 }
 
 /**
- * @beta
  * Immediately call a method on the successor instance of the one pointed to by handle.
  *
+ *  @remarks
  * NOTE(mark): There are a couple differences between callNextInstanceMethod
  * and callInstanceMethod, all based on which predicate they pass to
  * getInstanceValue, either hasInstanceMethod or notReplacedByStyle.
@@ -69,6 +68,8 @@ export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: st
  *   callNextInstance does not.
  * I think that we can probably move everything to use the hasInstanceMethod
  * predicate, with the only option being whether to skip hand.mountedOrig.
+ *
+ * @beta
  */
 export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName: string, ...args: any[]): T {
     if (!hand.associated) {
@@ -77,7 +78,7 @@ export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName
     }
     // Skip hand.mountedOrig and start with its successor
     const method = getInstanceValue<(...args: any[]) => T>(hand, () => def,
-        methodName, hasInstanceMethod(methodName, hand.mountedOrig));
+        methodName, { pred: hasInstanceMethod(methodName, hand.mountedOrig) });
     const mountedOrig = hand.mountedOrig;
     if (!ld.isFunction(method)) {
         throw new Error(`${methodName} exists but is not a function on handle instance:\n` +
@@ -86,22 +87,35 @@ export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName
     return method(...args);
 }
 
+export const defaultGetInstanceValueOptions: GetInstanceValueOptions = {
+    pred: notReplacedByStyle(),
+    throwOnNoElem: false
+};
+
+export interface GetInstanceValueOptions {
+    pred?: ElementPredicate;
+    throwOnNoElem?: boolean;
+}
+
 /**
- * @beta
  * Get the value of a field on an element instance
+ *
+ * @beta
  */
-export function getInstanceValue<T = any>(hand: Handle, def: T | undefined, field: string, pred?: ElementPredicate): T {
+export function getInstanceValue<T = any>(hand: Handle, def: T, field: string, optionsIn?: GetInstanceValueOptions): T {
+    const options = { ...defaultGetInstanceValueOptions, ...optionsIn };
+    const pred = options.pred;
     if (!hand.associated) {
-        if (def !== undefined) return def;
+        if (!options.throwOnNoElem) return def;
         throw new Error(`Cannot get instance field ${field}: Handle is not associated with element`);
     }
     const elem = hand.nextMounted(pred);
     if (!elem) {
-        if (def !== undefined) return def;
+        if (!options.throwOnNoElem) return def;
         throw new Error(`Cannot get instance field ${field}: Handle does not point to mounted element`);
     }
     if (!elem.instance) {
-        throw new Error(`Element is mounted but instance is ${elem.instance}`);
+        throw new Error(`Internal Error: Element is mounted but instance is ${elem.instance}`);
     }
     if (!(field in elem.instance)) {
         throw new Error(`${field} does not exist on handle instance:\n` + serializeDom(elem));
@@ -111,6 +125,21 @@ export function getInstanceValue<T = any>(hand: Handle, def: T | undefined, fiel
         return val.bind(elem.instance);
     }
     return val;
+}
+
+/**
+ * Get the value of field from the instance referenced by handled instance.
+ *
+ * @remarks
+ * On first invocation, or if the handle is no associated with an element, or the field is not found,
+ * the value of `initial` will be returned.  After the element referenced by handle has been instantiated,
+ * this hook will fetch the actual value of `field`, cause a rebuild, and then return that value
+ * on the next call of the hook.
+ *
+ * @beta
+ */
+export function useInstanceValue<T>(hand: Handle, initial: T, field: string) {
+    return useAsync<T>(async () => getInstanceValue(hand, initial, field), initial);
 }
 
 export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: any[]) {

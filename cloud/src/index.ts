@@ -4,7 +4,7 @@ export * from "./DockerHost";
 export * from "./LocalCompute";
 export * from "./LocalContainer";
 export * from "./LocalDockerHost";
-export * from "./LocalDockerBuild";
+export * from "./LocalDockerImage";
 export * from "./NetworkService";
 export * from "./Service";
 

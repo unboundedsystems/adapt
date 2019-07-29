@@ -9,6 +9,11 @@ hide_title: true
 
 ## callNextInstanceMethod() function
 
+> This API is provided as a preview for developers and may change based on feedback that we receive. Do not use this API in a production environment.
+> 
+
+Immediately call a method on the successor instance of the one pointed to by handle.
+
 <b>Signature:</b>
 
 ```typescript
@@ -27,3 +32,7 @@ export declare function callNextInstanceMethod<T = any>(hand: Handle, def: T, me
 <b>Returns:</b>
 
 `T`
+
+## Remarks
+
+NOTE(mark): There are a couple differences between callNextInstanceMethod and callInstanceMethod, all based on which predicate they pass to getInstanceValue, either hasInstanceMethod or notReplacedByStyle. - callInstance may use the instance from hand.mountedOrig where callNextInstance specifically skips it. - callInstance may choose an instance that does not have the requested method, even though there may be an instance that has it in the chain. - callInstance looks at buildData.successor to determine which elem to choose, but callNextInstance just relies on hand.nextMounted. I think ultimately buildData.successor can be replaced by just using hand.nextMounted everywhere. - callInstance looks at whether a successor is an ApplyStyle, callNextInstance does not. I think that we can probably move everything to use the hasInstanceMethod predicate, with the only option being whether to skip hand.mountedOrig.

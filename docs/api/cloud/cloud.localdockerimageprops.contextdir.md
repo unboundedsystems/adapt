@@ -9,6 +9,8 @@ hide_title: true
 
 ## LocalDockerImageProps.contextDir property
 
+Directory for use as the build context in docker build
+
 <b>Signature:</b>
 
 ```typescript
