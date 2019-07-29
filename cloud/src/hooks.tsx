@@ -35,10 +35,14 @@ export function notReplacedByStyle(): ElementPredicate {
     };
 }
 
+/**
+ *  @beta
+ *  Immediately call method on instance pointed to by handle
+ */
 export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: string, ...args: any[]): T {
     const method = getInstanceValue<(...args: any[]) => T>(hand, () => def,
         methodName, notReplacedByStyle());
-    const mountedOrig = hand.mountedOrig;
+    const mountedOrig = hand.associated ? hand.mountedOrig : null;
     if (!ld.isFunction(method)) {
         throw new Error(`${methodName} exists but is not a function on handle instance:\n` +
             ((mountedOrig != null) ? serializeDom(mountedOrig) : `mountedOrig is ${mountedOrig}`));
@@ -46,7 +50,10 @@ export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: st
     return method(...args);
 }
 
-/*
+/**
+ * @beta
+ * Immediately call a method on the successor instance of the one pointed to by handle.
+ *
  * NOTE(mark): There are a couple differences between callNextInstanceMethod
  * and callInstanceMethod, all based on which predicate they pass to
  * getInstanceValue, either hasInstanceMethod or notReplacedByStyle.
@@ -64,6 +71,10 @@ export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: st
  * predicate, with the only option being whether to skip hand.mountedOrig.
  */
 export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName: string, ...args: any[]): T {
+    if (!hand.associated) {
+        // tslint:disable-next-line: max-line-length
+        throw new Error(`Cannot find next instance when calling ${methodName}: handle is not associated with any element`);
+    }
     // Skip hand.mountedOrig and start with its successor
     const method = getInstanceValue<(...args: any[]) => T>(hand, () => def,
         methodName, hasInstanceMethod(methodName, hand.mountedOrig));
@@ -75,7 +86,15 @@ export function callNextInstanceMethod<T = any>(hand: Handle, def: T, methodName
     return method(...args);
 }
 
+/**
+ * @beta
+ * Get the value of a field on an element instance
+ */
 export function getInstanceValue<T = any>(hand: Handle, def: T | undefined, field: string, pred?: ElementPredicate): T {
+    if (!hand.associated) {
+        if (def !== undefined) return def;
+        throw new Error(`Cannot get instance field ${field}: Handle is not associated with element`);
+    }
     const elem = hand.nextMounted(pred);
     if (!elem) {
         if (def !== undefined) return def;
@@ -96,7 +115,7 @@ export function getInstanceValue<T = any>(hand: Handle, def: T | undefined, fiel
 
 export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: any[]) {
     return useAsync<T>(async () => {
-       return callInstanceMethod<T>(hand, initial, method, ...args);
+        return callInstanceMethod<T>(hand, initial, method, ...args);
     }, initial);
 }
 
