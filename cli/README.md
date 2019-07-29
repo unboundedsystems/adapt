@@ -244,7 +244,10 @@ ARGUMENTS
              not exist.
 
 OPTIONS
-  -q, --quiet  Suppress status output messages. Still outputs any result output.
+  -q, --quiet                  Suppress status output messages. Still outputs any result output.
+
+  --adaptVersion=adaptVersion  [default: <adapt CLI version>] Attempt to select a starter that is compatible with this
+                               version of Adapt. Must be a valid semver.
 
 ALIASES
   $ adapt new

@@ -107,7 +107,7 @@ describe("Project basic tests", function () {
     });
 
     it("Should fail with bad package name", async () => {
-        return expect(proj.load("XXXBADPACKAGE", projOpts)).to.be.rejectedWith("404 Not Found: XXXBADPACKAGE");
+        return expect(proj.load("XXXBADPACKAGE", projOpts)).to.be.rejectedWith(/404 Not Found.*XXXBADPACKAGE/);
     });
 
     it("Should load from alternate registry", async function () {
