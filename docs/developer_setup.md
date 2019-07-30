@@ -7,7 +7,9 @@
 - [First: Docker Hub Credentials](#first-docker-hub-credentials)
 - [Quick Start](#quick-start)
 - [Complete Testing](#complete-testing)
+- [Tests that require additional credentials](#tests-that-require-additional-credentials)
     - [Local AWS credentials](#local-aws-credentials)
+    - [Adapt unit test SSH key](#adapt-unit-test-ssh-key)
 - [Note on Test Performance](#note-on-test-performance)
 - [Parallel make](#parallel-make)
 - [Memory usage debugging](#memory-usage-debugging)
@@ -50,6 +52,8 @@ require additional information, such as cloud credentials to be set.
 ADAPT_RUN_LONG_TESTS=1 make
 ```
 
+## Tests that require additional credentials
+
 ### Local AWS credentials
 To run tests against the real AWS API, you'll need to set up credentials. Although
 you can set the standard AWS environment variables (`AWS_ACCESS_KEY_ID`,
@@ -64,6 +68,32 @@ credentials specific to the Adapt unit tests is to create the file
 }
 ```
 Note that your `awsRegion` **MUST** be `us-west-2`.
+
+### Adapt unit test SSH key
+
+Some unit tests that test interactions with SSH (like some git-related tests) require a specific SSH key in order to run.
+The Adapt unit test SSH key was created specifically for this purpose and has very limited permissions that are sufficient to run those tests.
+
+If you'd like to run these tests, ask for the Adapt unit test SSH private key on Gitter.
+
+Once you have that, you have two choices on how to provide the private key such that the tests can use it.
+
+Do one of:
+* [preferred] Paste the contents of the private key into the file:
+
+     `$HOME/.ssh/adapt-unit-tests.priv`
+
+* Or, set the environment variable `ADAPT_UNIT_TEST_KEY` to the contents of the private key.
+The private key is multiple lines of text, so if you use this approach, be certain to use proper quoting for your shell.
+
+    Example (bash):
+    ```console
+    export ADAPT_UNIT_TEST_KEY="-----BEGIN RSA PRIVATE KEY-----
+    MIIEpQIBAAKCAQEAsNbliTf40eVOgiHiSZ+SW0TrK3xH32PRgc0vIjiPQ24SMj8R
+             ...
+    -----END RSA PRIVATE KEY-----
+    "
+    ```
 
 ## Note on Test Performance
 
@@ -117,6 +147,8 @@ ADAPT_NO_FORK=1
 
 ## Setting up CI for your fork
 
+If you'd like to run the complete set of CI tests on branches in your own GitLab fork of Adapt, follow these instructions.
+
 1. Create a GitLab CI runner
 
     To add a new runner on your workspace system (or any Linux system):
@@ -129,12 +161,13 @@ ADAPT_NO_FORK=1
     On the right side, check to see if the shared runners are enabled. If
     they are enabled, click the button to disable them.
 
-1. Supply deployment keys to CI/CD
+1. Supply credentials to CI/CD
 
     1. AWS Credentials
 
         **You'll need to have AWS credentials handy for this step.**
-        For Unbounded employees, get the shared CI AWS credentials from Mark.
+
+        For Unbounded employees, ask for the shared CI AWS credentials.
 
         Once you have AWS credentials, go to your fork's web UI:
         `Settings > CI/CD > Variables`.
@@ -173,6 +206,20 @@ ADAPT_NO_FORK=1
 
         Cut and paste the output of the shell command above into the value for
         this new variable and click save.
+
+    1. Adapt unit test SSH key
+
+        **You'll need to [request a copy of the Adapt unit test SSH private key](#adapt-unit-test-ssh-key) first**
+
+        Once you have that, go to your fork's web UI page and navigate to:
+
+        `Settings > CI/CD > Variables`
+
+        Create a new variable:
+        * `ADAPT_UNIT_TEST_KEY`
+
+        Cut and paste the text of the private SSH key into the value for this new variable and click save.
+
 
 1. Register the runner to your fork
 

@@ -47,6 +47,16 @@ if [ -f "${CRED_FILE}" ]; then
     DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"
 fi
 
+# Export test SSH key into child containers. If not present in environment,
+# read it off disk.
+if [ -z "${ADAPT_UNIT_TEST_KEY}" ]; then
+    UNIT_TEST_KEY_FILE="${HOME}/.ssh/adapt-unit-tests.priv"
+    if [ -f "${UNIT_TEST_KEY_FILE}" ]; then
+        export ADAPT_UNIT_TEST_KEY=$(<"${UNIT_TEST_KEY_FILE}")
+    fi
+fi
+DOCKER_ARGS+=" -eADAPT_UNIT_TEST_KEY"
+
 DOCKER_ARGS+=" -eNODE_NO_WARNINGS=1"
 
 # Propagate these from current environment into the docker container env
