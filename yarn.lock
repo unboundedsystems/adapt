@@ -1337,6 +1337,11 @@
   dependencies:
     "@types/node" "*"
 
+"@types/which@^1.3.1":
+  version "1.3.1"
+  resolved "https://registry.yarnpkg.com/@types/which/-/which-1.3.1.tgz#7802c380887986ca909008afea4e08025b130f8d"
+  integrity sha512-ZrJDWpvg75LTGX4XwuneY9s6bF3OeZcGTpoGh3zDV9ytzcHMFsRrMIaLBRJZQMBoGyKs6unBQfVdrLZiYfb1zQ==
+
 "@types/xml2js@^0.4.3":
   version "0.4.3"
   resolved "https://registry.yarnpkg.com/@types/xml2js/-/xml2js-0.4.3.tgz#2f41bfc74d5a4022511721f872ed395a210ad3b7"
@@ -7576,6 +7581,11 @@ shell-escape@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/shell-escape/-/shell-escape-0.2.0.tgz#68fd025eb0490b4f567a027f0bf22480b5f84133"
   integrity sha1-aP0CXrBJC09WegJ/C/IkgLX4QTM=
+
+shellwords-ts@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/shellwords-ts/-/shellwords-ts-2.0.2.tgz#343da3d88b5a92a12f66749e76ca7e6d884d55ba"
+  integrity sha512-XbjjC+3uJGwxYCcp0zQLLpf/X2PV50BAuk4abGmrkftgjxP6BDm29gPDiMu37FZU8vXyz40r6QiCUdga0OJW/w==
 
 should-equal@^2.0.0:
   version "2.0.0"

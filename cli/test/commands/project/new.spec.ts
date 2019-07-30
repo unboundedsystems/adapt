@@ -1,5 +1,6 @@
 import { mochaTmpdir } from "@adpt/testutils";
 import { grep } from "@adpt/utils";
+import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
 import { clitest, expect } from "../../common/fancy";
@@ -175,11 +176,18 @@ const testAdaptVer = "0.0.3";
 const testAdaptVerCli = "--adaptVersion=" + testAdaptVer;
 const testAdaptVerLabel = "adapt-v" + testAdaptVer;
 
-async function checkTestStarter(expectedLabel: string) {
+// Name of a starter repo that is private and therefore requires credentials
+// to access.
+const testStarterPrivate = "gitlab:adpt/starters/cli-unit-tests-private";
+
+async function checkAdaptVersion(expectedLabel: string) {
     const verPath = path.resolve(path.join("project", "ADAPT_VERSION"));
     const actual = (await fs.readFile(verPath)).toString().replace(/\s+/g, "");
     expect(actual).equals(expectedLabel, "Downloaded ADAPT_VERSION doesn't match expected");
+}
 
+async function checkTestStarter(expectedLabel: string) {
+    await checkAdaptVersion(expectedLabel);
     const pjPath = path.resolve(path.join("project", "package.json"));
     const pkg = await fs.readJson(pjPath);
     expect(pkg.name).equals(testStarter);
@@ -315,6 +323,50 @@ describe("project:new download", () => {
     .it("Should try non-existent npm package only once", async ({ stdout }) => {
         expect(trying(stdout)).eqls([
             `@unboundedsystems/doesntexist@adapt-v1.0.0`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=1.0.0", testStarterPrivate, "project"])
+    .catch((err) => {
+        expect(err.message).matches(/Host key verification failed/);
+        expect((err as any).oclif.exit).equals(2);
+    })
+    .it("Should try only once on SSH host key verification failure", async ({ stdout }) => {
+        expect(trying(stdout)).eqls([
+            `${testStarterPrivate}#adapt-v1.0.0`,
+        ]);
+    });
+});
+
+/**
+ * Because --sshHostKeyCheck manipulates the process environment variables AND
+ * pacote (used by adapt project:new) caches the environment, we need to run
+ * these tests in a separate process to get pacote to load the current env
+ * each time.
+ */
+describe("project:new sshHostKeyCheck", () => {
+    const cliBin = path.resolve("./bin/run");
+
+    mochaTmpdir.each("adapt-cli-test-new");
+
+    basicTestChain
+    .withSshKey()
+    .it("Should download private gitlab repo with SSH and add host key", async (ctx) => {
+        const args = ["project:new", testAdaptVerCli, "--sshHostKeyCheck=no", testStarterPrivate, "project"];
+        const env = {
+            GIT_SSH_COMMAND: `ssh -i ${ctx.withSshKeyFile} -o UserKnownHostsFile=/dev/null`,
+        };
+        const out = await execa(cliBin, args, { env });
+        const { stdout, stderr } = out;
+
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkAdaptVersion(testAdaptVerLabel);
+        expect(trying(stdout)).eqls([
+            `${testStarterPrivate}#${testAdaptVerLabel}`,
         ]);
     });
 });

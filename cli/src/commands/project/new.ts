@@ -6,6 +6,7 @@ import path from "path";
 import { parse } from "semver";
 import { AdaptBase } from "../../base";
 import { createStarter } from "../../proj";
+import { gitUsesOpenSsh, withGitSshCommand } from "../../proj/ssh";
 
 const logString = (task: Listr.ListrTaskWrapper) => (msg: string) => task.output = msg;
 
@@ -27,7 +28,17 @@ export default class NewCommand extends AdaptBase {
                 "Attempt to select a starter that is compatible with this " +
                 "version of Adapt. Must be a valid semver."
         }),
+        sshHostKeyCheck: flags.string({
+            description:
+                "Sets the ssh StrictHostKeyChecking option when using the " +
+                "ssh protocol for fetching a starter from a remote git " +
+                "repository. Defaults to 'yes' if OpenSSH is detected, " +
+                "'unset' otherwise.",
+            options: [ "yes", "no", "ask", "accept-new", "off", "unset" ],
+            default: () => gitUsesOpenSsh() ? "yes" : "unset",
+        }),
     };
+
     static strict = false;
     static args = [
         {
@@ -75,6 +86,9 @@ export default class NewCommand extends AdaptBase {
                 `a valid semver string (Example: 1.0.1)`);
         }
 
+        const sshHostKeyCheck = f.sshHostKeyCheck || "unset";
+        if (sshHostKeyCheck === "ask") this.interactive = true;
+
         const starter = createStarter({
             adaptVersion,
             args,
@@ -97,7 +111,7 @@ export default class NewCommand extends AdaptBase {
                 },
             ]);
 
-            await tasks.run();
+            await withGitSshCommand(sshHostKeyCheck, () => tasks.run());
 
         } finally {
             await starter.cleanup();
