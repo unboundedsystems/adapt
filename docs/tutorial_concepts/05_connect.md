@@ -81,13 +81,12 @@ In order to call a method for a particular instance of a component, we need a wa
 In Adapt, every instance of a component has a unique handle that identifies that instance.
 A **handle** is simply a reference to a specific component instance.
 
-Let's create a handle to refer to the `<Postgres>` instance.
-
+A new handle is created each time you call the `handle` function from the Adapt API.
+Let's create a handle for referring to the `<Postgres>` instance and store it in the variable `pg`.
 Add this line as the first line inside the `App` function:
 ```tsx
-    const pg = Adapt.handle();
+    const pg = handle();
 ```
-This creates a new handle and stores it in a variable named `pg`;
 
 Now replace the existing `<Postgres />` instance with:
 ```tsx
@@ -112,10 +111,18 @@ So let's pass the database connection environment variables we have in the `conn
         <NodeService srcDir=".." scope="external" env={connectEnv} />
 ```
 
-The complete `App` function should now look like this:
+We also need to add imports for the `Group` component and the `handle` and `useMethod` functions.
+So your complete `index.tsx` file should now look like this:
+<!-- doctest file-replace { file: "index.tsx" } -->
 ```tsx
+import Adapt, { handle, Group } from "@adpt/core";
+import { useMethod } from "@adpt/cloud";
+import { Postgres } from "@adpt/cloud/postgres";
+import { NodeService } from "@adpt/cloud/nodejs";
+import { k8sStyle } from "./styles";
+
 function App() {
-    const pg = Adapt.handle();
+    const pg = handle();
     const connectEnv = useMethod(pg, {}, "connectEnv");
 
     return (
@@ -125,6 +132,8 @@ function App() {
       </Group>
     );
 }
+
+Adapt.stack("k8s", <App/>, k8sStyle);
 ```
 
 ## Styling the database with test data
@@ -145,6 +154,38 @@ Add the following just after the first `<Style>` tag:
             return <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />;
         })}
 ```
+
+<!-- doctest file-replace { file: "styles.tsx" } -->
+<!--
+```tsx
+import Adapt, { Style } from "@adpt/core";
+import { Service, ServiceProps } from "@adpt/cloud";
+import { ServiceDeployment } from "@adpt/cloud/k8s";
+import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
+
+export function kubeconfig() {
+    // tslint:disable-next-line:no-var-requires
+    return require("./kubeconfig.json");
+}
+
+/*
+ * Kubernetes testing style
+ */
+export const k8sStyle =
+    <Style>
+        {Postgres}
+        {Adapt.rule(() => {
+            return <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />;
+        })}
+
+        {Service}
+        {Adapt.rule((matchedProps) => {
+            const { handle, ...remainingProps } = matchedProps;
+            return <ServiceDeployment config={kubeconfig()} {...remainingProps} />;
+        })}
+    </Style>;
+```
+-->
 
 This rule says to match all `<Postgres>` elements and replace them with `<TestPostgres>` elements, which load some mock data from local file `../test_db.sql`.
 

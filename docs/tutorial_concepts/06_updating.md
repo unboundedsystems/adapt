@@ -16,7 +16,7 @@
 
 If we were actually building our own REST API server that fetches movie titles from a database, we'd start writing that code now and could do end-to-end testing against an actual Postgres database, populated with some test data.
 But for this tutorial, we'll just copy in some already-written code:
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
 curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v1/tutorial-concepts.tar.gz | tar -zxv --strip=1 -C ..
 ```
@@ -28,6 +28,7 @@ This command should have:
 
 ## Update!
 Now, update the deployment, which will push our newly written code and populate the database with the test data:
+<!-- doctest command -->
 ```
 adapt update myapp
 ```
@@ -38,11 +39,12 @@ It then applies only those changes required to make your infrastructure match wh
 ## Test the API
 
 Test your newly deployed API by using `curl` or your browser with these links:
--  [http://localhost:8080/api/search?batman](http://localhost:8080/api/search?batman)
+-  [http://localhost:8080/search/batman](http://localhost:8080/search/batman)
+-  [http://localhost:8080/search/lego](http://localhost:8080/search/lego)
 
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
-curl http://localhost:8080/api/search?batman
+curl http://localhost:8080/search/lego
 ```
 
 > **IMPORTANT**
@@ -52,6 +54,7 @@ curl http://localhost:8080/api/search?batman
 
 You should see a response like this:
 ```
+[{"title":"The Lego Batman Movie","released":"Fri Feb 10 2017"}]
 ```
 
 ## Change and Repeat
