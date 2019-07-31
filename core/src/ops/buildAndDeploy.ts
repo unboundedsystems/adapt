@@ -177,7 +177,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
         let executedQueries: ExecutedQueries = {};
-        let processStateUpdates: ProcessStateUpdates = () => Promise.resolve({ stateChanged: true });
+        let processStateUpdates: ProcessStateUpdates = () => Promise.resolve({ stateChanged: false });
 
         let needsData: ExecutedQueries = {};
         const root = await stack.root;
@@ -480,7 +480,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
                             if (!res.deployComplete && !res.stateChanged) {
                                 throw new Error(`TODO: Need to implement retry/timeout still`);
                             }
-                            if (res.deployComplete) {
+                            if (res.deployComplete && !res.stateChanged) {
                                 await commit({
                                     status: HistoryStatus.success,
                                     dataDir,

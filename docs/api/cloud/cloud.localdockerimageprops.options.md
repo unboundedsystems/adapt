@@ -9,8 +9,10 @@ hide_title: true
 
 ## LocalDockerImageProps.options property
 
+Options to control the behavior of docker build
+
 <b>Signature:</b>
 
 ```typescript
-options: DockerBuildOptions;
+options?: DockerBuildOptions;
 ```

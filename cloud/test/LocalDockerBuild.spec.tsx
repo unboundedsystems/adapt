@@ -14,8 +14,8 @@ import {
     DockerGlobalOptions,
     File,
     LocalDockerImage,
-    LocalDockerImageProps,
-} from "../src/LocalDockerBuild";
+    LocalDockerImageProps
+} from "../src/LocalDockerImage";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);
@@ -83,7 +83,7 @@ foo3 contents`);
     });
 });
 
-describe("LocalDockerBuild", function () {
+describe("LocalDockerImage", function () {
     const cleanupIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
@@ -91,7 +91,7 @@ describe("LocalDockerBuild", function () {
     this.timeout(60 * 1000);
     this.slow(4 * 1000);
 
-    mochaTmpdir.all(`adapt-cloud-localdockerbuild`);
+    mochaTmpdir.all(`adapt-cloud-localdockerimage`);
 
     before(() => {
         pluginDir = path.join(process.cwd(), "plugins");

@@ -1,12 +1,11 @@
-import Adapt, { handle, useImperativeMethods } from "@adpt/core";
-import { Container, NetworkService, Service, useMethod } from "..";
-import { usePreloadedPostgres } from "./usePreloadedPostgres";
+import Adapt, { handle, Sequence, useImperativeMethods } from "@adpt/core";
+import { Container, ImageInfo, NetworkService, Service, useMethod } from "..";
+import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
 
 export function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {
     const dbCtr = handle();
     const svc = handle();
     const svcHostname = useMethod(svc, undefined, "hostname");
-    const { image, buildObj } = usePreloadedPostgres(props.mockDbName, props.mockDataPath);
 
     useImperativeMethods(() => ({
         connectEnv: () => {
@@ -20,23 +19,28 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
         }
     }));
 
-    return <Service>
-        {buildObj}
-        <NetworkService
-            handle={svc}
-            scope="cluster-internal"
-            endpoint={dbCtr}
-            port={5432}
-        />
-        {image ?
-            <Container
-                name="db"
-                handle={dbCtr}
-                image={image.nameTag!}
-                environment={{ POSTGRES_PASSWORD: "hello" }}
-                imagePullPolicy="Never"
-                ports={[5432]}
+    const img = handle();
+    const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
+
+    return <Sequence>
+        <PreloadedPostgresImage handle={img} mockDbName={props.mockDbName} mockDataPath={props.mockDataPath} />
+        <Service>
+            <NetworkService
+                handle={svc}
+                scope="cluster-internal"
+                endpoint={dbCtr}
+                port={5432}
             />
-        : null}
-    </Service>;
+            {image ?
+                <Container
+                    name="db"
+                    handle={dbCtr}
+                    image={image.nameTag!}
+                    environment={{ POSTGRES_PASSWORD: "hello" }}
+                    imagePullPolicy="Never"
+                    ports={[5432]}
+                />
+                : null}
+        </Service>
+    </Sequence>;
 }

@@ -1,11 +1,9 @@
-import Adapt, {
+import {
     AdaptElement,
     ChangeType,
     DeployOpID,
     DeployStatus,
     GoalStatus,
-    handle,
-    useState,
     waiting,
 } from "@adpt/core";
 import { InternalError, withTmpDir } from "@adpt/utils";
@@ -17,9 +15,7 @@ import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
 import { Readable } from "stream";
-import { WithPartialT } from "type-ops";
 import { Action, ActionContext, ShouldAct } from "./action";
-import { useAsync } from "./hooks";
 
 export interface ImageInfo {
     id: string;
@@ -58,8 +54,8 @@ async function execDocker(args: string[], options: ExecDockerOptions) {
 
     const cmdDebug =
         debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
-        debug.enabled ? debug :
-        null;
+            debug.enabled ? debug :
+                null;
     if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
     const ret = execa("docker", args, opts);
     if (debugOut.enabled && cmdDebug) {
@@ -173,7 +169,7 @@ async function dockerImageId(name: string, opts: DockerGlobalOptions = {}): Prom
 }
 
 async function dockerTag(existing: string, newTag: string, opts: DockerGlobalOptions = {}) {
-    return execDocker([ "tag", existing, newTag ], opts);
+    return execDocker(["tag", existing, newTag], opts);
 }
 
 interface DockerRemoveImageOptions extends DockerGlobalOptions {
@@ -189,7 +185,7 @@ async function dockerRemoveImage(
 
     const opts = { ...dockerRemoveImageDefaults, ...options };
 
-    const args = [ "rmi" ];
+    const args = ["rmi"];
     if (opts.force) args.push("--force");
     args.push(idOrNameTag);
 
@@ -271,12 +267,44 @@ export interface Stage {
     name: string;
 }
 
+/**
+ * Props for {@link LocalDockerImage}
+ *
+ * @public
+ */
 export interface LocalDockerImageProps {
+    /** Directory for use as the build context in docker build */
     contextDir?: string;
+    /**
+     * Contents of the dockerfile
+     *
+     * @remarks
+     * Should not be used if dockerfileName is set
+     */
     dockerfile?: string;      // contents of Dockerfile
+    /**
+     * Location of the dockerfile
+     *
+     * @remarks
+     * Should not be used if `dockerfile` is set.
+     */
     dockerfileName?: string;  // path to Dockerfile
+    /**
+     * Extra files that should be included during the docker build
+     *
+     * @remarks
+     * LocalDockerImage uses a multi-stage build process.  It first creates
+     * a stage that includes the files specified in this field.  These files are
+     * then available to the `dockerfile` to copy into the final image.
+     */
     files?: File[];
-    options: DockerBuildOptions;
+    /**
+     * Options to control the behavior of docker build
+     */
+    options?: DockerBuildOptions;
+    /**
+     * Extra stages to include in a multi-stage docker build
+     */
     stages?: Stage[];
 }
 
@@ -287,6 +315,14 @@ export interface LocalDockerImageState {
     prevUniqueTag?: string;
 }
 
+/**
+ * Locally builds a docker image
+ *
+ * @remarks
+ * See {@link LocalDockerImageProps}.
+ *
+ * @public
+ */
 export class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerImageState> {
     static defaultProps = {
         options: {},
@@ -294,9 +330,12 @@ export class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerI
 
     image_?: ImageInfo;
     imagePropsJson_?: string;
+    options_: DockerBuildOptions;
 
     constructor(props: LocalDockerImageProps) {
         super(props);
+        this.options_ = { ...defaultDockerBuildOptions, ...(props.options || {}) };
+
         if (!props.dockerfile && !props.dockerfileName) {
             throw new Error(`LocalDockerImage: one of dockerfile or ` +
                 `dockerfileName must be given`);
@@ -323,11 +362,15 @@ export class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerI
         return this.image_;
     }
 
+    latestImage() {
+        return this.image_ || this.state.image;
+    }
+
     /*
      * Implementations for Action base class
      */
     async shouldAct(op: ChangeType): Promise<ShouldAct> {
-        let imgName = this.props.options.imageName || "";
+        let imgName = this.options_.imageName || "";
         if (imgName) imgName = ` '${imgName}'`;
 
         if (op === ChangeType.delete) return false;
@@ -340,7 +383,7 @@ export class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerI
     }
 
     async action(op: ChangeType, _ctx: ActionContext) {
-        const { options } = this.props;
+        const options = this.options_;
         const prevUniqueTag = this.state.prevUniqueTag;
 
         if (op === ChangeType.delete) {
@@ -414,31 +457,4 @@ export class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerI
 export interface DockerBuildStatus {
     buildObj: AdaptElement | null;
     image?: ImageInfo;
-}
-
-// Make options optional
-export type DockerBuildArgs = WithPartialT<LocalDockerImageProps, "options">;
-
-export function useDockerBuild(
-    prepOrArgs: (() => Promise<DockerBuildArgs> | DockerBuildArgs) | DockerBuildArgs,
-): DockerBuildStatus {
-    const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
-
-    const args = useAsync(async () => {
-        if (ld.isFunction(prepOrArgs)) return prepOrArgs();
-        return prepOrArgs;
-    }, undefined);
-
-    if (!args) return { buildObj: null };
-    const opts = { ...defaultDockerBuildOptions, ...(args.options || {}) };
-    const buildHand = handle();
-    const buildObj =
-        <LocalDockerImage
-            handle={buildHand}
-            {...args}
-            options={opts} />;
-
-    setBuildState(async () => buildHand.mountedOrig && buildHand.mountedOrig.instance.image);
-
-    return { image: buildState, buildObj };
 }

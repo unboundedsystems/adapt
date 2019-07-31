@@ -25,7 +25,7 @@ export function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
                 done.push(f);
                 continue;
             }
-            const image = getInstanceValue<ImageInfo | undefined>(f.image, undefined, "image");
+            const image = getInstanceValue<ImageInfo | undefined>(f.image, undefined, "image", { throwOnNoElem: true });
             if (image && isObject(image) && isString(image.id)) {
                 done.push({
                     ...f,

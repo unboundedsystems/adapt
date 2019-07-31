@@ -9,6 +9,8 @@ hide_title: true
 
 ## LocalDockerImageProps.stages property
 
+Extra stages to include in a multi-stage docker build
+
 <b>Signature:</b>
 
 ```typescript

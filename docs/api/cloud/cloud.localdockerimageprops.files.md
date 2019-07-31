@@ -9,8 +9,14 @@ hide_title: true
 
 ## LocalDockerImageProps.files property
 
+Extra files that should be included during the docker build
+
 <b>Signature:</b>
 
 ```typescript
 files?: File[];
 ```
+
+## Remarks
+
+LocalDockerImage uses a multi-stage build process. It first creates a stage that includes the files specified in this field. These files are then available to the `dockerfile` to copy into the final image.

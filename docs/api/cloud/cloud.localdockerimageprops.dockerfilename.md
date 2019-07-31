@@ -9,8 +9,14 @@ hide_title: true
 
 ## LocalDockerImageProps.dockerfileName property
 
+Location of the dockerfile
+
 <b>Signature:</b>
 
 ```typescript
 dockerfileName?: string;
 ```
+
+## Remarks
+
+Should not be used if `dockerfile` is set.

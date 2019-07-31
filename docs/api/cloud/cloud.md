@@ -20,7 +20,7 @@ hide_title: true
 |  [LocalCompute](./cloud.localcompute.md) |  |
 |  [LocalContainer](./cloud.localcontainer.md) |  |
 |  [LocalDockerHost](./cloud.localdockerhost.md) |  |
-|  [LocalDockerImage](./cloud.localdockerimage.md) |  |
+|  [LocalDockerImage](./cloud.localdockerimage.md) | Locally builds a docker image |
 |  [NetworkService](./cloud.networkservice.md) | An abstract component that represents a network service. |
 |  [Service](./cloud.service.md) | An abstract component that represents a group of components that implements a service. Note that this is not necessarily a network service, but will often be. |
 
@@ -29,11 +29,11 @@ hide_title: true
 |  Function | Description |
 |  --- | --- |
 |  [buildFilesImage(files, opts)](./cloud.buildfilesimage.md) |  |
-|  [callInstanceMethod(hand, def, methodName, args)](./cloud.callinstancemethod.md) |  |
-|  [callNextInstanceMethod(hand, def, methodName, args)](./cloud.callnextinstancemethod.md) |  |
+|  [callInstanceMethod(hand, def, methodName, args)](./cloud.callinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call method on instance pointed to by handle |
+|  [callNextInstanceMethod(hand, def, methodName, args)](./cloud.callnextinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call a method on the successor instance of the one pointed to by handle. |
 |  [dockerBuild(dockerfile, contextPath, options)](./cloud.dockerbuild.md) |  |
 |  [extendedHandle()](./cloud.extendedhandle.md) |  |
-|  [getInstanceValue(hand, def, field, pred)](./cloud.getinstancevalue.md) |  |
+|  [getInstanceValue(hand, def, field, optionsIn)](./cloud.getinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of a field on an element instance |
 |  [handles()](./cloud.handles.md) |  |
 |  [hasInstanceMethod(name, skip)](./cloud.hasinstancemethod.md) |  |
 |  [isContainerElement(el)](./cloud.iscontainerelement.md) |  |
@@ -43,7 +43,7 @@ hide_title: true
 |  [notReplacedByStyle()](./cloud.notreplacedbystyle.md) |  |
 |  [targetPort(elemOrProps)](./cloud.targetport.md) |  |
 |  [useAsync(f, initial)](./cloud.useasync.md) |  |
-|  [useDockerBuild(prepOrArgs)](./cloud.usedockerbuild.md) |  |
+|  [useInstanceValue(hand, initial, field)](./cloud.useinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of field from the instance referenced by handled instance. |
 |  [useMethod(hand, initial, method, args)](./cloud.usemethod.md) |  |
 |  [useMethodFrom(hand, methodName, defaultVal, args)](./cloud.usemethodfrom.md) |  |
 |  [withFilesImage(files, opts, fn)](./cloud.withfilesimage.md) |  |
@@ -65,9 +65,10 @@ hide_title: true
 |  [ExtendedHandle](./cloud.extendedhandle.md) |  |
 |  [ExternalDockerHostProps](./cloud.externaldockerhostprops.md) |  |
 |  [File](./cloud.file.md) |  |
+|  [GetInstanceValueOptions](./cloud.getinstancevalueoptions.md) |  |
 |  [ImageInfo](./cloud.imageinfo.md) |  |
 |  [Links](./cloud.links.md) |  |
-|  [LocalDockerImageProps](./cloud.localdockerimageprops.md) |  |
+|  [LocalDockerImageProps](./cloud.localdockerimageprops.md) | Props for [LocalDockerImage](./cloud.localdockerimage.md) |
 |  [LocalDockerImageState](./cloud.localdockerimagestate.md) |  |
 |  [NetworkServiceProps](./cloud.networkserviceprops.md) |  |
 |  [PortBinding](./cloud.portbinding.md) |  |
@@ -90,6 +91,7 @@ hide_title: true
 
 |  Variable | Description |
 |  --- | --- |
+|  [defaultGetInstanceValueOptions](./cloud.defaultgetinstancevalueoptions.md) |  |
 |  [pickGlobals](./cloud.pickglobals.md) |  |
 
 ## Type Aliases
@@ -97,7 +99,6 @@ hide_title: true
 |  Type Alias | Description |
 |  --- | --- |
 |  [Command](./cloud.command.md) |  |
-|  [DockerBuildArgs](./cloud.dockerbuildargs.md) |  |
 |  [Environment](./cloud.environment.md) |  |
 |  [EnvPairs](./cloud.envpairs.md) |  |
 |  [Handles](./cloud.handles.md) |  |

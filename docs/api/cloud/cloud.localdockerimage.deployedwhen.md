@@ -12,5 +12,5 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-deployedWhen: (goalStatus: Adapt.GoalStatus) => true | Adapt.Waiting;
+deployedWhen: (goalStatus: GoalStatus) => true | import("@adpt/core/dist/src/deploy/deploy_types").Waiting;
 ```

@@ -14,7 +14,7 @@ hide_title: true
 ```typescript
 export * from "./Postgres";
 export * from "./TestPostgres";
-export * from "./usePreloadedPostgres";
+export * from "./PreloadedPostgresImage";
 //# sourceMappingURL=index.d.ts.map
 ```
 
@@ -23,5 +23,11 @@ export * from "./usePreloadedPostgres";
 |  Function | Description |
 |  --- | --- |
 |  [Postgres()](./cloud.postgres.postgres.md) | An abstract component representing a Postgres database within a Postgres server or service. |
+|  [PreloadedPostgresImage(props)](./cloud.postgres.preloadedpostgresimage.md) | Creates a throw-away [Postgres](https://www.postgresql.org) database with preloaded data. |
 |  [TestPostgres(props)](./cloud.postgres.testpostgres.md) |  |
-|  [usePreloadedPostgres(mockDbName, mockDataPath)](./cloud.postgres.usepreloadedpostgres.md) |  |
+
+## Interfaces
+
+|  Interface | Description |
+|  --- | --- |
+|  [PreloadedPostgresImageProps](./cloud.postgres.preloadedpostgresimageprops.md) | Props for [postgres.PreloadedPostgresImage()](./cloud.postgres.preloadedpostgresimage.md) |

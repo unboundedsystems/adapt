@@ -9,6 +9,8 @@ hide_title: true
 
 ## LocalDockerImage class
 
+Locally builds a docker image
+
 <b>Signature:</b>
 
 ```typescript
@@ -26,11 +28,12 @@ export declare class LocalDockerImage extends Action<LocalDockerImageProps, Loca
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [defaultProps](./cloud.localdockerimage.defaultprops.md) | <code>static</code> | <code>{</code><br/><code>        options: {};</code><br/><code>    }</code> |  |
-|  [deployedWhen](./cloud.localdockerimage.deployedwhen.md) |  | <code>(goalStatus: Adapt.GoalStatus) =&gt; true &#124; Adapt.Waiting</code> |  |
+|  [deployedWhen](./cloud.localdockerimage.deployedwhen.md) |  | <code>(goalStatus: GoalStatus) =&gt; true &#124; import(&quot;@adpt/core/dist/src/deploy/deploy_types&quot;).Waiting</code> |  |
 |  [image\_](./cloud.localdockerimage.image_.md) |  | <code>ImageInfo</code> |  |
 |  [image](./cloud.localdockerimage.image.md) |  | <code>ImageInfo &#124; undefined</code> |  |
 |  [imagePropsJson\_](./cloud.localdockerimage.imagepropsjson_.md) |  | <code>string</code> |  |
 |  [imagePropsJson](./cloud.localdockerimage.imagepropsjson.md) |  | <code>string</code> |  |
+|  [options\_](./cloud.localdockerimage.options_.md) |  | <code>DockerBuildOptions</code> |  |
 
 ## Methods
 
@@ -39,5 +42,10 @@ export declare class LocalDockerImage extends Action<LocalDockerImageProps, Loca
 |  [action(op, \_ctx)](./cloud.localdockerimage.action.md) |  |  |
 |  [buildComplete()](./cloud.localdockerimage.buildcomplete.md) |  |  |
 |  [initialState()](./cloud.localdockerimage.initialstate.md) |  |  |
+|  [latestImage()](./cloud.localdockerimage.latestimage.md) |  |  |
 |  [ready()](./cloud.localdockerimage.ready.md) |  |  |
 |  [shouldAct(op)](./cloud.localdockerimage.shouldact.md) |  |  |
+
+## Remarks
+
+See [LocalDockerImageProps](./cloud.localdockerimageprops.md)<!-- -->.

@@ -1,21 +1,19 @@
 import Adapt, {
-    DeployStatus,
     handle,
+    Sequence,
     SFCBuildProps,
     SFCDeclProps,
-    useDeployedWhen,
     useImperativeMethods,
-    useState,
-    waiting,
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import {
     callInstanceMethod,
     Container,
     ImageInfo,
+    LocalDockerImage,
     NetworkService,
     Service,
-    useDockerBuild,
+    useMethod
 } from "..";
 import {
     Destination,
@@ -102,7 +100,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
     const props = propsIn as SFCBuildProps<HttpServerProps, typeof defaultProps>;
     const netSvc = handle();
     const nginx = handle();
-    const [oldImage, setOldImage] = useState<ImageInfo | undefined>(undefined);
+    const img = handle();
 
     const nginxConf = useMakeNginxConf(props);
 
@@ -124,62 +122,54 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
         CMD bash /nginx/start_nginx.sh
         `;
 
-    const { image, buildObj } = useDockerBuild(() => ({
-            dockerfile,
-            files: [{
-                path: "start_nginx.sh",
-                contents:
-                    `#!/usr/bin/env bash
-                    nginx -g "daemon off;" -c /nginx/nginx.conf
-                    `
-            },
-            {
-                path: "nginx.conf",
-                contents: nginxConf
-            }],
-            contextDir: props.localAddRoot,
-            options: {
-                imageName: "nginx-static",
-                uniqueTag: true
-            },
-            stages,
-        })
-    );
-
-    const curImage = image || oldImage;
-    setOldImage(curImage);
-
     useImperativeMethods(() => ({
         hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
         port: () => callInstanceMethod(netSvc, undefined, "port")
     }));
 
-    useDeployedWhen((gs) => {
-        if (gs !== DeployStatus.Deployed) return true;
-        if (image) return true;
-        return waiting(`Waiting for container image to ${oldImage ? "re-" : ""}build`);
-    });
+    const curImage = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
 
-    const ret = <Service>
-        {buildObj}
-        <NetworkService
-            handle={netSvc}
-            endpoint={nginx}
-            port={props.port}
-            targetPort={props.port}
-            scope={props.scope}
+    const ret = <Sequence>
+        <LocalDockerImage
+            handle={img}
+            dockerfile={dockerfile}
+            files={[{
+                path: "start_nginx.sh",
+                contents:
+                    `#!/usr/bin/env bash
+                        nginx -g "daemon off;" -c /nginx/nginx.conf
+                        `
+            },
+            {
+                path: "nginx.conf",
+                contents: nginxConf
+            }]}
+            contextDir={props.localAddRoot}
+            options={{
+                imageName: "nginx-static",
+                uniqueTag: true
+            }}
+            stages={stages}
         />
-        {curImage ?
-            <Container
-                handle={nginx}
-                name="nginx-static"
-                image={curImage.nameTag!}
-                ports={[props.port]}
-                imagePullPolicy="Never"
+        <Service>
+            <NetworkService
+                handle={netSvc}
+                endpoint={nginx}
+                port={props.port}
+                targetPort={props.port}
+                scope={props.scope}
             />
-            : null}
-    </Service >;
-
+            {curImage ?
+                <Container
+                    handle={nginx}
+                    name="nginx-static"
+                    image={curImage.nameTag!}
+                    ports={[props.port]}
+                    imagePullPolicy="Never"
+                />
+                : null}
+        </Service >
+    </Sequence>;
     return ret;
 }
 

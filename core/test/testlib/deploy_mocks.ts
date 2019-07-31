@@ -135,7 +135,7 @@ export class MockDeploy {
             const actResults = await mgr.act(actOpts);
             await mgr.finish();
 
-            if (opts.once || actResults.deployComplete || !actResults.stateChanged) {
+            if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
                 const stepID = await this.deployment.currentStepID(this.deployOpID);
                 return { ...actResults, dom, stepID };
             }

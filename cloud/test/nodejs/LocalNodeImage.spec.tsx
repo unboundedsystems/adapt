@@ -1,4 +1,4 @@
-import Adapt, { FinalDomElement, Group, PrimitiveComponent } from "@adpt/core";
+import Adapt, { FinalDomElement, handle, PrimitiveComponent, Sequence } from "@adpt/core";
 import { mochaTmpdir, writePackage } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
@@ -8,13 +8,14 @@ import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
 
+import { ImageInfo, useInstanceValue } from "../../src";
 import {
-    TypescriptBuildOptions,
-    useTypescriptBuild,
-} from "../../src/nodejs/useTypescriptBuild";
+    LocalNodeImage,
+    NodeImageBuildOptions,
+} from "../../src/nodejs";
 
 async function checkDockerRun(image: string) {
-    const { stdout } = await execa("docker", [ "run", "--rm", image ]);
+    const { stdout } = await execa("docker", ["run", "--rm", image]);
     return stdout;
 }
 
@@ -26,7 +27,7 @@ class Final extends PrimitiveComponent<FinalProps> {
     static noPlugin = true;
 }
 
-describe("useTypescriptBuild tests", function () {
+describe("LocalNodeImage tests", function () {
     const cleanupIds: string[] = [];
     let imageIds: string[];
     let mockDeploy: MockDeploy;
@@ -54,7 +55,7 @@ describe("useTypescriptBuild tests", function () {
         imageIds = [];
         await fs.remove(pluginDir);
         mockDeploy = new MockDeploy({
-            pluginCreates: [ createActionPlugin ],
+            pluginCreates: [createActionPlugin],
             tmpDir: pluginDir,
         });
         await mockDeploy.init();
@@ -62,20 +63,28 @@ describe("useTypescriptBuild tests", function () {
 
     interface TypescriptBuildProps {
         srcDir: string;
-        options?: TypescriptBuildOptions;
+        options?: NodeImageBuildOptions;
     }
 
     function TypescriptProject(props: TypescriptBuildProps) {
-        const { image, buildObj } = useTypescriptBuild(props.srcDir, props.options);
+        const img = handle();
+        const image = useInstanceValue<ImageInfo | undefined>(img, undefined, "image");
         if (image) {
             imageIds.push(image.id);
             cleanupIds.push(image.id);
         }
+
         return (
-            <Group>
-                {buildObj}
+            <Sequence>
+                <LocalNodeImage handle={img}
+                    srcDir={props.srcDir}
+                    options={{
+                        imageName: "tsservice",
+                        runNpmScripts: "build",
+                        ...props.options
+                    }} />
                 {image ? <Final id={image.id} tag={image.nameTag} /> : null}
-            </Group>
+            </Sequence>
         );
     }
 
@@ -115,10 +124,10 @@ describe("useTypescriptBuild tests", function () {
         });
     }
 
-    const imgName = (options?: TypescriptBuildOptions | undefined) =>
+    const imgName = (options?: NodeImageBuildOptions | undefined) =>
         ` '${(options && options.imageName) || "tsservice"}'`;
 
-    async function basicTest(options?: TypescriptBuildOptions) {
+    async function basicTest(options?: NodeImageBuildOptions) {
         const orig = <TypescriptProject srcDir="./testproj" options={options} />;
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
@@ -149,7 +158,7 @@ describe("useTypescriptBuild tests", function () {
     it("Should build and run docker image", async () => {
         const { id, tag } = await basicTest();
         should(tag).match(/^tsservice:[a-z]{8}$/);
-        should(imageIds).eql([ id ]);
+        should(uniq(imageIds)).eql([id]);
     });
 
     it("Should use custom name and base tag", async () => {
@@ -159,7 +168,7 @@ describe("useTypescriptBuild tests", function () {
         };
         const { id, tag } = await basicTest(options);
         should(tag).match(/^myimage:foo-[a-z]{8}$/);
-        should(imageIds).eql([ id ]);
+        should(uniq(imageIds)).eql([id]);
     });
 
     it("Should use custom name and non-random tag", async () => {
@@ -170,6 +179,6 @@ describe("useTypescriptBuild tests", function () {
         };
         const { id, tag } = await basicTest(options);
         should(tag).equal("myimage:bar");
-        should(imageIds).eql([ id ]);
+        should(uniq(imageIds)).eql([id]);
     });
 });
