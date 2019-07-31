@@ -244,7 +244,15 @@ ARGUMENTS
              not exist.
 
 OPTIONS
-  -q, --quiet  Suppress status output messages. Still outputs any result output.
+  -q, --quiet                                        Suppress status output messages. Still outputs any result output.
+
+  --adaptVersion=adaptVersion                        [default: <adapt CLI version>] Attempt to select a starter that is
+                                                     compatible with this version of Adapt. Must be a valid semver.
+
+  --sshHostKeyCheck=yes|no|ask|accept-new|off|unset  [default: yes] Sets the ssh StrictHostKeyChecking option when using
+                                                     the ssh protocol for fetching a starter from a remote git
+                                                     repository. Defaults to 'yes' if OpenSSH is detected, 'unset'
+                                                     otherwise.
 
 ALIASES
   $ adapt new

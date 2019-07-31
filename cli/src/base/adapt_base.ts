@@ -42,6 +42,14 @@ const outputSettings: { [ name: string ]: OutputSettings } = {
         statusOutput: true,
     },
 
+    interactive: {
+        listrOptions: {
+            renderer: "verbose",
+        },
+        logging: false,
+        statusOutput: true,
+    },
+
     quiet: {
         listrOptions: {
             renderer: "silent",
@@ -56,14 +64,18 @@ export interface StandardFlags {
     quiet?: boolean;
 }
 
-export function getOutputSettings(theFlags: StandardFlags): OutputSettings {
+export function getOutputSettings(theFlags: StandardFlags, interactive = false): OutputSettings {
     let output = process.stdout.isTTY ? "pretty" : "notty";
 
-    if (theFlags.quiet) output = "quiet";
+    if (interactive) {
+        output = "interactive";
+    } else {
+        if (theFlags.quiet) output = "quiet";
 
-    // If debugs are enabled, override pretty
-    if (output === "pretty" && (theFlags.debug || process.env.DEBUG)) {
-        output = "notty";
+        // If debugs are enabled, override pretty
+        if (output === "pretty" && (theFlags.debug || process.env.DEBUG)) {
+            output = "notty";
+        }
     }
 
     const settings = outputSettings[output];
@@ -102,6 +114,7 @@ export abstract class AdaptBase extends Command {
     _cmdArgv?: string[];
     _flags?: { [name: string]: any };
     finalOutput: OutputBlob[] = [];
+    _interactive = false;
     outputSettings_?: OutputSettings;
 
     get args() {
@@ -128,6 +141,11 @@ export abstract class AdaptBase extends Command {
     flags<Ctor extends HasFlags>(_: Ctor): OutputFlags<Ctor> {
         if (this._flags == null) throw new InternalError(`_flags is null`);
         return this._flags as any;
+    }
+
+    get interactive(): boolean { return this._interactive; }
+    set interactive(val: boolean) {
+        this.outputSettings_ = getOutputSettings(this.flags(AdaptBase), val);
     }
 
     async finally(err?: Error) {

@@ -24,5 +24,8 @@
     "name": "adapt-root",
     "scripts": {
         "prepublishOnly": "make build"
+    },
+    "resolutions": {
+        "npm-package-arg/hosted-git-info": "unboundedsystems/hosted-git-info#v2.7.1-unb"
     }
 }

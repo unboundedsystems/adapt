@@ -1,9 +1,12 @@
 import { UserError } from "@adpt/utils";
+import { flags } from "@oclif/command";
 import Listr = require("listr");
 import { isString } from "lodash";
 import path from "path";
+import { parse } from "semver";
 import { AdaptBase } from "../../base";
 import { createStarter } from "../../proj";
+import { gitUsesOpenSsh, withGitSshCommand } from "../../proj/ssh";
 
 const logString = (task: Listr.ListrTaskWrapper) => (msg: string) => task.output = msg;
 
@@ -17,7 +20,25 @@ export default class NewCommand extends AdaptBase {
         `    $ adapt <%- command.id %> blank myproj`,
     ];
 
-    static flags = { ...AdaptBase.flags };
+    static flags = {
+        ...AdaptBase.flags,
+        adaptVersion: flags.string({
+            description:
+                "[default: <adapt CLI version>] " +
+                "Attempt to select a starter that is compatible with this " +
+                "version of Adapt. Must be a valid semver."
+        }),
+        sshHostKeyCheck: flags.string({
+            description:
+                "Sets the ssh StrictHostKeyChecking option when using the " +
+                "ssh protocol for fetching a starter from a remote git " +
+                "repository. Defaults to 'yes' if OpenSSH is detected, " +
+                "'unset' otherwise.",
+            options: [ "yes", "no", "ask", "accept-new", "off", "unset" ],
+            default: () => gitUsesOpenSsh() ? "yes" : "unset",
+        }),
+    };
+
     static strict = false;
     static args = [
         {
@@ -48,7 +69,9 @@ export default class NewCommand extends AdaptBase {
     async run() {
         const spec = this.args.starter;
         const dest = this.args.directory;
-        const argv = this.cmdArgv.length >= 3 ? this.cmdArgv.slice(2) : [];
+        const args = this.cmdArgv.length >= 3 ? this.cmdArgv.slice(2) : [];
+        const f = this.flags(NewCommand);
+        const adaptVerString = f.adaptVersion || this.config.version;
 
         if (!spec) {
             throw new UserError(`Missing 1 required arg:\nstarter\nSee more help with --help`);
@@ -56,8 +79,22 @@ export default class NewCommand extends AdaptBase {
         if (!dest || !isString(dest)) {
             throw new UserError(`Directory argument is not a string`);
         }
+        const adaptVersion = parse(adaptVerString);
 
-        const starter = createStarter(spec, path.resolve(dest), argv);
+        if (!adaptVersion) {
+            throw new UserError(`Adapt version '${adaptVerString}' must be ` +
+                `a valid semver string (Example: 1.0.1)`);
+        }
+
+        const sshHostKeyCheck = f.sshHostKeyCheck || "unset";
+        if (sshHostKeyCheck === "ask") this.interactive = true;
+
+        const starter = createStarter({
+            adaptVersion,
+            args,
+            destDir: path.resolve(dest),
+            spec,
+        });
         try {
             await starter.init();
 
@@ -74,7 +111,7 @@ export default class NewCommand extends AdaptBase {
                 },
             ]);
 
-            await tasks.run();
+            await withGitSshCommand(sshHostKeyCheck, () => tasks.run());
 
         } finally {
             await starter.cleanup();

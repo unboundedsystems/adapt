@@ -2,7 +2,7 @@ import {
     describeLong,
     k8sutils,
 } from "@adpt/testutils";
-import { sleep } from "@adpt/utils";
+import { grep, sleep } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import { expect } from "../common/fancy";
@@ -111,10 +111,3 @@ describeLong("tshello system tests", function () {
         expect(ret.stdout).equals("Hello World! via TypeScript");
     });
 });
-
-function grep(s: string, pat: RegExp | string): string[] {
-    return s.split("\n").filter((l) => {
-        return (typeof pat === "string") ?
-            l.includes(pat) : pat.test(l);
-    });
-}

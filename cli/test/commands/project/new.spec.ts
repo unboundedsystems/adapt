@@ -1,4 +1,6 @@
 import { mochaTmpdir } from "@adpt/testutils";
+import { grep } from "@adpt/utils";
+import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
 import { clitest, expect } from "../../common/fancy";
@@ -8,6 +10,10 @@ const basicTestChain =
     .stdout()
     .stderr()
     .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+
+function trying(stdout: string) {
+    return grep(stdout, "Trying").map((l) => l.replace(/^.*Trying /, ""));
+}
 
 describe("project:new errors", () => {
     mochaTmpdir.each("adapt-cli-test-new");
@@ -158,55 +164,211 @@ describe("project:new files", () => {
     .it("Should error if files are not present in starter");
 });
 
+// Name of a starter repo that exists in the gallery, but specifically set up
+// for these unit tests.
+const testStarter = "cli-unit-tests";
+
+// The version of Adapt to use for simple starter tests. The testStarter repo
+// above should have a tag that corresponds to this version. The tag should
+// follow the Adapt Version Label format for starters.
+// Example tag: adapt-v0.0.3
+const testAdaptVer = "0.0.3";
+const testAdaptVerCli = "--adaptVersion=" + testAdaptVer;
+const testAdaptVerLabel = "adapt-v" + testAdaptVer;
+
+// Name of a starter repo that is private and therefore requires credentials
+// to access.
+const testStarterPrivate = "gitlab:adpt/starters/cli-unit-tests-private";
+
+async function checkAdaptVersion(expectedLabel: string) {
+    const verPath = path.resolve(path.join("project", "ADAPT_VERSION"));
+    const actual = (await fs.readFile(verPath)).toString().replace(/\s+/g, "");
+    expect(actual).equals(expectedLabel, "Downloaded ADAPT_VERSION doesn't match expected");
+}
+
+async function checkTestStarter(expectedLabel: string) {
+    await checkAdaptVersion(expectedLabel);
+    const pjPath = path.resolve(path.join("project", "package.json"));
+    const pkg = await fs.readJson(pjPath);
+    expect(pkg.name).equals(testStarter);
+}
+
 describe("project:new download", () => {
     mochaTmpdir.each("adapt-cli-test-new");
 
     basicTestChain
-    .command(["project:new", "git+https://gitlab.com/adpt/starters/blank", "project"])
+    .command(["project:new", testAdaptVerCli, `git+https://gitlab.com/adpt/starters/${testStarter}`, "project"])
     .it("Should download from git+https URL", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
         expect(stdout).matches(/Creating new project \[completed\]/);
 
-        const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
-        const pkg = await fs.readJson(pjPath);
-        expect(pkg.name).equals("blank");
+        await checkTestStarter(testAdaptVerLabel);
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#${testAdaptVerLabel}`,
+        ]);
     });
 
     basicTestChain
-    .command(["project:new", "gitlab:mterrel/blank", "project"])
+    .command(["project:new", testAdaptVerCli, `gitlab:adpt/starters/${testStarter}`, "project"])
     .it("Should download from gitlab: URL", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
         expect(stdout).matches(/Creating new project \[completed\]/);
 
-        const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
-        const pkg = await fs.readJson(pjPath);
-        expect(pkg.name).equals("blank");
+        await checkTestStarter(testAdaptVerLabel);
+        expect(trying(stdout)).eqls([
+            `gitlab:adpt/starters/${testStarter}#${testAdaptVerLabel}`,
+        ]);
     });
 
     basicTestChain
-    .command(["project:new", "blank", "project"])
+    .command(["project:new", testAdaptVerCli, testStarter, "project"])
     .it("Should download from adpt gallery", async ({ stdout, stderr }) => {
         expect(stderr).equals("");
         expect(stdout).matches(/Downloading starter \[completed\]/);
         expect(stdout).matches(/Creating new project \[completed\]/);
 
-        const pjPath = path.resolve(path.join("project", "deploy", "package.json"));
-        const pkg = await fs.readJson(pjPath);
-        expect(pkg.name).equals("blank");
+        await checkTestStarter(testAdaptVerLabel);
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#${testAdaptVerLabel}`,
+        ]);
     });
 
     basicTestChain
-    .command(["project:new", "is-promise", "project"])
+    .command(["project:new", testAdaptVerCli, "is-promise", "project"])
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use 'is-promise' as a starter: ` +
             `no adapt_starter.json file found`);
         expect((err as any).oclif.exit).equals(2);
     })
-    .it("Should try to download from registry");
+    .it("Should try to download from registry and only try gallery once", ({ stdout }) => {
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/is-promise#adapt-v0.0.3`,
+            `is-promise@adapt-v0.0.3`,
+            `is-promise@adapt-v0.0`,
+            `is-promise@adapt-v0`,
+            `is-promise`,
+        ]);
+    });
 
+    basicTestChain
+    .command(["project:new", "--adaptVersion=0.0.4-next.0", testStarter, "project"])
+    .it("Should download prerelease version from adpt gallery with git tag", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkTestStarter("adapt-v0.0.4-next.0");
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.0.4-next.0`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=0.0.4-alpha", testStarter, "project"])
+    .it("Should download minor version from adpt gallery with git branch", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkTestStarter("adapt-v0.0");
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.0.4-alpha`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.0.4`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.0`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=0.1.4", testStarter, "project"])
+    .it("Should download major version from adpt gallery with git branch", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkTestStarter("adapt-v0");
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.1.4`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0.1`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v0`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=1.0.0", testStarter, "project"])
+    .it("Should download master branch from adpt gallery", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkTestStarter("master");
+        expect(trying(stdout)).eqls([
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v1.0.0`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v1.0`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}#adapt-v1`,
+            `git+https://gitlab.com/adpt/starters/${testStarter}`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=1.0.0", "@unboundedsystems/doesntexist", "project"])
+    .catch((err) => {
+        expect(err.message).equals(
+            `Unable to use '@unboundedsystems/doesntexist' as a starter: ` +
+            `404 Not Found - GET https://registry.npmjs.org/@unboundedsystems%2fdoesntexist - Not found`);
+        expect((err as any).oclif.exit).equals(2);
+    })
+    .it("Should try non-existent npm package only once", async ({ stdout }) => {
+        expect(trying(stdout)).eqls([
+            `@unboundedsystems/doesntexist@adapt-v1.0.0`,
+        ]);
+    });
+
+    basicTestChain
+    .command(["project:new", "--adaptVersion=1.0.0", testStarterPrivate, "project"])
+    .catch((err) => {
+        expect(err.message).matches(/Host key verification failed/);
+        expect((err as any).oclif.exit).equals(2);
+    })
+    .it("Should try only once on SSH host key verification failure", async ({ stdout }) => {
+        expect(trying(stdout)).eqls([
+            `${testStarterPrivate}#adapt-v1.0.0`,
+        ]);
+    });
+});
+
+/**
+ * Because --sshHostKeyCheck manipulates the process environment variables AND
+ * pacote (used by adapt project:new) caches the environment, we need to run
+ * these tests in a separate process to get pacote to load the current env
+ * each time.
+ */
+describe("project:new sshHostKeyCheck", () => {
+    const cliBin = path.resolve("./bin/run");
+
+    mochaTmpdir.each("adapt-cli-test-new");
+
+    basicTestChain
+    .withSshKey()
+    .it("Should download private gitlab repo with SSH and add host key", async (ctx) => {
+        const args = ["project:new", testAdaptVerCli, "--sshHostKeyCheck=no", testStarterPrivate, "project"];
+        const env = {
+            GIT_SSH_COMMAND: `ssh -i ${ctx.withSshKeyFile} -o UserKnownHostsFile=/dev/null`,
+        };
+        const out = await execa(cliBin, args, { env });
+        const { stdout, stderr } = out;
+
+        expect(stderr).equals("");
+        expect(stdout).matches(/Downloading starter \[completed\]/);
+        expect(stdout).matches(/Creating new project \[completed\]/);
+
+        await checkAdaptVersion(testAdaptVerLabel);
+        expect(trying(stdout)).eqls([
+            `${testStarterPrivate}#${testAdaptVerLabel}`,
+        ]);
+    });
 });
 
 describe("project:new scripts", () => {

@@ -4,6 +4,7 @@ export * from "./diff_objects";
 export * from "./dispatcher";
 export * from "./ensure_error";
 export * from "./env";
+export * from "./grep";
 export * from "./in_debugger";
 export * from "./internal_error";
 export * from "./is_instance";
