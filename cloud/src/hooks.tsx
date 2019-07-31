@@ -131,7 +131,7 @@ export function getInstanceValue<T = any>(hand: Handle, def: T, field: string, o
  * Get the value of field from the instance referenced by handled instance.
  *
  * @remarks
- * On first invocation, or if the handle is no associated with an element, or the field is not found,
+ * On first invocation, or if the handle is not associated with an element, or the field is not found,
  * the value of `initial` will be returned.  After the element referenced by handle has been instantiated,
  * this hook will fetch the actual value of `field`, cause a rebuild, and then return that value
  * on the next call of the hook.

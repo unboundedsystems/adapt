@@ -294,7 +294,7 @@ export interface LocalDockerImageProps {
      *
      * @remarks
      * LocalDockerImage uses a multi-stage build process.  It first creates
-     * a stage that includes the files specified in this field.  These fils are
+     * a stage that includes the files specified in this field.  These files are
      * then available to the `dockerfile` to copy into the final image.
      */
     files?: File[];
@@ -458,32 +458,3 @@ export interface DockerBuildStatus {
     buildObj: AdaptElement | null;
     image?: ImageInfo;
 }
-
-/*
-// Make options optional
-export type DockerBuildArgs = WithPartialT<LocalDockerImageProps, "options">;
-
-export function useDockerBuild(
-    prepOrArgs: (() => Promise<DockerBuildArgs> | DockerBuildArgs) | DockerBuildArgs,
-): DockerBuildStatus {
-    const [buildState, setBuildState] = useState<ImageInfo | undefined>(undefined);
-
-    const args = useAsync(async () => {
-        if (ld.isFunction(prepOrArgs)) return prepOrArgs();
-        return prepOrArgs;
-    }, undefined);
-
-    if (!args) return { buildObj: null };
-    const opts = { ...defaultDockerBuildOptions, ...(args.options || {}) };
-    const buildHand = handle();
-    const buildObj =
-        <LocalDockerImage
-            handle={buildHand}
-            {...args}
-            options={opts} />;
-
-    setBuildState(async () => buildHand.mountedOrig && buildHand.mountedOrig.instance.image);
-
-    return { image: buildState, buildObj };
-}
-*/

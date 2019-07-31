@@ -19,4 +19,4 @@ files?: File[];
 
 ## Remarks
 
-LocalDockerImage uses a multi-stage build process. It first creates a stage that includes the files specified in this field. These fils are then available to the `dockerfile` to copy into the final image.
+LocalDockerImage uses a multi-stage build process. It first creates a stage that includes the files specified in this field. These files are then available to the `dockerfile` to copy into the final image.
