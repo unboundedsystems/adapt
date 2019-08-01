@@ -6,15 +6,8 @@ import Adapt, {
     useImperativeMethods,
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
-import {
-    callInstanceMethod,
-    Container,
-    ImageInfo,
-    LocalDockerImage,
-    NetworkService,
-    Service,
-    useMethod
-} from "..";
+import { Container } from "../Container";
+import { callInstanceMethod, useMethod } from "../hooks";
 import {
     Destination,
     HttpServer as AbsHttpServer,
@@ -23,6 +16,9 @@ import {
     Match,
     useFilesInfo,
 } from "../http";
+import { ImageInfo, LocalDockerImage } from "../LocalDockerImage";
+import { NetworkService } from "../NetworkService";
+import { Service } from "../Service";
 
 const nginxImg = "nginx:latest";
 

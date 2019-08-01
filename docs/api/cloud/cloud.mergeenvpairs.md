@@ -9,6 +9,8 @@ hide_title: true
 
 ## mergeEnvPairs() function
 
+Combine multiple [Environment](./cloud.environment.md) objects into a single array of [EnvPair](./cloud.envpair.md) objects. Returns `undefined` if there are no `Environment` objects provided.
+
 <b>Signature:</b>
 
 ```typescript
@@ -24,3 +26,7 @@ export declare function mergeEnvPairs(...envs: (Environment | undefined)[]): Env
 <b>Returns:</b>
 
 `EnvPairs | undefined`
+
+## Remarks
+
+If more than one `Environment` object specifies the same environment variable name, the last one present in the array of arguments takes precedence.

@@ -1,5 +1,5 @@
 import { isString } from "util";
-import { AdaptElementOrNull } from "..";
+import { AdaptElementOrNull } from "../jsx";
 import { getAdaptContext } from "../ts";
 
 export interface Stack {

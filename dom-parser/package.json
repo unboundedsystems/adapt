@@ -23,7 +23,6 @@
     "nyc": "^12.0.2",
     "should": "^13.2.1",
     "source-map-support": "^0.5.5",
-    "tslint": "^5.10.0",
     "typescript": "^3.0.3"
   },
   "license": "UNLICENSED",

@@ -24,7 +24,7 @@ export * from "./PreloadedPostgresImage";
 |  --- | --- |
 |  [Postgres()](./cloud.postgres.postgres.md) | An abstract component representing a Postgres database within a Postgres server or service. |
 |  [PreloadedPostgresImage(props)](./cloud.postgres.preloadedpostgresimage.md) | Creates a throw-away [Postgres](https://www.postgresql.org) database with preloaded data. |
-|  [TestPostgres(props)](./cloud.postgres.testpostgres.md) |  |
+|  [TestPostgres(props)](./cloud.postgres.testpostgres.md) | A component suitable for creating test scenarios that creates a simple, temporary Postgres database that loads test data from a .sql file and which implements the abstract [postgres.Postgres()](./cloud.postgres.postgres.md) interface. |
 
 ## Interfaces
 

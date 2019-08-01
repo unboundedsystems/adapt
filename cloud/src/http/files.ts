@@ -3,10 +3,8 @@ import {
 } from "@adpt/core";
 import { Dispatcher } from "@adpt/utils";
 import { isObject, isString } from "lodash";
-import {
-    getInstanceValue,
-    ImageInfo,
-} from "..";
+import { getInstanceValue } from "../hooks";
+import { ImageInfo } from "../LocalDockerImage";
 import {
     Files,
     FilesInfo,

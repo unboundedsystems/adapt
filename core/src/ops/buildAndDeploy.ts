@@ -14,9 +14,7 @@ import * as path from "path";
  * NEVER "import * from " in this file.
  */
 // @ts-ignore
-import AdaptDontUse, {
-    ProjectBuildError,
-} from "..";
+import * as AdaptDontUse from "../exports";
 
 // @ts-ignore
 // tslint:disable-next-line:variable-name prefer-const
@@ -26,7 +24,7 @@ import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@adpt/u
 import { createPluginManager } from "../deploy/plugin_support";
 import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
-import { InternalError } from "../error";
+import { InternalError, ProjectBuildError } from "../error";
 import { AdaptMountedElement, FinalDomElement } from "../jsx";
 import {
     ExecutedQuery,

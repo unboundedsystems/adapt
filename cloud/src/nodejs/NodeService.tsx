@@ -1,18 +1,32 @@
 import Adapt, { Handle, handle, Sequence, SFCDeclProps, useImperativeMethods } from "@adpt/core";
-import {
-    callInstanceMethod,
-    Container,
-    Environment,
-    ImageInfo,
-    mergeEnvPairs,
-    NetworkService,
-    NetworkServiceScope,
-    Service,
-    useMethod,
-} from "..";
+import { toArray } from "@adpt/utils";
+import { Container, Environment, mergeEnvPairs } from "../Container";
+import { callInstanceMethod, useAsync, useMethod } from "../hooks";
+import { ImageInfo } from "../LocalDockerImage";
+import { NetworkService, NetworkServiceScope } from "../NetworkService";
+import { Service } from "../Service";
 import { LocalNodeImage } from "./LocalNodeImage";
 
 export interface NodeServiceProps {
+    /**
+     * Handles for services that this component connects to.
+     * @remarks
+     * The referenced service components should implement the
+     * {@link ConnectToInstance} interface. The Node Container will be
+     * started with the combined set of environment variables that are
+     * provided by all of the referenced components' {@link ConnectToInstance.connectEnv}
+     * methods, in addition to those provided via the {@link nodejs.NodeServiceProps.deps}
+     * prop.
+     *
+     * In case of environment variable naming conflicts among those in
+     * from the `connectTo` prop, the value from the handle with the highest
+     * index in the `connectTo` array will take precedence.
+     * In case of naming conflicts between `connectTo` and `env`, the value
+     * in `env` will take precedence.
+     * @defaultValue []
+     * @public
+     */
+    connectTo: Handle | Handle[];
     /**
      * Dependencies that must be deployed before the Container image will
      * build.
@@ -51,6 +65,7 @@ export interface NodeServiceProps {
 }
 
 const defaultProps = {
+    connectTo: [],
     deps: [],
     env: {},
     port: 8080,
@@ -104,14 +119,18 @@ const defaultProps = {
  * - image: {@link ImageInfo} | undefined
  *
  *   Information about the successfully built image, once it has been built.
+ * @public
  */
 export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof defaultProps>) {
-    const { deps, env, externalPort, port: targetPort, scope, srcDir } = props as NodeServiceProps;
+    const { connectTo, deps, env, externalPort, port: targetPort, scope, srcDir } = props as NodeServiceProps;
 
     const netSvc = handle();
     const nodeCtr = handle();
 
-    const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, env);
+    const connectEnvs = useAsync<(Environment | undefined)[]>(() => {
+        return toArray(connectTo).map((h) => callInstanceMethod(h, undefined, "connectEnv"));
+    }, []);
+    const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, ...connectEnvs, env);
 
     const img = handle();
     const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");

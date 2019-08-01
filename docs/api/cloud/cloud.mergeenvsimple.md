@@ -9,6 +9,8 @@ hide_title: true
 
 ## mergeEnvSimple() function
 
+Combine multiple [Environment](./cloud.environment.md) objects into a single [EnvSimple](./cloud.envsimple.md) object. Returns `undefined` if there are no `Environment` objects provided.
+
 <b>Signature:</b>
 
 ```typescript
@@ -24,3 +26,7 @@ export declare function mergeEnvSimple(...envs: (Environment | undefined)[]): En
 <b>Returns:</b>
 
 `EnvSimple | undefined`
+
+## Remarks
+
+If more than one `Environment` object specifies the same environment variable name, the last one present in the array of arguments takes precedence.

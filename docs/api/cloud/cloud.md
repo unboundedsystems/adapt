@@ -38,8 +38,8 @@ hide_title: true
 |  [hasInstanceMethod(name, skip)](./cloud.hasinstancemethod.md) |  |
 |  [isContainerElement(el)](./cloud.iscontainerelement.md) |  |
 |  [isNetworkServiceElement(el)](./cloud.isnetworkserviceelement.md) |  |
-|  [mergeEnvPairs(envs)](./cloud.mergeenvpairs.md) |  |
-|  [mergeEnvSimple(envs)](./cloud.mergeenvsimple.md) |  |
+|  [mergeEnvPairs(envs)](./cloud.mergeenvpairs.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single array of [EnvPair](./cloud.envpair.md) objects. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
+|  [mergeEnvSimple(envs)](./cloud.mergeenvsimple.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single [EnvSimple](./cloud.envsimple.md) object. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
 |  [notReplacedByStyle()](./cloud.notreplacedbystyle.md) |  |
 |  [targetPort(elemOrProps)](./cloud.targetport.md) |  |
 |  [useAsync(f, initial)](./cloud.useasync.md) |  |
@@ -53,6 +53,7 @@ hide_title: true
 |  Interface | Description |
 |  --- | --- |
 |  [ComputeProps](./cloud.computeprops.md) |  |
+|  [ConnectToInstance](./cloud.connecttoinstance.md) | Components that provide a service, such as a database service or API service, can implement this interface in order to supply all the information required to connect to the service. |
 |  [ContainerProps](./cloud.containerprops.md) |  |
 |  [ContainerState](./cloud.containerstate.md) |  |
 |  [ContainerStatus](./cloud.containerstatus.md) |  |
@@ -60,6 +61,7 @@ hide_title: true
 |  [DockerBuildStatus](./cloud.dockerbuildstatus.md) |  |
 |  [DockerGlobalOptions](./cloud.dockerglobaloptions.md) |  |
 |  [DockerHostProps](./cloud.dockerhostprops.md) |  |
+|  [DockerImageInstance](./cloud.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
 |  [EnvPair](./cloud.envpair.md) |  |
 |  [EnvSimple](./cloud.envsimple.md) |  |
 |  [ExtendedHandle](./cloud.extendedhandle.md) |  |

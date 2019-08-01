@@ -9,6 +9,8 @@ hide_title: true
 
 ## postgres.TestPostgres() function
 
+A component suitable for creating test scenarios that creates a simple, temporary Postgres database that loads test data from a .sql file and which implements the abstract [postgres.Postgres()](./cloud.postgres.postgres.md) interface.
+
 <b>Signature:</b>
 
 ```typescript
