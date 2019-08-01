@@ -4,8 +4,8 @@ import fs from "fs-extra";
 import should from "should";
 import { EnvPair, Service, ServiceProps } from "../../src";
 import { ConnectToInstance } from "../../src/ConnectTo";
+import { DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
 import { Kubeconfig, Resource, ServiceDeployment } from "../../src/k8s";
-import { DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/LocalDockerImage";
 import { NodeService } from "../../src/nodejs";
 import { doBuild } from "../testlib";
 

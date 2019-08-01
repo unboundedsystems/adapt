@@ -4,8 +4,8 @@ import Adapt, {
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
+import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps } from "../docker";
 import { callInstanceMethod, useInstanceValue } from "../hooks";
-import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps } from "../LocalDockerImage";
 
 /**
  * Props for {@link nodejs.LocalNodeImage}

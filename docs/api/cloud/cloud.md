@@ -20,7 +20,6 @@ hide_title: true
 |  [LocalCompute](./cloud.localcompute.md) |  |
 |  [LocalContainer](./cloud.localcontainer.md) |  |
 |  [LocalDockerHost](./cloud.localdockerhost.md) |  |
-|  [LocalDockerImage](./cloud.localdockerimage.md) | Locally builds a docker image |
 |  [NetworkService](./cloud.networkservice.md) | An abstract component that represents a network service. |
 |  [Service](./cloud.service.md) | An abstract component that represents a group of components that implements a service. Note that this is not necessarily a network service, but will often be. |
 
@@ -28,10 +27,8 @@ hide_title: true
 
 |  Function | Description |
 |  --- | --- |
-|  [buildFilesImage(files, opts)](./cloud.buildfilesimage.md) |  |
 |  [callInstanceMethod(hand, def, methodName, args)](./cloud.callinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call method on instance pointed to by handle |
 |  [callNextInstanceMethod(hand, def, methodName, args)](./cloud.callnextinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call a method on the successor instance of the one pointed to by handle. |
-|  [dockerBuild(dockerfile, contextPath, options)](./cloud.dockerbuild.md) |  |
 |  [extendedHandle()](./cloud.extendedhandle.md) |  |
 |  [getInstanceValue(hand, def, field, optionsIn)](./cloud.getinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of a field on an element instance |
 |  [handles()](./cloud.handles.md) |  |
@@ -46,7 +43,6 @@ hide_title: true
 |  [useInstanceValue(hand, initial, field)](./cloud.useinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of field from the instance referenced by handled instance. |
 |  [useMethod(hand, initial, method, args)](./cloud.usemethod.md) |  |
 |  [useMethodFrom(hand, methodName, defaultVal, args)](./cloud.usemethodfrom.md) |  |
-|  [withFilesImage(files, opts, fn)](./cloud.withfilesimage.md) |  |
 
 ## Interfaces
 
@@ -57,25 +53,17 @@ hide_title: true
 |  [ContainerProps](./cloud.containerprops.md) |  |
 |  [ContainerState](./cloud.containerstate.md) |  |
 |  [ContainerStatus](./cloud.containerstatus.md) |  |
-|  [DockerBuildOptions](./cloud.dockerbuildoptions.md) |  |
-|  [DockerBuildStatus](./cloud.dockerbuildstatus.md) |  |
-|  [DockerGlobalOptions](./cloud.dockerglobaloptions.md) |  |
 |  [DockerHostProps](./cloud.dockerhostprops.md) |  |
 |  [DockerImageInstance](./cloud.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
 |  [EnvPair](./cloud.envpair.md) |  |
 |  [EnvSimple](./cloud.envsimple.md) |  |
 |  [ExtendedHandle](./cloud.extendedhandle.md) |  |
 |  [ExternalDockerHostProps](./cloud.externaldockerhostprops.md) |  |
-|  [File](./cloud.file.md) |  |
 |  [GetInstanceValueOptions](./cloud.getinstancevalueoptions.md) |  |
-|  [ImageInfo](./cloud.imageinfo.md) |  |
 |  [Links](./cloud.links.md) |  |
-|  [LocalDockerImageProps](./cloud.localdockerimageprops.md) | Props for [LocalDockerImage](./cloud.localdockerimage.md) |
-|  [LocalDockerImageState](./cloud.localdockerimagestate.md) |  |
 |  [NetworkServiceProps](./cloud.networkserviceprops.md) |  |
 |  [PortBinding](./cloud.portbinding.md) |  |
 |  [ServiceProps](./cloud.serviceprops.md) |  |
-|  [Stage](./cloud.stage.md) |  |
 
 ## Namespaces
 
@@ -83,6 +71,7 @@ hide_title: true
 |  --- | --- |
 |  [ansible](./cloud.ansible.md) |  |
 |  [aws](./cloud.aws.md) |  |
+|  [docker](./cloud.docker.md) |  |
 |  [http](./cloud.http.md) |  |
 |  [k8s](./cloud.k8s.md) |  |
 |  [nginx](./cloud.nginx.md) |  |
@@ -94,7 +83,6 @@ hide_title: true
 |  Variable | Description |
 |  --- | --- |
 |  [defaultGetInstanceValueOptions](./cloud.defaultgetinstancevalueoptions.md) |  |
-|  [pickGlobals](./cloud.pickglobals.md) |  |
 
 ## Type Aliases
 

@@ -1,4 +1,5 @@
-import { ImageInfo, useMethod } from "@adpt/cloud";
+import { useMethod } from "@adpt/cloud";
+import { ImageInfo } from "@adpt/cloud/docker";
 import { K8sContainer, Pod, Service } from "@adpt/cloud/k8s";
 import { LocalNodeImage } from "@adpt/cloud/nodejs";
 import Adapt, { Group, handle } from "@adpt/core";

@@ -16,6 +16,7 @@ import * as path from "path";
 import { URL } from "url";
 import { isString, promisify } from "util";
 import { Container } from "../Container";
+import { ImageInfo, LocalDockerImage } from "../docker";
 import { handles } from "../handles";
 import { callInstanceMethod, useAsync, useMethod } from "../hooks";
 import {
@@ -24,7 +25,6 @@ import {
     UrlRouter as AbsUrlRouter,
     UrlRouterProps as AbsUrlRouterProps,
 } from "../http";
-import { ImageInfo, LocalDockerImage } from "../LocalDockerImage";
 import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 
