@@ -12,14 +12,14 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare function useImperativeMethods(create: () => GenericInstance): void;
+export declare function useImperativeMethods<T extends object = AnyMethods>(create: () => T & GenericInstance): void;
 ```
 
 ## Parameters
 
 |  Parameter | Type | Description |
 |  --- | --- | --- |
-|  create | <code>() =&gt; GenericInstance</code> |  |
+|  create | <code>() =&gt; T &amp; GenericInstance</code> |  |
 
 <b>Returns:</b>
 

@@ -19,6 +19,7 @@ export interface NodeServiceProps
 
 |  Property | Type | Description |
 |  --- | --- | --- |
+|  [connectTo](./cloud.nodejs.nodeserviceprops.connectto.md) | <code>Handle &#124; Handle[]</code> | Handles for services that this component connects to. |
 |  [deps](./cloud.nodejs.nodeserviceprops.deps.md) | <code>Handle &#124; Handle[]</code> | Dependencies that must be deployed before the Container image will build. |
 |  [env](./cloud.nodejs.nodeserviceprops.env.md) | <code>Environment</code> | Object containing environment variables that the Container will be started with. |
 |  [externalPort](./cloud.nodejs.nodeserviceprops.externalport.md) | <code>number</code> | The port that the NetworkService will expose. |

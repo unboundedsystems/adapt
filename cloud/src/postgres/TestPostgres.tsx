@@ -1,4 +1,5 @@
 import Adapt, { handle, Sequence, useImperativeMethods } from "@adpt/core";
+import { ConnectToInstance } from "../ConnectTo";
 import { Container } from "../Container";
 import { useMethod } from "../hooks";
 import { ImageInfo, } from "../LocalDockerImage";
@@ -6,12 +7,18 @@ import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
 
+/**
+ * A component suitable for creating test scenarios that creates a simple,
+ * temporary Postgres database that loads test data from a .sql file and
+ * which implements the abstract {@link postgres.Postgres} interface.
+ * @public
+ */
 export function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {
     const dbCtr = handle();
     const svc = handle();
-    const svcHostname = useMethod(svc, undefined, "hostname");
+    const svcHostname = useMethod<string | undefined>(svc, undefined, "hostname");
 
-    useImperativeMethods(() => ({
+    useImperativeMethods<ConnectToInstance>(() => ({
         connectEnv: () => {
             if (!svcHostname) return undefined;
             return [

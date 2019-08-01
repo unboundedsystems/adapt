@@ -107,17 +107,34 @@ export function isContainerElement(el: AdaptElement): el is AdaptElement<Contain
     return el.componentType as any === Container;
 }
 
+/**
+ * Combine multiple {@link Environment} objects into a single array of
+ * {@link EnvPair} objects. Returns `undefined` if there are no `Environment`
+ * objects provided.
+ * @remarks
+ * If more than one `Environment` object specifies the same environment variable
+ * name, the last one present in the array of arguments takes precedence.
+ * @public
+ */
 export function mergeEnvPairs(...envs: (Environment | undefined)[]): EnvPairs | undefined {
-    let ret: EnvPairs | undefined;
-    envs.forEach((e) => {
-        if (!e) return;
-        if (!ret) ret = [];
-        ret = ret.concat(Array.isArray(e) ? e :
-            Object.keys(e).map((name) => ({ name, value: e[name] })));
-    });
-    return ret;
+    const vals = new Map<string, EnvPair>();
+    for (const e of envs) {
+        if (!e) continue;
+        if (Array.isArray(e)) e.forEach((pair) => vals.set(pair.name, pair));
+        else Object.keys(e).map((name) => vals.set(name, { name, value: e[name] }));
+    }
+    return vals.size ? [ ...vals.values() ] : undefined;
 }
 
+/**
+ * Combine multiple {@link Environment} objects into a single
+ * {@link EnvSimple} object. Returns `undefined` if there are no `Environment`
+ * objects provided.
+ * @remarks
+ * If more than one `Environment` object specifies the same environment variable
+ * name, the last one present in the array of arguments takes precedence.
+ * @public
+ */
 export function mergeEnvSimple(...envs: (Environment | undefined)[]): EnvSimple | undefined {
     let ret: EnvSimple | undefined;
     envs.forEach((e) => {

@@ -1,4 +1,5 @@
 export * from "./Compute";
+export * from "./ConnectTo";
 export * from "./Container";
 export * from "./DockerHost";
 export * from "./LocalCompute";

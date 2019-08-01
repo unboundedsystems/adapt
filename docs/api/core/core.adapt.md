@@ -107,6 +107,7 @@ export { internal, };
 |  [ActionChange](./core.adapt.actionchange.md) | Describes the effect an Action has on an Element type and detail here explain how the Action affects this specific element, which may or may not be different than the action. For example, an Action that performs a modify on a CloudFormation stack may cause certain Elements to be created and deleted within that Action. |
 |  [ActionInfo](./core.adapt.actioninfo.md) | Describes the overall effect that an Action is performing. type and detail here explain what the Action is doing overall, not how it affects any particular Element. |
 |  [ActOptions](./core.adapt.actoptions.md) |  |
+|  [AnyMethods](./core.adapt.anymethods.md) |  |
 |  [BuildContext](./core.adapt.buildcontext.md) |  |
 |  [BuildOpAscend](./core.adapt.buildopascend.md) |  |
 |  [BuildOpDescend](./core.adapt.buildopdescend.md) |  |
