@@ -4,7 +4,8 @@ import {
     print as gqlPrint
 } from "graphql";
 import * as ld from "lodash";
-import { ExecutedQuery, Observations, ObserverResponse } from ".";
+import { ExecutedQuery, Observations } from "./obs_manager_deployment";
+import { ObserverResponse } from "./plugin";
 
 function isObject(x: unknown): x is object {
     return ld.isObject(x);

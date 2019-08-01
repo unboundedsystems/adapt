@@ -11,7 +11,9 @@ import {
 } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
 import * as path from "path";
-import { ExecutedQuery, ObserverNeedsData, ObserverPlugin, ObserverResponse } from ".";
+import { ObserverNeedsData } from "./errors";
+import { ExecutedQuery } from "./obs_manager_deployment";
+import { ObserverPlugin, ObserverResponse } from "./plugin";
 
 import { MockObject, QueryResolvers } from "../../generated/src/observers/mock_observer_schema_types";
 import { registerObserver } from "./registry";

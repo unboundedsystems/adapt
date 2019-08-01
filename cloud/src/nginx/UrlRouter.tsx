@@ -15,23 +15,18 @@ import { writeFile } from "fs-extra";
 import * as path from "path";
 import { URL } from "url";
 import { isString, promisify } from "util";
-import {
-    callInstanceMethod,
-    Container,
-    handles,
-    ImageInfo,
-    LocalDockerImage,
-    NetworkService,
-    Service,
-    useAsync,
-    useMethod
-} from "..";
+import { Container } from "../Container";
+import { handles } from "../handles";
+import { callInstanceMethod, useAsync, useMethod } from "../hooks";
 import {
     checkUrlEndpoints,
     ResolvedRoute,
     UrlRouter as AbsUrlRouter,
     UrlRouterProps as AbsUrlRouterProps,
 } from "../http";
+import { ImageInfo, LocalDockerImage } from "../LocalDockerImage";
+import { NetworkService } from "../NetworkService";
+import { Service } from "../Service";
 
 const nginxImg = "nginx:latest";
 

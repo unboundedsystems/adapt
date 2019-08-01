@@ -16,6 +16,11 @@
             true,
             "ignore-same-line"
         ],
+        "import-blacklist": [
+            true,
+            ".",
+            [ "\\.\\.$" ]
+        ],
         "interface-name": false,
         "max-classes-per-file": false,
         "member-access": false,

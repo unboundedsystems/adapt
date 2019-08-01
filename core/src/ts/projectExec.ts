@@ -8,7 +8,7 @@ import { exec } from "./exec";
 import { MemFileHost } from "./hosts";
 
 // Import for type only
-import * as Adapt from "..";
+import * as Adapt from "../exports";
 
 export interface AdaptContext {
     pluginModules: Map<string, PluginModule>;

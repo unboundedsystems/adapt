@@ -12,7 +12,7 @@ import {
     print as gqlPrint
 } from "graphql";
 import * as ld from "lodash";
-import { ObserverResponse } from ".";
+import { ObserverResponse } from "./plugin";
 import { adaptGqlExecute } from "./query_transforms";
 import { ObserverNameHolder } from "./registry";
 

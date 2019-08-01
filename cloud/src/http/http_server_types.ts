@@ -1,5 +1,6 @@
 import { Handle } from "@adpt/core";
-import { NetworkServiceScope, Stage } from "..";
+import { Stage } from "../LocalDockerImage";
+import { NetworkServiceScope } from "../NetworkService";
 
 /*
  * Match types

@@ -1,5 +1,9 @@
 import Adapt, { handle, Sequence, useImperativeMethods } from "@adpt/core";
-import { Container, ImageInfo, NetworkService, Service, useMethod } from "..";
+import { Container } from "../Container";
+import { useMethod } from "../hooks";
+import { ImageInfo, } from "../LocalDockerImage";
+import { NetworkService } from "../NetworkService";
+import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
 
 export function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {

@@ -89,6 +89,7 @@ describe("isInstance", () => {
     });
 
     it("Should fail to tag an anonymous function", () => {
+        // tslint:disable-next-line: function-constructor
         const func = new Function();
         should(() => tagConstructor(func)).throwError(/Anonymous functions unsupported/);
     });
