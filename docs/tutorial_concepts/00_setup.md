@@ -55,7 +55,7 @@ In order to keep everything self-contained and easy to clean up, we'll use a Doc
 
 To deploy the local cluster and get the credentials:
 
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
 docker run --rm --privileged -d -p10001:2375 -p8443:8443 -p8080:8080 --name k3s unboundedsystems/k3s-dind
 
@@ -69,7 +69,7 @@ You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes t
 
 To make sure all the rest of the steps in this tutorial use the new Docker-in-Docker instance we just created, we need to change your `DOCKER_HOST` environment variable.
 We'll also save the old value, so we can set it back after we're done.
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
 ORIG_DOCKER_HOST="${DOCKER_HOST}"
 export DOCKER_HOST=localhost:10001

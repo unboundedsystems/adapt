@@ -17,7 +17,7 @@
 As we've seen, the starter template we used with `adapt new` has created a default set of code for both our front end and back end application.
 If we were writing our app from scratch, we'd start writing some React code in the `src` directory and some Node.js code for our API in the `backend` directory.
 But for this guide, we'll simply copy in some already-written code for our movie database app:
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
 curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v1/gsg-moviedb-v1.tar.gz | tar -zxv --strip=1 -C ..
 ```
@@ -29,7 +29,7 @@ This command should have added:
 
 ## Update!
 Now, update the deployment, which will push our newly written code and populate the database with the test data:
-<!-- testdoc command -->
+<!-- doctest command -->
 ```
 adapt update movieapp
 ```
