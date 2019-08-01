@@ -22,7 +22,7 @@ import { sha256hex } from "@adpt/utils";
 import jsonStableStringify = require("json-stable-stringify");
 import * as ld from "lodash";
 
-import { Kind, Metadata, ResourceBase, ResourceProps, Spec } from "./common";
+import { Kind, Kubeconfig, Metadata, ResourceBase, ResourceProps, Spec } from "./common";
 import { isResourceFinalElement, Resource } from "./Resource";
 
 // tslint:disable-next-line:no-var-requires
@@ -201,15 +201,19 @@ function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Mani
 
 class Connections {
 
-    private static toKey(elemOrConfig: AdaptElement<ResourceProps> | any) {
-        let config = elemOrConfig;
+    private static toKey(elemOrConfig: AdaptElement<ResourceProps> | Kubeconfig) {
+        let config: Kubeconfig;
         if (Adapt.isElement(elemOrConfig)) {
             const res = elemOrConfig;
             if (!isResourceFinalElement(res)) throw new Error("Cannot lookup connection for non-resource elements");
-            config = res.props.config;
+            config = res.props.config.kubeconfig;
+        } else {
+            config = elemOrConfig;
         }
 
-        if (!ld.isObject(config)) throw new Error("Cannot lookup connection for non-object resource configs");
+        if (!ld.isObject(config)) {
+            throw new Error("Cannot lookup connection for non-object resource configs");
+        }
         return canonicalConfigJSON(config);
     }
 
@@ -227,7 +231,7 @@ class Connections {
 }
 
 //Exported for tests only
-export function canonicalConfigJSON(config: any) {
+export function canonicalConfigJSON(config: Kubeconfig) {
     return jsonStableStringify(config); //FIXME(manishv) Make this truly canonicalize based on data.
 }
 
@@ -322,7 +326,7 @@ function notUndef(x: string | undefined): x is string {
 }
 
 // NOTE(mark): Where is auth information stored for k8s? In kubeconfig?
-type K8sQueryDomain = QueryDomain<ResourceBase["config"], null>;
+type K8sQueryDomain = QueryDomain<ResourceBase["config"]["kubeconfig"], null>;
 type ResourceElement = FinalDomElement<ResourceProps>;
 type K8sPair = WidgetPair<ResourceElement, ResourceObject>;
 
@@ -335,7 +339,7 @@ class K8sPluginImpl
         return findResourceElems(dom);
     }
     getElemQueryDomain = (el: ResourceElement) => {
-        return { id: el.props.config, secret: null };
+        return { id: el.props.config.kubeconfig, secret: null };
     }
     getWidgetTypeFromObs = (obs: ResourceObject): string => {
         return obs.kind;

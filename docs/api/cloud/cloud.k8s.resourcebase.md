@@ -19,6 +19,6 @@ export interface ResourceBase
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [config](./cloud.k8s.resourcebase.config.md) | <code>object</code> |  |
+|  [config](./cloud.k8s.resourcebase.config.md) | <code>ClusterInfo</code> |  |
 |  [kind](./cloud.k8s.resourcebase.kind.md) | <code>Kind</code> |  |
 |  [metadata](./cloud.k8s.resourcebase.metadata.md) | <code>Metadata</code> |  |

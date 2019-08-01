@@ -16,10 +16,12 @@ import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import * as abs from "../../src";
 import {
+    ClusterInfo,
     createK8sPlugin,
     K8sContainer,
     k8sContainerProps,
     K8sPlugin,
+    Kubeconfig,
     Pod,
     resourceElementToName
 } from "../../src/k8s";
@@ -30,10 +32,13 @@ import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
 
+// tslint:disable-next-line: no-object-literal-type-assertion
+const dummyConfig = {} as ClusterInfo;
+
 describe("k8s Pod Component Tests", () => {
     it("Should Instantiate Pod", () => {
         const pod =
-            <Pod key="test" config={{}}>
+            <Pod key="test" config={dummyConfig}>
                 <K8sContainer name="onlyContainer" image="node:latest" />
             </Pod>;
 
@@ -42,7 +47,7 @@ describe("k8s Pod Component Tests", () => {
 
     it("Should enforce unique container names", async () => {
         const pod =
-            <Pod key="test" config={{}}>
+            <Pod key="test" config={dummyConfig}>
                 <K8sContainer name="container" image="node:latest" />
                 <K8sContainer name="dupContainer" image="node:latest" />
                 <K8sContainer name="dupContainer" image="node:latest" />
@@ -83,7 +88,7 @@ describe("k8s Pod Component Tests", () => {
                     <K8sContainer {...k8sContainerProps(props)} />
                 ))}
                 {abs.Compute} {rule<abs.ComputeProps>((props) => (
-                    <Pod config={{}}>
+                    <Pod config={dummyConfig}>
                         {props.children}
                     </Pod>
                 ))}
@@ -134,14 +139,14 @@ describe("k8s Pod Operation Tests", function () {
     let plugin: K8sPlugin;
     let logger: MockLogger;
     let options: PluginOptions;
-    let kubeconfig: k8sutils.KubeConfig;
+    let kubeClusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
         this.slow(20 * 1000);
-        kubeconfig = await mkInstance.kubeconfig;
+        kubeClusterInfo = { kubeconfig: await mkInstance.kubeconfig as Kubeconfig };
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
     });
@@ -168,7 +173,7 @@ describe("k8s Pod Operation Tests", function () {
 
     it("Should compute actions with no pods from k8s", async () => {
         const pod =
-            <Pod key="test" config={kubeconfig}>
+            <Pod key="test" config={kubeClusterInfo}>
                 <K8sContainer name="container" image="node:latest" />
             </Pod>;
 
@@ -191,7 +196,7 @@ describe("k8s Pod Operation Tests", function () {
 
     it("Should distinguish between modify and create actions", async () => {
         const pod =
-            <Pod key="test" config={kubeconfig}>
+            <Pod key="test" config={kubeClusterInfo}>
                 <K8sContainer name="container" image="node:latest" />
             </Pod>;
         if (!deployID) throw new Error(`Missing deployID?`);
@@ -218,7 +223,7 @@ describe("k8s Pod Operation Tests", function () {
             status: { phase: "" }
         };
 
-        obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
+        obs[canonicalConfigJSON(kubeClusterInfo.kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.modify);
@@ -234,7 +239,7 @@ describe("k8s Pod Operation Tests", function () {
 
     async function createPod(name: string): Promise<AdaptElementOrNull> {
         const pod =
-            <Pod key={name} config={kubeconfig} terminationGracePeriodSeconds={0}>
+            <Pod key={name} config={kubeClusterInfo} terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>;
 
@@ -281,7 +286,7 @@ describe("k8s Pod Operation Tests", function () {
         //5s sleep diff to cause modify vs. 3s sleep in createPod
         const command = ["sleep", "5s"];
         const pod =
-            <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
+            <Pod key="test" config={kubeClusterInfo} terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 
@@ -319,7 +324,7 @@ describe("k8s Pod Operation Tests", function () {
         //No diff
         const command = ["sleep", "3s"];
         const pod =
-            <Pod key="test" config={kubeconfig} terminationGracePeriodSeconds={0}>
+            <Pod key="test" config={kubeClusterInfo} terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>;
 

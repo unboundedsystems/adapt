@@ -7,6 +7,7 @@ import Adapt, {
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import { Container } from "../Container";
+import { ImageInfo, LocalDockerImage } from "../docker";
 import { callInstanceMethod, useMethod } from "../hooks";
 import {
     Destination,
@@ -16,7 +17,6 @@ import {
     Match,
     useFilesInfo,
 } from "../http";
-import { ImageInfo, LocalDockerImage } from "../LocalDockerImage";
 import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 

@@ -59,6 +59,9 @@ However, there are technology-specific Components that can be used in Style Shee
 
 ## Docker
 
+### Components
+- [LocalDockerImage](./cloud.docker.localdockerimage.md)
+
 ## Kubernetes
 
 ### Components
@@ -74,7 +77,6 @@ However, there are technology-specific Components that can be used in Style Shee
 - [LocalCompute](./cloud.localcompute.md)
 - [LocalContainer](./cloud.localcontainer.md)
 - [LocalDockerHost](./cloud.localdockerhost.md)
-- [LocalDockerImage](./cloud.localdockerimage.md)
 
 ## Nginx
 

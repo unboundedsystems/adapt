@@ -6,9 +6,9 @@ import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
 import Adapt, { concatStyles, Style } from "@adpt/core";
 import { ProdPostgres } from "./postgres";
 
-export function kubeconfig() {
+export function kubeClusterInfo() {
     // tslint:disable-next-line:no-var-requires
-    return require("./kubeconfig.json");
+    return { kubeconfig: require("./kubeconfig.json") };
 }
 
 // Terminate containers quickly for demos
@@ -37,7 +37,7 @@ export const k8sStyle = concatStyles(commonStyle,
             <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
 
         {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
-            <ServiceDeployment config={kubeconfig()} {...props} {...demoProps} />)}
+            <ServiceDeployment config={kubeClusterInfo()} {...props} {...demoProps} />)}
     </Style>);
 
 /*
@@ -58,5 +58,5 @@ export const prodStyle = concatStyles(commonStyle,
             <ProdPostgres />)}
 
         {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
-            <ServiceDeployment config={kubeconfig()} {...props} />)}
+            <ServiceDeployment config={kubeClusterInfo()} {...props} />)}
     </Style>);

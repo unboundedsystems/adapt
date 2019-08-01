@@ -63,6 +63,6 @@ Returns the port number of the NetworkService, once it is known.
 
 Instance properties:
 
-- image: [ImageInfo](./cloud.imageinfo.md) \| undefined
+- image:  \| undefined
 
 Information about the successfully built image, once it has been built.

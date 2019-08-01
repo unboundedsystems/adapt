@@ -8,7 +8,8 @@ import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
 
-import { ImageInfo, useInstanceValue } from "../../src";
+import { useInstanceValue } from "../../src";
+import { ImageInfo } from "../../src/docker";
 import {
     LocalNodeImage,
     NodeImageBuildOptions,

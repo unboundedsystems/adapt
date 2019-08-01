@@ -19,7 +19,7 @@ export interface ServiceDeploymentProps extends AbsServiceProps
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [config](./cloud.k8s.servicedeploymentprops.config.md) | <code>Kubeconfig</code> |  |
+|  [config](./cloud.k8s.servicedeploymentprops.config.md) | <code>ClusterInfo</code> |  |
 |  [containerProps](./cloud.k8s.servicedeploymentprops.containerprops.md) | <code>Partial&lt;K8sContainerProps&gt;</code> |  |
 |  [podProps](./cloud.k8s.servicedeploymentprops.podprops.md) | <code>Partial&lt;PodProps&gt;</code> |  |
 |  [serviceProps](./cloud.k8s.servicedeploymentprops.serviceprops.md) | <code>Partial&lt;ServiceProps&gt;</code> |  |

@@ -1,7 +1,7 @@
 import Adapt, { handle, useImperativeMethods, useState } from "@adpt/core";
 import * as fs from "fs-extra";
+import { LocalDockerImage, LocalDockerImageProps } from "../docker";
 import { callInstanceMethod, useInstanceValue } from "../hooks";
-import { LocalDockerImage, LocalDockerImageProps } from "../LocalDockerImage";
 
 /**
  * Props for {@link postgres.PreloadedPostgresImage}

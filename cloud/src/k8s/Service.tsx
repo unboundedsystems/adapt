@@ -18,7 +18,7 @@ import { removeUndef } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, isObject, pick } from "lodash";
 import * as abs from "../NetworkService";
-import { computeNamespaceFromMetadata, Kubeconfig, ResourceProps, ResourceService } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
 import { Resource } from "./Resource";
@@ -29,7 +29,7 @@ import { Resource } from "./Resource";
 // kubectl expose pod fixme-manishv-nodecellar.nodecellar-compute.nodecellar-compute0 --port 8080 --target-port 8080 --name nodecellar
 
 export interface ServiceProps extends ServiceSpec {
-    config: Kubeconfig; //Legal configuration loaded from kubeconfig
+    config: ClusterInfo; //Legal configuration loaded from kubeconfig
     selector?: Handle | object;
 }
 
@@ -438,7 +438,7 @@ export const serviceResourceInfo = {
             }`,
             {
                 name: resourceIdToName(buildData.id, buildData.deployID),
-                kubeconfig: props.config,
+                kubeconfig: props.config.kubeconfig,
                 namespace: computeNamespaceFromMetadata(props.metadata)
             }
         );

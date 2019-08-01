@@ -4,8 +4,8 @@ import fs from "fs-extra";
 import should from "should";
 import { EnvPair, Service, ServiceProps } from "../../src";
 import { ConnectToInstance } from "../../src/ConnectTo";
+import { DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
 import { Kubeconfig, Resource, ServiceDeployment } from "../../src/k8s";
-import { DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/LocalDockerImage";
 import { NodeService } from "../../src/nodejs";
 import { doBuild } from "../testlib";
 
@@ -34,7 +34,7 @@ const kconfig: Kubeconfig = {} as any;
 const k8sStyle =
     <Style>
         {Service} {rule<ServiceProps>(({ handle: _h, ...props }) =>
-            <ServiceDeployment config={kconfig} {...props} />)}
+            <ServiceDeployment config={{ kubeconfig: kconfig }} {...props} />)}
         {LocalDockerImage} {rule(() => <MockDockerImage />)}
     </Style>;
 
@@ -54,7 +54,7 @@ describe("NodeService", () => {
     });
 
     it("Should merge env vars from connectTo", async () => {
-        const [ h1, h2 ] = [ handle(), handle() ];
+        const [h1, h2] = [handle(), handle()];
         const orig =
             <Group>
                 <Provider key="1" handle={h1} connectEnv={() => ({ A: "1", B: "1", C: "1" })} />

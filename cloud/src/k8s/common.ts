@@ -31,8 +31,20 @@ export interface ResourceInfo {
     specsEqual(actual: Spec, element: Spec): boolean;
 }
 
+/**
+ * Holds the information needed to connect, authenticate, and run code in a kuberenetes cluster
+ *
+ * @public
+ */
+export interface ClusterInfo {
+    /** Javascript object formed by parsing a valid kubeconfig file */
+    kubeconfig: Kubeconfig;
+    /** URL to which Docker images used by the cluster in `kubeconfig` should be pushed */
+    registryUrl?: string;
+}
+
 export interface ResourceBase {
-    config: object; //Legal kubeconfig object
+    config: ClusterInfo;
     kind: Kind;
     metadata?: Metadata;
 }

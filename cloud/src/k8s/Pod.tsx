@@ -11,14 +11,14 @@ import Adapt, {
 } from "@adpt/core";
 import { removeUndef } from "@adpt/utils";
 import * as ld from "lodash";
-import { computeNamespaceFromMetadata, ResourceProps } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps } from "./common";
 import { ContainerSpec, isContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceIdToName } from "./k8s_plugin";
 import { Resource } from "./Resource";
 
 export interface PodProps {
-    config: any; //Legal configuration loaded from kubeconfig
+    config: ClusterInfo;
     terminationGracePeriodSeconds?: number;
     children: AdaptElement | AdaptElement[];
 }
@@ -189,7 +189,7 @@ export const podResourceInfo = {
             }`,
             {
                 name: resourceIdToName(buildData.id, buildData.deployID),
-                kubeconfig: props.config,
+                kubeconfig: props.config.kubeconfig,
                 namespace: computeNamespaceFromMetadata(props.metadata)
             }
         );
