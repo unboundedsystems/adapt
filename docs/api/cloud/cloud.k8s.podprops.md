@@ -20,5 +20,5 @@ export interface PodProps
 |  Property | Type | Description |
 |  --- | --- | --- |
 |  [children](./cloud.k8s.podprops.children.md) | <code>AdaptElement &#124; AdaptElement[]</code> |  |
-|  [config](./cloud.k8s.podprops.config.md) | <code>any</code> |  |
+|  [config](./cloud.k8s.podprops.config.md) | <code>ClusterInfo</code> |  |
 |  [terminationGracePeriodSeconds](./cloud.k8s.podprops.terminationgraceperiodseconds.md) | <code>number</code> |  |

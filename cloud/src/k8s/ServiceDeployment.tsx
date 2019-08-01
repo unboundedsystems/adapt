@@ -2,13 +2,13 @@ import Adapt, { AdaptElement, childrenToArray, DeferredComponent, Group, handle 
 import { ContainerProps, isContainerElement } from "../Container";
 import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService";
 import { ServiceProps as AbsServiceProps } from "../Service";
-import { Kubeconfig } from "./common";
+import { ClusterInfo } from "./common";
 import { K8sContainer, k8sContainerProps, K8sContainerProps } from "./Container";
 import { Pod, PodProps } from "./Pod";
 import { k8sServiceProps, Service, ServiceProps } from "./Service";
 
 export interface ServiceDeploymentProps extends AbsServiceProps {
-    config: Kubeconfig;
+    config: ClusterInfo;
     serviceProps?: Partial<ServiceProps>;
     podProps?: Partial<PodProps>;
     containerProps?: Partial<K8sContainerProps>;

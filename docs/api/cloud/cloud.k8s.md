@@ -47,6 +47,7 @@ export { K8sPlugin, createK8sPlugin, resourceElementToName, registerResourceKind
 
 |  Interface | Description |
 |  --- | --- |
+|  [ClusterInfo](./cloud.k8s.clusterinfo.md) | Holds the information needed to connect, authenticate, and run code in a kuberenetes cluster |
 |  [ContainerPort](./cloud.k8s.containerport.md) |  |
 |  [ContainerSpec](./cloud.k8s.containerspec.md) |  |
 |  [CRSpec](./cloud.k8s.crspec.md) |  |

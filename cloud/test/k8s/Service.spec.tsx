@@ -14,6 +14,7 @@ import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import * as abs from "../../src";
 import {
+    ClusterInfo,
     createK8sPlugin,
     K8sContainer,
     K8sPlugin,
@@ -32,7 +33,7 @@ import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
 // tslint:disable-next-line:no-object-literal-type-assertion
-const dummyConfig = {} as Kubeconfig;
+const dummyConfig = {} as ClusterInfo;
 
 describe("k8s Service Component Tests", () => {
     it("Should Instantiate Service", () => {
@@ -130,7 +131,7 @@ describe("k8s Service Component Tests", () => {
         const hand = handle();
         const root = <Group>
             <Service config={dummyConfig} ports={[{ port: 8000, targetPort: 8080 }]} selector={hand} />
-            <Pod handle={hand} config={{}}>
+            <Pod handle={hand} config={dummyConfig}>
                 <K8sContainer name="foo" image="alpine:3.1"></K8sContainer>
             </Pod>
         </Group>;
@@ -150,14 +151,14 @@ describe("k8s Service Operation Tests", function () {
     let plugin: K8sPlugin;
     let logger: MockLogger;
     let options: PluginOptions;
-    let kubeconfig: Kubeconfig;
+    let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
         this.slow(20 * 1000);
-        kubeconfig = await mkInstance.kubeconfig as Kubeconfig;
+        clusterInfo = { kubeconfig: await mkInstance.kubeconfig as Kubeconfig };
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
     });
@@ -190,7 +191,7 @@ describe("k8s Service Operation Tests", function () {
             { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
-            <Service key="test" ports={ports} config={kubeconfig} />;
+            <Service key="test" ports={ports} config={clusterInfo} />;
 
         const { dom } = await doBuild(svc, { deployID });
 
@@ -215,7 +216,7 @@ describe("k8s Service Operation Tests", function () {
             { name: "8001", port: 8001, targetPort: 81 },
         ];
         const svc =
-            <Service key="test" ports={ports} config={kubeconfig} />;
+            <Service key="test" ports={ports} config={clusterInfo} />;
 
         const { dom } = await doBuild(svc, { deployID });
 
@@ -234,7 +235,7 @@ describe("k8s Service Operation Tests", function () {
             status: { phase: "" }
         };
 
-        obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
+        obs[canonicalConfigJSON(clusterInfo.kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.modify);
@@ -255,8 +256,8 @@ describe("k8s Service Operation Tests", function () {
                 key="test"
                 ports={[{ port: 8080, targetPort: 8080 }]}
                 selector={hand}
-                config={kubeconfig} />
-            <Pod config={kubeconfig} handle={hand}>
+                config={clusterInfo} />
+            <Pod config={clusterInfo} handle={hand}>
                 <K8sContainer name="foo" image="doesntmatter"></K8sContainer>
             </Pod>
         </Group>;
@@ -283,7 +284,7 @@ describe("k8s Service Operation Tests", function () {
     });
 
     it("Should return the resource name as the hostname", async () => {
-        const svc = <Service key="test" config={kubeconfig} />;
+        const svc = <Service key="test" config={clusterInfo} />;
         const { mountedOrig, dom } = await doBuild(svc, options);
         if (mountedOrig == null) throw should(mountedOrig).not.Null();
         const hostname = mountedOrig.instance.hostname();
@@ -297,7 +298,7 @@ describe("k8s Service Operation Tests", function () {
             { port: 9001, targetPort: 9001 },
         ];
         const svc =
-            <Service key={name} ports={ports} config={kubeconfig} />;
+            <Service key={name} ports={ports} config={clusterInfo} />;
 
         const { mountedOrig, dom } = await doBuild(svc, { deployID });
 
@@ -343,7 +344,7 @@ describe("k8s Service Operation Tests", function () {
             { port: 9001, targetPort: 9002 },
         ];
         const svc =
-            <Service key="test" ports={newPorts} config={kubeconfig} />;
+            <Service key="test" ports={newPorts} config={clusterInfo} />;
         const { dom } = await doBuild(svc, { deployID });
 
         await plugin.start(options);
@@ -389,8 +390,8 @@ describe("k8s Service Operation Tests", function () {
             ];
 
             return <Group>
-                <Service key={"test"} type="LoadBalancer" ports={ports} config={kubeconfig} selector={hand} />
-                <Pod handle={hand} config={kubeconfig} terminationGracePeriodSeconds={0}>
+                <Service key={"test"} type="LoadBalancer" ports={ports} config={clusterInfo} selector={hand} />
+                <Pod handle={hand} config={clusterInfo} terminationGracePeriodSeconds={0}>
                     <K8sContainer name="foo" image="alpine:3.1" />
                 </Pod>
             </Group>;

@@ -9,8 +9,10 @@ import should from "should";
 import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import {
+    ClusterInfo,
     createK8sPlugin,
     K8sPlugin,
+    Kubeconfig,
     Resource,
     resourceElementToName
 } from "../../src/k8s";
@@ -21,10 +23,13 @@ import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
 
+// tslint:disable-next-line: no-object-literal-type-assertion
+const dummyConfig = {} as ClusterInfo;
+
 describe("k8s Resource Component Tests", () => {
     it("Should Instantiate Resource", () => {
         const resElem =
-            <Resource key="test" kind="Pod" config={{}} spec={{
+            <Resource key="test" kind="Pod" config={dummyConfig} spec={{
                 containers: [{
                     name: "test",
                     image: "dummy-image",
@@ -42,14 +47,14 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
     let plugin: K8sPlugin;
     let logger: MockLogger;
     let options: PluginOptions;
-    let kubeconfig: k8sutils.KubeConfig;
+    let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
         this.slow(20 * 1000);
-        kubeconfig = await mkInstance.kubeconfig;
+        clusterInfo = { kubeconfig: await mkInstance.kubeconfig as Kubeconfig };
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
     });
@@ -76,7 +81,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
 
     it("Should compute actions with no resources from k8s", async () => {
         const resElem =
-            <Resource key="test" config={kubeconfig} kind="Pod" spec={{
+            <Resource key="test" config={clusterInfo} kind="Pod" spec={{
                 containers: [{
                     name: "container",
                     image: "alpine:latest"
@@ -103,7 +108,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
 
     it("Should distinguish between modify and create actions", async () => {
         const resElem =
-            <Resource key="test" config={kubeconfig} kind="Pod" spec={{
+            <Resource key="test" config={clusterInfo} kind="Pod" spec={{
                 containers: [{
                     name: "container",
                     image: "alpine:3.8"
@@ -136,7 +141,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
             status: { phase: "" }
         };
 
-        obs[canonicalConfigJSON(kubeconfig)].push(mockObservation);
+        obs[canonicalConfigJSON(clusterInfo.kubeconfig)].push(mockObservation);
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.modify);
@@ -153,7 +158,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
     function createPodDom(name: string) {
         return (
             <Resource key={name}
-                config={kubeconfig}
+                config={clusterInfo}
                 kind="Pod"
                 spec={{
                     containers: [{
@@ -218,7 +223,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         //5s sleep diff to cause modify vs. 3s sleep in createPod
         const command = ["sleep", "5s"];
         const resElem = <Resource key="test"
-            config={kubeconfig}
+            config={clusterInfo}
             kind="Pod"
             spec={{
                 containers: [{
@@ -262,7 +267,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         //No diff
         const command = ["sleep", "3s"];
         const resElem = <Resource key="test"
-            config={kubeconfig}
+            config={clusterInfo}
             kind="Pod"
             spec={{
                 containers: [{
