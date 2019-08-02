@@ -9,13 +9,15 @@ import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
 
 import {
-    buildFilesImage,
-    dockerBuild,
     DockerGlobalOptions,
     File,
     LocalDockerImage,
     LocalDockerImageProps
-} from "../../src/docker/LocalDockerImage";
+} from "../../src/docker";
+import {
+    buildFilesImage,
+    dockerBuild,
+} from "../../src/docker/cli";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);

@@ -12,7 +12,9 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
+export * from "./DockerImage";
 export * from "./LocalDockerImage";
+export * from "./types";
 //# sourceMappingURL=index.d.ts.map
 ```
 
@@ -20,32 +22,19 @@ export * from "./LocalDockerImage";
 
 |  Class | Description |
 |  --- | --- |
+|  [DockerImage](./cloud.docker.dockerimage.md) |  |
 |  [LocalDockerImage](./cloud.docker.localdockerimage.md) | Locally builds a docker image |
-
-## Functions
-
-|  Function | Description |
-|  --- | --- |
-|  [buildFilesImage(files, opts)](./cloud.docker.buildfilesimage.md) |  |
-|  [dockerBuild(dockerfile, contextPath, options)](./cloud.docker.dockerbuild.md) |  |
-|  [withFilesImage(files, opts, fn)](./cloud.docker.withfilesimage.md) |  |
 
 ## Interfaces
 
 |  Interface | Description |
 |  --- | --- |
 |  [DockerBuildOptions](./cloud.docker.dockerbuildoptions.md) |  |
-|  [DockerBuildStatus](./cloud.docker.dockerbuildstatus.md) |  |
 |  [DockerGlobalOptions](./cloud.docker.dockerglobaloptions.md) |  |
 |  [DockerImageInstance](./cloud.docker.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
+|  [DockerImageProps](./cloud.docker.dockerimageprops.md) |  |
 |  [File](./cloud.docker.file.md) |  |
-|  [ImageInfo](./cloud.docker.imageinfo.md) |  |
+|  [ImageInfo](./cloud.docker.imageinfo.md) | Information about a specific instance of a Docker image, as identified by its image ID. |
 |  [LocalDockerImageProps](./cloud.docker.localdockerimageprops.md) | Props for [docker.LocalDockerImage](./cloud.docker.localdockerimage.md) |
 |  [LocalDockerImageState](./cloud.docker.localdockerimagestate.md) |  |
 |  [Stage](./cloud.docker.stage.md) |  |
-
-## Variables
-
-|  Variable | Description |
-|  --- | --- |
-|  [pickGlobals](./cloud.docker.pickglobals.md) |  |
