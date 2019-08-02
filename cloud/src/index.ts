@@ -26,5 +26,4 @@ export {
     nodejs,
     postgres
 };
-export * from "./hooks";
 export * from "./handles";

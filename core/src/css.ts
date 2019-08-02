@@ -5,12 +5,13 @@ import * as ld from "lodash";
 
 import { DomPath } from "./dom";
 import { InternalError } from "./error";
+import { BuildId } from "./handle";
 import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
 export const $matchInfoReg = Symbol.for("$matchInfoReg");
-export interface StyleBuildInfo {
+export interface StyleBuildInfo extends BuildId {
     origBuild: jsx.SFC;
     origElement: any;
     [$matchInfoReg]: MatchInfoReg;

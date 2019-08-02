@@ -22,7 +22,7 @@ import {
 } from "./deploy/deploy_types";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
-import { Handle, handle, isHandle, isHandleInternal } from "./handle";
+import { BuildId, Handle, handle, isHandle, isHandleInternal } from "./handle";
 import { Defaultize } from "./jsx_namespace";
 import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
@@ -156,7 +156,7 @@ export interface DeployInfo {
     deployOpID: DeployOpID;
 }
 
-export interface BuildHelpers extends DeployInfo {
+export interface BuildHelpers extends DeployInfo, BuildId {
     elementStatus<T = Status>(handle: Handle): Promise<T | undefined>;
 }
 

@@ -6,7 +6,7 @@ import { isError, isObject } from "lodash";
 import PQueue from "p-queue";
 import pTimeout from "p-timeout";
 import { inspect } from "util";
-import { buildHelpers } from "../dom";
+import { makeElementStatus } from "../dom";
 import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
 import { AdaptElement, AdaptMountedElement, isMountedElement } from "../jsx";
@@ -877,11 +877,7 @@ class DeployHelpersFactory {
     protected nodeStatus_: StatusTracker | null = null;
 
     constructor(protected plan: ExecutionPlanImpl, deployment: Deployment) {
-        const bHelpers = buildHelpers({
-            deployID: deployment.deployID,
-            deployOpID: plan.deployOpID,
-        });
-        this.elementStatus = bHelpers.elementStatus;
+        this.elementStatus = makeElementStatus();
     }
 
     get nodeStatus() {

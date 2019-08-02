@@ -1,8 +1,16 @@
-import Adapt, { Handle, handle, Sequence, SFCDeclProps, useImperativeMethods } from "@adpt/core";
+import Adapt, {
+    callInstanceMethod,
+    Handle,
+    handle,
+    Sequence,
+    SFCDeclProps,
+    useAsync,
+    useImperativeMethods,
+    useMethod,
+} from "@adpt/core";
 import { toArray } from "@adpt/utils";
 import { Container, Environment, mergeEnvPairs } from "../Container";
 import { ImageInfo } from "../docker";
-import { callInstanceMethod, useAsync, useMethod } from "../hooks";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
 import { Service } from "../Service";
 import { LocalNodeImage } from "./LocalNodeImage";

@@ -1,4 +1,11 @@
-import Adapt, { AdaptElement, childrenToArray, DeferredComponent, Group, handle } from "@adpt/core";
+import Adapt, {
+    AdaptElement,
+    BuildHelpers,
+    childrenToArray,
+    DeferredComponent,
+    Group,
+    handle,
+} from "@adpt/core";
 import { ContainerProps, isContainerElement } from "../Container";
 import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService";
 import { ServiceProps as AbsServiceProps } from "../Service";
@@ -14,28 +21,31 @@ export interface ServiceDeploymentProps extends AbsServiceProps {
     containerProps?: Partial<K8sContainerProps>;
 }
 
-function mapChild(kid: ServiceDeploymentProps["children"], props: ServiceDeploymentProps) {
-    if (isContainerElement(kid)) return mapContainer(kid, props);
-    if (isNetworkServiceElement(kid)) return mapNetworkService(kid, props);
+function mapChild(kid: ServiceDeploymentProps["children"],
+    props: ServiceDeploymentProps, helpers: BuildHelpers) {
+    if (isContainerElement(kid)) return mapContainer(kid, props, helpers);
+    if (isNetworkServiceElement(kid)) return mapNetworkService(kid, props, helpers);
     return kid;
 }
 
-function mapContainer(absEl: AdaptElement<ContainerProps>, props: ServiceDeploymentProps) {
+function mapContainer(absEl: AdaptElement<ContainerProps>,
+    props: ServiceDeploymentProps, helpers: BuildHelpers) {
     const { config, containerProps = {}, podProps = {} } = props;
     const hand = handle();
     const pod =
         <Pod config={config} handle={hand} {...podProps} >
             <K8sContainer {...k8sContainerProps(absEl.props)} {...containerProps} />
         </Pod>;
-    absEl.props.handle.replaceTarget(pod);
+    absEl.props.handle.replaceTarget(pod, helpers);
     return pod;
 }
 
-function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>, props: ServiceDeploymentProps) {
+function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
+    props: ServiceDeploymentProps, helpers: BuildHelpers) {
     const { config, serviceProps = {} } = props;
     const hand = handle();
     const svc = <Service handle={hand} config={config} {...k8sServiceProps(absEl.props)} {...serviceProps} />;
-    absEl.props.handle.replaceTarget(svc);
+    absEl.props.handle.replaceTarget(svc, helpers);
     return svc;
 }
 
@@ -80,8 +90,9 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>, props: Serv
  * which these objects should be created.
  */
 export class ServiceDeployment extends DeferredComponent<ServiceDeploymentProps> {
-    build() {
-        const mappedChildren = childrenToArray(this.props.children).map((c) => mapChild(c, this.props));
+    build(helpers: BuildHelpers) {
+        const mappedChildren = childrenToArray(this.props.children).map((c) =>
+            mapChild(c, this.props, helpers));
         return <Group>{mappedChildren}</Group>;
     }
 }

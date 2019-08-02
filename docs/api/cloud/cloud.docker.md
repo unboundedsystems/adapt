@@ -37,6 +37,7 @@ export * from "./LocalDockerImage";
 |  [DockerBuildOptions](./cloud.docker.dockerbuildoptions.md) |  |
 |  [DockerBuildStatus](./cloud.docker.dockerbuildstatus.md) |  |
 |  [DockerGlobalOptions](./cloud.docker.dockerglobaloptions.md) |  |
+|  [DockerImageInstance](./cloud.docker.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
 |  [File](./cloud.docker.file.md) |  |
 |  [ImageInfo](./cloud.docker.imageinfo.md) |  |
 |  [LocalDockerImageProps](./cloud.docker.localdockerimageprops.md) | Props for [docker.LocalDockerImage](./cloud.docker.localdockerimage.md) |

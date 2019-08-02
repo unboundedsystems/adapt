@@ -1,6 +1,5 @@
-import { AdaptElement, Handle, handle } from "@adpt/core";
+import { AdaptElement, Handle, handle, useMethod } from "@adpt/core";
 import ld from "lodash";
-import { useMethod } from "./hooks";
 
 //Move to separate file
 interface HandleIndex {
@@ -27,6 +26,7 @@ function proxyToHandle(hand: Handle, prop: string | number | symbol) {
     const propDesc = Object.getOwnPropertyDescriptor(hand, prop);
     if (propDesc && propDesc.get) return true;
     const proto = Object.getPrototypeOf(hand);
+    if (Object.hasOwnProperty.call(proto, prop)) return true;
     const protoPropDesc = Object.getOwnPropertyDescriptor(proto, prop);
     if (protoPropDesc && protoPropDesc.get) return true;
     return false;

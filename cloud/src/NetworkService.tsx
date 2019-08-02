@@ -1,12 +1,12 @@
 import {
     AdaptElement,
     AnyProps,
+    callNextInstanceMethod,
     Handle,
     isElement,
     PrimitiveComponent,
     WithChildren,
 } from "@adpt/core";
-import { callNextInstanceMethod } from "./hooks";
 
 export type ServicePort = number | string;
 export type NetworkServiceScope =

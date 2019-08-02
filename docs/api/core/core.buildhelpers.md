@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export interface BuildHelpers extends DeployInfo 
+export interface BuildHelpers extends DeployInfo, BuildId 
 ```
 
 ## Methods

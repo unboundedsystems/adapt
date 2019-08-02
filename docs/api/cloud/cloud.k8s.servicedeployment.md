@@ -21,7 +21,7 @@ export declare class ServiceDeployment extends DeferredComponent<ServiceDeployme
 
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
-|  [build()](./cloud.k8s.servicedeployment.build.md) |  |  |
+|  [build(helpers)](./cloud.k8s.servicedeployment.build.md) |  |  |
 
 ## Remarks
 

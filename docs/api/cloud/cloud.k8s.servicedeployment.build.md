@@ -12,8 +12,15 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-build(): Adapt.AdaptElement<Adapt.AnyProps>;
+build(helpers: BuildHelpers): Adapt.AdaptElement<Adapt.AnyProps>;
 ```
+
+## Parameters
+
+|  Parameter | Type | Description |
+|  --- | --- | --- |
+|  helpers | <code>BuildHelpers</code> |  |
+
 <b>Returns:</b>
 
 `Adapt.AdaptElement<Adapt.AnyProps>`

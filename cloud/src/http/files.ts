@@ -1,10 +1,10 @@
 import {
+    getInstanceValue,
     useState,
 } from "@adpt/core";
 import { Dispatcher } from "@adpt/utils";
 import { isObject, isString } from "lodash";
 import { ImageInfo } from "../docker";
-import { getInstanceValue } from "../hooks";
 import {
     Files,
     FilesInfo,

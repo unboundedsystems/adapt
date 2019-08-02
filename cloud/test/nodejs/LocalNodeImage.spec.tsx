@@ -1,4 +1,4 @@
-import Adapt, { FinalDomElement, handle, PrimitiveComponent, Sequence } from "@adpt/core";
+import Adapt, { FinalDomElement, handle, PrimitiveComponent, Sequence, useInstanceValue } from "@adpt/core";
 import { mochaTmpdir, writePackage } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
@@ -8,7 +8,6 @@ import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
 
-import { useInstanceValue } from "../../src";
 import { ImageInfo } from "../../src/docker";
 import {
     LocalNodeImage,

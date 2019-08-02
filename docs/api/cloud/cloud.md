@@ -27,22 +27,13 @@ hide_title: true
 
 |  Function | Description |
 |  --- | --- |
-|  [callInstanceMethod(hand, def, methodName, args)](./cloud.callinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call method on instance pointed to by handle |
-|  [callNextInstanceMethod(hand, def, methodName, args)](./cloud.callnextinstancemethod.md) | <b><i>(BETA)</i></b> Immediately call a method on the successor instance of the one pointed to by handle. |
 |  [extendedHandle()](./cloud.extendedhandle.md) |  |
-|  [getInstanceValue(hand, def, field, optionsIn)](./cloud.getinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of a field on an element instance |
 |  [handles()](./cloud.handles.md) |  |
-|  [hasInstanceMethod(name, skip)](./cloud.hasinstancemethod.md) |  |
 |  [isContainerElement(el)](./cloud.iscontainerelement.md) |  |
 |  [isNetworkServiceElement(el)](./cloud.isnetworkserviceelement.md) |  |
 |  [mergeEnvPairs(envs)](./cloud.mergeenvpairs.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single array of [EnvPair](./cloud.envpair.md) objects. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
 |  [mergeEnvSimple(envs)](./cloud.mergeenvsimple.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single [EnvSimple](./cloud.envsimple.md) object. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
-|  [notReplacedByStyle()](./cloud.notreplacedbystyle.md) |  |
 |  [targetPort(elemOrProps)](./cloud.targetport.md) |  |
-|  [useAsync(f, initial)](./cloud.useasync.md) |  |
-|  [useInstanceValue(hand, initial, field)](./cloud.useinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of field from the instance referenced by handled instance. |
-|  [useMethod(hand, initial, method, args)](./cloud.usemethod.md) |  |
-|  [useMethodFrom(hand, methodName, defaultVal, args)](./cloud.usemethodfrom.md) |  |
 
 ## Interfaces
 
@@ -54,12 +45,10 @@ hide_title: true
 |  [ContainerState](./cloud.containerstate.md) |  |
 |  [ContainerStatus](./cloud.containerstatus.md) |  |
 |  [DockerHostProps](./cloud.dockerhostprops.md) |  |
-|  [DockerImageInstance](./cloud.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
 |  [EnvPair](./cloud.envpair.md) |  |
 |  [EnvSimple](./cloud.envsimple.md) |  |
 |  [ExtendedHandle](./cloud.extendedhandle.md) |  |
 |  [ExternalDockerHostProps](./cloud.externaldockerhostprops.md) |  |
-|  [GetInstanceValueOptions](./cloud.getinstancevalueoptions.md) |  |
 |  [Links](./cloud.links.md) |  |
 |  [NetworkServiceProps](./cloud.networkserviceprops.md) |  |
 |  [PortBinding](./cloud.portbinding.md) |  |
@@ -77,12 +66,6 @@ hide_title: true
 |  [nginx](./cloud.nginx.md) |  |
 |  [nodejs](./cloud.nodejs.md) |  |
 |  [postgres](./cloud.postgres.md) |  |
-
-## Variables
-
-|  Variable | Description |
-|  --- | --- |
-|  [defaultGetInstanceValueOptions](./cloud.defaultgetinstancevalueoptions.md) |  |
 
 ## Type Aliases
 

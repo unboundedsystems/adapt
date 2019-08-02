@@ -71,3 +71,19 @@ export function componentConstructorDataFixture(ccData = noStoreConstructorData)
     before(() => jsx.pushComponentConstructorData(ccData));
     after(() => jsx.popComponentConstructorData());
 }
+
+export class Info extends Adapt.PrimitiveComponent<Adapt.AnyProps> { }
+
+export interface MethodValueProps {
+    target: Adapt.Handle;
+    method: string;
+    args?: any[];
+    default?: any;
+}
+
+export function MethodValue(props: MethodValueProps) {
+    const def = "default" in props ? props.default : "DEFAULT";
+    const args = props.args || [];
+    const val = Adapt.useMethod(props.target, def, props.method, ...args);
+    return <Info value={val} />;
+}

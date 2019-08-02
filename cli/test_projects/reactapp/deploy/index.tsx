@@ -1,7 +1,7 @@
 import { HttpServer, UrlRouter } from "@adpt/cloud/http";
 import { NodeService } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
-import Adapt, { Group, handle } from "@adpt/core";
+import Adapt, { Group, handle, useMethod } from "@adpt/core";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {

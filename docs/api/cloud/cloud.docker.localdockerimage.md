@@ -14,7 +14,7 @@ Locally builds a docker image
 <b>Signature:</b>
 
 ```typescript
-export declare class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerImageState> 
+export declare class LocalDockerImage extends Action<LocalDockerImageProps, LocalDockerImageState> implements DockerImageInstance 
 ```
 
 ## Constructors

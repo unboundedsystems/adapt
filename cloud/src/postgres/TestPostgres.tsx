@@ -1,8 +1,7 @@
-import Adapt, { handle, Sequence, useImperativeMethods } from "@adpt/core";
+import Adapt, { handle, Sequence, useImperativeMethods, useMethod } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
 import { Container } from "../Container";
 import { ImageInfo } from "../docker";
-import { useMethod } from "../hooks";
 import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";

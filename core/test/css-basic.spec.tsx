@@ -12,6 +12,8 @@ describe("Selector Parsing", () => {
         const styles = css.buildStyles(styleTag);
         should(styles.length).equal(1);
         const info = {
+            buildNum: 1,
+            buildIter: 1,
             origBuild: () => null,
             origElement: null,
             [css.$matchInfoReg]: css.createMatchInfoReg(),

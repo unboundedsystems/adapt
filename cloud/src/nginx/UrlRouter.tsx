@@ -1,8 +1,11 @@
 import Adapt, {
+    callInstanceMethod,
     handle,
     Sequence,
     SFCBuildProps,
     SFCDeclProps,
+    useAsync,
+    useMethod,
     useState,
 } from "@adpt/core";
 
@@ -18,7 +21,6 @@ import { isString, promisify } from "util";
 import { Container } from "../Container";
 import { ImageInfo, LocalDockerImage } from "../docker";
 import { handles } from "../handles";
-import { callInstanceMethod, useAsync, useMethod } from "../hooks";
 import {
     checkUrlEndpoints,
     ResolvedRoute,
