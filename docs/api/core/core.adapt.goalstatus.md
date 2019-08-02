@@ -9,8 +9,20 @@ hide_title: true
 
 ## Adapt.GoalStatus type
 
+During a deploy operation for a resource or set of resources, the intended final status for the resource.
+
 <b>Signature:</b>
 
 ```typescript
 export declare type GoalStatus = DeployStatus.Deployed | DeployStatus.Destroyed;
 ```
+
+## Remarks
+
+- `GoalStatus.Deployed`
+
+The operation is attempting to deploy a resource. This includes creation or updating of a resource.
+
+- `GoalStatus.Destroyed`
+
+The operation is attempting to destroy a resource.

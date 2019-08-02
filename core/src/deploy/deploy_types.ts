@@ -78,9 +78,30 @@ export function isFinalStatus(ds: DeployStatusExt): ds is FinalStatus {
     }
 }
 
+/**
+ * During a deploy operation for a resource or set of resources, the
+ * intended final status for the resource.
+ *
+ * @remarks
+ *
+ * - `GoalStatus.Deployed`
+ *
+ * The operation is attempting to deploy a resource. This includes creation or
+ * updating of a resource.
+ *
+ * - `GoalStatus.Destroyed`
+ *
+ * The operation is attempting to destroy a resource.
+ * @public
+ */
 export type GoalStatus =
     DeployStatus.Deployed |
     DeployStatus.Destroyed;
+// tslint:disable-next-line: variable-name
+export const GoalStatus = {
+    Deployed: DeployStatus.Deployed,
+    Destroyed: DeployStatus.Destroyed,
+};
 
 export function isGoalStatus(ds: DeployStatusExt): ds is GoalStatus {
     switch (ds) {

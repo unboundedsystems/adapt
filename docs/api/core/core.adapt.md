@@ -201,7 +201,7 @@ export { internal, };
 |  [DeployStatusExt](./core.adapt.deploystatusext.md) |  |
 |  [DomDiffIdFunc](./core.adapt.domdiffidfunc.md) |  |
 |  [FinalStatus](./core.adapt.finalstatus.md) |  |
-|  [GoalStatus](./core.adapt.goalstatus.md) |  |
+|  [GoalStatus](./core.adapt.goalstatus.md) | During a deploy operation for a resource or set of resources, the intended final status for the resource. |
 |  [IsDeployedFunc](./core.adapt.isdeployedfunc.md) |  |
 |  [PluginInstances](./core.adapt.plugininstances.md) |  |
 |  [PluginKey](./core.adapt.pluginkey.md) |  |
