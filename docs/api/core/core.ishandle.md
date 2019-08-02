@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare function isHandle(val: unknown): val is Handle;
+export declare function isHandle<I extends object = GenericInstance>(val: unknown): val is Handle<I>;
 ```
 
 ## Parameters
@@ -23,4 +23,4 @@ export declare function isHandle(val: unknown): val is Handle;
 
 <b>Returns:</b>
 
-`val is Handle`
+`val is Handle<I>`

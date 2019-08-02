@@ -76,6 +76,8 @@ hide_title: true
 |  [Children](./core.children.md) |  |
 |  [Context](./core.context.md) |  |
 |  [ExecutedQuery](./core.executedquery.md) |  |
+|  [GenericInstance](./core.genericinstance.md) |  |
+|  [GenericInstanceMethods](./core.genericinstancemethods.md) |  |
 |  [Handle](./core.handle.md) |  |
 |  [NoStatus](./core.nostatus.md) |  |
 |  [ObserverPlugin](./core.observerplugin.md) |  |

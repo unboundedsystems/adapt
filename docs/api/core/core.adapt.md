@@ -14,7 +14,7 @@ hide_title: true
 ```typescript
 export * from "./hooks";
 export * from "./jsx_namespace";
-export { childrenToArray, cloneElement, createElement, Component, DeferredComponent, PrimitiveComponent, AdaptElement, AdaptMountedElement, AdaptElementOrNull, AdaptPrimitiveElement, AnyProps, AnyState, BuildHelpers, FinalDomElement, BuiltinProps, ElementPredicate, PartialFinalDomElement, isApplyStyle, isFinalDomElement, isElement, isPartialFinalDomElement, isMountedElement, isDeferredElement, isPrimitiveElement, isReady, WithChildren, PropsType, SFC, SFCBuildProps, SFCDeclProps, } from "./jsx";
+export { childrenToArray, cloneElement, createElement, Component, DeferredComponent, PrimitiveComponent, AdaptElement, AdaptMountedElement, AdaptElementOrNull, AdaptPrimitiveElement, AnyProps, AnyState, BuildHelpers, FinalDomElement, GenericInstance, GenericInstanceMethods, BuiltinProps, ElementPredicate, PartialFinalDomElement, isApplyStyle, isFinalDomElement, isElement, isPartialFinalDomElement, isMountedElement, isDeferredElement, isPrimitiveElement, isReady, WithChildren, PropsType, SFC, SFCBuildProps, SFCDeclProps, } from "./jsx";
 export * from "./builtin_components";
 export * from "./deploy";
 export { build, BuildData, buildOnce, BuildOutput, DomPath } from "./dom";

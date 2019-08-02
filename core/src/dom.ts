@@ -19,6 +19,8 @@ import {
     createElement,
     FinalDomElement,
     FunctionComponentTyp,
+    // @ts-ignore - here to deal with issue #71
+    GenericInstance,
     isComponentElement,
     isDeferredElementImpl,
     isElement,

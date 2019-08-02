@@ -12,7 +12,7 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export interface Handle extends Readonly<Partial<BuildId>> 
+export interface Handle<I extends object = GenericInstance> extends Readonly<Partial<BuildId>> 
 ```
 
 ## Properties

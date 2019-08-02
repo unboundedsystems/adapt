@@ -15,6 +15,8 @@ export {
     AnyState,
     BuildHelpers,
     FinalDomElement,
+    GenericInstance,
+    GenericInstanceMethods,
     BuiltinProps,
     ElementPredicate,
     PartialFinalDomElement,

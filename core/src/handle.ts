@@ -1,9 +1,18 @@
 import { isInstance, sha256hex, tagConstructor } from "@adpt/utils";
 import { InternalError } from "./error";
-import { AdaptElement, AdaptMountedElement, ElementPredicate, isMountedElement, KeyPath } from "./jsx";
+import {
+    AdaptElement,
+    AdaptMountedElement,
+    ElementPredicate,
+    GenericInstance,
+    GenericInstanceMethods,
+    isMountedElement,
+    KeyPath,
+} from "./jsx";
 import { findMummyUrn, registerObject } from "./reanimate";
 
-export interface Handle extends Readonly<Partial<BuildId>> {
+export interface Handle
+    <I extends object = GenericInstance> extends Readonly<Partial<BuildId>> {
     readonly associated: boolean;
     readonly target: AdaptElement | null | undefined;
     readonly origTarget: AdaptElement | null | undefined;
@@ -13,11 +22,11 @@ export interface Handle extends Readonly<Partial<BuildId>> {
     replaceTarget(child: AdaptElement | null, buildId: BuildId): void;
 }
 
-export function isHandle(val: unknown): val is Handle {
+export function isHandle<I extends object = GenericInstance>(val: unknown): val is Handle<I> {
     return isHandleImpl(val);
 }
 
-export interface HandleInternal extends Handle {
+export interface HandleInternal<I extends object = GenericInstance> extends Handle<I> {
     unresolvedTarget?: KeyPath | null;
 
     associate(el: AdaptElement): void;
@@ -28,11 +37,13 @@ export interface BuildId {
     buildNum: number;
 }
 
-export function isHandleInternal(val: unknown): val is HandleInternal {
+export function isHandleInternal
+    <I extends object = GenericInstance>(val: unknown): val is HandleInternal<I> {
     return isHandleImpl(val);
 }
 
-export function getInternalHandle(el: AdaptElement): HandleInternal {
+export function getInternalHandle
+    <I extends object = GenericInstance>(el: AdaptElement): HandleInternal<I> {
     const hand = el.props.handle;
     if (!isHandleInternal(hand)) throw new InternalError(`handle is not a HandleImpl`);
     return hand;
@@ -223,7 +234,7 @@ function isHandleImpl(val: unknown): val is HandleImpl {
  * User-facing API for creating a Handle
  * @param name Name to associate with the handle for debugging/display purposes
  */
-export function handle(name?: string): Handle {
+export function handle<I extends object = GenericInstance>(name?: string): Handle<I & GenericInstanceMethods> {
     return new HandleImpl({ name });
 }
 
