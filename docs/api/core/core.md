@@ -65,7 +65,7 @@ hide_title: true
 
 |  Interface | Description |
 |  --- | --- |
-|  [AdaptElement](./core.adaptelement.md) |  |
+|  [AdaptElement](./core.adaptelement.md) | An Adapt Element is an instance of an Adapt component. |
 |  [AdaptMountedElement](./core.adaptmountedelement.md) |  |
 |  [AdaptPrimitiveElement](./core.adaptprimitiveelement.md) |  |
 |  [AnyProps](./core.anyprops.md) |  |

@@ -9,6 +9,8 @@ hide_title: true
 
 ## AdaptElement.componentName property
 
+The name of the class or function in `componentType`<!-- -->, as returned by `componentType.name` or, the string `"anonymous"` if no name is available.
+
 <b>Signature:</b>
 
 ```typescript

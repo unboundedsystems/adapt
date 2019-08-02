@@ -66,7 +66,7 @@ export type BuildListener = (op: BuildOp) => void;
 export function buildPrinter(): BuildListener {
     let depth = 0;
     function el(elem: AdaptElement | null) {
-        return elem ? elem.componentName : "null";
+        return elem ? elem.displayName : "null";
     }
 
     function i() {
