@@ -1,3 +1,4 @@
+import { messagesToString } from "@adpt/utils";
 import should from "should";
 import {
     AdaptElement,
@@ -51,13 +52,18 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         stateStore,
     };
     const buildOutput = await build(elem, style, buildOpts);
+
+    const { messages } = buildOutput;
+    if (messages.length > 0) {
+        throw new Error(`DOM build failed. Messages:\n${messagesToString(messages)}`);
+    }
+
     if (isBuildOutputPartial(buildOutput)) {
         should(buildOutput.buildErr).be.False();
         should(buildOutput.partialBuild).be.False();
-        throw new Error("Partially built DOM");
+        throw new Error("Partially built DOM, but no messages");
     }
-    const { builtElements, mountedOrig, contents: dom, messages, processStateUpdates } = buildOutput;
-    should(messages).have.length(0);
+    const { builtElements, mountedOrig, contents: dom, processStateUpdates } = buildOutput;
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
