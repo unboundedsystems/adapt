@@ -1,6 +1,7 @@
 import Adapt, {
     Component,
     Group,
+    useState,
 } from "../src";
 
 import should = require("should");
@@ -31,6 +32,12 @@ class GroupThenEmpty extends Component<GroupThenEmptyProps, GroupThenEmptyState>
     }
 }
 
+function Counter() {
+    const [ count, setCount ] = useState(0);
+    setCount(count + 1);
+    return null;
+}
+
 describe("DOM Iterative Build Tests", () => {
     it("Should build empty primitive", async () => {
         const orig = <Adapt.Group key="root" />;
@@ -51,5 +58,13 @@ describe("DOM Iterative Build Tests", () => {
         const ref = deepFilterElemsToPublic(<Empty key="root" id={id} />);
         should(states).eql([false, true].map((v) => ({ didGroup: v })));
         should(deepFilterElemsToPublic(dom)).eql(ref);
+    });
+
+    it("Should throw error for too many build passes", async () => {
+        const result = await Adapt.build(<Counter />, null);
+        should(result.buildErr).be.True();
+        should(result.messages).have.length(1);
+        should(result.messages[0].content)
+            .match(/DOM build exceeded maximum number of build iterations/);
     });
 });

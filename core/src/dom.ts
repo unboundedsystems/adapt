@@ -748,7 +748,7 @@ async function pathBuildOnceGuts(
     const root = path[path.length - 1];
 
     const buildNum = nextBuildNum++;
-    const buildPass = options.buildPass;
+    const buildPass = ++options.buildPass;
 
     if (buildPass > options.maxBuildPasses) {
         results.error(`DOM build exceeded maximum number of build iterations ` +
