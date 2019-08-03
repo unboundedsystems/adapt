@@ -496,7 +496,7 @@ describe("deploy:run tests - fresh install", function () {
         expect(ctx.stdout).does.not.contain("WARNING");
 
         // Should not have debug=build output
-        expect(ctx.stdout).does.not.contain("BUILD [start]");
+        expect(ctx.stdout).does.not.contain("BUILD 1 [start]");
 
         checkPluginStdout(ctx.stdout);
 
@@ -708,8 +708,8 @@ describe("deploy:run basic tests", function () {
         checkPluginStdout(ctx.stdout);
 
         // Should have debug=build output
-        expect(ctx.stdout).contains("BUILD [start]");
-        expect(ctx.stdout).contains("BUILD [done]");
+        expect(ctx.stdout).contains("BUILD 1 [start]");
+        expect(ctx.stdout).contains("BUILD 1 [done]");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -747,8 +747,8 @@ describe("deploy:run basic tests", function () {
         checkPluginStdout(ctx.stdout);
 
         // Should have debug=build output
-        expect(ctx.stdout).contains("BUILD [start]");
-        expect(ctx.stdout).contains("BUILD [done]");
+        expect(ctx.stdout).contains("BUILD 1 [start]");
+        expect(ctx.stdout).contains("BUILD 1 [done]");
 
         await checkBasicIndexTsxState(
             path.join(process.cwd(), "index.tsx"),
@@ -779,7 +779,7 @@ describe("deploy:run basic tests", function () {
         expect(ctx.stdout).does.not.contain("WARNING");
 
         // Should not have debug=build output
-        expect(ctx.stdout).does.not.contain("BUILD [start]");
+        expect(ctx.stdout).does.not.contain("BUILD 1 [start]");
 
         checkPluginStdout(ctx.stdout);
 
@@ -811,7 +811,7 @@ describe("deploy:run basic tests", function () {
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
 
         // Should not have debug=build output
-        expect(ctx.stdout).does.not.contain("BUILD [start]");
+        expect(ctx.stdout).does.not.contain("BUILD 1 [start]");
 
         checkPluginStdout(ctx.stdout);
 

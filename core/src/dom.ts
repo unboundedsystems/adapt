@@ -759,7 +759,7 @@ async function pathBuildOnceGuts(
     const debug = debugBuild.extend(`pathBuildOnceGuts:${buildPass}`);
 
     debug(`start (pass ${buildPass})`);
-    options.recorder({ type: "start", root });
+    options.recorder({ type: "start", root, buildPass });
     results.buildPassReset();
 
     try {
@@ -983,6 +983,7 @@ async function realBuildOnce(
                 }
             }
         } else {
+            options.recorder({ type: "defer", elem: mountedElem });
             deferring = true;
             mountedElem.setDeferred();
             newRoot = mountedElem;
@@ -1029,6 +1030,7 @@ async function realBuildOnce(
         if (atDepthFlag && newRoot.props.children === undefined) return out;
 
         //We must have deferred to get here
+        options.recorder({ type: "buildDeferred", elem: mountedElem });
         const deferredRet =
             (await realBuildOnce(
                 newPath,

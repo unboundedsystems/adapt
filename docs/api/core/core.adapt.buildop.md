@@ -12,5 +12,5 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare type BuildOp = BuildOpStart | BuildOpStep | BuildOpElementBuilt | BuildOpDescend | BuildOpAscend | BuildOpElementDone | BuildOpDone | BuildOpError;
+export declare type BuildOp = BuildOpStart | BuildOpStep | BuildOpDefer | BuildOpBuildDeferred | BuildOpElementBuilt | BuildOpDescend | BuildOpAscend | BuildOpElementDone | BuildOpDone | BuildOpError;
 ```

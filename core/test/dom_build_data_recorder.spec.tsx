@@ -33,14 +33,16 @@ describe("Build Data Recorder", () => {
     it("should start", async () => {
         const dom = <Empty id={1} />;
         await adaptBuild(dom, null, { recorder });
-        should(record[0]).deepEqual({ type: "start", root: dom });
+        should(record[0]).deepEqual({ type: "start", root: dom, buildPass: 1 });
     });
 
     it("should record step, elementBuilt", async () => {
         const dom = <Empty id={1} />;
         const { contents: newElem } = await adaptBuild(dom, null, { recorder });
         matchRecord(record, [
-            { type: "start", root: dom },
+            { type: "start", root: dom, buildPass: 1 },
+            { type: "defer", elem: cloneElement(dom, { key: "Empty" }) },
+            { type: "buildDeferred", elem: cloneElement(dom, { key: "Empty" }) },
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }
         ]);
@@ -50,13 +52,16 @@ describe("Build Data Recorder", () => {
         const dom = <MakeEmpty id={1} />;
         const { contents: newElem } = await adaptBuild(dom, null, { recorder });
         const record1Out = (record[1] as BuildOpStep).newElem;
+        if (!record1Out) throw should(record1Out).be.ok();
         matchRecord(record, [
-            { type: "start", root: dom },
+            { type: "start", root: dom, buildPass: 1 },
             {
                 type: "step",
                 oldElem: cloneElement(dom, { key: "MakeEmpty" }),
                 newElem: record1Out,
             },
+            { type: "defer", elem: cloneElement(record1Out, { key: "MakeEmpty-Empty" }) },
+            { type: "buildDeferred", elem: cloneElement(record1Out, { key: "MakeEmpty-Empty" }) },
             { type: "elementBuilt", oldElem: dom, newElem },
             { type: "done", root: newElem }
         ]);

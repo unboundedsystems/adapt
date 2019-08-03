@@ -119,6 +119,8 @@ export { internal, };
 |  [AnyMethods](./core.adapt.anymethods.md) |  |
 |  [BuildContext](./core.adapt.buildcontext.md) |  |
 |  [BuildOpAscend](./core.adapt.buildopascend.md) |  |
+|  [BuildOpBuildDeferred](./core.adapt.buildopbuilddeferred.md) |  |
+|  [BuildOpDefer](./core.adapt.buildopdefer.md) |  |
 |  [BuildOpDescend](./core.adapt.buildopdescend.md) |  |
 |  [BuildOpDone](./core.adapt.buildopdone.md) |  |
 |  [BuildOpElementBuilt](./core.adapt.buildopelementbuilt.md) |  |
