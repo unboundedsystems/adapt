@@ -1052,11 +1052,13 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
     children = simplifyChildren(children);
 
     if (Object.isFrozen(elem.props)) {
-        const childMerge = (children == null) ? undefined : { children };
-        (elem as any).props = {
-            ...elem.props,
-            ...childMerge
-        };
+        const newProps = { ...elem.props };
+        if (children == null) {
+            delete newProps.children;
+        } else {
+            newProps.children = children;
+        }
+        (elem as any).props = newProps;
         Object.freeze(elem.props);
     } else {
         if (children == null) {
