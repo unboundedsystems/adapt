@@ -83,8 +83,14 @@ export {
     ProjectCompileError,
     ProjectRunError,
 } from "./error";
-export { handle, Handle, isHandle } from "./handle";
-export { isDefaultKey } from "./keys";
+export {
+    BuildId,
+    handle,
+    Handle,
+    HandleInstanceType,
+    isHandle,
+} from "./handle";
+export { ElementKey, isDefaultKey } from "./keys";
 export {
     Context,
     createContext,

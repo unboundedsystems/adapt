@@ -38,6 +38,12 @@ export interface Handle
     replaceTarget(child: AdaptElement | null, buildId: BuildId): void;
 }
 
+/**
+ * Extracts the instance type associated with a {@link Handle}.
+ * @public
+ */
+export type HandleInstanceType<H extends Handle> = H extends Handle<infer I> ? I : never;
+
 export function isHandle<I extends object = GenericInstance>(val: unknown): val is Handle<I> {
     return isHandleImpl(val);
 }

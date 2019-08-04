@@ -160,3 +160,23 @@ export interface AnyObject {
     [ key: string ]: any;
     [ key: number ]: any;
 }
+
+/**
+ * Extracts the property names (only string keys) of all methods on an object
+ * type.
+ * @public
+ */
+export type MethodNames<T> =
+    Extract<
+        { [K in keyof T]: Required<T>[K] extends (...args: any[]) => any ? K : never }[keyof T]
+        , string>;
+
+/**
+ * If the input type is a function, returns the return type of the function,
+ * otherwise returns `never`.
+ * @remarks
+ * The difference between this and the standard library `ReturnType` is
+ * that there is no restriction on the input type `T`.
+ * @public
+ */
+export type ReturnTypeOrNever<T> = T extends (...args: any[]) => any ? ReturnType<T> : never;
