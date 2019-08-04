@@ -34,6 +34,7 @@ hide_title: true
 |  [mergeEnvPairs(envs)](./cloud.mergeenvpairs.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single array of [EnvPair](./cloud.envpair.md) objects. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
 |  [mergeEnvSimple(envs)](./cloud.mergeenvsimple.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single [EnvSimple](./cloud.envsimple.md) object. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
 |  [targetPort(elemOrProps)](./cloud.targetport.md) |  |
+|  [useLatestImageFrom(source)](./cloud.uselatestimagefrom.md) | <b><i>(BETA)</i></b> Hook function to translate an [ImageId](./cloud.imageid.md) (which can be either a Handle or an image name string) into an image name string. |
 
 ## Interfaces
 

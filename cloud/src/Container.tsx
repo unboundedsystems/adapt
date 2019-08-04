@@ -1,9 +1,10 @@
-import { AdaptElement, PrimitiveComponent, } from "@adpt/core";
+import { AdaptElement, Handle, isHandle, PrimitiveComponent, useMethod } from "@adpt/core";
 import { FIXME_NeedsProperType, } from "@adpt/utils";
+import { DockerImageInstance, ImageInfo } from "./docker";
 
 export type PortDescription = string | number;
 
-export type ImageId = string;
+export type ImageId = string | Handle<DockerImageInstance>;
 
 export type Command = string | string[];
 
@@ -100,6 +101,7 @@ export abstract class Container extends PrimitiveComponent<ContainerProps> {
         links: {},
         imagePullPolicy: "IfNotPresent",
     };
+    static displayName = "cloud.Container";
 }
 export default Container;
 
@@ -147,4 +149,19 @@ export function mergeEnvSimple(...envs: (Environment | undefined)[]): EnvSimple 
         }
     });
     return ret;
+}
+
+/**
+ * Hook function to translate an {@link ImageId} (which can be either a
+ * Handle or an image name string) into an image name string.
+ * @beta
+ */
+export function useLatestImageFrom(source: ImageId): string | undefined {
+    // useMethod hook must be called unconditionally, even if source isn't a handle
+    const hand = isHandle(source) ? source : null;
+    const image = useMethod<ImageInfo | undefined>(hand, undefined, "latestImage");
+    if (image && !image.nameTag) throw new Error(`Built image info has no nameTag`);
+    return (typeof source === "string") ? source :
+        image ? image.nameTag :
+        undefined;
 }

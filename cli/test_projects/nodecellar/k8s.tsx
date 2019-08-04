@@ -17,8 +17,8 @@ function kubeClusterInfo() {
 
 export const k8sStyle =
     <Style>
-        {Container} {rule<ContainerProps>((props) => (
-            <k8s.K8sContainer {...k8s.k8sContainerProps(props)} />
+        {Container} {rule<ContainerProps>(({ handle, ...props }) => (
+            <k8s.Container {...props} />
         ))}
 
         {Compute} {rule<ComputeProps>((props) => (

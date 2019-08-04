@@ -6,11 +6,11 @@ import Adapt, {
     Group,
     handle,
 } from "@adpt/core";
-import { ContainerProps, isContainerElement } from "../Container";
+import { ContainerProps as AbsContainerProps, isContainerElement } from "../Container";
 import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService";
 import { ServiceProps as AbsServiceProps } from "../Service";
 import { ClusterInfo } from "./common";
-import { K8sContainer, k8sContainerProps, K8sContainerProps } from "./Container";
+import { Container, K8sContainerProps } from "./Container";
 import { Pod, PodProps } from "./Pod";
 import { k8sServiceProps, Service, ServiceProps } from "./Service";
 
@@ -28,13 +28,13 @@ function mapChild(kid: ServiceDeploymentProps["children"],
     return kid;
 }
 
-function mapContainer(absEl: AdaptElement<ContainerProps>,
+function mapContainer(absEl: AdaptElement<AbsContainerProps>,
     props: ServiceDeploymentProps, helpers: BuildHelpers) {
     const { config, containerProps = {}, podProps = {} } = props;
-    const hand = handle();
+    const { handle: _h, ...absProps } = absEl.props;
     const pod =
-        <Pod config={config} handle={hand} {...podProps} >
-            <K8sContainer {...k8sContainerProps(absEl.props)} {...containerProps} />
+        <Pod config={config} {...podProps} >
+            <Container {...absProps} k8sContainerProps={containerProps} />
         </Pod>;
     absEl.props.handle.replaceTarget(pod, helpers);
     return pod;

@@ -20,9 +20,9 @@ import path from "path";
 import should from "should";
 
 import {
-    AnsibleContainer,
     AnsibleDockerHost,
     ansibleHostLocal,
+    Container as AContainer,
     createAnsiblePlugin
 } from "../src/ansible";
 import { Container, ContainerProps, ContainerStatus } from "../src/Container";
@@ -89,7 +89,7 @@ describe("Container component", () => {
             </Group>;
         const style =
             <Style>
-                {Container} {rule<ContainerProps>(({handle, ...props}) => <AnsibleContainer {...props} />)}
+                {Container} {rule<ContainerProps>(({handle, ...props}) => <AContainer {...props} />)}
             </Style>;
         const stateStore = createStateStore();
         const { mountedOrig, contents: dom } = await build(root, style, { stateStore });

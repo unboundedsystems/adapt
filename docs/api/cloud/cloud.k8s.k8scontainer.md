@@ -9,6 +9,8 @@ hide_title: true
 
 ## k8s.K8sContainer class
 
+Kubernetes-specific container.
+
 <b>Signature:</b>
 
 ```typescript

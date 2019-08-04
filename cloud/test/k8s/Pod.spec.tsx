@@ -17,9 +17,9 @@ import { sleep } from "@adpt/utils";
 import * as abs from "../../src";
 import {
     ClusterInfo,
+    Container,
     createK8sPlugin,
     K8sContainer,
-    k8sContainerProps,
     K8sPlugin,
     Kubeconfig,
     Pod,
@@ -84,8 +84,8 @@ describe("k8s Pod Component Tests", () => {
             </abs.Compute>;
         const style =
             <Style>
-                {abs.Container} {rule<abs.ContainerProps>((props) => (
-                    <K8sContainer {...k8sContainerProps(props)} />
+                {abs.Container} {rule<abs.ContainerProps>(({ handle, ...props }) => (
+                    <Container {...props} />
                 ))}
                 {abs.Compute} {rule<abs.ComputeProps>((props) => (
                     <Pod config={dummyConfig}>

@@ -1,12 +1,28 @@
-import Adapt, { Component, ObserveForStatus } from "@adpt/core";
+import Adapt, { GoalStatus, ObserveForStatus, SFCBuildProps, SFCDeclProps, useDeployedWhen, waiting } from "@adpt/core";
 import { FIXME_NeedsProperType, removeUndef } from "@adpt/utils";
-import { Container, ContainerProps, Links, mergeEnvSimple, PortBinding } from "../Container";
+import {
+    Container as AbsContainer,
+    ContainerProps as AbsContainerProps,
+    Links,
+    mergeEnvSimple,
+    PortBinding,
+    useLatestImageFrom,
+} from "../Container";
 import { containerStatus } from "../docker/Container";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
-export type AnsibleContainerProps = ContainerProps;
+/**
+ * Props for an {@link ansible.AnsibleContainer}.
+ * @public
+ */
+export interface AnsibleContainerProps extends SFCDeclProps<ContainerConfig> {
+}
 
-interface ContainerConfig {
+/**
+ * Ansible native container configuration.
+ * @public
+ */
+export interface ContainerConfig {
     name: string;
 
     api_version?: FIXME_NeedsProperType;
@@ -29,7 +45,7 @@ interface ContainerConfig {
     dns_opts?: FIXME_NeedsProperType;
     dns_search_domains?: FIXME_NeedsProperType;
     dns_servers?: FIXME_NeedsProperType;
-    docker_host?: string;
+    docker_host: string;
     domainname?: string;
     entrypoint?: FIXME_NeedsProperType;
     env?: { [ key: string ]: string };
@@ -96,55 +112,41 @@ interface ContainerConfig {
     working_dir?: string;
 }
 
-export class AnsibleContainer extends Component<AnsibleContainerProps> {
-    static defaultProps = Container.defaultProps;
+/**
+ * Ansible-specific defintion of a container.
+ * @public
+ */
+export function AnsibleContainer(props: AnsibleContainerProps) {
+    const { handle: h, key, ...config } = props as SFCBuildProps<AnsibleContainerProps>;
 
-    build() {
-        const config: ContainerConfig = {
-            name: this.props.name,
-
-            auto_remove: this.props.autoRemove,
-            command: this.props.command,
-            docker_host: translateDockerHost(this.props.dockerHost),
-            env: mergeEnvSimple(this.props.environment),
-            image: this.props.image,
-            interactive: this.props.stdinOpen,
-            links: translateLinks(this.props.links),
-            published_ports: translatePorts(this.props.portBindings),
-            pull: true,
-            state: "started",
-            stop_signal: this.props.stopSignal,
-            tty: this.props.tty,
-            working_dir: this.props.workingDir,
-        };
-        const plays: Play[] = [
-            {
-                hosts: "localhost",
-                // TODO(mark): Remove the roles from here when we have
-                // ability to place a dependency on AnsibleDockerHost, which
-                // should install these roles.
-                roles: [
-                    "geerlingguy.docker",
-                    "robertdebock.python_pip",
-                ],
-                tasks: [
-                    {
-                        name: `Create docker container ${this.props.name}`,
-                        docker_container: removeUndef(config),
-                    }
-                ],
-                vars: {
-                    python_pip_modules: [ { name: "docker" } ]
+    const plays: Play[] = [
+        {
+            hosts: "localhost",
+            // TODO(mark): Remove the roles from here when we have
+            // ability to place a dependency on AnsibleDockerHost, which
+            // should install these roles.
+            roles: [
+                "geerlingguy.docker",
+                "robertdebock.python_pip",
+            ],
+            tasks: [
+                {
+                    name: `Create docker container ${props.name}`,
+                    docker_container: removeUndef(config),
                 }
+            ],
+            vars: {
+                python_pip_modules: [ { name: "docker" } ]
             }
-        ];
-        return <AnsiblePlaybook playbookPlays={plays} />;
-    }
-
-    async status(observe: ObserveForStatus) {
-        return containerStatus(observe, this.props.name, this.props.dockerHost);
-    }
+        }
+    ];
+    return <AnsiblePlaybook playbookPlays={plays} />;
 }
+
+(AnsibleContainer as any).status =
+    (props: AnsibleContainerProps, observe: ObserveForStatus) => {
+    return containerStatus(observe, props.name, props.docker_host);
+};
 export default AnsibleContainer;
 
 function translatePorts(bindings: PortBinding | undefined): string[] | undefined {
@@ -165,3 +167,53 @@ function translateDockerHost(dockerHost: string): string {
     if (dockerHost.startsWith("file://")) return "unix://" + dockerHost.slice(7);
     return dockerHost;
 }
+
+/**
+ * Props for {@link ansible.Container}.
+ * @public
+ */
+export interface ContainerProps extends SFCDeclProps<AbsContainerProps, typeof AbsContainer.defaultProps> {
+    /**
+     * Additional {@link ansible.AnsibleContainerProps}-specific props that
+     * should be added to the instantiated {@link ansible.AnsibleContainer}.
+     */
+    ansibleContainerProps?: Partial<AnsibleContainerProps>;
+}
+
+/**
+ * Component that implements the abstract {@link: Container} interface and
+ * translates to an Ansible-specific {@link: ansible.AnsibleContainer}.
+ * @public
+ */
+export function Container(props: ContainerProps) {
+    const bProps = props as SFCBuildProps<AbsContainerProps, typeof AbsContainer.defaultProps>;
+    const image = useLatestImageFrom(bProps.image);
+
+    useDeployedWhen((gs) => {
+        if (gs === GoalStatus.Destroyed || image) return true;
+        return waiting("Waiting for Docker image");
+    });
+
+    if (!image) return null;
+
+    const config: ContainerConfig = {
+        name: bProps.name,
+
+        auto_remove: bProps.autoRemove,
+        command: bProps.command,
+        docker_host: translateDockerHost(bProps.dockerHost),
+        env: mergeEnvSimple(bProps.environment),
+        image,
+        interactive: bProps.stdinOpen,
+        links: translateLinks(bProps.links),
+        published_ports: translatePorts(bProps.portBindings),
+        pull: true,
+        state: "started",
+        stop_signal: bProps.stopSignal,
+        tty: bProps.tty,
+        working_dir: bProps.workingDir,
+    };
+    return <AnsibleContainer {...config} {...props.ansibleContainerProps || {}} />;
+}
+(Container as any).defaultProps = AbsContainer.defaultProps;
+(Container as any).displayName = "ansible.Container";

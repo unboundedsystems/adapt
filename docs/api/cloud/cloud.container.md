@@ -20,3 +20,4 @@ export declare abstract class Container extends PrimitiveComponent<ContainerProp
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
 |  [defaultProps](./cloud.container.defaultprops.md) | <code>static</code> | <code>{</code><br/><code>        dockerHost: string;</code><br/><code>        autoRemove: boolean;</code><br/><code>        ports: never[];</code><br/><code>        stdinOpen: boolean;</code><br/><code>        tty: boolean;</code><br/><code>        portBindings: {};</code><br/><code>        environment: {};</code><br/><code>        links: {};</code><br/><code>        imagePullPolicy: string;</code><br/><code>    }</code> |  |
+|  [displayName](./cloud.container.displayname.md) | <code>static</code> | <code>string</code> |  |

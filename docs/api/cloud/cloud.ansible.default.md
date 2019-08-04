@@ -12,18 +12,5 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare class AnsibleContainer extends Component<AnsibleContainerProps> 
+export declare class AnsibleGroup extends PrimitiveComponent<AnsibleGroupProps> 
 ```
-
-## Properties
-
-|  Property | Modifiers | Type | Description |
-|  --- | --- | --- | --- |
-|  [defaultProps](./cloud.ansible.default.defaultprops.md) | <code>static</code> | <code>{</code><br/><code>        dockerHost: string;</code><br/><code>        autoRemove: boolean;</code><br/><code>        ports: never[];</code><br/><code>        stdinOpen: boolean;</code><br/><code>        tty: boolean;</code><br/><code>        portBindings: {};</code><br/><code>        environment: {};</code><br/><code>        links: {};</code><br/><code>        imagePullPolicy: string;</code><br/><code>    }</code> |  |
-
-## Methods
-
-|  Method | Modifiers | Description |
-|  --- | --- | --- |
-|  [build()](./cloud.ansible.default.build.md) |  |  |
-|  [status(observe)](./cloud.ansible.default.status.md) |  |  |

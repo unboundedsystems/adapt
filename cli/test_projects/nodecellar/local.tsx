@@ -1,4 +1,5 @@
 import {
+    ansible,
     Compute,
     ComputeProps,
     Container,
@@ -9,7 +10,6 @@ import {
     NetworkService,
     NetworkServiceProps,
 } from "@adpt/cloud";
-import { AnsibleContainer, AnsibleDockerHost } from "@adpt/cloud/ansible";
 import Adapt, { rule, Style } from "@adpt/core";
 
 export const localStyle =
@@ -19,13 +19,13 @@ export const localStyle =
         })}
 
         {DockerHost} {rule<DockerHostProps>(({handle, ...props}, info) => {
-            return <AnsibleDockerHost ansibleHost={{
+            return <ansible.AnsibleDockerHost ansibleHost={{
                 ansible_connection: "local"
             }} {...props} />;
         })}
 
         {Container} {rule<ContainerProps>(({handle, ...props}) => {
-            return <AnsibleContainer {...props} dockerHost="unix:///var/run/docker.sock" />;
+            return <ansible.Container {...props} dockerHost="unix:///var/run/docker.sock" />;
         })}
 
         {NetworkService} {rule<NetworkServiceProps>((props) => (

@@ -12,5 +12,5 @@ hide_title: true
 <b>Signature:</b>
 
 ```typescript
-export declare type ImageId = string;
+export declare type ImageId = string | Handle<DockerImageInstance>;
 ```

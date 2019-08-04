@@ -1,7 +1,24 @@
-import { AdaptElement, BuiltinProps, PrimitiveComponent } from "@adpt/core";
+import Adapt, {
+    AdaptElement,
+    BuiltinProps,
+    GoalStatus,
+    PrimitiveComponent,
+    SFCBuildProps,
+    SFCDeclProps,
+    useDeployedWhen,
+    waiting,
+} from "@adpt/core";
 import { mapMap } from "@adpt/utils";
-import * as ctr from "../Container";
+import { ReplaceT } from "type-ops";
+import * as abs from "../Container";
 
+/**
+ * Resource spec for a Kubernetes container.
+ * See the Kubernetes
+ * {@link https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-v1-core | API docs }
+ * for more details.
+ * @public
+ */
 export interface ContainerSpec {
     name: string; //Must be unique within pod
     image: string;
@@ -15,6 +32,10 @@ export interface ContainerSpec {
     workingDir?: string;
 }
 
+/**
+ * Props for the Kubernetes-specific {@link k8s.K8sContainer} component.
+ * @public
+ */
 export interface K8sContainerProps extends ContainerSpec { }
 
 export interface ContainerPort {
@@ -55,7 +76,7 @@ export interface EnvVarFrom {
     valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
-export const toK8sEnv = ctr.mergeEnvPairs;
+const toK8sEnv = abs.mergeEnvPairs;
 
 const defaultProtocol = "tcp";
 
@@ -91,7 +112,7 @@ class PortInfo {
     }
 }
 
-export function toK8sPorts(abstractProps: ctr.ContainerProps): ContainerPort[] | undefined {
+function toK8sPorts(abstractProps: abs.ContainerProps): ContainerPort[] | undefined {
     const { ports, portBindings } = abstractProps;
     const pInfo = new PortInfo();
 
@@ -104,13 +125,37 @@ export function toK8sPorts(abstractProps: ctr.ContainerProps): ContainerPort[] |
     return pInfo.containerPorts;
 }
 
-export function k8sContainerProps(abstractProps: ctr.ContainerProps & BuiltinProps): K8sContainerProps {
+/**
+ * See {@link k8s.k8sContainerProps}.
+ * @public
+ */
+export type FromContainerProps = ReplaceT<abs.ContainerProps, { image: string }> & BuiltinProps;
+
+/**
+ * Low level utility function to translate from the abstract {@link Container}
+ * component props ({@link ContainerProps}) to {@link k8s.K8sContainerProps}
+ * to be used in a {@link k8s.K8sContainer}.
+ * @remarks
+ * Note: The `image` property in the passed in {@link ContainerProps} must
+ * be a `string`, not a `Handle`.
+ * In most cases, it is preferable to use the {@link k8s.Container} component
+ * instead, which is designed specifically to deal with this issue.
+ *
+ * @param abstractProps - The abstract {@link ContainerProps} to translate from.
+ * @param k8sProps - Props that are specific to the {@link k8s.K8sContainer}
+ *     component that should be merged into the resulting returned
+ *     {@link k8s.K8sContainerProps} object.
+ * @public
+ */
+export function k8sContainerProps(abstractProps: FromContainerProps,
+    k8sProps?: Partial<K8sContainerProps>): K8sContainerProps {
     const { command, entrypoint, environment, tty, workingDir } = abstractProps;
 
     const ret: K8sContainerProps & Partial<BuiltinProps> = {
         key: abstractProps.key,
         name: abstractProps.name,
         image: abstractProps.image,
+        ...(k8sProps || {}),
     };
 
     if (entrypoint != null) {
@@ -127,10 +172,14 @@ export function k8sContainerProps(abstractProps: ctr.ContainerProps & BuiltinPro
     return ret;
 }
 
-export function isContainerElement(x: AdaptElement): x is AdaptElement<K8sContainerProps> {
+export function isK8sContainerElement(x: AdaptElement): x is AdaptElement<K8sContainerProps> {
     return x.componentType === K8sContainer;
 }
 
+/**
+ * Kubernetes-specific container.
+ * @public
+ */
 export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
     static defaultProps = {
         imagePullPolicy: "IfNotPresent"
@@ -146,3 +195,40 @@ export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
         //FIXME(manishv) check if workDir is valid path
     }
 }
+
+/**
+ * Props for {@link k8s.Container}.
+ * @public
+ */
+export interface ContainerProps extends SFCDeclProps<abs.ContainerProps> {
+    /**
+     * Additional {@link k8s.K8sContainerProps}-specific props that should be
+     * added to the instantiated {@link k8s.K8sContainer}.
+     */
+    k8sContainerProps?: Partial<K8sContainerProps>;
+}
+
+/**
+ * Component that implements the abstract {@link: Container} interface and
+ * translates to a Kubernetes-specific {@link k8s.K8sContainer}.
+ * @public
+ */
+export function Container(props: ContainerProps) {
+    const {
+        image: imgOrHandle,
+        k8sContainerProps: addlProps,
+        ...rest
+    } = props as SFCBuildProps<ContainerProps>;
+    const image = abs.useLatestImageFrom(imgOrHandle);
+
+    useDeployedWhen((gs) => {
+        if (gs === GoalStatus.Destroyed || image) return true;
+        return waiting("Waiting for Docker image");
+    });
+
+    if (!image) return null;
+    const kProps = k8sContainerProps({ ...rest, image }, addlProps);
+    return <K8sContainer {...kProps} />;
+}
+(Container as any).displayName = "k8s.Container";
+(Container as any).defaultProps = abs.Container.defaultProps;
