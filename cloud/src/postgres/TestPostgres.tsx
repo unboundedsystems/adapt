@@ -1,7 +1,6 @@
 import Adapt, { handle, Sequence, useImperativeMethods, useMethod } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
 import { Container } from "../Container";
-import { ImageInfo } from "../docker";
 import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
@@ -30,7 +29,6 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
     }));
 
     const img = handle();
-    const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
 
     return <Sequence>
         <PreloadedPostgresImage handle={img} mockDbName={props.mockDbName} mockDataPath={props.mockDataPath} />
@@ -41,16 +39,14 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
                 endpoint={dbCtr}
                 port={5432}
             />
-            {image ?
-                <Container
-                    name="db"
-                    handle={dbCtr}
-                    image={image.nameTag!}
-                    environment={{ POSTGRES_PASSWORD: "hello" }}
-                    imagePullPolicy="Never"
-                    ports={[5432]}
-                />
-                : null}
+            <Container
+                name="db"
+                handle={dbCtr}
+                image={img}
+                environment={{ POSTGRES_PASSWORD: "hello" }}
+                imagePullPolicy="Never"
+                ports={[5432]}
+            />
         </Service>
     </Sequence>;
 }

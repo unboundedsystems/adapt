@@ -5,11 +5,10 @@ import Adapt, {
     SFCBuildProps,
     SFCDeclProps,
     useImperativeMethods,
-    useMethod,
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import { Container } from "../Container";
-import { ImageInfo, LocalDockerImage } from "../docker";
+import { LocalDockerImage } from "../docker";
 import {
     Destination,
     HttpServer as AbsHttpServer,
@@ -124,8 +123,6 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
         port: () => callInstanceMethod(netSvc, undefined, "port")
     }));
 
-    const curImage = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
-
     const ret = <Sequence>
         <LocalDockerImage
             handle={img}
@@ -156,15 +153,13 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
                 targetPort={props.port}
                 scope={props.scope}
             />
-            {curImage ?
-                <Container
-                    handle={nginx}
-                    name="nginx-static"
-                    image={curImage.nameTag!}
-                    ports={[props.port]}
-                    imagePullPolicy="Never"
-                />
-                : null}
+            <Container
+                handle={nginx}
+                name="nginx-static"
+                image={img}
+                ports={[props.port]}
+                imagePullPolicy="Never"
+            />
         </Service >
     </Sequence>;
     return ret;

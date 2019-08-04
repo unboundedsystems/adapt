@@ -5,7 +5,6 @@ import Adapt, {
     SFCBuildProps,
     SFCDeclProps,
     useAsync,
-    useMethod,
     useState,
 } from "@adpt/core";
 
@@ -19,7 +18,7 @@ import * as path from "path";
 import { URL } from "url";
 import { isString, promisify } from "util";
 import { Container } from "../Container";
-import { ImageInfo, LocalDockerImage } from "../docker";
+import { LocalDockerImage } from "../docker";
 import { handles } from "../handles";
 import {
     checkUrlEndpoints,
@@ -163,7 +162,6 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
     const nginxExec = props.debug ? "nginx-debug" : "nginx";
 
     const img = handle();
-    const curImage = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
 
     const externalPort = props.externalPort || props.port;
 
@@ -215,15 +213,13 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
                 targetPort={props.port}
                 scope="external"
             />
-            {curImage ?
-                <Container
-                    handle={h.nginx}
-                    name="nginx-url-router"
-                    image={curImage.nameTag!}
-                    ports={[props.port]}
-                    imagePullPolicy="Never"
-                />
-                : null}
+            <Container
+                handle={h.nginx}
+                name="nginx-url-router"
+                image={img}
+                ports={[props.port]}
+                imagePullPolicy="Never"
+            />
         </Service >
     </Sequence>;
 }

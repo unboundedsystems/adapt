@@ -160,16 +160,14 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
                 targetPort={targetPort}
                 scope={scope}
             />
-            {image ?
-                <Container
-                    name="node-service"
-                    handle={nodeCtr}
-                    environment={finalEnv}
-                    image={image.nameTag!}
-                    ports={[targetPort]}
-                    imagePullPolicy="Never"
-                />
-                : null}
+            <Container
+                name="node-service"
+                handle={nodeCtr}
+                environment={finalEnv}
+                image={img}
+                ports={[targetPort]}
+                imagePullPolicy="Never"
+            />
         </Service>
     </Sequence>;
 }
