@@ -46,9 +46,9 @@ export class ActionPlugin implements Plugin<ActionObservations> {
 
     async observe(oldDom: FinalDomElement | null, newDom: FinalDomElement | null) {
         const obs: ActionObservations = {};
-        const context = this.context();
         const callShould = async (list: Set<FinalDomElement>, op: ChangeType) => {
             for (const el of list) {
+                const context = this.context(el);
                 const inst = getActionInstance(el);
                 if (!inst) continue;
                 const id = idFunc(el);
@@ -75,12 +75,14 @@ export class ActionPlugin implements Plugin<ActionObservations> {
 
         // Aggregate all "none" items into one PluginAction
         const noAction: FinalDomElement[] = [];
-        const context = this.context();
 
         const actions: PluginAction[] = Object.keys(observations).map((id) => {
             const obs = observations[id];
             const el = this.elements.get(id);
+
             if (!el) throw new Error(`Internal error: unable to look up element for ID ${id}`);
+            const context = this.context(el);
+
             if (obs.type === ChangeType.none) {
                 noAction.push(el);
                 return null;
@@ -105,7 +107,7 @@ export class ActionPlugin implements Plugin<ActionObservations> {
             actions.push({
                 type: ChangeType.none,
                 detail: "No action required",
-                act: async () => {/* */},
+                act: async () => {/* */ },
                 changes: noAction.map((el) => ({
                     type: ChangeType.none,
                     detail: "No action required",
@@ -116,13 +118,13 @@ export class ActionPlugin implements Plugin<ActionObservations> {
         return actions;
     }
 
-    async finish() {/* */}
+    async finish() {/* */ }
 
-    context(): ActionContext {
+    context(el: FinalDomElement): ActionContext {
         const logger = this.logger;
         const dataDir = this.dataDir;
         if (!logger || !dataDir) throw new Error(`Plugin not initialized correctly`);
-        return { dataDir, logger };
+        return { buildData: el.buildData, dataDir, logger };
     }
 }
 

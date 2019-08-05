@@ -1,4 +1,5 @@
 import {
+    BuildData,
     ChangeType,
     FinalDomElement,
     isFinalDomElement,
@@ -25,14 +26,32 @@ export function toDetail(val: ShouldAct) {
     };
 }
 
+/**
+ * Information that can be used to decide to, or perform actions
+ * @public
+ */
 export interface ActionContext {
+    /** Various pieces of data about the current element and build cycle */
+    buildData: BuildData;
+    /** A location to put files that need to be persisted as state */
     dataDir: string;
+    /** Interface to use for logging messages.  Prefer to using stderr or stdout */
     logger: MessageLogger;
 }
 
+/**
+ * Component that can be inherited to perform actions during deploy
+ *
+ * @public
+ */
 export class Action
     <P extends object = {}, S extends object = {}> extends PrimitiveComponent<P, S> {
 
+    /**
+     * Calculates whether or not any action is needed based on state/props/observation
+     *
+     * @returns false if no action needed, `{ act: true, detail: <user-facing description of action> }`.
+     */
     shouldAct(_op: ChangeType, _ctx: ActionContext): ShouldAct | Promise<ShouldAct> {
         throw new Error(`Derived class '${this.constructor.name}' does not ` +
             `implement required method 'shouldAct'`);
