@@ -21,9 +21,9 @@ export interface AdaptElement<P extends object = AnyProps>
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [componentName](./core.adaptelement.componentname.md) | <code>string</code> | The name of the class or function in <code>componentType</code>, as returned by <code>componentType.name</code> or, the string <code>&quot;anonymous&quot;</code> if no name is available. |
+|  [componentName](./core.adaptelement.componentname.md) | <code>string</code> | The name of the class or function in [AdaptElement.componentType](./core.adaptelement.componenttype.md)<!-- -->, as returned by <code>componentType.name</code> or, the string <code>&quot;anonymous&quot;</code> if no name is available. |
 |  [componentType](./core.adaptelement.componenttype.md) | <code>ComponentType&lt;P&gt;</code> | The type of component that is associated with this element. |
-|  [displayName](./core.adaptelement.displayname.md) | <code>string</code> | The name that a component author (optionally) associated with the component using the <code>displayName</code> static property. If not set on a component, defaults to <code>componentName</code>. |
+|  [displayName](./core.adaptelement.displayname.md) | <code>string</code> | The name that a component author (optionally) associated with the component using the <code>displayName</code> static property. If not set on a component, defaults to [AdaptElement.componentName](./core.adaptelement.componentname.md)<!-- -->. |
 |  [props](./core.adaptelement.props.md) | <code>P &amp; BuiltinProps</code> | A copy of the props that the element was instantiated with |
 
 ## Remarks

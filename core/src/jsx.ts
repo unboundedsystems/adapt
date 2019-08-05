@@ -41,15 +41,20 @@ export function isApplyStyle(el: AdaptElement) {
     return el.componentType === ApplyStyle;
 }
 
-//This is broken, why does JSX.ElementClass correspond to both the type
-//a Component construtor has to return and what createElement has to return?
-//I don't think React actually adheres to this constraint.
 /**
  * An Adapt Element is an instance of an Adapt component.
+ *
  * @remarks
  * The Adapt DOM is composed of Elements.
- * @param P - The type of the element's props.
+ * @typeParam P - The type of the element's props.
+ *
  * @public
+ *
+ * @privateRemarks
+ * NOTE(manishv):
+ * This is broken, why does JSX.ElementClass correspond to both the type
+ * a Component construtor has to return and what createElement has to return?
+ * I don't think React actually adheres to this constraint.
  */
 export interface AdaptElement<P extends object = AnyProps> {
     /** A copy of the props that the element was instantiated with */
@@ -62,15 +67,15 @@ export interface AdaptElement<P extends object = AnyProps> {
      */
     readonly componentType: ComponentType<P>;
     /**
-     * The name of the class or function in `componentType`, as returned by
-     * `componentType.name` or, the string `"anonymous"` if no name is
-     * available.
+     * The name of the class or function in {@link AdaptElement.componentType},
+     * as returned by `componentType.name` or, the string `"anonymous"` if
+     * no name is available.
      */
     readonly componentName: string;
     /**
      * The name that a component author (optionally) associated with the
      * component using the `displayName` static property. If not set on a
-     * component, defaults to `componentName`.
+     * component, defaults to {@link AdaptElement.componentName}.
      */
     readonly displayName: string;
 }

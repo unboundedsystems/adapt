@@ -9,7 +9,7 @@ hide_title: true
 
 ## AdaptElement.displayName property
 
-The name that a component author (optionally) associated with the component using the `displayName` static property. If not set on a component, defaults to `componentName`<!-- -->.
+The name that a component author (optionally) associated with the component using the `displayName` static property. If not set on a component, defaults to [AdaptElement.componentName](./core.adaptelement.componentname.md)<!-- -->.
 
 <b>Signature:</b>
 
