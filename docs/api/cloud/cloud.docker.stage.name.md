@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.Stage.name property
 
+Name for the stage
+
 <b>Signature:</b>
 
 ```typescript

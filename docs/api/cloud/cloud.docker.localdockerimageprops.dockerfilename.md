@@ -9,7 +9,7 @@ hide_title: true
 
 ## docker.LocalDockerImageProps.dockerfileName property
 
-Location of the dockerfile
+Path to a local Dockerfile in the Adapt project.
 
 <b>Signature:</b>
 
@@ -19,4 +19,4 @@ dockerfileName?: string;
 
 ## Remarks
 
-Should not be used if `dockerfile` is set.
+This path is relative to the root of the Adapt project. Should not be used if `dockerfile` is set.

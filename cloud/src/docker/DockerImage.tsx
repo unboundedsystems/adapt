@@ -28,8 +28,19 @@ export interface DockerImageInstance {
 
 }
 
+/**
+ * Props for {@link docker.DockerImage}.
+ * @beta
+ */
 export interface DockerImageProps {}
 
+/**
+ * Abstract component representing a {@link https://docker.com | Docker}
+ * image that can be used to create containers.
+ * @remarks
+ * See also {@link Container}.
+ * @beta
+ */
 export abstract class DockerImage extends Component<DockerImageProps>
     implements DockerImageInstance {
 

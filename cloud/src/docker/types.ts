@@ -1,7 +1,16 @@
+/**
+ * Options for interacting with Docker Engine that apply to all
+ * operations.
+ * @public
+ */
 export interface DockerGlobalOptions {
     dockerHost?: string;
 }
 
+/**
+ * Options for performing Docker image builds.
+ * @public
+ */
 export interface DockerBuildOptions extends DockerGlobalOptions {
     forceRm?: boolean;
     imageName?: string;
@@ -19,13 +28,44 @@ export interface DockerBuildOptions extends DockerGlobalOptions {
     uniqueTag?: boolean;
 }
 
+/**
+ * A dynamically-created file that can be used during the build of a Docker
+ * image.
+ *
+ * @remarks
+ * These `File` objects are used to create a temporary "scratch" image in a
+ * {@link https://docs.docker.com/develop/develop-images/multistage-build/ | multi-stage build}
+ * that contains only the specified files. Then, in later stages of that build,
+ * the files within the temporary image can be copied into the later stage
+ * image.
+ * @public
+ */
 export interface File {
+    /**
+     * The path in the temporary image where the file will be created.
+     */
     path: string;
+    /**
+     * The contents of the file.
+     */
     contents: Buffer | string;
 }
 
+/**
+ * A stage to be added to a
+ * {@link https://docs.docker.com/develop/develop-images/multistage-build/ | multi-stage Docker build}.
+ *
+ * @remarks
+ * The stage will be added to the generated Dockerfile for the image as:
+ * ```
+ * FROM image as name
+ * ```
+ * @public
+ */
 export interface Stage {
+    /** The image (name + tag or digest) to use for the stage. */
     image: string;
+    /** Name for the stage */
     name: string;
 }
 

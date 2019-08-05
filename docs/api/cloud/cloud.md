@@ -61,7 +61,7 @@ hide_title: true
 |  --- | --- |
 |  [ansible](./cloud.ansible.md) |  |
 |  [aws](./cloud.aws.md) |  |
-|  [docker](./cloud.docker.md) |  |
+|  [docker](./cloud.docker.md) | Docker library for Adapt. |
 |  [http](./cloud.http.md) |  |
 |  [k8s](./cloud.k8s.md) |  |
 |  [nginx](./cloud.nginx.md) |  |

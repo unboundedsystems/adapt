@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.File.path property
 
+The path in the temporary image where the file will be created.
+
 <b>Signature:</b>
 
 ```typescript

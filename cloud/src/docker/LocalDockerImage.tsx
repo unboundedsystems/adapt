@@ -38,21 +38,41 @@ export interface LocalDockerImageProps {
      * @remarks
      * Should not be used if dockerfileName is set
      */
-    dockerfile?: string;      // contents of Dockerfile
+    dockerfile?: string;
     /**
-     * Location of the dockerfile
+     * Path to a local Dockerfile in the Adapt project.
      *
      * @remarks
+     * This path is relative to the root of the Adapt project.
      * Should not be used if `dockerfile` is set.
      */
-    dockerfileName?: string;  // path to Dockerfile
+    dockerfileName?: string;
     /**
      * Extra files that should be included during the docker build
      *
      * @remarks
      * LocalDockerImage uses a multi-stage build process.  It first creates
-     * a stage that includes the files specified in this field.  These files are
-     * then available to the `dockerfile` to copy into the final image.
+     * a temporary image that includes the files specified in this field.
+     * This temporary image is then made available to the `dockerfile` with
+     * stage name `files` and can then be copied into the final image, as
+     * desired, using `COPY` or `ADD` commands in the `dockerfile`.
+     *
+     * @example
+     * To create a final Docker image that contains a file that has some
+     * programmatically created content, use the `dockerfile` prop along
+     * with the `files` prop like this:
+     * ```
+     * const files = [{
+     *   path: '/path/to/myfile.txt',
+     *   contents: 'contents for myfile\n'
+     * }];
+     * const dockerfile = `
+     *   FROM alpine
+     *   COPY --from=files /path/to/myfile.txt /app/myfile.txt
+     *   ...
+     * `;
+     * return <LocalDockerImage files={files} dockerfile={dockerfile} />
+     * ```
      */
     files?: File[];
     /**
@@ -65,6 +85,9 @@ export interface LocalDockerImageProps {
     stages?: Stage[];
 }
 
+/**
+ * @internal
+ */
 export interface LocalDockerImageState {
     deployOpID?: DeployOpID;
     image?: ImageInfo;
@@ -213,10 +236,3 @@ export class LocalDockerImage
         return this.imagePropsJson_;
     }
 }
-
-/*
-export interface DockerBuildStatus {
-    buildObj: AdaptElement | null;
-    image?: ImageInfo;
-}
-*/

@@ -9,6 +9,11 @@ hide_title: true
 
 ## docker.DockerImage class
 
+> This API is provided as a preview for developers and may change based on feedback that we receive. Do not use this API in a production environment.
+> 
+
+Abstract component representing a [Docker](https://docker.com) image that can be used to create containers.
+
 <b>Signature:</b>
 
 ```typescript
@@ -19,10 +24,14 @@ export declare abstract class DockerImage extends Component<DockerImageProps> im
 
 |  Property | Modifiers | Type | Description |
 |  --- | --- | --- | --- |
-|  [image](./cloud.docker.dockerimage.image.md) |  | <code>ImageInfo &#124; undefined</code> |  |
+|  [image](./cloud.docker.dockerimage.image.md) |  | <code>ImageInfo &#124; undefined</code> | <b><i>(BETA)</i></b> |
 
 ## Methods
 
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
-|  [latestImage()](./cloud.docker.dockerimage.latestimage.md) |  |  |
+|  [latestImage()](./cloud.docker.dockerimage.latestimage.md) |  | <b><i>(BETA)</i></b> |
+
+## Remarks
+
+See also [Container](./cloud.container.md)<!-- -->.
