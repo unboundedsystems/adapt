@@ -9,8 +9,14 @@ hide_title: true
 
 ## ImageId type
 
+An image for a [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
-export declare type ImageId = string;
+export declare type ImageId = string | Handle<DockerImageInstance>;
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

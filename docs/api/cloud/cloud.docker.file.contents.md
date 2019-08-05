@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.File.contents property
 
+The contents of the file.
+
 <b>Signature:</b>
 
 ```typescript

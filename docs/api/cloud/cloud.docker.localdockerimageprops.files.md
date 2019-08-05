@@ -19,4 +19,22 @@ files?: File[];
 
 ## Remarks
 
-LocalDockerImage uses a multi-stage build process. It first creates a stage that includes the files specified in this field. These files are then available to the `dockerfile` to copy into the final image.
+LocalDockerImage uses a multi-stage build process. It first creates a temporary image that includes the files specified in this field. This temporary image is then made available to the `dockerfile` with stage name `files` and can then be copied into the final image, as desired, using `COPY` or `ADD` commands in the `dockerfile`<!-- -->.
+
+## Example
+
+To create a final Docker image that contains a file that has some programmatically created content, use the `dockerfile` prop along with the `files` prop like this:
+
+```
+const files = [{
+  path: '/path/to/myfile.txt',
+  contents: 'contents for myfile\n'
+}];
+const dockerfile = `
+  FROM alpine
+  COPY --from=files /path/to/myfile.txt /app/myfile.txt
+  ...
+`;
+return <LocalDockerImage files={files} dockerfile={dockerfile} />
+
+```

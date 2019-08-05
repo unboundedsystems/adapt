@@ -14,7 +14,7 @@ hide_title: true
 ```typescript
 export * from "./hooks";
 export * from "./jsx_namespace";
-export { childrenToArray, cloneElement, createElement, Component, DeferredComponent, PrimitiveComponent, AdaptElement, AdaptMountedElement, AdaptElementOrNull, AdaptPrimitiveElement, AnyProps, AnyState, BuildHelpers, FinalDomElement, BuiltinProps, ElementPredicate, PartialFinalDomElement, isApplyStyle, isFinalDomElement, isElement, isPartialFinalDomElement, isMountedElement, isDeferredElement, isPrimitiveElement, isReady, WithChildren, PropsType, SFC, SFCBuildProps, SFCDeclProps, } from "./jsx";
+export { childrenToArray, cloneElement, createElement, Component, DeferredComponent, PrimitiveComponent, AdaptElement, AdaptMountedElement, AdaptElementOrNull, AdaptPrimitiveElement, AnyProps, AnyState, BuildHelpers, FinalDomElement, GenericInstance, GenericInstanceMethods, BuiltinProps, ElementPredicate, PartialFinalDomElement, isApplyStyle, isFinalDomElement, isElement, isPartialFinalDomElement, isMountedElement, isDeferredElement, isPrimitiveElement, isReady, WithChildren, PropsType, SFC, SFCBuildProps, SFCDeclProps, } from "./jsx";
 export * from "./builtin_components";
 export * from "./deploy";
 export { build, BuildData, buildOnce, BuildOutput, DomPath } from "./dom";
@@ -102,7 +102,7 @@ export { internal, };
 |  [useDeployedWhen(f)](./core.adapt.usedeployedwhen.md) |  |
 |  [useImperativeMethods(create)](./core.adapt.useimperativemethods.md) |  |
 |  [useInstanceValue(hand, initial, field)](./core.adapt.useinstancevalue.md) | <b><i>(BETA)</i></b> Get the value of field from the instance referenced by handled instance. |
-|  [useMethod(hand, initial, method, args)](./core.adapt.usemethod.md) |  |
+|  [useMethod(hand, initial, method, args)](./core.adapt.usemethod.md) | Call an instance method on the Element that <code>hand</code> refers to. |
 |  [useMethodFrom(hand, methodName, defaultVal, args)](./core.adapt.usemethodfrom.md) |  |
 |  [useReadyFrom(targetHand)](./core.adapt.usereadyfrom.md) |  |
 |  [useState(init)](./core.adapt.usestate.md) |  |
@@ -119,6 +119,8 @@ export { internal, };
 |  [AnyMethods](./core.adapt.anymethods.md) |  |
 |  [BuildContext](./core.adapt.buildcontext.md) |  |
 |  [BuildOpAscend](./core.adapt.buildopascend.md) |  |
+|  [BuildOpBuildDeferred](./core.adapt.buildopbuilddeferred.md) |  |
+|  [BuildOpDefer](./core.adapt.buildopdefer.md) |  |
 |  [BuildOpDescend](./core.adapt.buildopdescend.md) |  |
 |  [BuildOpDone](./core.adapt.buildopdone.md) |  |
 |  [BuildOpElementBuilt](./core.adapt.buildopelementbuilt.md) |  |
@@ -201,7 +203,7 @@ export { internal, };
 |  [DeployStatusExt](./core.adapt.deploystatusext.md) |  |
 |  [DomDiffIdFunc](./core.adapt.domdiffidfunc.md) |  |
 |  [FinalStatus](./core.adapt.finalstatus.md) |  |
-|  [GoalStatus](./core.adapt.goalstatus.md) |  |
+|  [GoalStatus](./core.adapt.goalstatus.md) | During a deploy operation for a resource or set of resources, the intended final status for the resource. |
 |  [IsDeployedFunc](./core.adapt.isdeployedfunc.md) |  |
 |  [PluginInstances](./core.adapt.plugininstances.md) |  |
 |  [PluginKey](./core.adapt.pluginkey.md) |  |

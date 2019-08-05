@@ -9,8 +9,22 @@ hide_title: true
 
 ## docker.ImageInfo.id property
 
+Docker image ID, in the form `algorithm:hex`<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
 id: string;
 ```
+
+## Remarks
+
+The Docker image ID (also known as "Content Hash") is a single value that uniquely identifies a specific image on a local Docker host.
+
+An example image ID is:
+
+```
+sha256:199e537da3a86126cd6eb114bd0b13ab178dc291bbb6ea4a4a3aa257b2366b71
+
+```
+An image ID is separate from a Docker image repo digest (also known as "Distribution Hash" or simply "digest").

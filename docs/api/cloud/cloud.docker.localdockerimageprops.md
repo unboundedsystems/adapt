@@ -23,7 +23,7 @@ export interface LocalDockerImageProps
 |  --- | --- | --- |
 |  [contextDir](./cloud.docker.localdockerimageprops.contextdir.md) | <code>string</code> | Directory for use as the build context in docker build |
 |  [dockerfile](./cloud.docker.localdockerimageprops.dockerfile.md) | <code>string</code> | Contents of the dockerfile |
-|  [dockerfileName](./cloud.docker.localdockerimageprops.dockerfilename.md) | <code>string</code> | Location of the dockerfile |
+|  [dockerfileName](./cloud.docker.localdockerimageprops.dockerfilename.md) | <code>string</code> | Path to a local Dockerfile in the Adapt project. |
 |  [files](./cloud.docker.localdockerimageprops.files.md) | <code>File[]</code> | Extra files that should be included during the docker build |
 |  [options](./cloud.docker.localdockerimageprops.options.md) | <code>DockerBuildOptions</code> | Options to control the behavior of docker build |
 |  [stages](./cloud.docker.localdockerimageprops.stages.md) | <code>Stage[]</code> | Extra stages to include in a multi-stage docker build |

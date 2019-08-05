@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs namespace
 
+The library for [Node.js](https://nodejs.org) for Adapt.
+
 <b>Signature:</b>
 
 ```typescript
@@ -30,5 +32,5 @@ export * from "./LocalNodeImage";
 |  Interface | Description |
 |  --- | --- |
 |  [LocalNodeImageProps](./cloud.nodejs.localnodeimageprops.md) | Props for [nodejs.LocalNodeImage()](./cloud.nodejs.localnodeimage.md) |
-|  [NodeImageBuildOptions](./cloud.nodejs.nodeimagebuildoptions.md) |  |
-|  [NodeServiceProps](./cloud.nodejs.nodeserviceprops.md) |  |
+|  [NodeImageBuildOptions](./cloud.nodejs.nodeimagebuildoptions.md) | Options controlling how the Docker image is built in [nodejs.LocalNodeImage()](./cloud.nodejs.localnodeimage.md)<!-- -->. |
+|  [NodeServiceProps](./cloud.nodejs.nodeserviceprops.md) | Props for [nodejs.NodeService()](./cloud.nodejs.nodeservice.md)<!-- -->. |

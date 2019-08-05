@@ -9,6 +9,8 @@ hide_title: true
 
 ## AdaptElement.componentName property
 
+The name of the class or function in [AdaptElement.componentType](./core.adaptelement.componenttype.md)<!-- -->, as returned by `componentType.name` or, the string `"anonymous"` if no name is available.
+
 <b>Signature:</b>
 
 ```typescript

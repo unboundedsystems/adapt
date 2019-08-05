@@ -41,13 +41,43 @@ export function isApplyStyle(el: AdaptElement) {
     return el.componentType === ApplyStyle;
 }
 
-//This is broken, why does JSX.ElementClass correspond to both the type
-//a Component construtor has to return and what createElement has to return?
-//I don't think React actually adheres to this constraint.
+/**
+ * An Adapt Element is an instance of an Adapt component.
+ *
+ * @remarks
+ * The Adapt DOM is composed of Elements.
+ * @typeParam P - The type of the element's props.
+ *
+ * @public
+ *
+ * @privateRemarks
+ * NOTE(manishv):
+ * This is broken, why does JSX.ElementClass correspond to both the type
+ * a Component construtor has to return and what createElement has to return?
+ * I don't think React actually adheres to this constraint.
+ */
 export interface AdaptElement<P extends object = AnyProps> {
+    /** A copy of the props that the element was instantiated with */
     readonly props: P & BuiltinProps;
+    /**
+     * The type of component that is associated with this element.
+     * @remarks
+     * For class components, this is the class (constructor) object.
+     * For function components, this is the function object.
+     */
     readonly componentType: ComponentType<P>;
+    /**
+     * The name of the class or function in {@link AdaptElement.componentType},
+     * as returned by `componentType.name` or, the string `"anonymous"` if
+     * no name is available.
+     */
     readonly componentName: string;
+    /**
+     * The name that a component author (optionally) associated with the
+     * component using the `displayName` static property. If not set on a
+     * component, defaults to {@link AdaptElement.componentName}.
+     */
+    readonly displayName: string;
 }
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
     return isInstance(val, AdaptElementImpl, "adapt");
@@ -287,6 +317,7 @@ export function isComponent<P extends object, S extends object>(func: SFC | Comp
 
 export interface ComponentStatic<P> {
     defaultProps?: Partial<P>;
+    displayName?: string;
     noPlugin?: boolean;
 }
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
@@ -493,6 +524,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     }
 
     get componentName() { return this.componentType.name || "anonymous"; }
+    get displayName() { return this.componentType.displayName || this.componentName; }
     get id() { return JSON.stringify(this.stateNamespace); }
     get instance(): GenericInstance {
         return this.component || this.instanceMethods;

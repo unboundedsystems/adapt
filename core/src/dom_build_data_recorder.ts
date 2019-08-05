@@ -9,6 +9,8 @@ import {
 export type BuildOp =
     | BuildOpStart
     | BuildOpStep
+    | BuildOpDefer
+    | BuildOpBuildDeferred
     | BuildOpElementBuilt
     | BuildOpDescend
     | BuildOpAscend
@@ -19,12 +21,23 @@ export type BuildOp =
 export interface BuildOpStart {
     type: "start";
     root: AdaptElement;
+    buildPass: number;
 }
 export interface BuildOpStep {
     type: "step";
     oldElem: AdaptElement;
     newElem: AdaptElement | null;
     style?: StyleRule;
+}
+
+export interface BuildOpDefer {
+    type: "defer";
+    elem: AdaptElement;
+}
+
+export interface BuildOpBuildDeferred {
+    type: "buildDeferred";
+    elem: AdaptElement;
 }
 
 export interface BuildOpElementBuilt {
@@ -65,8 +78,9 @@ export type BuildListener = (op: BuildOp) => void;
 
 export function buildPrinter(): BuildListener {
     let depth = 0;
+    let buildPass = 0;
     function el(elem: AdaptElement | null) {
-        return elem ? elem.componentName : "null";
+        return elem ? elem.displayName : "null";
     }
 
     function i() {
@@ -74,8 +88,9 @@ export function buildPrinter(): BuildListener {
     }
 
     return function _buildPrinter(op: BuildOp) {
+        if (op.type === "start") buildPass = op.buildPass;
 
-        let msg = `BUILD [${op.type}]: `;
+        let msg = `BUILD ${buildPass} [${op.type}]: `;
         msg += " ".repeat(13 - op.type.length);
 
         switch (op.type) {
@@ -98,6 +113,8 @@ export function buildPrinter(): BuildListener {
                 depth--;
                 msg += i() + `${el(op.ascendTo)} <= ${el(op.ascendFrom)}`;
                 break;
+            case "defer":
+            case "buildDeferred":
             case "elementDone":
                 msg += i() + `${el(op.elem)}`;
                 break;

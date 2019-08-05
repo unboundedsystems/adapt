@@ -9,6 +9,8 @@ hide_title: true
 
 ## k8s.K8sContainerProps interface
 
+Props for the Kubernetes-specific [k8s.K8sContainer](./cloud.k8s.k8scontainer.md) component.
+
 <b>Signature:</b>
 
 ```typescript

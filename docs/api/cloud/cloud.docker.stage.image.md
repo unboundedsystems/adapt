@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.Stage.image property
 
+The image (name + tag or digest) to use for the stage.
+
 <b>Signature:</b>
 
 ```typescript

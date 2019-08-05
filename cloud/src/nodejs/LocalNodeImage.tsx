@@ -71,8 +71,22 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
     return imgProps ? <LocalDockerImage handle={img} {...imgProps} /> : null;
 }
 
+/**
+ * Options controlling how the Docker image is built in
+ * {@link nodejs.LocalNodeImage}.
+ * @public
+ */
 export interface NodeImageBuildOptions extends DockerBuildOptions {
+    /**
+     * Package manager to use in build steps in the generated Dockerfile
+     * that builds {@link nodejs.LocalNodeImage}.
+     */
     packageManager?: "npm" | "yarn" | string;
+    /**
+     * Scripts that are defined in your
+     * {@link https://docs.npmjs.com/files/package.json | package.json file}
+     * that should be run during the image build.
+     */
     runNpmScripts?: string | string[];
 }
 

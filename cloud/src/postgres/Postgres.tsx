@@ -22,6 +22,8 @@ import { Environment } from "../Container";
  *   `PGUSER`: Username to use to authenticate to the database server or service.
  *
  *   `PGPASSWORD`: Password to use to authenticate to the database server or service.
+ *
+ * @public
  */
 export function Postgres() {
     useImperativeMethods(() => ({

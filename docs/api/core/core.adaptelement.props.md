@@ -9,6 +9,8 @@ hide_title: true
 
 ## AdaptElement.props property
 
+A copy of the props that the element was instantiated with
+
 <b>Signature:</b>
 
 ```typescript

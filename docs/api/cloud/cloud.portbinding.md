@@ -9,8 +9,14 @@ hide_title: true
 
 ## PortBinding interface
 
+A set of ports to be bound for a [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
 export interface PortBinding 
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

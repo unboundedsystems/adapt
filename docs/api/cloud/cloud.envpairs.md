@@ -9,8 +9,14 @@ hide_title: true
 
 ## EnvPairs type
 
+A set of environment variables for a [Container](./cloud.container.md)<!-- -->, expressed as an array of objects with `name` and `value` properties.
+
 <b>Signature:</b>
 
 ```typescript
 export declare type EnvPairs = EnvPair[];
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

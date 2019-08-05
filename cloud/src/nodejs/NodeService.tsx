@@ -15,6 +15,10 @@ import { NetworkService, NetworkServiceScope } from "../NetworkService";
 import { Service } from "../Service";
 import { LocalNodeImage } from "./LocalNodeImage";
 
+/**
+ * Props for {@link nodejs.NodeService}.
+ * @public
+ */
 export interface NodeServiceProps {
     /**
      * Handles for services that this component connects to.
@@ -31,7 +35,7 @@ export interface NodeServiceProps {
      * index in the `connectTo` array will take precedence.
      * In case of naming conflicts between `connectTo` and `env`, the value
      * in `env` will take precedence.
-     * @defaultValue []
+     * @defaultValue `[]`
      * @public
      */
     connectTo: Handle | Handle[];
@@ -41,13 +45,13 @@ export interface NodeServiceProps {
      * @remarks
      * Note that the NetworkService will also not deploy before the
      * Container image has been built.
-     * @defaultValue []
+     * @defaultValue `[]`
      */
     deps: Handle | Handle[];
     /**
      * Object containing environment variables that the Container will be
      * started with.
-     * @defaultValue {}
+     * @defaultValue `{}`
      */
     env: Environment;
     /**
@@ -160,16 +164,14 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
                 targetPort={targetPort}
                 scope={scope}
             />
-            {image ?
-                <Container
-                    name="node-service"
-                    handle={nodeCtr}
-                    environment={finalEnv}
-                    image={image.nameTag!}
-                    ports={[targetPort]}
-                    imagePullPolicy="Never"
-                />
-                : null}
+            <Container
+                name="node-service"
+                handle={nodeCtr}
+                environment={finalEnv}
+                image={img}
+                ports={[targetPort]}
+                imagePullPolicy="Never"
+            />
         </Service>
     </Sequence>;
 }

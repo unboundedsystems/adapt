@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeServiceProps interface
 
+Props for [nodejs.NodeService()](./cloud.nodejs.nodeservice.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript

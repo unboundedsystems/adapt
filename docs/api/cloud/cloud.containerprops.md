@@ -9,6 +9,8 @@ hide_title: true
 
 ## ContainerProps interface
 
+Props for the [Container](./cloud.container.md) component.
+
 <b>Signature:</b>
 
 ```typescript
@@ -34,3 +36,7 @@ export interface ContainerProps
 |  [stopSignal](./cloud.containerprops.stopsignal.md) | <code>string</code> |  |
 |  [tty](./cloud.containerprops.tty.md) | <code>boolean</code> |  |
 |  [workingDir](./cloud.containerprops.workingdir.md) | <code>string</code> |  |
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

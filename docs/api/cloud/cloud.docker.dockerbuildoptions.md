@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.DockerBuildOptions interface
 
+Options for performing Docker image builds.
+
 <b>Signature:</b>
 
 ```typescript

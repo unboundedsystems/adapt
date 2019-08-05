@@ -65,7 +65,7 @@ hide_title: true
 
 |  Interface | Description |
 |  --- | --- |
-|  [AdaptElement](./core.adaptelement.md) |  |
+|  [AdaptElement](./core.adaptelement.md) | An Adapt Element is an instance of an Adapt component. |
 |  [AdaptMountedElement](./core.adaptmountedelement.md) |  |
 |  [AdaptPrimitiveElement](./core.adaptprimitiveelement.md) |  |
 |  [AnyProps](./core.anyprops.md) |  |
@@ -76,6 +76,8 @@ hide_title: true
 |  [Children](./core.children.md) |  |
 |  [Context](./core.context.md) |  |
 |  [ExecutedQuery](./core.executedquery.md) |  |
+|  [GenericInstance](./core.genericinstance.md) |  |
+|  [GenericInstanceMethods](./core.genericinstancemethods.md) |  |
 |  [Handle](./core.handle.md) |  |
 |  [NoStatus](./core.nostatus.md) |  |
 |  [ObserverPlugin](./core.observerplugin.md) |  |

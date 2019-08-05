@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.DockerGlobalOptions interface
 
+Options for interacting with Docker Engine that apply to all operations.
+
 <b>Signature:</b>
 
 ```typescript

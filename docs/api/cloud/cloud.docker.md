@@ -9,10 +9,14 @@ hide_title: true
 
 ## docker namespace
 
+Docker library for Adapt.
+
 <b>Signature:</b>
 
 ```typescript
+export * from "./DockerImage";
 export * from "./LocalDockerImage";
+export * from "./types";
 //# sourceMappingURL=index.d.ts.map
 ```
 
@@ -20,32 +24,18 @@ export * from "./LocalDockerImage";
 
 |  Class | Description |
 |  --- | --- |
+|  [DockerImage](./cloud.docker.dockerimage.md) | <b><i>(BETA)</i></b> Abstract component representing a [Docker](https://docker.com) image that can be used to create containers. |
 |  [LocalDockerImage](./cloud.docker.localdockerimage.md) | Locally builds a docker image |
-
-## Functions
-
-|  Function | Description |
-|  --- | --- |
-|  [buildFilesImage(files, opts)](./cloud.docker.buildfilesimage.md) |  |
-|  [dockerBuild(dockerfile, contextPath, options)](./cloud.docker.dockerbuild.md) |  |
-|  [withFilesImage(files, opts, fn)](./cloud.docker.withfilesimage.md) |  |
 
 ## Interfaces
 
 |  Interface | Description |
 |  --- | --- |
-|  [DockerBuildOptions](./cloud.docker.dockerbuildoptions.md) |  |
-|  [DockerBuildStatus](./cloud.docker.dockerbuildstatus.md) |  |
-|  [DockerGlobalOptions](./cloud.docker.dockerglobaloptions.md) |  |
+|  [DockerBuildOptions](./cloud.docker.dockerbuildoptions.md) | Options for performing Docker image builds. |
+|  [DockerGlobalOptions](./cloud.docker.dockerglobaloptions.md) | Options for interacting with Docker Engine that apply to all operations. |
 |  [DockerImageInstance](./cloud.docker.dockerimageinstance.md) | Components that provide a Docker image can implement this interface to allow other components to get information about the Docker image. |
-|  [File](./cloud.docker.file.md) |  |
-|  [ImageInfo](./cloud.docker.imageinfo.md) |  |
+|  [DockerImageProps](./cloud.docker.dockerimageprops.md) | <b><i>(BETA)</i></b> Props for [docker.DockerImage](./cloud.docker.dockerimage.md)<!-- -->. |
+|  [File](./cloud.docker.file.md) | A dynamically-created file that can be used during the build of a Docker image. |
+|  [ImageInfo](./cloud.docker.imageinfo.md) | Information about a specific instance of a Docker image, as identified by its image ID. |
 |  [LocalDockerImageProps](./cloud.docker.localdockerimageprops.md) | Props for [docker.LocalDockerImage](./cloud.docker.localdockerimage.md) |
-|  [LocalDockerImageState](./cloud.docker.localdockerimagestate.md) |  |
-|  [Stage](./cloud.docker.stage.md) |  |
-
-## Variables
-
-|  Variable | Description |
-|  --- | --- |
-|  [pickGlobals](./cloud.docker.pickglobals.md) |  |
+|  [Stage](./cloud.docker.stage.md) | A stage to be added to a [multi-stage Docker build](https://docs.docker.com/develop/develop-images/multistage-build/)<!-- -->. |

@@ -9,8 +9,14 @@ hide_title: true
 
 ## EnvSimple interface
 
+A set of environment variables for a [Container](./cloud.container.md)<!-- -->, expressed as a single object with keys and associated values.
+
 <b>Signature:</b>
 
 ```typescript
 export interface EnvSimple 
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

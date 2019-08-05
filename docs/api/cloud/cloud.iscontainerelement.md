@@ -9,6 +9,8 @@ hide_title: true
 
 ## isContainerElement() function
 
+Function to check whether an  is an abstract [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript

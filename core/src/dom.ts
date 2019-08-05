@@ -19,6 +19,8 @@ import {
     createElement,
     FinalDomElement,
     FunctionComponentTyp,
+    // @ts-ignore - here to deal with issue #71
+    GenericInstance,
     isComponentElement,
     isDeferredElementImpl,
     isElement,
@@ -746,7 +748,7 @@ async function pathBuildOnceGuts(
     const root = path[path.length - 1];
 
     const buildNum = nextBuildNum++;
-    const buildPass = options.buildPass;
+    const buildPass = ++options.buildPass;
 
     if (buildPass > options.maxBuildPasses) {
         results.error(`DOM build exceeded maximum number of build iterations ` +
@@ -757,7 +759,7 @@ async function pathBuildOnceGuts(
     const debug = debugBuild.extend(`pathBuildOnceGuts:${buildPass}`);
 
     debug(`start (pass ${buildPass})`);
-    options.recorder({ type: "start", root });
+    options.recorder({ type: "start", root, buildPass });
     results.buildPassReset();
 
     try {
@@ -981,6 +983,7 @@ async function realBuildOnce(
                 }
             }
         } else {
+            options.recorder({ type: "defer", elem: mountedElem });
             deferring = true;
             mountedElem.setDeferred();
             newRoot = mountedElem;
@@ -1027,6 +1030,7 @@ async function realBuildOnce(
         if (atDepthFlag && newRoot.props.children === undefined) return out;
 
         //We must have deferred to get here
+        options.recorder({ type: "buildDeferred", elem: mountedElem });
         const deferredRet =
             (await realBuildOnce(
                 newPath,
@@ -1050,11 +1054,13 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
     children = simplifyChildren(children);
 
     if (Object.isFrozen(elem.props)) {
-        const childMerge = (children == null) ? undefined : { children };
-        (elem as any).props = {
-            ...elem.props,
-            ...childMerge
-        };
+        const newProps = { ...elem.props };
+        if (children == null) {
+            delete newProps.children;
+        } else {
+            newProps.children = children;
+        }
+        (elem as any).props = newProps;
         Object.freeze(elem.props);
     } else {
         if (children == null) {

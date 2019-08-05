@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.File interface
 
+A dynamically-created file that can be used during the build of a Docker image.
+
 <b>Signature:</b>
 
 ```typescript
@@ -19,5 +21,9 @@ export interface File
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [contents](./cloud.docker.file.contents.md) | <code>Buffer &#124; string</code> |  |
-|  [path](./cloud.docker.file.path.md) | <code>string</code> |  |
+|  [contents](./cloud.docker.file.contents.md) | <code>Buffer &#124; string</code> | The contents of the file. |
+|  [path](./cloud.docker.file.path.md) | <code>string</code> | The path in the temporary image where the file will be created. |
+
+## Remarks
+
+These `File` objects are used to create a temporary "scratch" image in a [multi-stage build](https://docs.docker.com/develop/develop-images/multistage-build/) that contains only the specified files. Then, in later stages of that build, the files within the temporary image can be copied into the later stage image.

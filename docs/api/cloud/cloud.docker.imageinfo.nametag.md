@@ -9,8 +9,14 @@ hide_title: true
 
 ## docker.ImageInfo.nameTag property
 
+Docker image name and optional tag in the form `name` or `name:tag`<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
 nameTag?: string;
 ```
+
+## Remarks
+
+The image name is also known as "Repository" or "Repo".

@@ -9,8 +9,14 @@ hide_title: true
 
 ## Command type
 
+A command to be used when creating a [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
 export declare type Command = string | string[];
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

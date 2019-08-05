@@ -9,9 +9,50 @@ import {
 } from "../jsx";
 import { useAsync } from "./use_async";
 
-export function useMethod<T>(hand: Handle, initial: T, method: string, ...args: any[]) {
+/**
+ * Call an instance method on the Element that `hand` refers to.
+ *
+ * @remarks
+ * This hook is the primary way for a function component to call an
+ * instance method on another component element. A hook is used in order to delay
+ * execution of the method until the DOM is completely built. The reason this
+ * delayed execution is needed is because during the DOM build process, the
+ * element that `hand` refers to may not have been built yet, or `hand` may
+ * change to point to a different element later in the build process.
+ * By waiting until this avoids element build order issues and ensures
+ * that handle references are no longer changing.
+ *
+ * Because execution of the methods is delayed, `useMethod` will always return
+ * the `initial` value on the initial build of a component. After every
+ * DOM build is complete, the method will be invoked during the state update
+ * phase and the return value stored in the component's state. This state
+ * update (or any state update) will cause the DOM to build again. Upon
+ * rebuild, the value stored from the last method invocation in the
+ * component's state will be returned and a new invocation will be queued.
+ *
+ * If the value returned by the called method continues to change, this will
+ * cause the DOM to continue to be rebuilt again.
+ *
+ * As this is a hook, it **must not** be called conditionally by a component.
+ * In cases where a handle is not always present or the method should not be
+ * called, call `useMethod` with `null` for `hand`.
+ *
+ * @param hand - The handle for the element upon which to call the method
+ * `method`. `hand` may also be `null`, in which case, `initial` is always
+ * the return value and the other arguments are ignored.
+ *
+ * @param initial - The initial value that `useMethod` will return before
+ * execution of the method has occurred. This value will **always** be returned
+ * on the first build of the component, when no component state is present.
+ *
+ * @param method - Name of the instance method to call.
+ *
+ * @param args - Variable arguments to be passed to the method call.
+ */
+export function useMethod<T>(hand: Handle | null, initial: T, method: string, ...args: any[]): T {
     return useAsync<T>(async () => {
-       return callInstanceMethod<T>(hand, initial, method, ...args);
+        if (hand == null) return initial;
+        return callInstanceMethod<T>(hand, initial, method, ...args);
     }, initial);
 }
 

@@ -26,5 +26,4 @@ export declare class Pod extends DeferredComponent<PodProps>
 |  Method | Modifiers | Description |
 |  --- | --- | --- |
 |  [build()](./cloud.k8s.pod.build.md) |  |  |
-|  [checkProps()](./cloud.k8s.pod.checkprops.md) |  |  |
 |  [status(\_observe, buildData)](./cloud.k8s.pod.status.md) |  |  |

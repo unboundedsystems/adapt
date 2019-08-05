@@ -9,7 +9,15 @@ import { inspect } from "util";
 import { makeElementStatus } from "../dom";
 import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
-import { AdaptElement, AdaptMountedElement, isMountedElement } from "../jsx";
+import {
+    AdaptElement,
+    AdaptMountedElement,
+    // @ts-ignore - here to deal with issue #71
+    AnyProps,
+    // @ts-ignore - here to deal with issue #71
+    GenericInstance,
+    isMountedElement,
+} from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeployOpID } from "../server/deployment_data";
 import { Status } from "../status";
@@ -36,6 +44,8 @@ import {
 import {
     EPEdge,
     EPNode,
+    // @ts-ignore - here to deal with issue #71
+    EPNodeEl,
     EPNodeId,
     EPNodeWI,
     EPObject,

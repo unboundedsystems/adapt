@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeImageBuildOptions.runNpmScripts property
 
+Scripts that are defined in your [package.json file](https://docs.npmjs.com/files/package.json) that should be run during the image build.
+
 <b>Signature:</b>
 
 ```typescript

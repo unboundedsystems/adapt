@@ -26,7 +26,6 @@ export { createAnsiblePlugin } from "./ansible_plugin";
 
 |  Class | Description |
 |  --- | --- |
-|  [AnsibleContainer](./cloud.ansible.ansiblecontainer.md) |  |
 |  [AnsibleGroup](./cloud.ansible.ansiblegroup.md) |  |
 |  [AnsibleImplicitPlaybook](./cloud.ansible.ansibleimplicitplaybook.md) |  |
 |  [AnsiblePlaybook](./cloud.ansible.ansibleplaybook.md) |  |
@@ -37,6 +36,9 @@ export { createAnsiblePlugin } from "./ansible_plugin";
 
 |  Function | Description |
 |  --- | --- |
+|  [AnsibleContainer(props)](./cloud.ansible.ansiblecontainer.md) | Ansible-specific defintion of a container. |
+|  [Container(props)](./cloud.ansible.container.md) | Component that implements the abstract [Container](./cloud.container.md) interface and translates to an Ansible-specific [ansible.AnsibleContainer()](./cloud.ansible.ansiblecontainer.md)<!-- -->. |
+|  [default(props)](./cloud.ansible.default.md) | Ansible-specific defintion of a container. |
 |  [getGroups(props)](./cloud.ansible.getgroups.md) |  |
 |  [isAnsibleGroupFinalElement(val)](./cloud.ansible.isansiblegroupfinalelement.md) |  |
 |  [isAnsibleImplicitPlaybookFinalElement(val)](./cloud.ansible.isansibleimplicitplaybookfinalelement.md) |  |
@@ -48,11 +50,14 @@ export { createAnsiblePlugin } from "./ansible_plugin";
 
 |  Interface | Description |
 |  --- | --- |
+|  [AnsibleContainerProps](./cloud.ansible.ansiblecontainerprops.md) | Props for an [ansible.AnsibleContainer()](./cloud.ansible.ansiblecontainer.md)<!-- -->. |
 |  [AnsibleDockerHostProps](./cloud.ansible.ansibledockerhostprops.md) |  |
 |  [AnsibleGroupProps](./cloud.ansible.ansiblegroupprops.md) |  |
 |  [AnsiblePlaybookProps](./cloud.ansible.ansibleplaybookprops.md) |  |
 |  [AnsibleRoleProps](./cloud.ansible.ansibleroleprops.md) |  |
 |  [Common](./cloud.ansible.common.md) |  |
+|  [ContainerConfig](./cloud.ansible.containerconfig.md) | Ansible native container configuration. |
+|  [ContainerProps](./cloud.ansible.containerprops.md) | Props for [ansible.Container()](./cloud.ansible.container.md)<!-- -->. |
 |  [Handler](./cloud.ansible.handler.md) |  |
 |  [Play](./cloud.ansible.play.md) |  |
 |  [Role](./cloud.ansible.role.md) |  |
@@ -63,9 +68,3 @@ export { createAnsiblePlugin } from "./ansible_plugin";
 |  Variable | Description |
 |  --- | --- |
 |  [AnsibleDockerHost](./cloud.ansible.ansibledockerhost.md) |  |
-
-## Type Aliases
-
-|  Type Alias | Description |
-|  --- | --- |
-|  [AnsibleContainerProps](./cloud.ansible.ansiblecontainerprops.md) |  |

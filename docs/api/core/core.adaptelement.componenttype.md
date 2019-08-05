@@ -9,8 +9,14 @@ hide_title: true
 
 ## AdaptElement.componentType property
 
+The type of component that is associated with this element.
+
 <b>Signature:</b>
 
 ```typescript
 readonly componentType: ComponentType<P>;
 ```
+
+## Remarks
+
+For class components, this is the class (constructor) object. For function components, this is the function object.

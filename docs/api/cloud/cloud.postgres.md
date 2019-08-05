@@ -9,6 +9,8 @@ hide_title: true
 
 ## postgres namespace
 
+The [Postgres](https://www.postgresql.org) library for Adapt.
+
 <b>Signature:</b>
 
 ```typescript

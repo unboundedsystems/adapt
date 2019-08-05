@@ -9,6 +9,8 @@ hide_title: true
 
 ## docker.ImageInfo interface
 
+Information about a specific instance of a Docker image, as identified by its image ID.
+
 <b>Signature:</b>
 
 ```typescript
@@ -19,5 +21,5 @@ export interface ImageInfo
 
 |  Property | Type | Description |
 |  --- | --- | --- |
-|  [id](./cloud.docker.imageinfo.id.md) | <code>string</code> |  |
-|  [nameTag](./cloud.docker.imageinfo.nametag.md) | <code>string</code> |  |
+|  [id](./cloud.docker.imageinfo.id.md) | <code>string</code> | Docker image ID, in the form <code>algorithm:hex</code>. |
+|  [nameTag](./cloud.docker.imageinfo.nametag.md) | <code>string</code> | Docker image name and optional tag in the form <code>name</code> or <code>name:tag</code>. |

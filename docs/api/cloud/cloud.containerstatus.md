@@ -9,6 +9,8 @@ hide_title: true
 
 ## ContainerStatus interface
 
+Status of a [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
