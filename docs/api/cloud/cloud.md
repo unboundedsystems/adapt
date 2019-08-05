@@ -65,7 +65,7 @@ hide_title: true
 |  [http](./cloud.http.md) |  |
 |  [k8s](./cloud.k8s.md) |  |
 |  [nginx](./cloud.nginx.md) |  |
-|  [nodejs](./cloud.nodejs.md) |  |
+|  [nodejs](./cloud.nodejs.md) | The library for [Node.js](https://nodejs.org) for Adapt. |
 |  [postgres](./cloud.postgres.md) |  |
 
 ## Type Aliases

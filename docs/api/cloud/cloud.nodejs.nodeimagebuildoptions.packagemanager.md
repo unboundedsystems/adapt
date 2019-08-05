@@ -9,6 +9,8 @@ hide_title: true
 
 ## nodejs.NodeImageBuildOptions.packageManager property
 
+Package manager to use in build steps in the generated Dockerfile that builds [nodejs.LocalNodeImage()](./cloud.nodejs.localnodeimage.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
