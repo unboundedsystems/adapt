@@ -3,5 +3,6 @@
  * @public
  */
 export * from "./DockerImage";
+export * from "./DockerContainer";
 export * from "./LocalDockerImage";
 export * from "./types";
