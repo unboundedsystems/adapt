@@ -29,4 +29,4 @@ export declare function PreloadedPostgresImage(props: PreloadedPostgresImageProp
 
 ## Remarks
 
-See 
+See [postgres.PreloadedPostgresImageProps](./cloud.postgres.preloadedpostgresimageprops.md)

@@ -31,7 +31,7 @@ export interface PreloadedPostgresImageProps {
  * Creates a throw-away {@link https://www.postgresql.org | Postgres} database with preloaded data.
  *
  * @remarks
- * See {@link postgres.PreloadedPostgresProps}
+ * See {@link postgres.PreloadedPostgresImageProps}
  *
  * @public
  */
