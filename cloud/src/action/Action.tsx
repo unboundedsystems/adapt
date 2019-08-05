@@ -1,4 +1,5 @@
 import {
+    BuildData,
     ChangeType,
     FinalDomElement,
     isFinalDomElement,
@@ -25,8 +26,16 @@ export function toDetail(val: ShouldAct) {
     };
 }
 
+/**
+ * Information that can be used to decide to, or perform actions
+ * @public
+ */
 export interface ActionContext {
+    /** Various pieces of data about the current element and build cycle */
+    buildData: BuildData;
+    /** A location to put files that need to be persisted as state */
     dataDir: string;
+    /** Interface to use for logging messages.  Prefer to using stderr or stdout */
     logger: MessageLogger;
 }
 
