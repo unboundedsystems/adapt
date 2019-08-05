@@ -9,7 +9,7 @@ hide_title: true
 
 ## ansible.Container() function
 
-Component that implements the abstract {@<!-- -->link: Container<!-- -->} interface and translates to an Ansible-specific {@<!-- -->link: ansible.AnsibleContainer<!-- -->}<!-- -->.
+Component that implements the abstract [Container](./cloud.container.md) interface and translates to an Ansible-specific [ansible.AnsibleContainer()](./cloud.ansible.ansiblecontainer.md)<!-- -->.
 
 <b>Signature:</b>
 

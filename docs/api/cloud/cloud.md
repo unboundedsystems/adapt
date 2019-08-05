@@ -14,7 +14,7 @@ hide_title: true
 |  Class | Description |
 |  --- | --- |
 |  [Compute](./cloud.compute.md) |  |
-|  [Container](./cloud.container.md) |  |
+|  [Container](./cloud.container.md) | Abstract component representing a container. |
 |  [DockerHost](./cloud.dockerhost.md) |  |
 |  [ExternalDockerHost](./cloud.externaldockerhost.md) |  |
 |  [LocalCompute](./cloud.localcompute.md) |  |
@@ -29,7 +29,7 @@ hide_title: true
 |  --- | --- |
 |  [extendedHandle()](./cloud.extendedhandle.md) |  |
 |  [handles()](./cloud.handles.md) |  |
-|  [isContainerElement(el)](./cloud.iscontainerelement.md) |  |
+|  [isContainerElement(el)](./cloud.iscontainerelement.md) | Function to check whether an  is an abstract [Container](./cloud.container.md)<!-- -->. |
 |  [isNetworkServiceElement(el)](./cloud.isnetworkserviceelement.md) |  |
 |  [mergeEnvPairs(envs)](./cloud.mergeenvpairs.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single array of [EnvPair](./cloud.envpair.md) objects. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
 |  [mergeEnvSimple(envs)](./cloud.mergeenvsimple.md) | Combine multiple [Environment](./cloud.environment.md) objects into a single [EnvSimple](./cloud.envsimple.md) object. Returns <code>undefined</code> if there are no <code>Environment</code> objects provided. |
@@ -42,17 +42,17 @@ hide_title: true
 |  --- | --- |
 |  [ComputeProps](./cloud.computeprops.md) |  |
 |  [ConnectToInstance](./cloud.connecttoinstance.md) | Components that provide a service, such as a database service or API service, can implement this interface in order to supply all the information required to connect to the service. |
-|  [ContainerProps](./cloud.containerprops.md) |  |
-|  [ContainerState](./cloud.containerstate.md) |  |
-|  [ContainerStatus](./cloud.containerstatus.md) |  |
+|  [ContainerProps](./cloud.containerprops.md) | Props for the [Container](./cloud.container.md) component. |
+|  [ContainerState](./cloud.containerstate.md) | State information for a [Container](./cloud.container.md)<!-- -->. |
+|  [ContainerStatus](./cloud.containerstatus.md) | Status of a [Container](./cloud.container.md)<!-- -->. |
 |  [DockerHostProps](./cloud.dockerhostprops.md) |  |
-|  [EnvPair](./cloud.envpair.md) |  |
-|  [EnvSimple](./cloud.envsimple.md) |  |
+|  [EnvPair](./cloud.envpair.md) | A single environment variable for a [Container](./cloud.container.md)<!-- -->, expressed as an object with <code>name</code> and <code>value</code> properties. |
+|  [EnvSimple](./cloud.envsimple.md) | A set of environment variables for a [Container](./cloud.container.md)<!-- -->, expressed as a single object with keys and associated values. |
 |  [ExtendedHandle](./cloud.extendedhandle.md) |  |
 |  [ExternalDockerHostProps](./cloud.externaldockerhostprops.md) |  |
-|  [Links](./cloud.links.md) |  |
+|  [Links](./cloud.links.md) | Network links to create for a [Container](./cloud.container.md)<!-- -->. |
 |  [NetworkServiceProps](./cloud.networkserviceprops.md) |  |
-|  [PortBinding](./cloud.portbinding.md) |  |
+|  [PortBinding](./cloud.portbinding.md) | A set of ports to be bound for a [Container](./cloud.container.md)<!-- -->. |
 |  [ServiceProps](./cloud.serviceprops.md) |  |
 
 ## Namespaces
@@ -72,13 +72,13 @@ hide_title: true
 
 |  Type Alias | Description |
 |  --- | --- |
-|  [Command](./cloud.command.md) |  |
-|  [Environment](./cloud.environment.md) |  |
-|  [EnvPairs](./cloud.envpairs.md) |  |
+|  [Command](./cloud.command.md) | A command to be used when creating a [Container](./cloud.container.md)<!-- -->. |
+|  [Environment](./cloud.environment.md) | A set of environment variables for a [Container](./cloud.container.md)<!-- -->. |
+|  [EnvPairs](./cloud.envpairs.md) | A set of environment variables for a [Container](./cloud.container.md)<!-- -->, expressed as an array of objects with <code>name</code> and <code>value</code> properties. |
 |  [Handles](./cloud.handles.md) |  |
-|  [ImageId](./cloud.imageid.md) |  |
+|  [ImageId](./cloud.imageid.md) | An image for a [Container](./cloud.container.md)<!-- -->. |
 |  [LocalComputeProps](./cloud.localcomputeprops.md) |  |
 |  [LocalContainerProps](./cloud.localcontainerprops.md) |  |
 |  [NetworkServiceScope](./cloud.networkservicescope.md) |  |
-|  [PortDescription](./cloud.portdescription.md) |  |
+|  [PortDescription](./cloud.portdescription.md) | Description of a network port for a [Container](./cloud.container.md)<!-- -->. |
 |  [ServicePort](./cloud.serviceport.md) |  |

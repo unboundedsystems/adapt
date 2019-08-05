@@ -9,6 +9,8 @@ hide_title: true
 
 ## Container class
 
+Abstract component representing a container.
+
 <b>Signature:</b>
 
 ```typescript

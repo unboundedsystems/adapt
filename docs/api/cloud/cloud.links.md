@@ -9,8 +9,14 @@ hide_title: true
 
 ## Links interface
 
+Network links to create for a [Container](./cloud.container.md)<!-- -->.
+
 <b>Signature:</b>
 
 ```typescript
 export interface Links 
 ```
+
+## Remarks
+
+See the [Docker API Reference](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate) for more information.

@@ -37,7 +37,7 @@ export { createAnsiblePlugin } from "./ansible_plugin";
 |  Function | Description |
 |  --- | --- |
 |  [AnsibleContainer(props)](./cloud.ansible.ansiblecontainer.md) | Ansible-specific defintion of a container. |
-|  [Container(props)](./cloud.ansible.container.md) | Component that implements the abstract {@<!-- -->link: Container<!-- -->} interface and translates to an Ansible-specific {@<!-- -->link: ansible.AnsibleContainer<!-- -->}<!-- -->. |
+|  [Container(props)](./cloud.ansible.container.md) | Component that implements the abstract [Container](./cloud.container.md) interface and translates to an Ansible-specific [ansible.AnsibleContainer()](./cloud.ansible.ansiblecontainer.md)<!-- -->. |
 |  [default(props)](./cloud.ansible.default.md) | Ansible-specific defintion of a container. |
 |  [getGroups(props)](./cloud.ansible.getgroups.md) |  |
 |  [isAnsibleGroupFinalElement(val)](./cloud.ansible.isansiblegroupfinalelement.md) |  |

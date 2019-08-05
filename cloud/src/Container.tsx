@@ -2,33 +2,127 @@ import { AdaptElement, Handle, isHandle, PrimitiveComponent, useMethod } from "@
 import { FIXME_NeedsProperType, } from "@adpt/utils";
 import { DockerImageInstance, ImageInfo } from "./docker";
 
+/**
+ * Description of a network port for a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export type PortDescription = string | number;
 
+/**
+ * An image for a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export type ImageId = string | Handle<DockerImageInstance>;
 
+/**
+ * A command to be used when creating a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export type Command = string | string[];
 
+/**
+ * A single environment variable for a {@link Container}, expressed as an
+ * object with `name` and `value` properties.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export interface EnvPair {
     name: string;
     value: string;
 }
+
+/**
+ * A set of environment variables for a {@link Container}, expressed as an
+ * array of objects with `name` and `value` properties.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export type EnvPairs = EnvPair[];
 
+/**
+ * A set of environment variables for a {@link Container}, expressed as a
+ * single object with keys and associated values.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export interface EnvSimple {
     [key: string]: string;
 }
 
+/**
+ * A set of environment variables for a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export type Environment = EnvPair[] | EnvSimple;
 
+/**
+ * A set of ports to be bound for a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export interface PortBinding {
     [ctrPort: number]: number;
     [ctrPort: string]: number;
 }
 
+/**
+ * Network links to create for a {@link Container}.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export interface Links {
     [internalName: string]: string;
 }
 
+/**
+ * Props for the {@link Container} component.
+ *
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
 export interface ContainerProps {
     name: string;
     dockerHost: string;
@@ -48,6 +142,10 @@ export interface ContainerProps {
     imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
 
+/**
+ * State information for a {@link Container}.
+ * @public
+ */
 export interface ContainerState {
     Status: string;
     Running: boolean;
@@ -62,6 +160,10 @@ export interface ContainerState {
     FinishedAt: string;
 }
 
+/**
+ * Status of a {@link Container}.
+ * @public
+ */
 export interface ContainerStatus {
     Id: string;
     Created: string;
@@ -89,6 +191,10 @@ export interface ContainerStatus {
     NetworkSettings: FIXME_NeedsProperType;
 }
 
+/**
+ * Abstract component representing a container.
+ * @public
+ */
 export abstract class Container extends PrimitiveComponent<ContainerProps> {
     static defaultProps = {
         dockerHost: "unix:///var/run/docker.sock",
@@ -105,6 +211,11 @@ export abstract class Container extends PrimitiveComponent<ContainerProps> {
 }
 export default Container;
 
+/**
+ * Function to check whether an {@link @adpt/core#AdaptElement} is an
+ * abstract {@link Container}.
+ * @public
+ */
 export function isContainerElement(el: AdaptElement): el is AdaptElement<ContainerProps> {
     return el.componentType as any === Container;
 }

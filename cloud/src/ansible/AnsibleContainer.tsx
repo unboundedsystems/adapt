@@ -181,8 +181,8 @@ export interface ContainerProps extends SFCDeclProps<AbsContainerProps, typeof A
 }
 
 /**
- * Component that implements the abstract {@link: Container} interface and
- * translates to an Ansible-specific {@link: ansible.AnsibleContainer}.
+ * Component that implements the abstract {@link Container} interface and
+ * translates to an Ansible-specific {@link ansible.AnsibleContainer}.
  * @public
  */
 export function Container(props: ContainerProps) {
