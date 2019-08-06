@@ -5,7 +5,7 @@
 // Copyright 2019 Andy Chou
 // Apache 2.0 license
 
-const { readdir, copy, createReadStream, ensureDir, writeFile } = require("fs-extra");
+const { readdir, createReadStream, ensureDir, writeFile } = require("fs-extra");
 const { createInterface } = require("readline");
 const { join, parse } = require("path");
 const { exec } = require("child_process");
@@ -47,12 +47,9 @@ function parseArgs() {
 async function main() {
     const args = parseArgs();
     const buildDir = join(".", "build");
-    const apiDir = join("..", "docs", "api");
-    const outDir = join(apiDir, args.project);
-    const indexSrc = join(apiDir, `${args.project}.index.md`);
-    const indexDst = join(outDir, "index.md");
+    const outDir = join(buildDir, "docs", "api", args.project);
 
-    await ensureDir(buildDir);
+    await ensureDir(outDir);
 
     await new Promise((resolve, reject) =>
         exec(
@@ -69,8 +66,7 @@ async function main() {
         )
     );
 
-    const dir = outDir;
-    const docFiles = await readdir(dir);
+    const docFiles = await readdir(outDir);
     for (const docFile of docFiles) {
         try {
             const { name: id, ext } = parse(docFile);
@@ -78,7 +74,7 @@ async function main() {
                 continue;
             }
 
-            const docPath = join(dir, docFile);
+            const docPath = join(outDir, docFile);
             const input = createReadStream(docPath);
             const output = [];
             const lines = createInterface({
@@ -110,7 +106,7 @@ async function main() {
             const header = [
                 "---",
                 `id: ${id}`,
-                `title: ${title}`,
+                `title: "${title}"`,
                 `hide_title: true`,
                 "---"
             ];
@@ -120,7 +116,6 @@ async function main() {
             console.error(`Could not process ${docFile}: ${err}`);
         }
     }
-    await copy(indexSrc, indexDst);
 }
 
 main();

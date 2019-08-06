@@ -15,6 +15,7 @@
 - [Memory usage debugging](#memory-usage-debugging)
 - [Debugging the CLI and other users of the `core/src/ops` module](#debugging-the-cli-and-other-users-of-the-coresrcops-module)
 - [Setting up CI for your fork](#setting-up-ci-for-your-fork)
+- [Creating artifacts](#creating-artifacts)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -252,3 +253,10 @@ If you'd like to run the complete set of CI tests on branches in your own GitLab
     A single runner can run CI for multiple repos and/or multiple forks.
     If you want this runner to run CI for other repos, repeat step 4 using
     the unique registration token for each repo.
+
+## Creating artifacts
+
+The make target `artifacts` can be used to create the set of artifacts for the project.
+This currently only includes the documentation files, but may include other items in the future.
+In order to make all artifacts, you must set the `ADAPT_ARTIFACT_DIR` environment variable to the path of the directory where you want the artifacts placed.
+Optionally, you can make only the documentation artifacts by ensuring `ADAPT_ARTIFACT_DIR` is not defined and instead, define `ADAPT_ARTIFACT_DOCS` to be the path of the directory where you want only the documentation placed.

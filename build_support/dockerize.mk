@@ -24,11 +24,20 @@ $(OTHERGOALS):
 .PHONY: $(OTHERGOALS)
 endif # MAKECMDGOALS
 
+# The target $(DOCKER_MAKE_DONE) can be used as a prerequisite for any
+# rules which want to ensure that the containerized make has completed first.
+# It's only defined in the outer (non-Docker) make, so is a no-op
+# prerequisite in the inner make.
+DOCKER_MAKE_DONE:=.DOCKER_MAKE_DONE
+
 # Use "+" on the recipe line below to always run the make command inside
 # the container (regardless of "-n") so THAT make actually does the processing
 # of whatever options.
-$(FAKEGOAL): $(CONTAINIT)
+$(DOCKER_MAKE_DONE): $(CONTAINIT)
 	+DOCKER_ARGS="-eMAKEFLAGS=$(MAKEFLAGS)" $(DMAKE) $(MAKECMDGOALS)
+.PHONY: $(DOCKER_MAKE_DONE)
+
+$(FAKEGOAL): $(DOCKER_MAKE_DONE)
 .PHONY: $(FAKEGOAL)
 
 endif # IN_DOCKER==false

@@ -11,4 +11,3 @@ $(GQL_DIST_FILES): $(GQL_FILES)
 
 build: $(GQL_DIST_FILES)
 
-dist/.docs_success: ../docs/api/core.index.md
