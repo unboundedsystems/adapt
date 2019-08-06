@@ -5,7 +5,7 @@ import should from "should";
 import * as util from "util";
 
 // tslint:disable-next-line:no-submodule-imports
-export { doBuild, MockDeploy } from "@adpt/core/dist/test/testlib";
+export { doBuild, MockDeploy, makeDeployId } from "@adpt/core/dist/test/testlib";
 
 export async function act(actions: Action[]) {
     for (const action of actions) {
@@ -25,16 +25,6 @@ export function randomName(base: string) {
         capitalization: "lowercase",
     });
     return `${base}-${rand}`;
-}
-
-export function makeDeployId(prefix: string) {
-    const rand = randomstring.generate({
-        length: 4,
-        charset: "alphabetic",
-        readable: true,
-        capitalization: "lowercase",
-    });
-    return `${prefix}-${rand}`;
 }
 
 export type NoChangeList = AdaptElement | AdaptElement[] | AdaptElement[][];
