@@ -1,14 +1,9 @@
-# Step 1: Install Adapt
+---
+id: install
+title: "Install Adapt"
+---
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Requirements](#requirements)
-- [Installing Adapt](#installing-adapt)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DOCTOC SKIP -->
 
 ## Requirements
 
@@ -37,7 +32,7 @@ If you use a different shell, you may need to adjust some commands slightly.
 > Because Adapt is in limited preview, you must enter NPM credentials to access Adapt.
 >
 > First, log in to NPM:
-> ```
+> ```console
 > npm login
 > ```
 >
@@ -52,7 +47,8 @@ If you use a different shell, you may need to adjust some commands slightly.
 
 We can now install the `adapt` CLI globally:
 <!-- doctest command -->
-```
+
+```console
 npm install -g @adpt/cli
 ```
 
@@ -62,20 +58,14 @@ npm install -g @adpt/cli
 As an alternative to installing `adapt` globally, you can use `npx` instead.
 To use Adapt via `npx`, any time you see an `adapt` CLI command in this guide, simply substitute `npx @adpt/cli` instead of `adapt`.
 For example, if this guide asks you to run this command:
-```
+```console
 adapt new blank
 ```
 You would instead type:
-```
+```console
 npx @adpt/cli new blank
 ```
 
 The rest of this guide will assume you have installed `adapt` globally using `npm install -g`.
 </details>
 
-## Next Step
-
-Next, we'll create a template Hello World app and deploy it.
-
-| [<< Step 0: MovieDB App Overview](./00_overview.md) | [Step 2: Create and Run - Hello World App >>](./02_run.md) |
-| --- | --- |
