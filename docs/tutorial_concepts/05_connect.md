@@ -1,19 +1,9 @@
-# Step 5: Connecting components to each other
+---
+id: connect
+title: Connecting components to each other
+---
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Adding a database](#adding-a-database)
-- [Importing a component](#importing-a-component)
-- [Adding Postgres to our app](#adding-postgres-to-our-app)
-- [Component instance methods](#component-instance-methods)
-- [Handles](#handles)
-- [Calling a component instance method](#calling-a-component-instance-method)
-- [Styling the database with test data](#styling-the-database-with-test-data)
-- [Next step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DOCTOC SKIP -->
 
 ## Adding a database
 
@@ -114,6 +104,7 @@ So let's pass the database connection environment variables we have in the `conn
 We also need to add imports for the `Group` component and the `handle` and `useMethod` functions.
 So your complete `index.tsx` file should now look like this:
 <!-- doctest file-replace { file: "index.tsx" } -->
+
 ```tsx
 import Adapt, { handle, Group } from "@adpt/core";
 import { useMethod } from "@adpt/cloud";
@@ -155,37 +146,7 @@ Add the following just after the first `<Style>` tag:
         })}
 ```
 
-<!-- doctest file-replace { file: "styles.tsx" } -->
-<!--
-```tsx
-import Adapt, { Style } from "@adpt/core";
-import { Service, ServiceProps } from "@adpt/cloud";
-import { ServiceDeployment } from "@adpt/cloud/k8s";
-import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
 
-export function kubeconfig() {
-    // tslint:disable-next-line:no-var-requires
-    return require("./kubeconfig.json");
-}
-
-/*
- * Kubernetes testing style
- */
-export const k8sStyle =
-    <Style>
-        {Postgres}
-        {Adapt.rule(() => {
-            return <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />;
-        })}
-
-        {Service}
-        {Adapt.rule((matchedProps) => {
-            const { handle, ...remainingProps } = matchedProps;
-            return <ServiceDeployment config={kubeconfig()} {...remainingProps} />;
-        })}
-    </Style>;
-```
--->
 
 This rule says to match all `<Postgres>` elements and replace them with `<TestPostgres>` elements, which load some mock data from local file `../test_db.sql`.
 
@@ -197,5 +158,3 @@ However, our existing `<Service>` rule will replace those abstract components wi
 
 Now we'll update the deployment to see the changes we've made.
 
-| [<< Step 4: Running your project](./04_run.md) | [Step 6: Updating your deployment >> ](./06_updating.md) |
-| --- | --- |

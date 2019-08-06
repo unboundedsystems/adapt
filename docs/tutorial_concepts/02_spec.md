@@ -1,23 +1,9 @@
-# Step 2: Describing your app
+---
+id: spec
+title: Describing your app
+---
+<!-- DOCTOC SKIP -->
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Adapt concepts from the web](#adapt-concepts-from-the-web)
-- [HTML and the DOM](#html-and-the-dom)
-- [Plus reusable components](#plus-reusable-components)
-- [Adapt specifications](#adapt-specifications)
-- [Adapt components](#adapt-components)
-    - [Primitive components](#primitive-components)
-    - [Function components](#function-components)
-    - [Component naming](#component-naming)
-    - [Component props](#component-props)
-- [The Hello World spec](#the-hello-world-spec)
-- [Stacks](#stacks)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Adapt concepts from the web
 
@@ -102,7 +88,7 @@ In the `<SearchService>` component above, it's passing a prop named `image` with
 ## The Hello World spec
 
 Now let's take a look at the spec for the app we're building.
-In [Step 1](./01_project.md), we created a new Hello World template app in a directory called `tutorial`.
+In [an earlier step](project.md), we created a new Hello World template app in a directory called `tutorial`.
 The Adapt project directory is in `tutorial/deploy` and by convention, the name of the primary spec in an Adapt project is `index.tsx`.
 
 You can use your favorite editor to open `index.tsx` and take a look.
@@ -141,5 +127,3 @@ Once we're ready to deploy our app, we'll use the name `k8s` on the command line
 
 Next, you'll learn how to deploy the same app description to different environments with style sheets.
 
-| [<< Step 1: Creating your new project](./01_project.md) | [Step 3: >> Styling your app](./03_style.md) |
-| --- | --- |
