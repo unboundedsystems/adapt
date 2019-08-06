@@ -177,18 +177,17 @@ function debugBuild(cmdRet: execa.ExecaReturns) {
     debug(`docker ${cmdRet.cmd}:\n  Cached: ${cached}\n  ${steps.join("\n  ")}`);
 }
 
-async function dockerImageId(name: string, opts: DockerGlobalOptions = {}): Promise<string | undefined> {
-    const inspectRet = await execDocker(["inspect", name], opts);
+/** @private */
+export async function dockerImageId(name: string, opts: DockerGlobalOptions = {}): Promise<string | undefined> {
     try {
-        const inspect = JSON.parse(inspectRet.stdout);
-        if (!Array.isArray(inspect)) throw new Error(`Image inspect result is not an array`);
+        const inspect = await dockerInspect([name], { type: "image", ...opts });
         if (inspect.length > 1) throw new Error(`Multiple images found`);
         if (inspect.length === 0) return undefined;
 
         return inspect[0].Id;
 
     } catch (err) {
-        throw new Error(`Error inspecting image ${name}: ${err.message}`);
+        throw new Error(`Error getting image id for ${name}: ${err.message}`);
     }
 }
 
@@ -229,4 +228,70 @@ function createTag(baseTag: string | undefined, appendUnique: boolean): string |
         });
     }
     return tag;
+}
+
+export interface InspectReport {
+    Id: string;
+    Image?: string;
+    Name?: string;
+    Config: {
+        Labels: DockerLabels;
+    };
+}
+
+export interface DockerInspectOptions extends DockerGlobalOptions {
+    type?: "container" | "image" | "network";
+}
+
+/**
+ * Run docker inspect and return the parsed output
+ *
+ * @private
+ */
+export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}): Promise<InspectReport[]> {
+    const execArgs = ["inspect"];
+    if (opts.type) execArgs.push(`--type=${opts.type}`);
+    const inspectRet = await execDocker([...execArgs, ...namesOrIds], opts);
+    try {
+        const inspect = JSON.parse(inspectRet.stdout);
+        if (!Array.isArray(inspect)) throw new Error(`docker inspect result is not an array`);
+        return inspect;
+    } catch (err) {
+        throw new Error(`Error inspecting docker objects ${namesOrIds}: ${err.message}`);
+    }
+}
+
+export async function dockerStop(namesOrIds: string[], opts: DockerGlobalOptions): Promise<void> {
+    const args = ["stop", ...namesOrIds];
+    const res = await execDocker(args, opts);
+    if (res.failed) throw new Error(`Docker stop failed: ${res.stderr}`);
+}
+
+export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions): Promise<void> {
+    const args = ["rm", ...namesOrIds];
+    const res = await execDocker(args, opts);
+    if (res.failed) throw new Error(`Docker rm failed: ${res.stderr}`);
+}
+
+export interface DockerLabels {
+    [name: string]: string;
+}
+
+export interface DockerRunOptions extends DockerGlobalOptions {
+    name?: string;
+    image: string;
+    labels?: DockerLabels;
+}
+
+export async function dockerRun(opts: DockerRunOptions): Promise<void> {
+    const args: string[] = ["run"];
+    if (opts.name) args.push("--name", opts.name);
+    if (opts.labels) {
+        for (const l of Object.keys(opts.labels)) {
+            args.push("--label ", `${l}="${opts.labels[l]}"`); //FIXME(manishv) better quoting/format checking here
+        }
+    }
+    args.push(opts.image);
+    const runRet = await execDocker(args, opts);
+    if (runRet.failed) throw new Error(`docker run failed: ${runRet.stderr}`);
 }
