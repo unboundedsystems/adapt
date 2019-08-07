@@ -23,4 +23,6 @@ If you haven't found what you need, please ask a question on our [Gitter channel
 If you're interested in contributing to Adapt, that's awesome!
 Chat with us on our [Gitter channel](https://gitter.im/UnboundedSystems/Adapt) and we can help you get started.
 
-- [Developer Setup](developer/setup.md)
+### Adapt developer docs
+- [Setup](developer/setup.md)
+- [Writing Docs](developer/writing_docs.md)
