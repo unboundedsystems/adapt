@@ -14,7 +14,8 @@ If you haven't found what you need, please ask a question on our [Gitter channel
 - [Tutorial: Intro to Adapt Concepts](tutorial_concepts/index.md)
 
 ## Advanced Adapt Topics
-- [API Reference Guide](api/index.md)
+- [Core API Reference Guide](api/core/index.md)
+- [Cloud API Reference Guide](api/cloud/index.md)
 - [Concepts: Comparing Adapt and React](comparing_react/index.md)
 
 ## Contributing to Adapt
@@ -22,4 +23,4 @@ If you haven't found what you need, please ask a question on our [Gitter channel
 If you're interested in contributing to Adapt, that's awesome!
 Chat with us on our [Gitter channel](https://gitter.im/UnboundedSystems/Adapt) and we can help you get started.
 
-- [Developer Setup](developer_setup.md)
+- [Developer Setup](developer/setup.md)
