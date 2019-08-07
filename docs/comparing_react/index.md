@@ -1,4 +1,8 @@
-# Concepts: Comparing Adapt and React
+---
+id: index
+title: "Comparing Adapt and React Concepts"
+---
+<!-- DOCTOC SKIP -->
 
 > **Tip**
 >
@@ -6,27 +10,6 @@
 >
 > Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Introduction: A Movie Database App](#introduction-a-movie-database-app)
-- [Adapt Elements & JSX/TSX](#adapt-elements-&-jsxtsx)
-- [Components & Props](#components-&-props)
-- [Handles](#handles)
-    - [Attaching Handles to Elements](#attaching-handles-to-elements)
-    - [Calling Imperative Method Hooks](#calling-imperative-method-hooks)
-- [Hooks](#hooks)
-- [Style Sheets](#style-sheets)
-    - [Separating Content from Style](#separating-content-from-style)
-- [Element State](#element-state)
-- [The Virtual DOM](#the-virtual-dom)
-    - [React: Rendering](#react-rendering)
-    - [Adapt: Building](#adapt-building)
-    - [Observing the Environment](#observing-the-environment)
-- [Footnotes](#footnotes)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Introduction: A Movie Database App
 Adapt is the easiest way to reliably and repeatedly deploy your apps anywhere -- to your laptop, a Kubernetes cluster, your favorite cloud, or anywhere else.
@@ -46,7 +29,7 @@ Since you're a developer familiar with React, the sample app that we'll use is a
 - A web server to serve static content like HTML, CSS, and images.
 - A URL router to steer HTTP requests to either the REST API microservice or the static web server.
 
-![Movie database app diagram](./sample_app.png)
+![Movie database app diagram](assets/comparing_react/sample_app.png)
 
 Below is the Adapt description of the movie database app.
 The rest of this tutorial will explain all the parts that make up this app description.
@@ -103,7 +86,7 @@ Let's jump in and take a look at all the pieces that make up this description.
 ## Adapt Elements & JSX/TSX
 Adapt specifications are written in TSX or JSX[^1] and produce a virtual DOM that is made up of Elements, just like React.
 
-[^1]: JSX supported in a future release. See unboundedsystems/adapt#108.
+[^1]: JSX supported in a future release. See [issue #108](https://gitlab.com/unboundedsystems/adapt/issues/108)
 
 The following code creates a NodeService Adapt Element:
 ```tsx
@@ -233,7 +216,7 @@ CSS has another important and powerful concept called [selectors](https://develo
 CSS selectors make it easy to choose a specific set of elements upon which to apply style.
 For example, you can select all `<div>` elements to remove their border, make every `<caption>` element have a larger font, or make the background of only the element with a particular ID red.
 
-You can find out more about style sheets in the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/03_style.md).
+You can find out more about style sheets in the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/style).
 
 ## Element State
 Both React and Adapt use the concept of *state*.
@@ -256,7 +239,7 @@ This section only provides a high-level comparison of both systems.
 For more precise details on how each system works, please check the respective user guides.
 
 ### React: Rendering
-![React State Loop](react_state_loop.png)
+![React State Loop](assets/comparing_react/react_state_loop.png)
 
 In React, the Components and other related code that you write, combined with the State, go through a process that React calls *render* that creates the final virtual DOM, made up of primitive Elements.
 React can then display that final virtual DOM in the browser.
@@ -265,7 +248,7 @@ Events from the browser and from other external sources can cause changes to the
 This process of processing external events and re-rendering the DOM is core to how React operates.
 
 ### Adapt: Building
-![Adapt State Loop](adapt_state_loop.png)
+![Adapt State Loop](assets/comparing_react/adapt_state_loop.png)
 
 In Adapt, the Components and other related code that you write are called the Adapt *Specification* and *Style Sheets*.
 Those two items, combined with the State, go through a process called the DOM *build* that creates the final Primitive DOM.
