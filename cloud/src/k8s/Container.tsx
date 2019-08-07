@@ -209,7 +209,7 @@ export interface ContainerProps extends SFCDeclProps<abs.ContainerProps> {
 }
 
 /**
- * Component that implements the abstract {@link: Container} interface and
+ * Component that implements the abstract {@link Container} interface and
  * translates to a Kubernetes-specific {@link k8s.K8sContainer}.
  * @public
  */
