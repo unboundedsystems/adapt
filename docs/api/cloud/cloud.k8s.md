@@ -36,7 +36,7 @@ export { K8sPlugin, createK8sPlugin, resourceElementToName, registerResourceKind
 |  Function | Description |
 |  --- | --- |
 |  [computeNamespaceFromMetadata(metadata)](./cloud.k8s.computenamespacefrommetadata.md) |  |
-|  [Container(props)](./cloud.k8s.container.md) | Component that implements the abstract {@<!-- -->link: Container<!-- -->} interface and translates to a Kubernetes-specific [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->. |
+|  [Container(props)](./cloud.k8s.container.md) | Component that implements the abstract [Container](./cloud.container.md) interface and translates to a Kubernetes-specific [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->. |
 |  [isK8sContainerElement(x)](./cloud.k8s.isk8scontainerelement.md) |  |
 |  [isResourceFinalElement(e)](./cloud.k8s.isresourcefinalelement.md) |  |
 |  [k8sContainerProps(abstractProps, k8sProps)](./cloud.k8s.k8scontainerprops.md) | Low level utility function to translate from the abstract [Container](./cloud.container.md) component props ([ContainerProps](./cloud.containerprops.md)<!-- -->) to [k8s.K8sContainerProps](./cloud.k8s.k8scontainerprops.md) to be used in a [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->. |

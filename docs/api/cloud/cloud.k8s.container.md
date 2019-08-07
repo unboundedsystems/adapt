@@ -9,7 +9,7 @@ hide_title: true
 
 ## k8s.Container() function
 
-Component that implements the abstract {@<!-- -->link: Container<!-- -->} interface and translates to a Kubernetes-specific [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->.
+Component that implements the abstract [Container](./cloud.container.md) interface and translates to a Kubernetes-specific [k8s.K8sContainer](./cloud.k8s.k8scontainer.md)<!-- -->.
 
 <b>Signature:</b>
 
