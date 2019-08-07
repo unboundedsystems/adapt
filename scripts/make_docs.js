@@ -12,10 +12,10 @@ const { exec } = require("child_process");
 
 const projects = {
     core: {
-        name: "Adapt Core",
+        name: "Core",
     },
     cloud: {
-        name: "Adapt Cloud",
+        name: "Cloud",
     },
 }
 
@@ -93,8 +93,7 @@ async function main() {
                 const homeLink = line.match(/\[Home\]\(.\/index\.md\) &gt; (.*)/);
                 if (homeLink) {
                     line =
-                        `[API Reference](../index.md) &gt; ` +
-                        `[${projects[args.project].name}](./index.md) &gt; ` +
+                        `[${projects[args.project].name} API Overview](overview) &gt; ` +
                         homeLink[1];
                 }
                 output.push(line);
