@@ -1,4 +1,7 @@
-# Adapt Cloud API Overview
+---
+id: overview
+title: Adapt Cloud API Overview
+---
 
 The Adapt Cloud library is a collection of Adapt Components, Hooks,
 Deployment Plugins, and utilities to make it simple to create Adapt Specifications for your app deployments.
