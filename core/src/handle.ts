@@ -232,7 +232,7 @@ function isHandleImpl(val: unknown): val is HandleImpl {
 
 /**
  * User-facing API for creating a Handle
- * @param name Name to associate with the handle for debugging/display purposes
+ * @param name - Name to associate with the handle for debugging/display purposes
  */
 export function handle<I extends object = GenericInstance>(name?: string): Handle<I & GenericInstanceMethods> {
     return new HandleImpl({ name });

@@ -46,7 +46,6 @@ export function isApplyStyle(el: AdaptElement) {
  *
  * @remarks
  * The Adapt DOM is composed of Elements.
- * @typeParam P - The type of the element's props.
  *
  * @public
  *

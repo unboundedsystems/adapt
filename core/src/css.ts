@@ -298,8 +298,7 @@ function isRule(x: any): x is Rule {
  * Keep track of which rules have matched for a set of props so that in the
  * typical case, the same rule won't match the same component instance more
  * than once.
- *
- * @interface MatchInfo
+ * @internal
  */
 export interface MatchInfo {
     matched?: Set<StyleRule>;
@@ -367,10 +366,11 @@ export function copyRuleMatches(
  * successfully against the original element (origElement) specified in the
  * info parameter onto the passed in elem.
  * Returns the passed in elem as a convenience. Does not create a new element.
- * @param info {StyleBuildInfo} The second argument to a rule callback
+ * @param info - The second argument to a rule callback
  *     function. This indicates which rule to ignore matches of.
- * @param elem {AdaptElement} The element that should not match the
+ * @param elem - The element that should not match the
  *     specified rule.
+ * @public
  */
 export function ruleNoRematch(info: StyleBuildInfo, elem: jsx.AdaptElement) {
     if (jsx.isMountedElement(elem)) {
@@ -497,9 +497,9 @@ export class Style extends jsx.Component<StyleProps> {
  * rules. Always returns a new Style element and does not modify
  * the Style element parameters.
  *
- * @param {...jsx.AdaptElement[]} styles
+ * @param styles -
  *   Zero or more Style elements, each containing style rules.
- * @returns {jsx.AdaptElement}
+ * @returns
  *   A new Style element containing the concatenation of all
  *   of the rules from the passed in Style elements.
  */
