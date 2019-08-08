@@ -10,8 +10,12 @@ services:
   - name: docker:stable-dind
     command: [ "dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2" ]
 
+stages:
+  - test
+  - publish
+
 before_script:
-  - apk update && apk add bash
+  - apk update && apk add bash git
   - ./bin/dnsmasq
   - |
     if [ "${DOCKER_AUTH_CONFIG}" = "" ]; then
@@ -26,5 +30,17 @@ test:
     - branches
     - web
   script:
-    - ./bin/make clean
-    - ./bin/make build lint coverage
+    - ./bin/make build lint web-test coverage
+
+docs:
+  stage: publish
+  only:
+    refs:
+      - master@unboundedsystems/adapt
+      - web
+    # Only run the publish job if there's a personal access token in the
+    # environment. The token must have write access to the adapt-web repo.
+    variables:
+      - $ADAPT_WEB_TOKEN
+  script:
+    - ./bin/make web-release-master
