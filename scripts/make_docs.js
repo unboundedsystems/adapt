@@ -8,7 +8,7 @@
 const { readdir, createReadStream, ensureDir, writeFile } = require("fs-extra");
 const { createInterface } = require("readline");
 const { join, parse } = require("path");
-const { exec } = require("child_process");
+const execa = require("execa");
 
 const projects = {
     core: {
@@ -51,20 +51,20 @@ async function main() {
 
     await ensureDir(outDir);
 
-    await new Promise((resolve, reject) =>
-        exec(
-            `api-extractor run --local && api-documenter markdown -i ${buildDir} -o ${outDir}`,
-            (err, stdout, stderr) => {
-                console.log(stdout);
-                console.error(stderr);
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            }
-        )
-    );
+    try {
+        await execa("api-extractor", ["run", "--local"], { stdio: "inherit" });
+    } catch (err) {
+        console.error("Error: api-extractor failed");
+        process.exit(1);
+    }
+
+    try {
+        await execa("api-documenter", ["markdown", "-i", buildDir, "-o", outDir],
+                { stdio: "inherit" });
+    } catch (err) {
+        console.error("Error: api-documenter failed");
+        process.exit(1);
+    }
 
     const docFiles = await readdir(outDir);
     for (const docFile of docFiles) {
