@@ -47,6 +47,10 @@ if [ -f "${CRED_FILE}" ]; then
     DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"
 fi
 
+if [ -n "${SSH_AUTH_SOCK}" ]; then
+    DOCKER_ARGS+=" -v${SSH_AUTH_SOCK}:/ssh-agent -eSSH_AUTH_SOCK=/ssh-agent"
+fi
+
 # Export test SSH key into child containers. If not present in environment,
 # read it off disk.
 if [ -z "${ADAPT_UNIT_TEST_KEY}" ]; then
