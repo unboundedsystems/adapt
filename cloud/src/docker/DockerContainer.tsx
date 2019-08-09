@@ -53,7 +53,7 @@ interface ContainerInfo {
 /**
  * Compute a unique name for the container
  *
- * @private
+ * @internal
  */
 export function computeContainerName(id: string, deployID: string) {
     return "adapt-" + sha256hex(id + "-" + deployID);
@@ -213,7 +213,7 @@ export default DockerContainer;
 /**
  * Compute the status of a container based on a graphQL schema
  *
- * @private
+ * @internal
  */
 export async function containerStatus(
     observe: ObserveForStatus,
