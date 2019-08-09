@@ -61,6 +61,17 @@ if [ -z "${ADAPT_UNIT_TEST_KEY}" ]; then
 fi
 DOCKER_ARGS+=" -eADAPT_UNIT_TEST_KEY"
 
+GIT_USER_NAME=${GIT_USER_NAME:-${GITLAB_USER_NAME:-$(git config --get user.name)}}
+if [ -n "${GIT_USER_NAME}" ]; then
+    export GIT_USER_NAME
+    DOCKER_ARGS+=" -eGIT_USER_NAME"
+fi
+GIT_USER_EMAIL=${GIT_USER_EMAIL:-${GITLAB_USER_EMAIL:-$(git config --get user.email)}}
+if [ -n "${GIT_USER_EMAIL}" ]; then
+    export GIT_USER_EMAIL
+    DOCKER_ARGS+=" -eGIT_USER_EMAIL"
+fi
+
 DOCKER_ARGS+=" -eNODE_NO_WARNINGS=1"
 
 # Propagate these from current environment into the docker container env
