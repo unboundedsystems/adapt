@@ -300,9 +300,93 @@ export interface SFC<Props extends object = AnyProps> {
     status?: (props: Props & BuiltinProps, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
 }
 
+/**
+ * Helper type for declaring the props argument of a function component.
+ * (The type that users of your component will see.)
+ *
+ * @remarks
+ * This helper type can be used to create the type for your function
+ * component's `props` argument. It correctly handles the standard
+ * set of {@link BuiltinProps} and your component's `defaultProps` so that
+ * users of your component can pass in props like `key` and `handle` and also
+ * not be required to pass in any props that are required, but have valid
+ * default values in `defaultProps`.
+ *
+ * This type should **only** be used to describe the first argument to your
+ * function component.
+ *
+ * It should typically be used along with {@link SFCBuildProps}.
+ *
+ * Type parameters:
+ *
+ * `Props` - The object type that describes the props your function
+ * component takes, not including any {@link BuiltinProps}. For props that
+ * your component requires, but has valid defaults set in `defaultProps`,
+ * those properties should be required (not optional) in `Props`.
+ *
+ * `Defaults` - The object type of your component's `defaultProps`.
+ *
+ * @example
+ * ```tsx
+ * interface MyProps {
+ *   required: string;   // User is required to always set this prop
+ *   hasDefault: string; // User can optionally set this prop or get default
+ *   optional?: string;  // User can optionally set this prop, but no default
+ * }
+ * const defaultProps = {
+ *   hasDefault: "thedefault"
+ * }
+ *
+ * // Types for the properties of the props argument below are:
+ * //   props.required     string [required]
+ * //   props.hasDefault   string [optional]
+ * //   props.optional     string [optional]
+ * //   props.key          string [optional]
+ * //   props.handle       Handle [optional]
+ * function MyComponent(props: SFCDeclProps<MyProps, typeof defaultProps) {
+ *   // Types for the properties of the buildProps variable below are:
+ *   //   buildProps.required     string
+ *   //   buildProps.hasDefault   string
+ *   //   buildProps.optional     string | undefined
+ *   //   buildProps.key          string
+ *   //   buildProps.handle       Handle
+ *   const buildProps = props as SFCBuildProps<MyProps, typeof defaultProps>;
+ *   ...
+ * }
+ * MyComponent.defaultProps = defaultProps;
+ * ```
+ * @public
+ */
 export type SFCDeclProps<Props, Defaults extends object = object> =
     Defaultize<Props, Defaults> & Partial<BuiltinProps>;
 
+/**
+ * Helper type for declaring the props available to use **inside** the body
+ * of your function component.
+ *
+ * @remarks
+ * This helper type can be used to create the type of the "build props",
+ * which are the props available inside the body of your function component
+ * when your component is built by Adapt. The type of "build props" in a
+ * function component are different than the type that the user sees because
+ * Adapt deals with setting the values of some props automatically when
+ * a component gets built.
+ *
+ * This helper should **only** be used to describe the type of a function
+ * component's props **inside** the function body.
+ *
+ * It should typically be used along with {@link SFCDeclProps}. See the
+ * example usage of both helper types in {@link SFCDeclProps}.
+ *
+ * Type parameters:
+ *
+ * `Props` - The object type that describes the props your function
+ * component takes, not including any {@link BuiltinProps}. For props that
+ * your component requires, but has valid defaults set in `defaultProps`,
+ * those properties should be required (not optional) in `Props`.
+ *
+ * `Defaults` - (optional) The object type of your component's `defaultProps`.
+ */
 export type SFCBuildProps<Props, Defaults extends object = object> =
     & {[K in Extract<keyof Props, keyof Defaults>]: Props[K]}
     & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
