@@ -7,6 +7,8 @@ import * as util from "util";
 // tslint:disable-next-line:no-submodule-imports
 export { doBuild, MockDeploy, makeDeployId } from "@adpt/core/dist/test/testlib";
 
+export const smallDockerImage = "alpine:3.8";
+
 export async function act(actions: Action[]) {
     for (const action of actions) {
         try {

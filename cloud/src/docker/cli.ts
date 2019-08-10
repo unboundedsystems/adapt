@@ -8,9 +8,15 @@ import randomstring from "randomstring";
 import { Readable } from "stream";
 import {
     DockerBuildOptions,
+    DockerContainerProps,
     DockerGlobalOptions,
+    DockerLabels,
     File,
+    ImageIdString,
     ImageInfo,
+    ImageNameString,
+    NameTagString,
+    RepoDigestString,
 } from "./types";
 
 const debug = db("adapt:cloud:docker");
@@ -78,7 +84,7 @@ export async function withFilesImage<T>(files: File[] | undefined,
     try {
         return await fn(image);
     } finally {
-        await dockerRemoveImage(image.id, opts);
+        await dockerRemoveImage({ nameOrId: image.id, ...opts });
     }
 }
 
@@ -152,7 +158,11 @@ export async function dockerBuild(
         if (prevId === id) nameTag = opts.prevUniqueTag; // prev points to current id
         else {
             if (!nameTag) throw new InternalError(`nameTag not set`);
-            await dockerTag(id, nameTag, opts);
+            await dockerTag({
+                existing: id,
+                newTag: nameTag,
+                ...pickGlobals(opts),
+            });
         }
     }
 
@@ -180,9 +190,9 @@ function debugBuild(cmdRet: execa.ExecaReturns) {
 /**
  * Fetch the image id for a Docker image
  *
- * @private
+ * @internal
  */
-export async function dockerImageId(name: string, opts: DockerGlobalOptions = {}): Promise<string | undefined> {
+export async function dockerImageId(name: string, opts: DockerGlobalOptions = {}): Promise<ImageIdString | undefined> {
     try {
         const inspect = await dockerInspect([name], { type: "image", ...opts });
         if (inspect.length > 1) throw new Error(`Multiple images found`);
@@ -195,11 +205,17 @@ export async function dockerImageId(name: string, opts: DockerGlobalOptions = {}
     }
 }
 
-async function dockerTag(existing: string, newTag: string, opts: DockerGlobalOptions = {}) {
-    return execDocker(["tag", existing, newTag], opts);
+export interface DockerTagOptions extends DockerGlobalOptions {
+    existing: ImageNameString | ImageIdString;
+    newTag: NameTagString;
+}
+export async function dockerTag(options: DockerTagOptions) {
+    const { existing, newTag } = options;
+    await execDocker(["tag", existing, newTag], options);
 }
 
-interface DockerRemoveImageOptions extends DockerGlobalOptions {
+export interface DockerRemoveImageOptions extends DockerGlobalOptions {
+    nameOrId: ImageNameString | ImageIdString;
     force?: boolean;
 }
 
@@ -207,16 +223,14 @@ const dockerRemoveImageDefaults = {
     force: false,
 };
 
-async function dockerRemoveImage(
-    idOrNameTag: string, options: DockerRemoveImageOptions = {}) {
-
+export async function dockerRemoveImage(options: DockerRemoveImageOptions) {
     const opts = { ...dockerRemoveImageDefaults, ...options };
 
     const args = ["rmi"];
     if (opts.force) args.push("--force");
-    args.push(idOrNameTag);
+    args.push(opts.nameOrId);
 
-    return execDocker(args, opts);
+    await execDocker(args, opts);
 }
 
 function createTag(baseTag: string | undefined, appendUnique: boolean): string | undefined {
@@ -256,7 +270,7 @@ function isExecaError(e: Error): e is ExecaError {
 /**
  * Run docker inspect and return the parsed output
  *
- * @private
+ * @internal
  */
 export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}): Promise<InspectReport[]> {
     const execArgs = ["inspect"];
@@ -281,59 +295,153 @@ export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOpt
 /**
  * Run docker stop
  *
- * @private
+ * @internal
  */
 export async function dockerStop(namesOrIds: string[], opts: DockerGlobalOptions): Promise<void> {
     const args = ["stop", ...namesOrIds];
-    const res = await execDocker(args, opts);
-    if (res.failed) throw new Error(`Docker stop failed: ${res.stderr}`);
+    await execDocker(args, opts);
 }
 
 /**
  * Run docker rm
  *
- * @private
+ * @internal
  */
 export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions): Promise<void> {
     const args = ["rm", ...namesOrIds];
-    const res = await execDocker(args, opts);
-    if (res.failed) throw new Error(`Docker rm failed: ${res.stderr}`);
-}
-
-/**
- * Type to encode docker labels for {@link docker.dockerRun}
- *
- * @private
- */
-export interface DockerLabels {
-    [name: string]: string;
+    await execDocker(args, opts);
 }
 
 /**
  * Options for {@link docker.dockerRun}
  *
- * @private
+ * @internal
  */
-export interface DockerRunOptions extends DockerGlobalOptions {
+export interface DockerRunOptions extends DockerContainerProps {
     name?: string;
-    image: string;
-    labels?: DockerLabels;
+    image: ImageNameString;
 }
 
 /**
  * Run a container via docker run
  *
- * @private
+ * @internal
  */
 export async function dockerRun(opts: DockerRunOptions): Promise<void> {
-    const args: string[] = ["run"];
-    if (opts.name) args.push("--name", opts.name);
-    if (opts.labels) {
-        for (const l of Object.keys(opts.labels)) {
-            args.push("--label", `${l}=${opts.labels[l]}`); //FIXME(manishv) better quoting/format checking here
+    const args: string[] = ["run", "-d"];
+    const { labels, name, portBindings, } = opts;
+    if (name) args.push("--name", name);
+    if (labels) {
+        for (const l of Object.keys(labels)) {
+            args.push("--label", `${l}=${labels[l]}`); //FIXME(manishv) better quoting/format checking here
         }
     }
+    if (opts.autoRemove) args.push("--rm");
+    if (portBindings) {
+        const portArgs = Object.keys(portBindings).map((k) => `-p${k}:${portBindings[k]}`);
+        args.push(...portArgs);
+    }
+
     args.push(opts.image);
-    const runRet = await execDocker(args, opts);
-    if (runRet.failed) throw new Error(`docker run failed: ${runRet.stderr}`);
+    await execDocker(args, opts);
+}
+
+/**
+ * Options for dockerPush.
+ *
+ * @internal
+ */
+export interface DockerPushOptions extends DockerGlobalOptions {
+    nameTag: NameTagString;
+}
+
+/**
+ * Push an image to a registry
+ *
+ * @internal
+ */
+export async function dockerPush(opts: DockerPushOptions): Promise<void> {
+    const args: string[] = ["push", opts.nameTag];
+    await execDocker(args, opts);
+}
+
+/**
+ * Options for dockerPull.
+ *
+ * @internal
+ */
+export interface DockerPullOptions extends DockerGlobalOptions {
+    /**
+     * Image to pull.
+     * @remarks
+     * See {@link docker.ImageNameString} for more details. If the registry
+     * portion of imageName is absent, the official Docker registry is
+     * assumed.
+     */
+    imageName: ImageNameString;
+}
+
+/**
+ * Information about an image that has been successfully pulled from a
+ * registry.
+ *
+ * @internal
+ */
+export interface DockerPullInfo {
+    id: ImageIdString;
+    repoDigest: RepoDigestString;
+}
+
+/**
+ * Push an image to a registry
+ *
+ * @internal
+ */
+export async function dockerPull(opts: DockerPullOptions): Promise<DockerPullInfo> {
+    const args: string[] = ["pull", opts.imageName];
+    const repo = removeTag(opts.imageName);
+
+    const { stdout } = await execDocker(args, opts);
+
+    const m = stdout.match(/Digest:\s+(\S+)/);
+    if (!m) throw new Error(`Output from docker pull did not contain Digest. Output:\n${stdout}`);
+    const repoDigest = `${repo}@${m[1]}`;
+
+    const info = await dockerInspect([repoDigest], { type: "image", ...pickGlobals(opts) });
+    if (info.length !== 1) {
+        throw new Error(`Unexpected number of images (${info.length}) match ${repoDigest}`);
+    }
+    return {
+        id: info[0].Id,
+        repoDigest,
+    };
+}
+
+/**
+ * Given a *valid* ImageNameString, removes the optional tag and returns only the
+ * `[registry/]repo` portion.
+ * NOTE(mark): This does not attempt to be a generic parser for all Docker
+ * image name strings because there's ambiguity in how to parse that requires
+ * context of where it came from or which argument of which CLI it is.
+ */
+function removeTag(imageName: ImageNameString): ImageNameString {
+    const parts = imageName.split(":");
+    switch (parts.length) {
+        case 1:
+            // 0 colons - no tag present
+            break;
+        case 2:
+            // 1 colon - Could be either from hostname:port or :tag
+            // If it's hostname:port, then parts[1] *must* include a slash
+            // else it's a tag, so dump it.
+            if (!parts[1].includes("/")) parts.pop();
+            break;
+        case 3:
+            // 2 colons - last part is the tag
+            parts.pop();
+            break;
+        default:
+            throw new Error(`Invalid docker image name '${imageName}'`);
+    }
+    return parts.join(":");
 }

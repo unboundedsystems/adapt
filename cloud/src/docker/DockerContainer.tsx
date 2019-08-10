@@ -22,27 +22,10 @@ import {
 } from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
-import { ImageInfo } from "./types";
+import { DockerContainerProps, ImageInfo } from "./types";
 
 const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
 
-/**
- * Props for {@link docker.DockerContainer}
- *
- * @public
- */
-export interface DockerContainerProps {
-    /** image name as a string, or a handle to a DockerImage component */
-    image: string | Handle<DockerImageInstance>;
-
-    /**
-     * Host and port of the remote docker host to use.
-     *
-     * @remarks
-     * Defaults to the DOCKER_HOST environment variable
-     */
-    dockerHost: string;
-}
 export interface DockerContainerStatus extends ContainerStatus { }
 
 interface ContainerInfo {
@@ -134,10 +117,11 @@ async function runContainer(context: ActionContext, props: DockerContainerProps)
     const image = getImageNameOrId(props);
     if (image === undefined) return;
     const opts = {
-        dockerHost: props.dockerHost,
+        ...props,
         name: computeContainerNameFromContext(context),
         image,
         labels: {
+            ...(props.labels || {}),
             [adaptDockerKey]: `${context.buildData.deployID}`
         }
     };
