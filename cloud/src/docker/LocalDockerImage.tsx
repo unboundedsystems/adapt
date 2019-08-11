@@ -110,9 +110,9 @@ export class LocalDockerImage
         options: {},
     };
 
-    image_?: ImageInfo;
-    imagePropsJson_?: string;
-    options_: DockerBuildOptions;
+    private image_?: ImageInfo;
+    private imagePropsJson_?: string;
+    private options_: DockerBuildOptions;
 
     constructor(props: LocalDockerImageProps) {
         super(props);
@@ -148,8 +148,9 @@ export class LocalDockerImage
         return this.image_ || this.state.image;
     }
 
-    /*
+    /**
      * Implementations for Action base class
+     * @internal
      */
     async shouldAct(op: ChangeType): Promise<ShouldAct> {
         let imgName = this.options_.imageName || "";
@@ -164,6 +165,10 @@ export class LocalDockerImage
         };
     }
 
+    /**
+     * Implementations for Action base class
+     * @internal
+     */
     async action(op: ChangeType, _ctx: ActionContext) {
         const options = this.options_;
         const prevUniqueTag = this.state.prevUniqueTag;
@@ -214,8 +219,10 @@ export class LocalDockerImage
      * Component methods
      */
 
+    /** @internal */
     initialState() { return {}; }
 
+    /** @internal */
     deployedWhen = (goalStatus: GoalStatus) => {
         if (goalStatus === DeployStatus.Destroyed) return true;
         if (this.buildComplete()) return true;
@@ -227,6 +234,7 @@ export class LocalDockerImage
         return waiting("Waiting for Docker image to be built");
     }
 
+    /** @internal */
     protected get imagePropsJson() {
         if (!this.imagePropsJson_) {
             const { handle: _h, key, ...imageProps } = this.props;
