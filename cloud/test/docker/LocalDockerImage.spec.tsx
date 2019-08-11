@@ -120,7 +120,7 @@ describe("LocalDockerImage", function () {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const image = dom.instance.image;
+        const image = dom.instance.image();
         should(image).not.be.Undefined();
         const id = image.id;
         should(id).match(/^sha256:[a-f0-9]{64}$/);

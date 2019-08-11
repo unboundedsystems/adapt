@@ -11,11 +11,11 @@ export interface DockerImageInstance {
      * Returns information about the version of the Docker image that reflects
      * the current set of props for the component.
      * @remarks
-     * This property returns undefined if no image has ever been built by
+     * Returns undefined if no image has ever been built by
      * this component OR if the component props have changed and the image
      * that corresponds to the current props has not yet been built.
      */
-    image: ImageInfo | undefined;
+    image(): ImageInfo | undefined;
 
     /**
      * Returns information about the most current version of the Docker image
@@ -44,7 +44,9 @@ export interface DockerImageProps {}
 export abstract class DockerImage extends Component<DockerImageProps>
     implements DockerImageInstance {
 
-    image: ImageInfo | undefined;
+    image(): ImageInfo | undefined {
+        return undefined;
+    }
     latestImage(): ImageInfo | undefined {
         return undefined;
     }

@@ -1,9 +1,7 @@
 import Adapt, {
     BuiltinProps,
-    callInstanceMethod,
     handle,
-    useImperativeMethods,
-    useInstanceValue,
+    useMethodFrom,
     useState,
 } from "@adpt/core";
 import fs from "fs-extra";
@@ -27,6 +25,8 @@ export interface LocalNodeImageProps extends Partial<BuiltinProps> {
  * Locally builds a docker image for a {@link https://www.nodejs.org | Node.js} program.
  *
  * @remarks
+ * Implements {@link docker.DockerImageInstance}.
+ *
  * See {@link nodejs.LocalNodeImageProps}.
  *
  * @public
@@ -62,11 +62,8 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
         };
     });
 
-    const image = useInstanceValue(img, undefined, "image");
-    useImperativeMethods(() => ({
-        latestImage: () => callInstanceMethod(img, undefined, "latestImage"),
-        image
-    }));
+    useMethodFrom(img, "image");
+    useMethodFrom(img, "latestImage");
 
     return imgProps ? <LocalDockerImage handle={img} {...imgProps} /> : null;
 }

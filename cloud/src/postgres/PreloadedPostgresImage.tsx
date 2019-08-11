@@ -1,8 +1,6 @@
 import Adapt, {
-    callInstanceMethod,
     handle,
-    useImperativeMethods,
-    useInstanceValue,
+    useMethodFrom,
     useState,
 } from "@adpt/core";
 import * as fs from "fs-extra";
@@ -31,6 +29,8 @@ export interface PreloadedPostgresImageProps {
  * Creates a throw-away {@link https://www.postgresql.org | Postgres} database with preloaded data.
  *
  * @remarks
+ * Implements {@link docker.DockerImageInstance}.
+ *
  * See {@link postgres.PreloadedPostgresImageProps}
  *
  * @public
@@ -59,11 +59,8 @@ export function PreloadedPostgresImage(props: PreloadedPostgresImageProps) {
     });
 
     const img = handle();
-    const image = useInstanceValue(img, undefined, "image");
-    useImperativeMethods(() => ({
-        latestImage: () => callInstanceMethod(img, undefined, "latestImage"),
-        image
-    }));
+    useMethodFrom(img, "image");
+    useMethodFrom(img, "latestImage");
 
     return imgProps ? <LocalDockerImage handle={img} {...imgProps} /> : null;
 }

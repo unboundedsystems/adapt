@@ -127,10 +127,10 @@ export class LocalDockerImage
     /*
      * Public instance properties/methods
      */
-    buildComplete() { return this.image != null; }
+    buildComplete() { return this.image() != null; }
     ready() { return this.buildComplete(); }
 
-    get image() {
+    image() {
         if (this.image_ == null) {
             if (this.state.image != null &&
                 // Ensure we've rebuilt at least once this OpID

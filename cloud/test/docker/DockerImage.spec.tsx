@@ -6,7 +6,6 @@ import Adapt, {
     Sequence,
     Style,
     useImperativeMethods,
-    useInstanceValue,
     useMethod,
 } from "@adpt/core";
 import should from "should";
@@ -17,10 +16,12 @@ import { doBuild } from "../testlib";
 class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
     implements DockerImageInstance {
 
-    image = {
-        id: "imageid",
-        nameTag: "imagetag"
-    };
+    image() {
+        return {
+            id: "imageid",
+            nameTag: "imagetag"
+        };
+    }
     latestImage() {
         return {
             id: "latestid",
@@ -32,7 +33,7 @@ class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
 function MockService() {
     const img = handle();
     const latest = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
-    const image = useInstanceValue<ImageInfo | undefined>(img, undefined, "image");
+    const image = useMethod<ImageInfo | undefined>(img, undefined, "image");
 
     useImperativeMethods(() => ({ image, latest }));
 
