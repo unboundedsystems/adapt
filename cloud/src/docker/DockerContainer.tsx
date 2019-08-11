@@ -24,7 +24,16 @@ import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { DockerContainerProps, ImageInfo } from "./types";
 
-const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
+/**
+ * The base string used for Docker container labels.
+ * @internal
+ */
+export const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
+/**
+ * Docker container label for the deployID the container was created from.
+ * @internal
+ */
+export const adaptDockerDeployIDKey = adaptDockerKey + ".deployID";
 
 export interface DockerContainerStatus extends ContainerStatus { }
 
@@ -65,7 +74,8 @@ function containerExists(info: ContainerInfo) { return info.data !== undefined; 
 
 function containerExistsAndIsFromDeployment(info: ContainerInfo, context: ActionContext): boolean {
     if (info.data === undefined) return false;
-    if (info.data.Config.Labels && info.data.Config.Labels[adaptDockerKey] === context.buildData.deployID) return true;
+    if (info.data.Config.Labels &&
+        info.data.Config.Labels[adaptDockerDeployIDKey] === context.buildData.deployID) return true;
     return false;
 }
 
@@ -122,7 +132,7 @@ async function runContainer(context: ActionContext, props: DockerContainerProps)
         image,
         labels: {
             ...(props.labels || {}),
-            [adaptDockerKey]: `${context.buildData.deployID}`
+            [adaptDockerDeployIDKey]: `${context.buildData.deployID}`
         }
     };
 

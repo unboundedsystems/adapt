@@ -7,6 +7,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
+import { deleteAllContainers } from "./common";
 
 import {
     computeContainerName,
@@ -18,8 +19,7 @@ import {
 } from "../../src/docker/cli";
 
 describe("DockerContainer", function () {
-    const cleanupImageIds: string[] = [];
-    const cleanupContainers: string[] = [];
+    let cleanupImageIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
 
@@ -32,17 +32,13 @@ describe("DockerContainer", function () {
         pluginDir = path.join(process.cwd(), "plugins");
     });
 
-    after(async function () {
+    afterEach(async function () {
         this.timeout(20 * 1000);
-        await Promise.all(
-            uniq(cleanupContainers).map((id) => {
-                try {
-                    execa("docker", ["rm", "-f", id]);
-                } catch (e) { /* ignore errors */ }
-            }));
+        await deleteAllContainers(mockDeploy.deployID);
         await Promise.all(
             uniq(cleanupImageIds).map((id) => execa("docker", ["rmi", "-f", id]))
         );
+        cleanupImageIds = [];
     });
 
     beforeEach(async () => {
@@ -64,7 +60,6 @@ describe("DockerContainer", function () {
         if (dom == null) throw should(dom).not.be.Null();
 
         const contName = computeContainerName(dom.id, dom.buildData.deployID);
-        cleanupContainers.push(contName);
         should(contName).startWith("adapt-");
 
         const infos = await dockerInspect([contName]);

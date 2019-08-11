@@ -7,6 +7,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
+import { deleteAllContainers } from "./common";
 
 import {
     computeContainerName,
@@ -21,8 +22,7 @@ import {
 } from "../../src/docker/cli";
 
 describe("LocalDockerRegistry", function () {
-    const cleanupImageIds: string[] = [];
-    const cleanupContainers: string[] = [];
+    let cleanupImageIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
 
@@ -36,14 +36,13 @@ describe("LocalDockerRegistry", function () {
         await dockerPull({ imageName: smallDockerImage });
     });
 
-    after(async function () {
+    afterEach(async function () {
         this.timeout(20 * 1000);
-        try {
-            await execa("docker", ["rm", "-f", ...uniq(cleanupContainers)]);
-        } catch (e) { /* ignore errors */ }
+        await deleteAllContainers(mockDeploy.deployID);
         try {
             await execa("docker", ["rmi", "-f", ...uniq(cleanupImageIds)]);
         } catch (e) { /* ignore errors */ }
+        cleanupImageIds = [];
     });
 
     beforeEach(async () => {
@@ -63,7 +62,6 @@ describe("LocalDockerRegistry", function () {
         if (dom == null) throw should(dom).not.be.Null();
 
         const contName = computeContainerName(dom.id, dom.buildData.deployID);
-        cleanupContainers.push(contName);
         should(contName).startWith("adapt-");
 
         const infos = await dockerInspect([contName]);
