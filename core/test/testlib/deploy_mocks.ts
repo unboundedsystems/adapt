@@ -1,5 +1,5 @@
 import { createMockLogger } from "@adpt/testutils";
-import { createTaskObserver } from "@adpt/utils";
+import { createTaskObserver, messagesToString } from "@adpt/utils";
 import fs from "fs-extra";
 import * as path from "path";
 import randomstring from "randomstring";
@@ -142,15 +142,23 @@ export class MockDeploy {
 
             const mgr = createPluginManager(this.plugins);
 
-            await mgr.start(this.prevDom, dom, mgrOpts);
-            await mgr.observe();
-            mgr.analyze();
-            const actResults = await mgr.act(actOpts);
-            await mgr.finish();
+            try {
+                await mgr.start(this.prevDom, dom, mgrOpts);
+                await mgr.observe();
+                mgr.analyze();
+                const actResults = await mgr.act(actOpts);
+                await mgr.finish();
 
-            if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
-                const stepID = await this.deployment.currentStepID(this.deployOpID);
-                return { ...actResults, dom, stepID };
+                if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
+                    const stepID = await this.deployment.currentStepID(this.deployOpID);
+                    return { ...actResults, dom, stepID };
+                }
+            } catch (err) {
+                // tslint:disable-next-line: no-console
+                console.log(`Deploy error:`, err.message,
+                    `\nDumping log messages:\n`,
+                    messagesToString(this.logger.messages));
+                throw err;
             }
         }
     }
