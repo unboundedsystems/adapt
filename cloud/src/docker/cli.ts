@@ -35,6 +35,12 @@ function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
 export const pickGlobals = (opts: DockerGlobalOptions): DockerGlobalOptions =>
     ld.pick(opts, "dockerHost");
 
+/**
+ * Common version of busybox to use internally.
+ * @internal
+ */
+export const busyboxImage = "busybox:1";
+
 /*
  * Staged build utilities
  */

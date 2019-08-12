@@ -192,6 +192,26 @@ export type NameTagString = string;
 export type ImageNameString = NameTagString | RepoDigestString;
 
 /**
+ * A string that references a Docker registry that contains a hostname and
+ * may optionally contain a port and/or path.
+ *
+ * @remarks
+ * This string is in the form of one of:
+ * ```
+ * hostname[:port]
+ * hostname[:port]/path
+ * ```
+ * This form does not include the protocol, such as `http:` or `https:` in
+ * the string.
+ *
+ * Note that this type is just a string and is used solely for
+ * documentation purposes.
+ *
+ * @public
+ */
+export type RegistryString = string;
+
+/**
  * Information about a specific instance of a Docker image, as identified by
  * its image ID.
  * @public
