@@ -2,14 +2,14 @@ import Adapt, { callInstanceMethod, FinalDomElement, Group, handle } from "@adpt
 import { mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
-import { uniq } from "lodash";
 import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
-import { checkRegistryImage, deleteAllContainers } from "./common";
+import { checkRegistryImage, deleteAllContainers, deleteAllImages } from "./common";
 
 import {
+    adaptDockerDeployIDKey,
     computeContainerName,
     DockerBuildOptions,
     DockerContainer,
@@ -24,7 +24,6 @@ import {
 } from "../../src/docker/cli";
 
 describe("RegistryDockerImage", function () {
-    const cleanupImageIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
 
@@ -41,9 +40,7 @@ describe("RegistryDockerImage", function () {
     afterEach(async function () {
         this.timeout(20 * 1000);
         await deleteAllContainers(mockDeploy.deployID);
-        try {
-            await execa("docker", ["rmi", "-f", ...uniq(cleanupImageIds)]);
-        } catch (e) { /* ignore errors */ }
+        await deleteAllImages(mockDeploy.deployID);
     });
 
     beforeEach(async () => {
@@ -66,17 +63,18 @@ describe("RegistryDockerImage", function () {
         imageName: "testimage",
         uniqueTag: true,
     };
-    const defaultBasicDom = {
+    const defaultBasicDom = () => ({
         dockerfile: `
             FROM ${smallDockerImage}
             CMD sleep 10000
+            LABEL ${adaptDockerDeployIDKey}="${mockDeploy.deployID}"
             `,
         registryUrl: "localhost:5000",
-    };
+    });
 
     async function deployBasicTest(options: BasicDom = {}) {
         const [ iSrc, iReg ] = [ handle(), handle() ];
-        const opts = { ...defaultBasicDom, ...options };
+        const opts = { ...defaultBasicDom(), ...options };
         const buildOpts = { ...defaultBuildOpts, ...(opts.buildOpts || {})};
         const imageOpts: Partial<RegistryDockerImageProps> = {};
         if (opts.newTag) imageOpts.newTag = opts.newTag;
@@ -103,7 +101,7 @@ describe("RegistryDockerImage", function () {
     }
 
     async function checkBasicTest(dom: FinalDomElement | null, options: BasicDom = {}) {
-        const opts = { ...defaultBasicDom, ...options };
+        const opts = { ...defaultBasicDom(), ...options };
 
         if (dom == null) throw should(dom).not.be.Null();
         should(dom.props.children).be.an.Array().with.length(4);
