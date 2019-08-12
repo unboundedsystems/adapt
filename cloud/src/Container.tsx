@@ -187,8 +187,87 @@ export interface ContainerStatus {
     SizeRw: number;
     SizeRootFs: number;
     Mounts: FIXME_NeedsProperType[];
-    Config: FIXME_NeedsProperType;
-    NetworkSettings: FIXME_NeedsProperType;
+    Config: Config;
+    NetworkSettings: ContainerNetworkSettings;
+}
+
+/**
+ * Config for {@link ContainerStatus}
+ * @public
+ */
+export interface Config {
+    Hostname: string;
+    Domainname: string;
+    User: string;
+    AttachStdin: boolean;
+    AttachStdout: boolean;
+    AttachStderr: boolean;
+    Tty: boolean;
+    OpenStdin: boolean;
+    StdinOnce: boolean;
+    Env: string[];
+    Cmd: string[];
+    ArgsEscaped: boolean;
+    Image: string;
+    Volumes: FIXME_NeedsProperType;
+    WorkingDir: string;
+    Entrypoint: FIXME_NeedsProperType;
+    OnBuild: FIXME_NeedsProperType;
+    Labels: ContainerLabels;
+    StopSignal: FIXME_NeedsProperType;
+}
+
+/**
+ * Labels for a {@link Container}
+ * @public
+ */
+export interface ContainerLabels {
+    [name: string]: string;
+}
+
+/**
+ * NetworkSettings for {@link ContainerStatus}
+ * @public
+ */
+export interface ContainerNetworkSettings {
+    Bridge: FIXME_NeedsProperType;
+    SandboxID: string;
+    HairpinMode: boolean;
+    LinkLocalIPv6Address: string;
+    LinkLocalIPv6PrefixLen: number;
+    Ports: FIXME_NeedsProperType;
+    SandboxKey: string;
+    SecondaryIPAddresses: FIXME_NeedsProperType;
+    SecondaryIPv6Addresses: FIXME_NeedsProperType;
+    EndpointID: string;
+    Gateway: string;
+    GlobalIPv6Address: string;
+    GlobalIPv6PrefixLen: number;
+    IPAddress: string;
+    IPPrefixLen: number;
+    IPv6Gateway: string;
+    MacAddress: string;
+    Networks: { [name: string]: ContainerNetwork };
+}
+
+/**
+ * Network for {@link ContainerStatus}
+ * @public
+ */
+export interface ContainerNetwork {
+    IPAMConfig: FIXME_NeedsProperType;
+    Links: FIXME_NeedsProperType;
+    Aliases: FIXME_NeedsProperType;
+    NetworkID: string;
+    EndpointID: string;
+    Gateway: string;
+    IPAddress: string;
+    IPPrefixLen: number;
+    IPv6Gateway: string;
+    GlobalIPv6Address: string;
+    GlobalIPv6PrefixLen: number;
+    MacAddress: string;
+    DriverOpts: FIXME_NeedsProperType;
 }
 
 /**

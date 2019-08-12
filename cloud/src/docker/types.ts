@@ -1,5 +1,5 @@
 import { Handle } from "@adpt/core";
-import { ContainerProps } from "../Container";
+import { ContainerLabels, ContainerProps } from "../Container";
 import { DockerImageInstance } from "./DockerImage";
 
 /**
@@ -218,7 +218,7 @@ export interface ImageInfo {
  * @public
  */
 export interface DockerContainerProps extends DockerGlobalOptions,
-    Pick<ContainerProps, "autoRemove" | "portBindings"> {
+    Pick<ContainerProps, "autoRemove" | "portBindings" | "command" | "stopSignal"> {
     /** image name as a string, or a handle to a DockerImage component */
     image: ImageNameString | Handle<DockerImageInstance>;
 
@@ -232,14 +232,5 @@ export interface DockerContainerProps extends DockerGlobalOptions,
     /**
      * Labels to apply to the container.
      */
-    labels?: DockerLabels;
-}
-
-/**
- * Labels for a {@link docker.DockerContainer}
- *
- * @public
- */
-export interface DockerLabels {
-    [name: string]: string;
+    labels?: ContainerLabels;
 }

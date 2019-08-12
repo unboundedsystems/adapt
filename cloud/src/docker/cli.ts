@@ -6,11 +6,11 @@ import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
 import { Readable } from "stream";
+import { ContainerStatus } from "../Container";
 import {
     DockerBuildOptions,
     DockerContainerProps,
     DockerGlobalOptions,
-    DockerLabels,
     File,
     ImageIdString,
     ImageInfo,
@@ -248,14 +248,7 @@ function createTag(baseTag: string | undefined, appendUnique: boolean): string |
     return tag;
 }
 
-export interface InspectReport {
-    Id: string;
-    Image?: string;
-    Name?: string;
-    Config: {
-        Labels: DockerLabels;
-    };
-}
+export interface InspectReport extends ContainerStatus { }
 
 export interface DockerInspectOptions extends DockerGlobalOptions {
     type?: "container" | "image" | "network";
