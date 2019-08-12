@@ -142,7 +142,12 @@ async function runContainer(context: ActionContext, props: DockerContainerProps)
         }
     };
 
-    return dockerRun(opts);
+/**
+ * State for DockerContainer
+ * @internal
+ */
+class DockerContainerState {
+    info?: ContainerInfo;
 }
 
 /**
@@ -153,7 +158,7 @@ async function runContainer(context: ActionContext, props: DockerContainerProps)
  *
  * @public
  */
-export class DockerContainer extends Action<DockerContainerProps, {}> {
+export class DockerContainer extends Action<DockerContainerProps, DockerContainerState> {
     static defaultProps = {
         dockerHost: process.env.DOCKER_HOST
     };
@@ -212,6 +217,18 @@ export class DockerContainer extends Action<DockerContainerProps, {}> {
     async status(observe: ObserveForStatus, buildData: BuildData) {
         return containerStatus(observe, computeContainerNameFromBuildData(buildData), this.props.dockerHost);
     }
+
+    async dockerIP(network?: string) {
+        if (!this.state.info || !this.state.info.data) return undefined;
+        const stat = this.state.info.data;
+        if (!network) return stat.NetworkSettings.IPAddress;
+        const netStat = stat.NetworkSettings.Networks[network];
+        if (!netStat) return undefined;
+        return netStat.IPAddress;
+    }
+
+    /** @internal */
+    initialState() { return {}; }
 
     private displayName(context: ActionContext) {
         const name = computeContainerNameFromContext(context);
