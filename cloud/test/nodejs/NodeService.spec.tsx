@@ -12,12 +12,14 @@ import { doBuild } from "../testlib";
 class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
     implements DockerImageInstance {
 
-    image = {
-        id: "imagesha",
-        nameTag: "imagetag"
-    };
+    image() {
+        return {
+            id: "imagesha",
+            nameTag: "imagetag"
+        };
+    }
     latestImage() {
-        return this.image;
+        return this.image();
     }
 }
 

@@ -1,5 +1,4 @@
 import {
-    //AdaptElement,
     ChangeType,
     DeployOpID,
     DeployStatus,
@@ -12,15 +11,18 @@ import stringify from "json-stable-stringify";
 import * as path from "path";
 import { Action, ActionContext, ShouldAct } from "../action";
 import {
-    defaultDockerBuildOptions,
     dockerBuild,
+    dockerPush,
+    dockerTag,
+    pickGlobals,
     withFilesImage,
 } from "./cli";
-import { DockerImageInstance } from "./DockerImage";
+import { DockerPushableImageInstance } from "./DockerImage";
 import {
     DockerBuildOptions,
     File,
     ImageInfo,
+    NameTagString,
     Stage,
 } from "./types";
 
@@ -105,19 +107,21 @@ export interface LocalDockerImageState {
  */
 export class LocalDockerImage
     extends Action<LocalDockerImageProps, LocalDockerImageState>
-    implements DockerImageInstance {
+    implements DockerPushableImageInstance {
 
     static defaultProps = {
-        options: {},
+        options: {
+            forceRm: true,
+        },
     };
 
-    image_?: ImageInfo;
-    imagePropsJson_?: string;
-    options_: DockerBuildOptions;
+    private image_?: ImageInfo;
+    private imagePropsJson_?: string;
+    private options_: DockerBuildOptions;
 
     constructor(props: LocalDockerImageProps) {
         super(props);
-        this.options_ = { ...defaultDockerBuildOptions, ...(props.options || {}) };
+        this.options_ = { ...LocalDockerImage.defaultProps.options, ...(props.options || {}) };
 
         if (!props.dockerfile && !props.dockerfileName) {
             throw new Error(`LocalDockerImage: one of dockerfile or ` +
@@ -128,10 +132,10 @@ export class LocalDockerImage
     /*
      * Public instance properties/methods
      */
-    buildComplete() { return this.image != null; }
+    buildComplete() { return this.image() != null; }
     ready() { return this.buildComplete(); }
 
-    get image() {
+    image() {
         if (this.image_ == null) {
             if (this.state.image != null &&
                 // Ensure we've rebuilt at least once this OpID
@@ -145,12 +149,31 @@ export class LocalDockerImage
         return this.image_;
     }
 
+    async pushTo(registryUrl: string, newTag?: NameTagString): Promise<undefined | ImageInfo> {
+        const im = this.latestImage();
+        if (!im) return undefined;
+        newTag = newTag || im.nameTag;
+        if (!newTag) {
+            throw new Error(`Unable to push image to registry: no nameTag ` +
+                `set for this image and new tag not provided`);
+        }
+        const fullTag = `${registryUrl}/${newTag}`;
+        const globals = pickGlobals(this.options_);
+        await dockerTag({ existing: im.id, newTag: fullTag, ...globals});
+        await dockerPush({ nameTag: fullTag, ...globals });
+        return {
+            id: im.id,
+            nameTag: fullTag,
+        };
+    }
+
     latestImage() {
         return this.image_ || this.state.image;
     }
 
-    /*
+    /**
      * Implementations for Action base class
+     * @internal
      */
     async shouldAct(op: ChangeType): Promise<ShouldAct> {
         let imgName = this.options_.imageName || "";
@@ -165,6 +188,10 @@ export class LocalDockerImage
         };
     }
 
+    /**
+     * Implementations for Action base class
+     * @internal
+     */
     async action(op: ChangeType, _ctx: ActionContext) {
         const options = this.options_;
         const prevUniqueTag = this.state.prevUniqueTag;
@@ -215,8 +242,10 @@ export class LocalDockerImage
      * Component methods
      */
 
+    /** @internal */
     initialState() { return {}; }
 
+    /** @internal */
     deployedWhen = (goalStatus: GoalStatus) => {
         if (goalStatus === DeployStatus.Destroyed) return true;
         if (this.buildComplete()) return true;
@@ -228,6 +257,7 @@ export class LocalDockerImage
         return waiting("Waiting for Docker image to be built");
     }
 
+    /** @internal */
     protected get imagePropsJson() {
         if (!this.imagePropsJson_) {
             const { handle: _h, key, ...imageProps } = this.props;

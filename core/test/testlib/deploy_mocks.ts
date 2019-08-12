@@ -1,7 +1,8 @@
 import { createMockLogger } from "@adpt/testutils";
-import { createTaskObserver } from "@adpt/utils";
+import { createTaskObserver, messagesToString } from "@adpt/utils";
 import fs from "fs-extra";
 import * as path from "path";
+import randomstring from "randomstring";
 import { ActComplete, PluginModule } from "../../src/deploy";
 import { createPluginManager } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
@@ -17,6 +18,7 @@ export interface MockDeployOptions {
     pluginCreates: PluginModule["create"][];
     prevDom?: FinalDomElement;
     tmpDir: string;
+    uniqueDeployID?: boolean;
 }
 
 export interface DeployOptions {
@@ -32,6 +34,16 @@ const defaultDeployOptions = {
 export interface DeployOutput extends ActComplete {
     dom: FinalDomElement | null;
     stepID: DeployStepID;
+}
+
+export function makeDeployId(prefix: string) {
+    const rand = randomstring.generate({
+        length: 4,
+        charset: "alphabetic",
+        readable: true,
+        capitalization: "lowercase",
+    });
+    return `${prefix}-${rand}`;
 }
 
 export class MockDeploy {
@@ -65,6 +77,7 @@ export class MockDeploy {
         });
         if (options.prevDom) this.prevDom = options.prevDom;
         if (options.deployOpID != null) this.deployOpID_ = options.deployOpID;
+        if (options.uniqueDeployID) this.deployID = makeDeployId("MockDeploy");
         this.dataDir = path.join(options.tmpDir, "pluginData");
     }
 
@@ -129,15 +142,23 @@ export class MockDeploy {
 
             const mgr = createPluginManager(this.plugins);
 
-            await mgr.start(this.prevDom, dom, mgrOpts);
-            await mgr.observe();
-            mgr.analyze();
-            const actResults = await mgr.act(actOpts);
-            await mgr.finish();
+            try {
+                await mgr.start(this.prevDom, dom, mgrOpts);
+                await mgr.observe();
+                mgr.analyze();
+                const actResults = await mgr.act(actOpts);
+                await mgr.finish();
 
-            if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
-                const stepID = await this.deployment.currentStepID(this.deployOpID);
-                return { ...actResults, dom, stepID };
+                if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
+                    const stepID = await this.deployment.currentStepID(this.deployOpID);
+                    return { ...actResults, dom, stepID };
+                }
+            } catch (err) {
+                // tslint:disable-next-line: no-console
+                console.log(`Deploy error:`, err.message,
+                    `\nDumping log messages:\n`,
+                    messagesToString(this.logger.messages));
+                throw err;
             }
         }
     }

@@ -128,7 +128,7 @@ const defaultProps = {
  *
  * Instance properties:
  *
- * - image: {@link ImageInfo} | undefined
+ * - image: {@link docker.ImageInfo} | undefined
  *
  *   Information about the successfully built image, once it has been built.
  * @public

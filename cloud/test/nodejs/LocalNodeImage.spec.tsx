@@ -1,4 +1,4 @@
-import Adapt, { FinalDomElement, handle, PrimitiveComponent, Sequence, useInstanceValue } from "@adpt/core";
+import Adapt, { FinalDomElement, handle, PrimitiveComponent, Sequence, useMethod } from "@adpt/core";
 import { mochaTmpdir, writePackage } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
@@ -68,7 +68,7 @@ describe("LocalNodeImage tests", function () {
 
     function TypescriptProject(props: TypescriptBuildProps) {
         const img = handle();
-        const image = useInstanceValue<ImageInfo | undefined>(img, undefined, "image");
+        const image = useMethod<ImageInfo | undefined>(img, undefined, "image");
         if (image) {
             imageIds.push(image.id);
             cleanupIds.push(image.id);

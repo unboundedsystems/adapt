@@ -8,7 +8,7 @@ import {
     PortBinding,
     useLatestImageFrom,
 } from "../Container";
-import { containerStatus } from "../docker/Container";
+import { containerStatus } from "../docker/DockerContainer";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
 /**
