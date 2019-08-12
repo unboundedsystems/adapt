@@ -7,7 +7,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
-import { deleteAllContainers } from "./common";
+import { checkRegistryImage, deleteAllContainers } from "./common";
 
 import {
     computeContainerName,
@@ -133,6 +133,11 @@ describe("RegistryDockerImage", function () {
         const tag = opts.newTag || srcImageInfo.nameTag;
         should(regImageInfo.nameTag).equal(`localhost:5000/${tag}`);
         should(regImageInfo.id).equal(ctrInfo.Image);
+
+        // Stop the container so we can delete its image
+        await execa("docker", ["rm", "-f", contName]);
+        if (!regImageInfo.nameTag) throw should(regImageInfo.nameTag).be.ok();
+        await checkRegistryImage(regImageInfo.nameTag);
 
         //Delete
         await mockDeploy.deploy(null);

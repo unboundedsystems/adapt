@@ -7,7 +7,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
-import { deleteAllContainers } from "./common";
+import { checkRegistryImage, deleteAllContainers } from "./common";
 
 import {
     computeContainerName,
@@ -17,7 +17,6 @@ import {
     dockerInspect,
     dockerPull,
     dockerPush,
-    dockerRemoveImage,
     dockerTag,
 } from "../../src/docker/cli";
 
@@ -78,15 +77,7 @@ describe("LocalDockerRegistry", function () {
         });
         await dockerPush({ nameTag: registryTag });
 
-        // Remove the tag and ensure it's gone
-        await dockerRemoveImage({ nameOrId: registryTag });
-        let regTagInfo = await dockerInspect([registryTag]);
-        should(regTagInfo).be.Array().of.length(0);
-
-        // Now pull the tag and verify it's back
-        await dockerPull({ imageName: registryTag });
-        regTagInfo = await dockerInspect([registryTag]);
-        should(regTagInfo).be.Array().of.length(1);
+        await checkRegistryImage(registryTag);
 
         //Delete
         await mockDeploy.deploy(null);
