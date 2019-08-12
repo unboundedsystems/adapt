@@ -8,7 +8,7 @@ import {
     NoStatus,
     ObserveForStatus
 } from "@adpt/core";
-import { MultiError, sha256hex } from "@adpt/utils";
+import { InternalError, MultiError, sha256hex } from "@adpt/utils";
 import { isError } from "lodash";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { ContainerStatus } from "../Container";
@@ -152,54 +152,64 @@ export class DockerContainer extends Action<DockerContainerProps, {}> {
         dockerHost: process.env.DOCKER_HOST
     };
 
+    /** @internal */
     async shouldAct(op: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
         const containerInfo = await fetchContainerInfo(context, this.props);
-        const containerName = containerInfo.name;
+        const displayName = this.displayName(context);
         switch (op) {
             case "none": return false;
+            case "modify":
+            case "replace":
             case "create":
                 switch (await containerIsUpToDate(containerInfo, context, this.props)) {
                     case "noExist":
-                        return { act: true, detail: `Creating container named ${containerName}` };
+                        return { act: true, detail: `Creating container ${displayName}` };
                     case "stale":
-                        return {
-                            act: true,
-                            detail: `Replacing container named ${containerName} (but asked to create)`
-                        };
+                        return { act: true, detail: `Replacing container ${displayName}` };
                     case "existsUnmanaged":
                         throw new Error(`Container ${containerInfo.name} already exstis,`
                             + ` but is not part of this deployment: ${containerInfo}`);
                     case "upToDate":
                         return false;
+                    default:
+                        throw new InternalError(`Unhandled ChangeType in DockerContainer`);
                 }
 
-            case "modify":
-            case "replace": return { act: true, detail: `Replacing container named ${containerName}` };
             case "delete":
                 return containerExistsAndIsFromDeployment(containerInfo, context)
-                    ? { act: true, detail: `Deleting container named ${containerName}` }
+                    ? { act: true, detail: `Deleting container ${displayName}` }
                     : false;
         }
         return false;
     }
 
+    /** @internal */
     async action(op: ChangeType, context: ActionContext): Promise<void> {
-        const info = await fetchContainerInfo(context, this.props);
+        const oldInfo = await fetchContainerInfo(context, this.props);
         switch (op) {
             case "none": return;
-            case "create":
-                return runContainer(context, this.props);
             case "modify":
             case "replace":
-                await stopAndRmContainer(context, info, this.props);
-                return runContainer(context, this.props);
+                await stopAndRmContainer(context, oldInfo, this.props);
+                // Fallthrough
+            case "create":
+                await runContainer(context, this.props);
+                const info = await fetchContainerInfo(context, this.props);
+                this.setState({ info });
+                return;
             case "delete":
-                return stopAndRmContainer(context, info, this.props);
+                await stopAndRmContainer(context, oldInfo, this.props);
+                this.setState({ info: undefined });
         }
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData) {
         return containerStatus(observe, computeContainerNameFromBuildData(buildData), this.props.dockerHost);
+    }
+
+    private displayName(context: ActionContext) {
+        const name = computeContainerNameFromContext(context);
+        return `'${this.props.key}' (${name})`;
     }
 }
 export default DockerContainer;
