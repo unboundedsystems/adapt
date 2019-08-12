@@ -1,14 +1,9 @@
-# Step 0: Setup for this tutorial
+---
+id: setup
+title: Setup for this tutorial
+---
+<!-- DOCTOC SKIP -->
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Requirements](#requirements)
-- [Set up local Kubernetes](#set-up-local-kubernetes)
-- [Next step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Requirements
 
@@ -56,7 +51,8 @@ In order to keep everything self-contained and easy to clean up, we'll use a Doc
 To deploy the local cluster and get the credentials:
 
 <!-- doctest command -->
-```
+
+```console
 docker run --rm --privileged -d -p10001:2375 -p8443:8443 -p8080:8080 --name k3s unboundedsystems/k3s-dind
 
 docker exec k3s get-kubeconfig.sh -json > kubeconfig.json
@@ -70,7 +66,8 @@ You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes t
 To make sure all the rest of the steps in this tutorial use the new Docker-in-Docker instance we just created, we need to change your `DOCKER_HOST` environment variable.
 We'll also save the old value, so we can set it back after we're done.
 <!-- doctest command -->
-```
+
+```bash
 ORIG_DOCKER_HOST="${DOCKER_HOST}"
 export DOCKER_HOST=localhost:10001
 ```
@@ -79,5 +76,3 @@ export DOCKER_HOST=localhost:10001
 
 Next, we'll create an Adapt project.
 
-| [<< Tutorial Overview ](./index.md) | [Step 1: >> Creating your new project](./01_project.md) |
-| --- | --- |

@@ -2,6 +2,7 @@
 # FIXME: Get a real build system instead of Make
 #
 
+include build_support/common.mk
 include build_support/dockerize.mk
 ifeq ($(IN_DOCKER),true)
 
@@ -11,10 +12,9 @@ ifeq ($(IN_DOCKER),true)
 all: test
 .PHONY: all
 
-include build_support/common.mk
-
-# Place for any module to add stuff to the setup target
+# Variables that modules can add onto
 SETUP_TARGETS :=
+CLEANS :=
 
 include build_support/git.mk
 include build_support/submake.mk
@@ -44,12 +44,6 @@ $(build_submakes): setup $(NODE_INSTALL_DONE)
 test: $(test_submakes)
 $(test_submakes): build
 
-clean: $(clean_submakes)
-	rm -f .docs-updated
-
-cleaner: $(cleaner_submakes)
-	rm -rf node_modules .nyc_output
-
 pack: $(pack_submakes)
 $(pack_submakes): build
 
@@ -73,19 +67,19 @@ cli-build: core-build cloud-build utils-build testutils-build
 cloud-build: core-build utils-build testutils-build
 testutils-build: utils-build
 
+include build_support/docs.mk
+
+clean: $(clean_submakes)
+	rm -rf $(CLEANS)
+
+cleaner: clean $(cleaner_submakes)
+	rm -rf node_modules .nyc_output
+
 #
 # Initial setup, mostly stuff for a newly cloned repo
 #
 setup: $(SETUP_TARGETS)
 .PHONY: setup
-
-docs: $(docs_submakes) .docs-updated
-$(docs_submakes): $(build_submakes)
-
-DOCTOC_FILES := $(shell grep -rL 'DOCTOC SKIP' --exclude-dir=api docs | grep '\.md$$')
-.docs-updated: $(NODE_INSTALL_DONE) $(DOCTOC_FILES)
-	doctoc --gitlab --title '## Table of Contents' $(DOCTOC_FILES)
-	touch .docs-updated
 
 endif # IN_DOCKER
 

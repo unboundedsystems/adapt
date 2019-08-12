@@ -1,24 +1,17 @@
+---
+id: index
+title: Getting Started with Adapt
+---
 <!-- DOCTOC SKIP -->
-# Getting Started with Adapt
 
 ## Welcome to Adapt!
 
 If you're new to Adapt, you're in the right place.
 This guide will explain what Adapt is and help you create and deploy a simple app using Adapt.
 
-If you're already familiar with the basics of using Adapt, you may also want to check out the [Intro to Adapt Concepts](../tutorial_concepts/index.md) tutorial or the [API Reference](../api/index.md) for more information on Adapt.
+If you're already familiar with the basics of using Adapt, you may also want to check out the [Intro to Adapt Concepts](../tutorial_concepts/index.md) tutorial or the API Reference for the [Adapt Core](../api/core/overview) or [Adapt Cloud](../api/cloud/overview) libraries for more information on Adapt.
 
 We're also working on a User Guide that will explain how Adapt works in more detail.
-
-## Guide Contents
-
-- [What is Adapt?](#what-is-adapt)
-- [Step 0: MovieDB App Overview](./00_overview.md)
-- [Step 1: Install Adapt](./01_install.md)
-- [Step 2: Create and Run - Hello World App](./02_run.md)
-- [Step 3: Add Code and Update - MovieDB App](./03_update.md)
-- [Step 4: Clean Up](./04_cleanup.md)
-- [More Information](./05_more_info.md)
 
 ## What is Adapt?
 
@@ -81,5 +74,3 @@ By simply choosing different components from the Adapt library, you can just as 
 
 First, we'll start with a quick overview of what you'll be deploying.
 
-| [Step 0: MovieDB App Overview >>](./00_overview.md) |
-| --- |

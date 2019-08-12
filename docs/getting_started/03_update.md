@@ -1,16 +1,10 @@
-# Step 3: Add Code and Update - MovieDB App
+---
+id: update
+title: "Add Code and Update - MovieDB App"
+---
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
+<!-- DOCTOC SKIP -->
 
-- [Writing the Real Application Code](#writing-the-real-application-code)
-- [Update!](#update)
-- [Test Your New MovieDB App](#test-your-new-moviedb-app)
-- [Change and Repeat](#change-and-repeat)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Writing the Real Application Code
 
@@ -18,7 +12,8 @@ As we've seen, the starter template we used with `adapt new` has created a defau
 If we were writing our app from scratch, we'd start writing some React code in the `src` directory and some Node.js code for our API in the `backend` directory.
 But for this guide, we'll simply copy in some already-written code for our movie database app:
 <!-- doctest command -->
-```
+
+```console
 curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v1/gsg-moviedb-v1.tar.gz | tar -zxv --strip=1 -C ..
 ```
 
@@ -30,7 +25,8 @@ This command should have added:
 ## Update!
 Now, update the deployment, which will push our newly written code and populate the database with the test data:
 <!-- doctest command -->
-```
+
+```console
 adapt update movieapp
 ```
 
@@ -50,16 +46,10 @@ You should now see a page that says **Unbounded Movie Database**, like the one b
 Type into the search box to get a list of matching movies.
 Try typing `batman` if your searches turn up empty.
 
-![MovieDB Screen Shot](./images/moviedb.png)
+![MovieDB Screen Shot](assets/getting_started/moviedb.png)
 
 ## Change and Repeat
 
 You can now make any changes to the app you'd like and each time you run the `adapt update` command from above, Adapt will re-build any necessary images and automatically re-deploy the changed images to your local Kubernetes cluster.
 (Note: Don't forget to make your browser do a hard refresh.)
 
-## Next Step
-
-Next, we'll tear everything down and clean up.
-
-| [<< Step 2: Create and Run - Hello World App](./02_run.md) | [Step 4: Clean Up >>](./04_cleanup.md) |
-| --- | --- |

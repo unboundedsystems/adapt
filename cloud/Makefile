@@ -9,5 +9,3 @@ $(COPY_FILES_DIST): $(COPY_FILES_SRC)
 
 build: $(COPY_FILES_DIST)
 
-dist/.docs_success: ../docs/api/cloud.index.md
-

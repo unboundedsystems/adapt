@@ -1,23 +1,17 @@
-# Step 6: Updating your deployment
+---
+id: updating
+title: Updating your deployment
+---
+<!-- DOCTOC SKIP -->
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Writing the REST API code](#writing-the-rest-api-code)
-- [Update!](#update)
-- [Test the API](#test-the-api)
-- [Change and Repeat](#change-and-repeat)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Writing the REST API code
 
 If we were actually building our own REST API server that fetches movie titles from a database, we'd start writing that code now and could do end-to-end testing against an actual Postgres database, populated with some test data.
 But for this tutorial, we'll just copy in some already-written code:
 <!-- doctest command -->
-```
+
+```console
 curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v1/tutorial-concepts.tar.gz | tar -zxv --strip=1 -C ..
 ```
 
@@ -29,7 +23,8 @@ This command should have:
 ## Update!
 Now, update the deployment, which will push our newly written code and populate the database with the test data:
 <!-- doctest command -->
-```
+
+```console
 adapt update myapp
 ```
 
@@ -43,7 +38,8 @@ Test your newly deployed API by using `curl` or your browser with these links:
 -  [http://localhost:8080/search/lego](http://localhost:8080/search/lego)
 
 <!-- doctest command -->
-```
+
+```console
 curl http://localhost:8080/search/lego
 ```
 
@@ -67,5 +63,3 @@ Each time you run the `adapt update` command from above, Adapt will re-build any
 
 Next, we'll tear everything down and clean up.
 
-| [<< Step 5: Connecting components to each other](./00_setup.md) | [Step 7: Destroying your deployment >> ](./07_destroying.md) |
-| --- | --- |

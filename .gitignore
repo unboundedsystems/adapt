@@ -6,6 +6,7 @@
 \#*
 \.\#*
 .docs-updated
+.doctoc-updated
 dist
 generated
 node_modules
@@ -15,3 +16,4 @@ DebugOut
 verdaccio/storage/
 */build/
 */temp/
+web/

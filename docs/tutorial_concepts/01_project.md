@@ -1,15 +1,9 @@
-# Step 1: Creating your new project
+---
+id: project
+title: Creating your new project
+---
+<!-- DOCTOC SKIP -->
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Adapt projects](#adapt-projects)
-- [Start with a starter](#start-with-a-starter)
-- [Other starters](#other-starters)
-- [Next step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Adapt projects
 
@@ -29,7 +23,8 @@ So we'll use the `hello-node` starter, which will give us the complete framework
 
 Let's go ahead and create our new app:
 <!-- doctest command -->
-```
+
+```console
 adapt new hello-node ./tutorial
 ```
 
@@ -57,12 +52,12 @@ You should now see a new directory called `tutorial`, which contains:
 More starters for different types of apps are available in the [Adapt starter library on GitLab](https://gitlab.com/adpt/starters).
 
 To use a starter from the library, just use the name, like this:
-```
+```console
 adapt new hello-react-node-postgres
 ```
 
 Or for any other starter, you can specify it using a URL, a published NPM package reference, or [any of the other ways to specify an NPM dependency](https://docs.npmjs.com/files/package.json#dependencies):
-```
+```console
 adapt new git+https://github.com/myusername/mystarterrepo
 ```
 
@@ -83,5 +78,3 @@ Available starters include:
 
 Next we'll cover how to describe your app in an Adapt spec.
 
-| [<< Step 0: Setup for this tutorial](./00_setup.md) | [Step 2: >> Describing your app](./02_spec.md) |
-| --- | --- |

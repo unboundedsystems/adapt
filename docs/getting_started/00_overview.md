@@ -1,13 +1,9 @@
-# Step 0: MovieDB App Overview
+---
+id: overview
+title: "MovieDB App Overview"
+---
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [A Complete MovieDB App Deployment](#a-complete-moviedb-app-deployment)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DOCTOC SKIP -->
 
 ## A Complete MovieDB App Deployment
 
@@ -21,11 +17,9 @@ The app consists of:
 * A Postgres database to store the movie data, automatically populated with test data
 * A URL router that routes requests for `/api` to the Node.js API and all other requests to the static web server
 
-![MovieDB Diagram](./images/overview.png)
+![MovieDB Diagram](assets/getting_started/overview.png)
 
 ## Next Step
 
 Next, we'll install Adapt.
 
-| [<< What is Adapt?](./index.md#what-is-adapt) | [Step 1: Install Adapt >>](./01_install.md) |
-| --- | --- |

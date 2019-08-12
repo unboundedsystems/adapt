@@ -1,14 +1,9 @@
-# Step 4: Running your project
+---
+id: run
+title: Running your project
+---
+<!-- DOCTOC SKIP -->
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-## Table of Contents
-
-- [Deployments](#deployments)
-- [Hello World?](#hello-world)
-- [Next Step](#next-step)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Deployments
 
@@ -16,18 +11,21 @@ Now, let's deploy our Hello World app that's described in the `index.tsx` spec w
 
 First, make sure you're in the Adapt project directory:
 <!-- doctest command -->
-```
+
+```console
 cd tutorial/deploy
 ```
 The starter we're using expects to find Kubernetes cluster information in the project directory, so move the `kubeconfig.json` file we created during setup:
 <!-- doctest command -->
-```
+
+```console
 mv ../../kubeconfig.json .
 ```
 
 Then run the app:
 <!-- doctest command -->
-```
+
+```console
 adapt run --deployID myapp k8s
 ```
 This will create a new deployment of the `k8s` stack we saw defined in the last step.
@@ -44,7 +42,7 @@ If we hadn't specified one, Adapt would create a unique one for us.
 ## Hello World?
 
 When your `adapt run` command completes, you should see:
-```
+```console
 Deployment created successfully. DeployID is: myapp
 ```
 
@@ -53,13 +51,14 @@ You now have a functioning Hello World app running inside the Kubernetes cluster
 To verify that it's working, use `curl` or a web browser to access [http://localhost:8080](http://localhost:8080)
 
 You should see:
-```
+```console
 Hello World!
 ```
 
 You can also get a list of all your active Adapt deployments:
 <!-- doctest command -->
-```
+
+```console
 adapt list
 ```
 You should see just one deployment listed: `myapp`
@@ -68,5 +67,3 @@ You should see just one deployment listed: `myapp`
 
 Next, you'll add a database to your app.
 
-| [<< Step 3: Styling your app](./03_style.md) | [Step 5: Connecting components to each other >> ](./05_connect.md) |
-| --- | --- |

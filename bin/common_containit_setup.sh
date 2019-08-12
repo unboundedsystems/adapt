@@ -47,6 +47,10 @@ if [ -f "${CRED_FILE}" ]; then
     DOCKER_ARGS+=" -v${CRED_FILE}:/root/.adaptAwsCreds"
 fi
 
+if [ -n "${SSH_AUTH_SOCK}" ]; then
+    DOCKER_ARGS+=" -v${SSH_AUTH_SOCK}:/ssh-agent -eSSH_AUTH_SOCK=/ssh-agent"
+fi
+
 # Export test SSH key into child containers. If not present in environment,
 # read it off disk.
 if [ -z "${ADAPT_UNIT_TEST_KEY}" ]; then
@@ -57,10 +61,21 @@ if [ -z "${ADAPT_UNIT_TEST_KEY}" ]; then
 fi
 DOCKER_ARGS+=" -eADAPT_UNIT_TEST_KEY"
 
+GIT_USER_NAME=${GIT_USER_NAME:-${GITLAB_USER_NAME:-$(git config --get user.name)}}
+if [ -n "${GIT_USER_NAME}" ]; then
+    export GIT_USER_NAME
+    DOCKER_ARGS+=" -eGIT_USER_NAME"
+fi
+GIT_USER_EMAIL=${GIT_USER_EMAIL:-${GITLAB_USER_EMAIL:-$(git config --get user.email)}}
+if [ -n "${GIT_USER_EMAIL}" ]; then
+    export GIT_USER_EMAIL
+    DOCKER_ARGS+=" -eGIT_USER_EMAIL"
+fi
+
 DOCKER_ARGS+=" -eNODE_NO_WARNINGS=1"
 
 # Propagate these from current environment into the docker container env
 DOCKER_ARGS+=" -eADAPT_PARALLEL_MAKE -eADAPT_TEST_HEAPDUMP"
 DOCKER_ARGS+=" -eADAPT_TEST_K8S -eADAPT_RUN_LONG_TESTS"
-DOCKER_ARGS+=" -eADAPT_NO_FORK"
+DOCKER_ARGS+=" -eADAPT_NO_FORK -eADAPT_WEB_TOKEN -eCI_JOB_TOKEN"
 DOCKER_ARGS+=" -eAWS_ACCESS_KEY_ID -eAWS_SECRET_ACCESS_KEY -eAWS_DEFAULT_REGION"
