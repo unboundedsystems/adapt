@@ -220,6 +220,22 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         return containerStatus(observe, computeContainerNameFromBuildData(buildData), this.props.dockerHost);
     }
 
+    /**
+     * Get the IP address of the container, optionally for a specific Docker
+     * network.
+     * @remarks
+     * The IP addresses that are returned by this function are valid only
+     * on the associated Docker network, which is often only associated
+     * with a single host node for most Docker network types.
+     *
+     * @param network - Name of a Docker network. If `network` is provided
+     * and the container is connected to the network with an IP address, that
+     * address will be returned. If the container is not connected to the
+     * network, `undefined` will be returned. If `network` is not provided,
+     * the default container IP address will be returned.
+     *
+     * @beta
+     */
     async dockerIP(network?: string) {
         if (!this.state.info || !this.state.info.data) return undefined;
         const stat = this.state.info.data;

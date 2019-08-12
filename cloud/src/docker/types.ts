@@ -95,9 +95,6 @@ export interface Stage {
  * pushed to a different registry, it will have a different digest value.
  * The digest is also known as a "distribution hash".
  *
- * Note that this type is just a string and is used solely for
- * documentation purposes.
- *
  * Examples:
  * ```
  * alpine@sha256:04696b491e0cc3c58a75bace8941c14c924b9f313b03ce5029ebbc040ed9dcd9
@@ -117,9 +114,6 @@ export type RepoDigestString = string;
  * An image ID does not require a registry or repo qualifier to be significant.
  * It is distinct from a Docker image
  * {@link docker.RepoDigestString | repo digest}.
- *
- * Note that this type is just a string and is used solely for
- * documentation purposes.
  *
  * Example:
  * ```
@@ -150,9 +144,6 @@ export type ImageIdString = string;
  *
  * `tag` - A tag string identifying a version of image within the repo.
  *
- * Note that this type is just a string and is used solely for
- * documentation purposes.
- *
  * Examples:
  * ```
  * alpine
@@ -177,9 +168,6 @@ export type NameTagString = string;
  * For more detail, see {@link docker.NameTagString} and
  * {@link docker.RepoDigestString}.
  *
- * Note that this type is just a string and is used solely for
- * documentation purposes.
- *
  * Examples:
  * ```
  * alpine
@@ -203,9 +191,6 @@ export type ImageNameString = NameTagString | RepoDigestString;
  * ```
  * This form does not include the protocol, such as `http:` or `https:` in
  * the string.
- *
- * Note that this type is just a string and is used solely for
- * documentation purposes.
  *
  * @public
  */
