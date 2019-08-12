@@ -5,6 +5,7 @@ import fs from "fs-extra";
 import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
+import shellwords from "shellwords-ts";
 import { Readable } from "stream";
 import { ContainerStatus } from "../Container";
 import {
@@ -311,18 +312,26 @@ export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions):
  * @internal
  */
 export interface DockerRunOptions extends DockerContainerProps {
+    background?: boolean;
     name?: string;
     image: ImageNameString;
 }
+
+const defaultDockerRunOptions = {
+    background: true,
+};
 
 /**
  * Run a container via docker run
  *
  * @internal
  */
-export async function dockerRun(opts: DockerRunOptions): Promise<void> {
-    const args: string[] = ["run", "-d"];
-    const { labels, name, portBindings, } = opts;
+export async function dockerRun(options: DockerRunOptions) {
+    const opts = { ...defaultDockerRunOptions, ...options };
+    const { background, labels, name, portBindings, } = opts;
+    const args: string[] = ["run"];
+
+    if (background) args.push("-d");
     if (name) args.push("--name", name);
     if (labels) {
         for (const l of Object.keys(labels)) {
@@ -334,9 +343,13 @@ export async function dockerRun(opts: DockerRunOptions): Promise<void> {
         const portArgs = Object.keys(portBindings).map((k) => `-p${k}:${portBindings[k]}`);
         args.push(...portArgs);
     }
+    if (opts.stopSignal) args.push("--stop-signal", opts.stopSignal);
 
     args.push(opts.image);
-    await execDocker(args, opts);
+    if (typeof opts.command === "string") args.push(...shellwords.split(opts.command));
+    if (Array.isArray(opts.command)) args.push(...opts.command);
+
+    return execDocker(args, opts);
 }
 
 /**

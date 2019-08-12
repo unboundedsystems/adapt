@@ -141,7 +141,7 @@ async function runContainer(context: ActionContext, props: DockerContainerProps)
             [adaptDockerDeployIDKey]: `${context.buildData.deployID}`
         }
     };
-    return dockerRun(opts);
+    await dockerRun(opts);
 }
 
 /**
