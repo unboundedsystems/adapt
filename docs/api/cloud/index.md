@@ -34,21 +34,6 @@ However, there are technology-specific Components that can be used in Style Shee
 - [HttpServer](./cloud.http.httpserver.md)
 - [UrlRouter](./cloud.http.urlrouter.md)
 
-### Hooks
-
-- [useAsync(f, initial)](./cloud.useasync.md)
-- [useMethod(hand, initial, method, args)](./cloud.usemethod.md)
-- [useMethodFrom(hand, methodName, defaultVal, args)](./cloud.usemethodfrom.md)
-
-### Other Utility Functions
-- [callInstanceMethod(hand, def, methodName, args)](./cloud.callinstancemethod.md)
-- [callNextInstanceMethod(hand, def, methodName, args)](./cloud.callnextinstancemethod.md)
-- [dockerBuild(dockerfile, contextPath, options)](./cloud.dockerbuild.md)
-- [getInstanceValue(hand, def, field, pred)](./cloud.getinstancevalue.md)
-- [handles()](./cloud.handles.md)
-- [hasInstanceMethod(name, skip)](./cloud.hasinstancemethod.md)
-
-
 ## AWS
 
 ### Components
@@ -63,11 +48,15 @@ However, there are technology-specific Components that can be used in Style Shee
 ## Docker
 
 ### Components
+- [DockerContainer](./cloud.docker.dockercontainer.md)
 - [LocalDockerImage](./cloud.docker.localdockerimage.md)
+- [LocalDockerRegistry](./cloud.docker.localdockerregistry.md)
+- [RegistryDockerImage](./cloud.docker.registrydockerimage.md)
 
 ## Kubernetes
 
 ### Components
+- [Container](./cloud.k8s.container.md)
 - [K8sContainer](./cloud.k8s.k8scontainer.md)
 - [Pod](./cloud.k8s.pod.md)
 - [Resource](./cloud.k8s.resource.md)
@@ -84,18 +73,18 @@ However, there are technology-specific Components that can be used in Style Shee
 ## Nginx
 
 ### Components
-- [HttpServer(propsIn)](./cloud.nginx.httpserver.md)
-- [UrlRouter(propsIn)](./cloud.nginx.urlrouter.md)
+- [HttpServer](./cloud.nginx.httpserver.md)
+- [UrlRouter](./cloud.nginx.urlrouter.md)
 
 ## Node.js
 
 ### Components
-- [LocalNodeImage(props)](./cloud.nodejs.localnodeimage.md)
-- [NodeService(props)](./cloud.nodejs.nodeservice.md)
+- [LocalNodeImage](./cloud.nodejs.localnodeimage.md)
+- [NodeService](./cloud.nodejs.nodeservice.md)
 
 ## Postgres
 ### Components
-- [Postgres()](./cloud.postgres.postgres.md)
-- [TestPostgres(props)](./cloud.postgres.testpostgres.md)
-- [PreloadedPostgresImage(props)](./cloud.postgres.preloadedpostgresimage.md)
+- [Postgres](./cloud.postgres.postgres.md)
+- [TestPostgres](./cloud.postgres.testpostgres.md)
+- [PreloadedPostgresImage](./cloud.postgres.preloadedpostgresimage.md)
 

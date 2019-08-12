@@ -88,7 +88,7 @@ In the `<SearchService>` component above, it's passing a prop named `image` with
 ## The Hello World spec
 
 Now let's take a look at the spec for the app we're building.
-In [an earlier step](project.md), we created a new Hello World template app in a directory called `tutorial`.
+In [an earlier step](project), we created a new Hello World template app in a directory called `tutorial`.
 The Adapt project directory is in `tutorial/deploy` and by convention, the name of the primary spec in an Adapt project is `index.tsx`.
 
 You can use your favorite editor to open `index.tsx` and take a look.

@@ -14,7 +14,7 @@ By the end of this tutorial, you should have a strong understanding of how to us
 
 > **Tip**
 >
-> If you're new to Adapt, we recommend you begin with the [Getting Started Guide](../getting_started/index.md) before this tutorial.
+> If you're new to Adapt, we recommend you begin with the [Getting Started Guide](/docs/getting_started) before this tutorial.
 > The Getting Started Guide covers what Adapt is and shows you the basics of using Adapt to manage infrastructure for an app.
 
 ## What are we going to build?
@@ -28,7 +28,7 @@ You can simply think of them as placeholders for two of the components that make
 We also need someplace to deploy our little example REST API service.
 Again, Adapt can manage almost any type of infrastructure.
 But for this tutorial, we've chosen to use a local instance of Docker.
-If you don't already have Docker on your system, you can find info about installing Docker in [the first step of the tutorial](setup.md).
+If you don't already have Docker on your system, you can find info about installing Docker in [the first step of the tutorial](/docs/tutorial_concepts/setup).
 
 ## Where to get help
 

@@ -127,7 +127,7 @@ The `MovieApp` Component returns the set of Elements that describe our movie app
 
 React and Adapt both have two types of Component: Function Components and Class Components.
 And as with React, most Components can be written as either a Function Component or a Class Component, with Function Components tending to be slightly more concise.
-However, there are some features that are unique to each of the two types of Component, which are described in more detail in the [Adapt User Guide](../user/index.md).
+However, there are some features that are unique to each of the two types of Component, which are described in more detail in the Adapt User Guide.
 `MovieApp` is a Function Component.
 
 ## Handles

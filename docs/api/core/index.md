@@ -37,18 +37,23 @@ For the complete list of all APIs, start at the [top level exports](./core) for 
 
 ### Built-in Hooks
 
+- [useAsync(f, initial)](./core.adapt.useasync.md)
 - [useBuildHelpers()](./core.adapt.usebuildhelpers.md)
 - [useContext(context)](./core.usecontext.md)
 - [useDependsOn(f)](./core.adapt.usedependson.md)
 - [useDeployedWhen(f)](./core.adapt.usedeployedwhen.md)
 - [useImperativeMethods(create)](./core.adapt.useimperativemethods.md)
+- [useMethod(hand, initial, method, args)](./core.adapt.usemethod.md)
+- [useMethodFrom(hand, methodName, defaultVal, args)](./core.adapt.usemethodfrom.md)
 - [useReadyFrom(targetHand)](./core.adapt.usereadyfrom.md)
 - [useState(init)](./core.adapt.usestate.md)
 
 ### Utilities
 
-- [handle(name)](./core.handle.md)
+- [callInstanceMethod(hand, def, methodName, args)](./core.adapt.callinstancemethod.md)
+- [callNextInstanceMethod(hand, def, methodName, args)](./core.adapt.callnextinstancemethod.md)
 - [childrenToArray(propsChildren)](./core.childrentoarray.md)
+- [handle(name)](./core.handle.md)
 
 
 ## Advanced Adapt Topics

@@ -35,7 +35,6 @@ Available starters include:
 ## Additional Resources
 
 To learn more about Adapt:
-* [Adapt User Guide](../user/index.md)
 * [Adapt Core API Reference](../api/core/overview)
 * [Adapt Cloud Library API Reference](../api/cloud/overview)
 * [Concepts: Comparing Adapt and React](../comparing_react/index.md) (Advanced)
