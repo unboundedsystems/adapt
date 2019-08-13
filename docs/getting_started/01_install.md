@@ -27,25 +27,7 @@ If you use a different shell, you may need to adjust some commands slightly.
 
 ## Installing Adapt
 
-> **Adapt is currently in limited-access preview**
->
-> Because Adapt is in limited preview, you must enter NPM credentials to access Adapt.
->
-> First, log in to NPM:
-> ```console
-> npm login
-> ```
->
-> When prompted, enter the following information:
-> 
-> | Prompt | Value |
-> | --- | --- |
-> | Username: | `adapt_preview` |
-> | Password: | `unbounded223344` |
-> | Email: | `preview@unbounded.systems` |
-> 
-
-We can now install the `adapt` CLI globally:
+To install the `adapt` CLI globally:
 <!-- doctest command -->
 
 ```console
