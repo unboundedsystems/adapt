@@ -3,7 +3,7 @@
   "description": "Unbounded Adapt DOM Parser",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
-  "version": "0.0.4-next.1",
+  "version": "0.0.4",
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "dependencies": {
     "lodash": "^4.17.10",
