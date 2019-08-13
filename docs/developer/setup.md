@@ -244,3 +244,14 @@ In order to make all artifacts, you must set the `ADAPT_ARTIFACT_DIR` environmen
 
 ### Only documentation artifacts
 Optionally, you can make only the documentation artifacts by ensuring `ADAPT_ARTIFACT_DIR` is not defined and instead, define `ADAPT_ARTIFACT_DOCS` to be the path of the directory where you want only the documentation placed.
+
+## `./bin/gcloud` Setup
+
+`./bin/gcloud` will run the Google Cloud SDK commands in a docker container.  However, to use them you need to set up a docker
+container called gcloud-config whose volumes will be used to supply any credentials needed by the `gcloud` command.  To do this type:
+
+```
+docker run -ti --name gcloud-config google/cloud-sdk gcloud init
+```
+
+And follow the prompts.  More detailed instructions on how to do this can be found in [this article](https://adilsoncarvalho.com/using-gcloud-in-a-docker-container-dd5f9eea5bbc).
