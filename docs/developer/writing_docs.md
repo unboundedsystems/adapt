@@ -41,7 +41,7 @@ The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the 
 
     ```console
     cd web
-    make start-docker
+    make preview
     ```
     This will start a local preview server (in a Docker container) in watch mode that serves the documentation website from your repo.
     You can point your browser to [http://localhost:3000](http://localhost:3000) to see the local preview site.
@@ -71,7 +71,7 @@ The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the 
     > **Tip**
     >
     > The docusaurus live reload local server seems to have trouble updating with certain types of changes, primarily when there are changes in the `website` directory.
-    > If you don't see the changes you expect, try killing (`Ctrl-C`) the local server and run `make docker-start` again in the `adapt/web` directory.
+    > If you don't see the changes you expect, try killing (`Ctrl-C`) the local server and run `make preview` again in the `adapt/web` directory.
 
 ## Source code comments
 
