@@ -55,7 +55,7 @@ function versionType {
         return
     fi
     case "$1" in
-        major|minor|patch)
+        major|minor|patch|from-package)
             echo $1
             ;;
         *)
