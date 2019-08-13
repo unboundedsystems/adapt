@@ -10,10 +10,12 @@ import * as jsx from "./jsx";
 
 export type StyleList = StyleRule[];
 
+/** @internal */
 export const $matchInfoReg = Symbol.for("$matchInfoReg");
 export interface StyleBuildInfo extends BuildId {
     origBuild: jsx.SFC;
     origElement: any;
+    /** @internal */
     [$matchInfoReg]: MatchInfoReg;
 }
 export type BuildOverride<P = jsx.AnyProps> =

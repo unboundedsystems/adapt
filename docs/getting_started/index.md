@@ -9,7 +9,7 @@ title: Getting Started with Adapt
 If you're new to Adapt, you're in the right place.
 This guide will explain what Adapt is and help you create and deploy a simple app using Adapt.
 
-If you're already familiar with the basics of using Adapt, you may also want to check out the [Intro to Adapt Concepts](../tutorial_concepts/index.md) tutorial or the API Reference for the [Adapt Core](../api/core/overview) or [Adapt Cloud](../api/cloud/overview) libraries for more information on Adapt.
+If you're already familiar with the basics of using Adapt, you may also want to check out the [Intro to Adapt Concepts](../tutorial_concepts/index.md) tutorial or the API Reference for the [Adapt Core](/docs/api/core/overview) or [Adapt Cloud](/docs/api/cloud/overview) libraries for more information on Adapt.
 
 We're also working on a User Guide that will explain how Adapt works in more detail.
 

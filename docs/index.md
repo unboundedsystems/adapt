@@ -1,10 +1,14 @@
+---
+id: index
+title: Adapt Documentation
+---
 <!-- DOCTOC SKIP -->
 # Adapt Documentation
 
 ## Welcome to Adapt
 
 Adapt is the easiest way to reliably and repeatedly deploy your apps anywhere -- to your laptop, a Kubernetes cluster, your favorite cloud, or anywhere else.
-For more info on what Adapt is, see the [project README](../README.md).
+For more info on what Adapt is, see the [project README](https://gitlab.com/unboundedsystems/adapt/README.md).
 
 Our documentation is a work in progress, so it may not have all the answers you're looking for yet.
 If you haven't found what you need, please ask a question on our [Gitter channel](https://gitter.im/UnboundedSystems/Adapt) or [file an issue](https://gitlab.com/unboundedsystems/adapt/issues).
