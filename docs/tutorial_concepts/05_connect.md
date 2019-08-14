@@ -46,12 +46,12 @@ with this:
     );
 ```
 
-Now, the `<App>` component will build into a `<Group>` that contains a `NodeService` and a `Postgres`.
+Now, the `<App>` component will build into a `<Group>` that contains a `<NodeService>` and a `<Postgres>`.
 
 Why did we add a `<Group>`?
 Because Adapt components can only build into a single component.
 However, that single component can contain other components.
-The `<Group>` component's only function is to act as a container for other components.
+The `<Group>` component's only purpose is to act as a container for other components.
 
 ## Component instance methods
 
@@ -87,7 +87,7 @@ Here, we're associating the `pg` handle we created with the `<Postgres>` instanc
 
 ## Calling a component instance method
 
-Now we can use the `pg` handle to get the database connection info. Add this line just after `const pg = Adapt.handle()`:
+Now we can use the `pg` handle to get the database connection info. Add this line just after `const pg = handle()`:
 ```tsx
     const connectEnv = useMethod(pg, {}, "connectEnv");
 ```
@@ -106,8 +106,7 @@ So your complete `index.tsx` file should now look like this:
 <!-- doctest file-replace { file: "index.tsx" } -->
 
 ```tsx
-import Adapt, { handle, Group } from "@adpt/core";
-import { useMethod } from "@adpt/cloud";
+import Adapt, { Group, handle, useMethod } from "@adpt/core";
 import { Postgres } from "@adpt/cloud/postgres";
 import { NodeService } from "@adpt/cloud/nodejs";
 import { k8sStyle } from "./styles";
@@ -146,9 +145,43 @@ Add the following just after the first `<Style>` tag:
         })}
 ```
 
+<details>
+<summary>Expand to see the complete `styles.tsx` file</summary>
 
+<!-- doctest file-replace { file: "styles.tsx" } -->
 
-This rule says to match all `<Postgres>` elements and replace them with `<TestPostgres>` elements, which load some mock data from local file `../test_db.sql`.
+```tsx
+import Adapt, { Style } from "@adpt/core";
+import { Service, ServiceProps } from "@adpt/cloud";
+import { ServiceDeployment } from "@adpt/cloud/k8s";
+import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
+
+export function kubeconfig() {
+    return {
+        kubeconfig: require("./kubeconfig.json")
+    };
+}
+
+/*
+ * Kubernetes testing style
+ */
+export const k8sStyle =
+    <Style>
+        {Postgres}
+        {Adapt.rule(() => {
+            return <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />;
+        })}
+
+        {Service}
+        {Adapt.rule((matchedProps) => {
+            const { handle, ...remainingProps } = matchedProps;
+            return <ServiceDeployment config={kubeconfig()} {...remainingProps} />;
+        })}
+    </Style>;
+```
+</details>
+
+This rule says to match all `<Postgres>` elements and replace them with `<TestPostgres>` elements, which load some mock data from local file `./test_db.sql`.
 
 The `<TestPostgres>` component is actually made up of some abstract components as well.
 Just like `<NodeService>`, it uses `<Service>`, `<NetworkService>` and `<Container>`.
