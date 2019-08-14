@@ -55,11 +55,3 @@ clean_submakes += web-clean
 web-release-master: $(WEB_GIT_DEPS) web-docs
 	$(call log_command,$@,$(MAKE) -C $(WEB_DIR) push-docs-master)
 .PHONY: web-release-master
-
-ssh-setup: $(HOME)/.ssh/known_hosts
-.PHONY: ssh-setup
-
-$(HOME)/.ssh/known_hosts:
-	mkdir -p "${HOME}/.ssh"
-	chmod 0700 "${HOME}/.ssh"
-	ssh-keyscan -H gitlab.com >> "${HOME}/.ssh/known_hosts"
