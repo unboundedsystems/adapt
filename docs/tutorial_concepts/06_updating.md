@@ -15,7 +15,7 @@ But for this tutorial, we'll just copy in some already-written code:
 curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v1/tutorial-concepts.tar.gz | tar -zxv --strip=1 -C ..
 ```
 
-This command should have:
+This command:
 * Modified the Node.js code in `backend/index.js` to implement the search API
 * Added the Postgres client library (pg) to `package.json`
 * Added a file with some test data `deploy/test_db.sql` that will be pre-loaded into the Postgres database when we update the deployment.

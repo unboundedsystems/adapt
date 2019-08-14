@@ -48,7 +48,7 @@ These are the most basic building blocks in Adapt.
 They typically directly correspond to a single infrastructure resource that can be created and destroyed.
 They are the only kind of component that cannot contain other components.
 
-Examples of primitive components are an AWS `<EC2Instance>`, a Docker `<Container>`, or a Kubernetes `<Pod>`.
+Examples of primitive components are an AWS `<EC2Instance>`, a `<DockerContainer>`, or a Kubernetes `<Pod>`.
 
 ### Function components
 
