@@ -326,17 +326,6 @@ describe("project:new download", () => {
         ]);
     });
 
-    basicTestChain
-    .command(["project:new", "--adaptVersion=1.0.0", testStarterPrivate, "project"])
-    .catch((err) => {
-        expect(err.message).matches(/Host key verification failed/);
-        expect((err as any).oclif.exit).equals(2);
-    })
-    .it("Should try only once on SSH host key verification failure", async ({ stdout }) => {
-        expect(trying(stdout)).eqls([
-            `${testStarterPrivate}#adapt-v1.0.0`,
-        ]);
-    });
 });
 
 /**
@@ -368,6 +357,27 @@ describe("project:new sshHostKeyCheck", () => {
         expect(trying(stdout)).eqls([
             `${testStarterPrivate}#${testAdaptVerLabel}`,
         ]);
+    });
+
+    basicTestChain
+    .it("Should try only once on SSH host key verification failure", async () => {
+        const args = ["project:new", "--adaptVersion=1.0.0", testStarterPrivate, "project"];
+        const env = {
+            // Ensure we have no known hosts
+            GIT_SSH_COMMAND: `ssh -o UserKnownHostsFile=/dev/null`,
+        };
+        try {
+            const ret = await execa(cliBin, args, { env });
+            // tslint:disable-next-line: no-console
+            console.log(`Expected command to fail.\n${ret.stdout}\n${ret.stderr}`);
+            throw new Error(`Expected command to fail`);
+        } catch (err) {
+            expect(err.code).to.equal(2);
+            expect(err.stderr).matches(/Host key verification failed/);
+            expect(trying(err.stdout)).eqls([
+                `${testStarterPrivate}#adapt-v1.0.0`,
+            ]);
+        }
     });
 });
 

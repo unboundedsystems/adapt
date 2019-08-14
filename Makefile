@@ -19,6 +19,7 @@ CLEANS :=
 include build_support/git.mk
 include build_support/submake.mk
 include build_support/node_modules.mk
+include build_support/ssh.mk
 
 # Turn on parallelism by default
 ADAPT_PARALLEL_MAKE ?= -j $(shell nproc)
@@ -66,6 +67,7 @@ core-build: utils-build dom-parser-build testutils-build
 cli-build: core-build cloud-build utils-build testutils-build
 cloud-build: core-build utils-build testutils-build
 testutils-build: utils-build
+cli-test: ssh-setup
 
 include build_support/docs.mk
 
