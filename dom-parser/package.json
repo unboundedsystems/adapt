@@ -1,9 +1,10 @@
 {
   "name": "@adpt/dom-parser",
+  "version": "0.0.5-next.0",
   "description": "Unbounded Adapt DOM Parser",
+  "license": "Apache-2.0",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
-  "version": "0.0.5-next.0",
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
   "dependencies": {
     "lodash": "^4.17.10",
@@ -25,7 +26,6 @@
     "source-map-support": "^0.5.5",
     "typescript": "^3.0.3"
   },
-  "license": "UNLICENSED",
   "files": [
     "dist/src"
   ],

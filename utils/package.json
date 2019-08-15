@@ -2,6 +2,7 @@
   "name": "@adpt/utils",
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt Utilities Library",
+  "license": "Apache-2.0",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "author": "Unbounded Systems",
@@ -48,7 +49,6 @@
     "/dist/src"
   ],
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
-  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"

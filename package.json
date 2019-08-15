@@ -1,4 +1,6 @@
 {
+    "name": "adapt-root",
+    "license": "Apache-2.0",
     "private": true,
     "workspaces": {
         "packages": [
@@ -27,7 +29,6 @@
         "tslint": "^5.18.0",
         "typescript": "^3.0.3"
     },
-    "name": "adapt-root",
     "scripts": {
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",
         "precommit": "lint-staged --config config/lint-staged.json",

@@ -2,6 +2,7 @@
   "name": "@adpt/cli",
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt CLI",
+  "license": "Apache-2.0",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "author": "Unbounded Systems",
@@ -88,7 +89,6 @@
     "/oclif.manifest.json"
   ],
   "homepage": "https://gitlab.com/unboundedsystems/adapt",
-  "license": "UNLICENSED",
   "oclif": {
     "bin": "adapt",
     "commands": "./dist/src/commands",

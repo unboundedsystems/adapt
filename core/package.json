@@ -2,6 +2,7 @@
   "name": "@adpt/core",
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt core library",
+  "license": "Apache-2.0",
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
@@ -25,7 +26,6 @@
     "test": "mocha --opts mocha.opts"
   },
   "author": "Manish Vachharajani <manishv@unbounded.systems>",
-  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
