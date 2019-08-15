@@ -1,0 +1,5 @@
+To build adapt-demo.gif from the adapt-demo-asciinema.json file, do
+the following command.  Note that this can take several hours to
+complete. :(
+
+docker run -e "MAGICK_MEMORY_LIMIT=4GB" -e "MAGICK_MAP_LIMIT=12GB" --rm -it -v $PWD:/data asciinema/asciicast2gif -s 3 -S .75 /data/adapt-demo-asciinema.json /data/adapt-demo.gif
