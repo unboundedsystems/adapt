@@ -1,68 +1,62 @@
-
 # Unbounded Adapt
 
-## What is Adapt?
-Adapt is a system to easily, reliably, and repeatably deploy applications and infrastructure.
-Adapt is based on some core concepts used in web browsers that you're probably already familiar with, like HTML and style sheets.
-Adapt also uses some key concepts from [React](https://reactjs.org), a framework that has made it easy for [tens of thousands of developers](https://insights.stackoverflow.com/survey/2019#technology-_-web-frameworks) to create sophisticated user interfaces.
+Adapt is a system to easily, reliably, and repeatably deploy applications.  Adapt specifications look like [ReactJS](https://reactjs.org) apps, but instead of rendering browser DOM elements like input, or div, Adapt specifications render to DOM elements like AWS EC2 instances, Lambdas, Kubernetes Pods, or any other building block for your application architecture.  If you are already familiar with React, many of the concepts will look familiar. If not, don't worry, knowledge of React isn't required to start using Adapt.
 
-If you are already familiar with React, many of the concepts will look familiar.
-If not, don't worry.
-Knowledge of React isn't required to start using Adapt.
+## Getting Started
+For a new project, you can get started without knowing much about Adapt by using a starter.  The [Getting Started Guide](https://adapt.unbounded.systems/docs/getting_started) will walk through installing Adapt and deploying a starter project.
+```shell
+adapt new <starter> <project directory> #Create a new project from a starter
+adapt run --deployID <myID> #Create a new deployment of the starter project
+... #write some code
+adapt update <myID> #Update the running deployment
+```
 
-## Key Features of Adapt
+Deploy a sample application with a [React](https://reactjs.org) front-end, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, along with a static file server and a URL router:
 
-**Infrastructure as Code -- No, really. ACTUAL code.**
+![Adapt in action](./docs/assets/getting_started/adapt-demo-scaled.gif)
 
-Unlike many other systems, Adapt specifications are not just configuration files, usually written in some YAML domain-specific language.
-They're actual code.
+A snippet of the corresponding Adapt specification that the starter sets up for this example:
+```jsx
+import { HttpServer, UrlRouter } from "@adpt/cloud/http";
+import { NodeService } from "@adpt/cloud/nodejs";
+import { Postgres } from "@adpt/cloud/postgres";
+import Adapt, { Group, handle } from "@adpt/core";
+import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
-Just like React, Adapt specs are written in JavaScript, using easy-to-understand [TSX or JSX](https://reactjs.org/docs/introducing-jsx.html) syntax, which looks very similar to HTML.
-In React, you might use components like `<button>` and `<div>`, but in Adapt you'll use components like `<Container>` and `<EC2Instance>`.
+function App() {
+    const pg = handle();
+    const api = handle();
+    const stat = handle();
 
-**Developer-centric**
+    return <Group key="App">
 
-Adapt is designed to be used by developers.
-It allows you to describe your app, along with it's interactions and dependencies, using concepts you already know and understand.
-Adapt abstracts away the details and complexities of operator-centric technologies like Kubernetes, Docker, and AWS, so you can spend more time focusing on your app, not your infrastructure.
+        <UrlRouter
+            port={8080}
+            routes={[
+                { path: "/api/", endpoint: api },
+                { path: "/", endpoint: stat }
+            ]} />
 
-**Declarative**
+        <NodeService handle={api} srcDir=".." connectTo={pg} />
 
-Adapt specifications are declarative.
-You describe the state you want your app or your infrastructure to be in, not how it should get there.
-Adapt takes care of computing the minimal set of changes required to get your infrastructure to the desired state.
+        <Postgres handle={pg} />
 
-**Component-based**
+        <HttpServer handle={stat} scope="cluster-internal"
+            add={[{ type: "image", image: api, stage: "app",
+                    files: [{ src: "/app/build", dest: "/www/static" }]}]} />
 
-Easily build encapsulated components that manage parts of your app or infrastructure or use components from existing libraries.
-Then compose those components to build anything from a simple end-to-end app test case or an entire data center.
+    </Group>;
+}
 
-**Adaptive**
+Adapt.stack("default", <App />, k8sStyle);
+```
 
-Most other systems only allow you to describe a goal state for your infrastructure.
-But modern application deployments are dynamic and must react and respond to their continually changing environment.
-
-With Adapt, you can describe not only what your infrastructure should look like now, but also how it should respond to changes like:
-
-* Increasing and decreasing load (CPU, network, etc.)
-* New code pushed to your git repo canary test branch
-* Outage of a server, a zone, or even an entire cloud provider
-
-**Cloud and Technology Agnostic**
-
-Adapt can be used to control infrastructure in your favorite cloud provider, on your laptop, in your own datacenter, or in all of those at once.
-
-Adapt works great with the best of today's (and tomorrow's!) deployment technologies.
-By simply choosing different components from the Adapt library, you can just as easily run your app on a Kubernetes cluster, as a single container on your laptop, on Amazon Lambda[^1], or installed as a service directly onto an EC2 instance.
-
-[^1]: Lambda support coming soon
-
-## Getting Started with Adapt
-* [Getting Started Guide](docs/getting_started/index.md)
+## Further Reading
+* [Getting Started Guide](https://adapt.unbounded.systems/docs/getting_started)
 
     This guide will walk you through setting up Adapt and then deploying an example MovieDB app.
 
-* [Adapt Documentation](docs/index.md)
+* [Adapt Documentation](https://adapt.unbounded.systems)
 
     Adapt tutorials, API References, and more.
 
