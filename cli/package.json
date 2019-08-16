@@ -2,14 +2,29 @@
   "name": "@adpt/cli",
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt CLI",
-  "main": "dist/src/index.js",
-  "typings": "dist/src/index.d.ts",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/unboundedsystems/adapt#readme",
   "author": "Unbounded Systems",
-  "bin": {
-    "adapt": "./bin/run"
-  },
+  "contributors": [
+    {
+      "name": "Manish Vachharajani",
+      "email": "manishv@unbounded.systems",
+      "url": "https://twitter.com/mvachhar"
+    },
+    {
+      "name": "Mark Terrel",
+      "email": "mark@unbounded.systems",
+      "url": "https://twitter.com/mterrel"
+    }
+  ],
+  "repository": "unboundedsystems/adapt",
   "bugs": {
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
+  },
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
+  "bin": {
+    "adapt": "./bin/run"
   },
   "dependencies": {
     "@adpt/core": "0.0.5-next.0",
@@ -87,8 +102,6 @@
     "/dist/src",
     "/oclif.manifest.json"
   ],
-  "homepage": "https://gitlab.com/unboundedsystems/adapt",
-  "license": "UNLICENSED",
   "oclif": {
     "bin": "adapt",
     "commands": "./dist/src/commands",
@@ -118,10 +131,6 @@
       }
     }
   },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
@@ -135,8 +144,5 @@
     "pretest": "make build",
     "test": "mocha --opts mocha.opts",
     "version": "npm run docs && git add README.md"
-  },
-  "publishConfig": {
-    "access": "restricted"
   }
 }
