@@ -1,6 +1,25 @@
 {
     "name": "adapt-root",
+    "description": "Monorepo for Unbounded Adapt",
     "license": "Apache-2.0",
+    "homepage": "https://github.com/unboundedsystems/adapt#readme",
+    "author": "Unbounded Systems",
+    "contributors": [
+        {
+            "name": "Manish Vachharajani",
+            "email": "manishv@unbounded.systems",
+            "url": "https://twitter.com/mvachhar"
+        },
+        {
+            "name": "Mark Terrel",
+            "email": "mark@unbounded.systems",
+            "url": "https://twitter.com/mterrel"
+        }
+    ],
+    "repository": "unboundedsystems/adapt",
+    "bugs": {
+        "url": "https://gitlab.com/unboundedsystems/adapt/issues"
+    },
     "private": true,
     "workspaces": {
         "packages": [

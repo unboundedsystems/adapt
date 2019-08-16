@@ -3,6 +3,24 @@
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt core library",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/unboundedsystems/adapt#readme",
+  "author": "Unbounded Systems",
+  "contributors": [
+    {
+      "name": "Manish Vachharajani",
+      "email": "manishv@unbounded.systems",
+      "url": "https://twitter.com/mvachhar"
+    },
+    {
+      "name": "Mark Terrel",
+      "email": "mark@unbounded.systems",
+      "url": "https://twitter.com/mterrel"
+    }
+  ],
+  "repository": "unboundedsystems/adapt",
+  "bugs": {
+    "url": "https://gitlab.com/unboundedsystems/adapt/issues"
+  },
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
@@ -24,11 +42,6 @@
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "test": "mocha --opts mocha.opts"
-  },
-  "author": "Manish Vachharajani <manishv@unbounded.systems>",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
   },
   "devDependencies": {
     "@adpt/testutils": "0.0.5-next.0",
@@ -100,8 +113,5 @@
     "type-name": "^2.0.2",
     "urn-lib": "^1.1.2",
     "xmlbuilder": "^10.0.0"
-  },
-  "publishConfig": {
-    "access": "restricted"
   }
 }

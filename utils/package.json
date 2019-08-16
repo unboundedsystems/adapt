@@ -3,12 +3,26 @@
   "version": "0.0.5-next.0",
   "description": "Unbounded Adapt Utilities Library",
   "license": "Apache-2.0",
-  "main": "dist/src/index.js",
-  "typings": "dist/src/index.d.ts",
+  "homepage": "https://github.com/unboundedsystems/adapt#readme",
   "author": "Unbounded Systems",
+  "contributors": [
+    {
+      "name": "Manish Vachharajani",
+      "email": "manishv@unbounded.systems",
+      "url": "https://twitter.com/mvachhar"
+    },
+    {
+      "name": "Mark Terrel",
+      "email": "mark@unbounded.systems",
+      "url": "https://twitter.com/mterrel"
+    }
+  ],
+  "repository": "unboundedsystems/adapt",
   "bugs": {
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
+  "main": "dist/src/index.js",
+  "typings": "dist/src/index.d.ts",
   "dependencies": {
     "@usys/collections-ts": "^0.0.2",
     "decamelize": "^2.0.0",
@@ -48,11 +62,6 @@
   "files": [
     "/dist/src"
   ],
-  "homepage": "https://gitlab.com/unboundedsystems/adapt",
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@gitlab.com/unboundedsystems/adapt.git"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
@@ -63,8 +72,5 @@
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
     "test": "mocha --opts mocha.opts"
-  },
-  "publishConfig": {
-    "access": "restricted"
   }
 }
