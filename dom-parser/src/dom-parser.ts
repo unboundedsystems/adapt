@@ -374,7 +374,7 @@ async function stringFromStream(ins: stream.Readable): Promise<string> {
     return new Promise<string>((res, rej) => {
         const buf = new sb.WritableStreamBuffer();
         ins.pipe(buf);
-        buf.on("close", () => res(buf.getContentsAsString()));
+        buf.on("close", () => res(buf.getContentsAsString() || undefined));
         buf.on("error", (e) => rej(e));
     });
 }

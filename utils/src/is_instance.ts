@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { isObject } from "lodash";
+import { isObject } from "./is_object";
 
 const preTag = "isInstance:";
 
@@ -23,7 +23,7 @@ export function isInstance(val: any, ctorOrTag: string | Function, scope?: strin
     if (!val || !isObject(val)) return false;
     const tag = typeof ctorOrTag === "string" ? ctorOrTag : ctorOrTag.name;
     scope = scope ? scope + ":" : "";
-    return val[Symbol.for(preTag + scope + tag)] === true;
+    return val[Symbol.for(preTag + scope + tag) as any] === true;
 }
 
 export function tagInstance(val: object, tag?: string, scope?: string) {

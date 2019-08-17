@@ -21,8 +21,7 @@ import {
     isFinalDomElement,
     PrimitiveComponent,
 } from "@adpt/core";
-import { isInstance, MessageLogger, tagConstructor } from "@adpt/utils";
-import { isObject } from "lodash";
+import { isInstance, isObject, MessageLogger, tagConstructor } from "@adpt/utils";
 import { isBoolean } from "util";
 
 export interface ShouldActDetail {

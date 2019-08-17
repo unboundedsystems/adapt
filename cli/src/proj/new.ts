@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import { ensureError, InternalError, mkdtmp, UserError } from "@adpt/utils";
+import { ensureError, InternalError, isObject, mkdtmp, UserError } from "@adpt/utils";
 import copy from "copy";
 import db from "debug";
 import execa from "execa";
 import fs from "fs-extra";
 import json5 from "json5";
-import { isArray, isObject, isString } from "lodash";
+import { isArray, isString } from "lodash";
 import pkgArg from "npm-package-arg";
 import pacote from "pacote";
 import path from "path";

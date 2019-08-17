@@ -31,33 +31,33 @@
     "execa": "^0.10.0",
     "fs-extra": "^6.0.1",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "node-graceful": "^0.3.1",
     "ts-custom-error": "^3.1.1",
-    "tslib": "^1.9.3",
-    "type-ops": "^3.0.1"
+    "tslib": "^1.10.0",
+    "type-ops": "^3.0.3"
   },
   "devDependencies": {
     "@types/decamelize": "^1.2.0",
     "@types/deep-diff": "^1.0.0",
     "@types/execa": "^0.9.0",
     "@types/fs-extra": "^5.0.3",
-    "@types/lodash": "^4.14.116",
+    "@types/lodash": "^4.14.137",
     "@types/node": "^10.11.7",
     "@types/p-defer": "^1.0.3",
     "@types/sinon": "^5.0.1",
-    "@types/stream-buffers": "^3.0.2",
+    "@types/stream-buffers": "^3.0.3",
     "mocha": "^5.2.0",
     "mocha-slow-options": "^0.0.2",
-    "mocked-env": "^1.2.1",
+    "mocked-env": "^1.3.1",
     "nyc": "^12.0.2",
     "p-defer": "^1.0.0",
-    "should": "^13.2.1",
+    "should": "^13.2.3",
     "sinon": "^6.0.0",
-    "source-map-support": "^0.5.6",
+    "source-map-support": "^0.5.13",
     "stdout-stderr": "^0.1.9",
     "stream-buffers": "^3.0.2",
-    "typescript": "^3.0.3"
+    "typescript": "3.0.3"
   },
   "files": [
     "/dist/src"

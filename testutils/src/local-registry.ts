@@ -64,7 +64,7 @@ class ServerImpl implements Server {
     stop(): Promise<void> {
         return new Promise((resolve, reject) => {
             try {
-                this.httpServer.close(resolve);
+                this.httpServer.close((err) => err ? reject(err) : resolve());
             } catch (err) {
                 reject(err);
             }
