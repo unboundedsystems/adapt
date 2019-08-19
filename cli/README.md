@@ -137,7 +137,7 @@ EXAMPLE
        $ adapt deploy:destroy myproj-dev-abcd
 ```
 
-_See code: [dist/src/commands/deploy/destroy.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/deploy/destroy.ts)_
+_See code: [dist/src/commands/deploy/destroy.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/deploy/destroy.ts)_
 
 ## `adapt deploy:list`
 
@@ -165,7 +165,7 @@ EXAMPLE
        $ adapt deploy:list
 ```
 
-_See code: [dist/src/commands/deploy/list.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/deploy/list.ts)_
+_See code: [dist/src/commands/deploy/list.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/deploy/list.ts)_
 
 ## `adapt deploy:run [STACKNAME]`
 
@@ -209,7 +209,7 @@ EXAMPLES
        $ adapt deploy:run --rootFile somefile.tsx dev
 ```
 
-_See code: [dist/src/commands/deploy/run.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/deploy/run.ts)_
+_See code: [dist/src/commands/deploy/run.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/deploy/run.ts)_
 
 ## `adapt deploy:status DEPLOYID`
 
@@ -244,7 +244,7 @@ EXAMPLES
        $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd
 ```
 
-_See code: [dist/src/commands/deploy/status.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/deploy/status.ts)_
+_See code: [dist/src/commands/deploy/status.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/deploy/status.ts)_
 
 ## `adapt deploy:update DEPLOYID [STACKNAME]`
 
@@ -280,7 +280,7 @@ EXAMPLES
        $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev
 ```
 
-_See code: [dist/src/commands/deploy/update.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/deploy/update.ts)_
+_See code: [dist/src/commands/deploy/update.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/deploy/update.ts)_
 
 ## `adapt help [COMMAND]`
 
@@ -334,5 +334,5 @@ EXAMPLE
        $ adapt project:new blank myproj
 ```
 
-_See code: [dist/src/commands/project/new.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5-next.0/dist/src/commands/project/new.ts)_
+_See code: [dist/src/commands/project/new.ts](https://github.com/unboundedsystems/adapt/blob/v0.0.5/dist/src/commands/project/new.ts)_
 <!-- commandsstop -->

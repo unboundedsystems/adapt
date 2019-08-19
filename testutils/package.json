@@ -1,6 +1,6 @@
 {
   "name": "@adpt/testutils",
-  "version": "0.0.5-next.0",
+  "version": "0.0.5",
   "description": "Unbounded Adapt Test Utilities Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -24,7 +24,7 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "dependencies": {
-    "@adpt/utils": "0.0.5-next.0",
+    "@adpt/utils": "0.0.5",
     "aws-sdk": "^2.302.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.5",

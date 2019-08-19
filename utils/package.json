@@ -1,6 +1,6 @@
 {
   "name": "@adpt/utils",
-  "version": "0.0.5-next.0",
+  "version": "0.0.5",
   "description": "Unbounded Adapt Utilities Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",

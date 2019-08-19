@@ -1,6 +1,6 @@
 {
   "name": "@adpt/core",
-  "version": "0.0.5-next.0",
+  "version": "0.0.5",
   "description": "Unbounded Adapt core library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -63,7 +63,7 @@
     "test": "mocha --opts mocha.opts"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.0.5-next.0",
+    "@adpt/testutils": "0.0.5",
     "@types/async-lock": "^1.1.1",
     "@types/callsites": "^2.0.0",
     "@types/debug": "^0.0.31",
@@ -101,8 +101,8 @@
     "typescript": "^3.0.3"
   },
   "dependencies": {
-    "@adpt/dom-parser": "0.0.5-next.0",
-    "@adpt/utils": "0.0.5-next.0",
+    "@adpt/dom-parser": "0.0.5",
+    "@adpt/utils": "0.0.5",
     "@usys/fork-require": "1.0.9-unb1",
     "async-lock": "^1.2.0",
     "callsites": "^2.0.0",
