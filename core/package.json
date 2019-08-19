@@ -21,6 +21,25 @@
   "bugs": {
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
+  "keywords": [
+    "adapt",
+    "adpt",
+    "unbounded",
+    "infrastructure-as-code",
+    "devops",
+    "deploy",
+    "aws",
+    "k8s",
+    "kubernetes",
+    "cloud",
+    "deployment",
+    "typescript",
+    "nodejs",
+    "react",
+    "reactjs",
+    "containers",
+    "docker"
+  ],
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "files": [
@@ -31,7 +50,7 @@
   "scripts": {
     "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
-    "docs": "../scripts/make_docs.js core",
+    "docs": "../scripts/make_docs.js core && cp ../README.md .",
     "pretest": "make build",
     "gql-gen:test_observer": "gql-gen --out generated/test/observers/test_observer_schema_types.ts --schema ./test/observers/test_observer.graphql --template graphql-codegen-typescript-template -c",
     "gql-gen:mock_observer": "gql-gen --out generated/src/observers/mock_observer_schema_types.ts --schema ./src/observers/mock_observer.graphql --template graphql-codegen-typescript-template -c",

@@ -21,6 +21,25 @@
   "bugs": {
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
+  "keywords": [
+    "adapt",
+    "adpt",
+    "unbounded",
+    "infrastructure-as-code",
+    "devops",
+    "deploy",
+    "aws",
+    "k8s",
+    "kubernetes",
+    "cloud",
+    "deployment",
+    "typescript",
+    "nodejs",
+    "react",
+    "reactjs",
+    "containers",
+    "docker"
+  ],
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "bin": {
@@ -136,7 +155,7 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
-    "docs": "oclif-dev readme",
+    "docs": "../scripts/cli_docs.sh",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "postpack": "rm -f oclif.manifest.json",
