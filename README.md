@@ -1,3 +1,7 @@
+![npm](https://img.shields.io/npm/v/@adpt/cli?color=blue)
+[![Gitter](https://badges.gitter.im/UnboundedSystems/Adapt.svg)](https://gitter.im/UnboundedSystems/Adapt)
+![GitHub](https://img.shields.io/github/license/unboundedsystems/adapt)
+
 # Unbounded Adapt
 
 Adapt is a system to easily, reliably, and repeatably deploy applications.  Adapt specifications look like [ReactJS](https://reactjs.org) apps, but instead of rendering browser DOM elements like input, or div, Adapt specifications render to DOM elements like AWS EC2 instances, Lambdas, Kubernetes Pods, or any other building block for your application architecture.  If you are already familiar with React, many of the concepts will look familiar. If not, don't worry, knowledge of React isn't required to start using Adapt.
