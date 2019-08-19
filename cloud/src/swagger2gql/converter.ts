@@ -36,7 +36,7 @@ import {
 } from "graphql";
 
 import { tuple } from "@adpt/utils";
-import GraphQLJSON = require("graphql-type-json");
+import GraphQLJSON from "graphql-type-json";
 import * as ld from "lodash";
 import * as util from "util";
 import {

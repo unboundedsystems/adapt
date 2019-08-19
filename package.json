@@ -45,6 +45,7 @@
         "execa": "^0.10.0",
         "lerna": "^3.16.4",
         "lint-staged": "^9.2.1",
+        "nyc": "^13.3.0",
         "semver": "^5.6.0",
         "tslint": "^5.18.0",
         "typescript": "3.0.3"

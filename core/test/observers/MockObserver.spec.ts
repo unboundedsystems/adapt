@@ -82,7 +82,7 @@ describe("Mock Observer Query Tests", () => {
     async function lexec<T>(query: ExecutedQuery): Promise<T> {
         const result = await exec<T>(mock.schema, query, obs);
         should(result.errors).Undefined();
-        if (result.data === undefined) throw should(result.data).not.Undefined();
+        if (result.data == null) throw should(result.data).be.ok();
         return result.data;
     }
 

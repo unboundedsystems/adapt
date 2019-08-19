@@ -183,7 +183,7 @@ describeFixture("AWS EC2 observer tests", function (this: any) {
         should(result.errors).Undefined();
 
         const data = result.data;
-        if (data === undefined) throw should(data).not.be.Undefined();
+        if (data == null) throw should(data).be.ok();
         const withCredentials = data.withCredentials;
         if (withCredentials === undefined) throw should(withCredentials).not.be.Undefined();
         const describeInstances = withCredentials.DescribeInstances;

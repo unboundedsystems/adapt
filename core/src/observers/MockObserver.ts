@@ -31,78 +31,66 @@ import { ObserverNeedsData } from "./errors";
 import { ExecutedQuery } from "./obs_manager_deployment";
 import { ObserverPlugin, ObserverResponse } from "./plugin";
 
-import { MockObject, QueryResolvers } from "../../generated/src/observers/mock_observer_schema_types";
+import { MockObject, Resolvers } from "../../generated/src/observers/mock_observer_schema_types";
 import { registerObserver } from "./registry";
 
 const schemaFile = path.join(__dirname, "mock_observer.graphql");
 const schemaStr = fs.readFileSync(schemaFile).toString();
 
-function forceType<T>(x: T): T { return x; }
-
+type CachedObject = Partial<MockObject> & { id: string, numericId: number };
 interface CachedData {
-    mockObjects: (Partial<MockObject> & { id: string, numericId: number })[];
+    mockObjects: CachedObject[];
 }
 
 //Resolve data from previously fetched results.
-const queryCacheResolvers = {
+const queryCacheResolvers: Resolvers<CachedData> = {
     Query: {
-        mockById: forceType<
-            QueryResolvers.MockByIdResolver<MockObject | null | undefined,
-            null,
-            CachedData | undefined>>(
-                async (_obj, args, cache, _info) => {
-                    await uutil.sleep(0);
-                    const ret = cache ? cache.mockObjects.find((o) => o.id === args.id) : undefined;
-                    if (ret !== undefined) return ret;
+        mockById: async (_obj, args, cache, _info) => {
+            await uutil.sleep(0);
+            const ret = cache ? cache.mockObjects.find((o) => o.id === args.id) : undefined;
+            if (ret !== undefined) return ret;
 
-                    //Can there be such an object?
-                    const id = Number(args.id);
-                    if (Number.isNaN(id)) return null; //No such object
-                    if (Math.floor(id) !== id) return null;
+            //Can there be such an object?
+            const id = Number(args.id);
+            if (Number.isNaN(id)) return null; //No such object
+            if (Math.floor(id) !== id) return null;
 
-                    throw new ObserverNeedsData();
-                }),
+            throw new ObserverNeedsData();
+        },
     }
 };
 
 //Fetch data needed for specified quereis
 //There is a MockObject for every integer id
-const observeResolvers = {
+const observeResolvers: Resolvers<CachedData> = {
     Query: {
-        mockById:
-            forceType<QueryResolvers.MockByIdResolver<{ id: string, numericId: number } | null, null, CachedData>>(
-                async (_obj, args, cache, _info) => {
-                    await uutil.sleep(0);
-                    const id = Number(args.id);
-                    await uutil.sleep(Math.min(id, 10)); //Ensure some deterministic delay between 0 and 10 ms
-                    if (Number.isNaN(id)) return null; //No such object
-                    if (Math.floor(id) !== id) return null;
+        mockById: async (_obj, args, cache, _info) => {
+            await uutil.sleep(0);
+            const id = Number(args.id);
+            await uutil.sleep(Math.min(id, 10)); //Ensure some deterministic delay between 0 and 10 ms
+            if (Number.isNaN(id)) return null; //No such object
+            if (Math.floor(id) !== id) return null;
 
-                    let ret = cache.mockObjects.find((o) => o.id === args.id);
-                    if (ret === undefined) {
-                        ret = { id: id.toString(), numericId: id };
-                        cache.mockObjects.push(ret);
-                    }
-                    return ret;
-                }
-            )
+            let ret = cache && cache.mockObjects.find((o) => o.id === args.id);
+            if (ret === undefined) {
+                ret = { id: id.toString(), numericId: id };
+                cache.mockObjects.push(ret);
+            }
+            return ret;
+        }
     },
 
     MockObject: {
-        idSquared:
-            forceType<QueryResolvers.MockByIdResolver<number, Partial<MockObject> & { numericId: number }, null>>(
-                async (obj, _args, _context, _info) => {
-                    obj.idSquared = obj.numericId * obj.numericId;
-                    return obj.idSquared;
-                }
-            ),
-        idPlusOne:
-            forceType<QueryResolvers.MockByIdResolver<number, Partial<MockObject> & { numericId: number }, null>>(
-                async (obj, _args, _context, _info) => {
-                    obj.idPlusOne = obj.numericId + 1;
-                    return obj.idPlusOne;
-                }
-            )
+        idSquared: async (inObj, _args, _context, _info) => {
+            const obj = inObj as CachedObject;
+            obj.idSquared = obj.numericId * obj.numericId;
+            return obj.idSquared;
+        },
+        idPlusOne: async (inObj, _args, _context, _info) => {
+            const obj = inObj as CachedObject;
+            obj.idPlusOne = obj.numericId + 1;
+            return obj.idPlusOne;
+        }
     }
 };
 

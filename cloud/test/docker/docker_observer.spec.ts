@@ -104,7 +104,7 @@ describe("Docker observer tests", () => {
         should(result.errors).Undefined();
 
         const data = result.data;
-        if (data === undefined) throw should(data).not.be.Undefined();
+        if (data == null) throw should(data).be.ok();
         if (data.withDockerHost === undefined) throw should(data.withDockerHost).not.be.Undefined();
 
         const containers = data.withDockerHost.ContainerList;
