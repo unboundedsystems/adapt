@@ -407,7 +407,7 @@ export type SFCBuildProps<Props, Defaults extends object = object> =
     & {[K in Extract<keyof Props, keyof Defaults>]: Props[K]}
     & {[K in Exclude<RequiredPropertiesT<Props>, keyof Defaults>]: Props[K]}
     & {[K in Exclude<OptionalPropertiesT<Props>, keyof Defaults>]?: Props[K]}
-    & BuiltinProps;
+    & Required<BuiltinProps>;
 
 export function isComponent<P extends object, S extends object>(func: SFC | Component<P, S>):
     func is Component<P, S> {
