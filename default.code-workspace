@@ -16,9 +16,6 @@
 			"path": "dom-parser"
 		},
 		{
-			"path": "git-server"
-		},
-		{
 			"path": "utils"
 		},
 		{

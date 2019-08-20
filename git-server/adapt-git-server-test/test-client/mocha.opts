@@ -1,4 +1,0 @@
---require source-map-support/register
---require ts-node/register
---watch-extensions ts,tsx
-test/**/*.{ts,tsx}
