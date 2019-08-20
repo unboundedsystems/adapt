@@ -25,7 +25,7 @@ import Adapt, {
     ObserveForStatus,
     waiting
 } from "@adpt/core";
-import { removeUndef } from "@adpt/utils";
+import { InternalError, removeUndef } from "@adpt/utils";
 import * as ld from "lodash";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps } from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
@@ -100,6 +100,8 @@ export class Pod extends DeferredComponent<PodProps> {
     };
 
     build() {
+        const { key } = this.props;
+        if (!key) throw new InternalError("key is null");
         const children = childrenToArray(this.props.children);
 
         if (ld.isEmpty(children)) return null;
@@ -113,7 +115,7 @@ export class Pod extends DeferredComponent<PodProps> {
 
         const manifest = makePodManifest(this.props);
         return (<Resource
-            key={this.props.key}
+            key={key}
             config={this.props.config}
             kind="Pod"
             metadata={manifest.metadata}
@@ -195,7 +197,7 @@ export const podResourceInfo = {
                 }
             }`,
             {
-                name: resourceIdToName(buildData.id, buildData.deployID),
+                name: resourceIdToName(props.key, buildData.id, buildData.deployID),
                 kubeconfig: props.config.kubeconfig,
                 namespace: computeNamespaceFromMetadata(props.metadata)
             }

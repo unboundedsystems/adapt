@@ -453,7 +453,7 @@ export const serviceResourceInfo = {
                 }
             }`,
             {
-                name: resourceIdToName(buildData.id, buildData.deployID),
+                name: resourceIdToName(props.key, buildData.id, buildData.deployID),
                 kubeconfig: props.config.kubeconfig,
                 namespace: computeNamespaceFromMetadata(props.metadata)
             }

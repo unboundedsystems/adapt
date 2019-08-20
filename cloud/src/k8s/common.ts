@@ -35,10 +35,11 @@ export interface Metadata {
     annotations?: { [key: string]: string };
 }
 
-export type ResourceProps =
+export type ResourceProps = { key: string } & (
     ResourcePod |
     ResourceService |
-    ResourceCR;
+    ResourceCR
+);
 
 export interface ResourceInfo {
     kind: Kind;

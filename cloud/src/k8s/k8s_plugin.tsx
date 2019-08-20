@@ -179,8 +179,12 @@ interface Manifest {
     spec: Spec;
 }
 
-export function resourceIdToName(id: string, deployID: string) {
-    return "adapt-resource-" + sha256hex(id + deployID).slice(0, 32);
+export function scrubName(name: string) {
+    return name.toLowerCase().replace(/[^a-z-]/g, "");
+}
+
+export function resourceIdToName(key: string, id: string, deployID: string) {
+    return scrubName(key) + "-" + sha256hex(id + deployID).slice(0, 32);
 }
 
 export function resourceElementToName(
@@ -189,7 +193,7 @@ export function resourceElementToName(
 ): string {
     if (!isResourceFinalElement(elem)) throw new Error("Can only compute name of Resource elements");
     if (!isMountedElement(elem)) throw new Error("Can only compute name of mounted elements");
-    return resourceIdToName(elem.id, deployID);
+    return resourceIdToName(elem.props.key, elem.id, deployID);
 }
 
 function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {
