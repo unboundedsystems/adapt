@@ -40,6 +40,7 @@
         "@types/execa": "^0.9.0",
         "@unboundedsystems/api-extractor": "^7.2.0-unb2",
         "@unboundedsystems/copyright-header": "^0.4.4-unb4",
+        "commander": "^3.0.0",
         "doctoc": "^1.4.0",
         "execa": "^0.10.0",
         "lerna": "^3.13.0",

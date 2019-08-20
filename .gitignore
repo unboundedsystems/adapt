@@ -13,7 +13,8 @@ node_modules
 npm-debug.log.*
 output
 DebugOut
-verdaccio/storage/
+/verdaccio/storage/
 */build/
 */temp/
-web/
+/web/
+/starters/
