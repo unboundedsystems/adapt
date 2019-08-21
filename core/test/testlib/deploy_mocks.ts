@@ -40,11 +40,15 @@ export interface MockDeployOptions {
 export interface DeployOptions {
     dryRun?: boolean;
     once?: boolean;
+    debug?: boolean;
+    style?: AdaptElement | null;
 }
 
 const defaultDeployOptions = {
     dryRun: false,
     once: false,
+    debug: false,
+    style: null,
 };
 
 export interface DeployOutput extends ActComplete {
@@ -117,7 +121,7 @@ export class MockDeploy {
     }
 
     async deploy(orig: AdaptElement | null, options: DeployOptions = {}): Promise<DeployOutput> {
-        const opts = { ...defaultDeployOptions, ...options };
+        const { debug, style, ...opts } = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
         let processStateUpdates: ProcessStateUpdates;
         let builtElements: AdaptMountedElement[];
@@ -133,8 +137,10 @@ export class MockDeploy {
                 dom = null;
             } else {
                 const res = await doBuild(orig, {
+                    debug,
                     deployID: this.deployID,
                     stateStore: this.stateStore,
+                    style,
                 });
                 dom = res.dom;
                 processStateUpdates = res.processStateUpdates;
