@@ -46,6 +46,10 @@ export interface DockerBuildOptions extends DockerGlobalOptions {
      * If false, imageName and imageTag are used without modification.
      */
     uniqueTag?: boolean;
+    /**
+     * If set, will add a Docker LABEL with the DeployID.
+     */
+    deployID?: string;
 }
 
 /**

@@ -181,7 +181,7 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
 
     const externalPort = props.externalPort || props.port;
 
-    return <Sequence>
+    return <Sequence key={props.key} >
         <LocalDockerImage
             handle={img}
             dockerfile={`
@@ -222,14 +222,16 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
                 uniqueTag: true
             }}
         />
-        <Service>
+        <Service key={props.key} >
             <NetworkService
+                key={props.key + "-netsvc"}
                 endpoint={h.create.nginx}
                 port={externalPort}
                 targetPort={props.port}
                 scope="external"
             />
             <Container
+                key={props.key}
                 handle={h.nginx}
                 name="nginx-url-router"
                 image={img}

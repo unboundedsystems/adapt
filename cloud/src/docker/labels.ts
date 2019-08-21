@@ -15,13 +15,13 @@
  */
 
 /**
- * Docker library for Adapt.
- * @public
+ * The base string used for Adapt Docker labels.
+ * @internal
  */
-export * from "./DockerImage";
-export * from "./DockerContainer";
-export * from "./labels";
-export * from "./LocalDockerImage";
-export * from "./LocalDockerRegistry";
-export * from "./RegistryDockerImage";
-export * from "./types";
+export const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
+
+/**
+ * Docker label for the deployID the object was created from.
+ * @internal
+ */
+export const adaptDockerDeployIDKey = adaptDockerKey + ".deployID";

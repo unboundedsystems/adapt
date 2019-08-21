@@ -14,12 +14,17 @@
  * limitations under the License.
  */
 
-import Adapt, { handle, Sequence, useImperativeMethods, useMethod } from "@adpt/core";
+import Adapt, { handle, Sequence, SFCBuildProps, SFCDeclProps, useImperativeMethods, useMethod } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
 import { Container } from "../Container";
 import { NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
+
+export interface TestPostgresProps {
+    mockDataPath: string;
+    mockDbName: string;
+}
 
 /**
  * A component suitable for creating test scenarios that creates a simple,
@@ -27,7 +32,8 @@ import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
  * which implements the abstract {@link postgres.Postgres} interface.
  * @public
  */
-export function TestPostgres(props: { mockDataPath: string, mockDbName: string }) {
+export function TestPostgres(props: SFCDeclProps<TestPostgresProps>) {
+    const bProps = props as SFCBuildProps<TestPostgresProps>;
     const dbCtr = handle();
     const svc = handle();
     const svcHostname = useMethod<string | undefined>(svc, undefined, "hostname");
@@ -37,7 +43,7 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
             if (!svcHostname) return undefined;
             return [
                 { name: "PGHOST", value: svcHostname },
-                { name: "PGDATABASE", value: props.mockDbName },
+                { name: "PGDATABASE", value: bProps.mockDbName },
                 { name: "PGUSER", value: "postgres" },
                 { name: "PGPASSWORD", value: "hello" }
             ];
@@ -46,16 +52,23 @@ export function TestPostgres(props: { mockDataPath: string, mockDbName: string }
 
     const img = handle();
 
-    return <Sequence>
-        <PreloadedPostgresImage handle={img} mockDbName={props.mockDbName} mockDataPath={props.mockDataPath} />
-        <Service>
+    return <Sequence key={bProps.key} >
+        <PreloadedPostgresImage
+            key={bProps.key + "-img"}
+            handle={img}
+            mockDbName={bProps.mockDbName}
+            mockDataPath={bProps.mockDataPath}
+        />
+        <Service key={bProps.key} >
             <NetworkService
+                key={bProps.key + "-netsvc"}
                 handle={svc}
                 scope="cluster-internal"
                 endpoint={dbCtr}
                 port={5432}
             />
             <Container
+                key={bProps.key}
                 name="db"
                 handle={dbCtr}
                 image={img}

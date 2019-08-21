@@ -49,7 +49,7 @@ function mapContainer(absEl: AdaptElement<AbsContainerProps>,
     const { config, containerProps = {}, podProps = {} } = props;
     const { handle: _h, ...absProps } = absEl.props;
     const pod =
-        <Pod config={config} {...podProps} >
+        <Pod config={config} key={absEl.props.key} {...podProps} >
             <Container {...absProps} k8sContainerProps={containerProps} />
         </Pod>;
     absEl.props.handle.replaceTarget(pod, helpers);
@@ -60,7 +60,14 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
     props: ServiceDeploymentProps, helpers: BuildHelpers) {
     const { config, serviceProps = {} } = props;
     const hand = handle();
-    const svc = <Service handle={hand} config={config} {...k8sServiceProps(absEl.props)} {...serviceProps} />;
+    const svc =
+        <Service
+            handle={hand}
+            config={config}
+            key={absEl.props.key}
+            {...k8sServiceProps(absEl.props)}
+            {...serviceProps}
+        />;
     absEl.props.handle.replaceTarget(svc, helpers);
     return svc;
 }

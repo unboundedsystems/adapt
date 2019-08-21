@@ -38,18 +38,8 @@ import {
 } from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
+import { adaptDockerDeployIDKey } from "./labels";
 import { DockerContainerProps, ImageInfo } from "./types";
-
-/**
- * The base string used for Docker container labels.
- * @internal
- */
-export const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
-/**
- * Docker container label for the deployID the container was created from.
- * @internal
- */
-export const adaptDockerDeployIDKey = adaptDockerKey + ".deployID";
 
 export interface DockerContainerStatus extends ContainerStatus { }
 

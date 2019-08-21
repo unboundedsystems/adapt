@@ -208,8 +208,11 @@ export class LocalDockerImage
      * Implementations for Action base class
      * @internal
      */
-    async action(op: ChangeType, _ctx: ActionContext) {
-        const options = this.options_;
+    async action(op: ChangeType, ctx: ActionContext) {
+        const options = {
+            ...this.options_,
+            deployID: ctx.buildData.deployID,
+        };
         const prevUniqueTag = this.state.prevUniqueTag;
 
         if (op === ChangeType.delete) {

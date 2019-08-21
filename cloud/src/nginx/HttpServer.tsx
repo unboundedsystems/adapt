@@ -139,8 +139,9 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
         port: () => callInstanceMethod(netSvc, undefined, "port")
     }));
 
-    const ret = <Sequence>
+    const ret = <Sequence key={props.key} >
         <LocalDockerImage
+            key={props.key + "-img"}
             handle={img}
             dockerfile={dockerfile}
             files={[{
@@ -161,8 +162,9 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
             }}
             stages={stages}
         />
-        <Service>
+        <Service key={props.key} >
             <NetworkService
+                key={props.key + "-netsvc"}
                 handle={netSvc}
                 endpoint={nginx}
                 port={props.port}
@@ -170,6 +172,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
                 scope={props.scope}
             />
             <Container
+                key={props.key}
                 handle={nginx}
                 name="nginx-static"
                 image={img}
