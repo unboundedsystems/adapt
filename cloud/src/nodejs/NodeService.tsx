@@ -169,11 +169,12 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
         image
     }));
 
-    return <Sequence>
+    return <Sequence key={props.key} >
         {deps}
-        <LocalNodeImage handle={img} srcDir={srcDir} options={{ runNpmScripts: "build" }} />
-        <Service>
+        <LocalNodeImage key={props.key + "-img"} handle={img} srcDir={srcDir} options={{ runNpmScripts: "build" }} />
+        <Service key={props.key} >
             <NetworkService
+                key={props.key + "-netsvc"}
                 handle={netSvc}
                 endpoint={nodeCtr}
                 port={externalPort || targetPort}
@@ -181,6 +182,7 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
                 scope={scope}
             />
             <Container
+                key={props.key}
                 name="node-service"
                 handle={nodeCtr}
                 environment={finalEnv}
