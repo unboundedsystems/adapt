@@ -24,6 +24,7 @@ import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
 import { ContainerStatus } from "../Container";
+import { adaptDockerDeployIDKey } from "./labels";
 import {
     DockerBuildOptions,
     DockerContainerProps,
@@ -80,7 +81,7 @@ async function writeFiles(pwd: string, files: File[]) {
     }));
 }
 
-export async function buildFilesImage(files: File[], opts: DockerGlobalOptions) {
+export async function buildFilesImage(files: File[], opts: BuildFilesImageOptions) {
     const dockerfile = `
         FROM scratch
         COPY . /
@@ -93,12 +94,20 @@ export async function buildFilesImage(files: File[], opts: DockerGlobalOptions) 
             imageName: "adapt-tmp-files",
             uniqueTag: true,
             stdin: dockerfile,
+            deployID: opts.deployID,
         });
     }, { prefix: "adapt-docker-build" });
 }
 
+export interface BuildFilesImageOptions extends DockerGlobalOptions {
+    /**
+     * If set, adds a Docker LABEL to the built image with the DeployID.
+     */
+    deployID?: string;
+}
+
 export async function withFilesImage<T>(files: File[] | undefined,
-    opts: DockerGlobalOptions,
+    opts: BuildFilesImageOptions,
     fn: (img: ImageInfo | undefined) => T | Promise<T>): Promise<T> {
 
     if (!files || files.length === 0) return fn(undefined);
@@ -107,7 +116,8 @@ export async function withFilesImage<T>(files: File[] | undefined,
     try {
         return await fn(image);
     } finally {
-        await dockerRemoveImage({ nameOrId: image.id, ...opts });
+        const { deployID, ...rmOpts } = opts;
+        await dockerRemoveImage({ nameOrId: image.id, ...rmOpts });
     }
 }
 
@@ -163,6 +173,9 @@ export async function dockerBuild(
         const tag = createTag(opts.imageTag, opts.uniqueTag);
         nameTag = tag ? `${opts.imageName}:${tag}` : opts.imageName;
         if (!opts.uniqueTag) args.push("-t", nameTag);
+    }
+    if (opts.deployID) {
+        args.push("--label", `${adaptDockerDeployIDKey}=${opts.deployID}`);
     }
     args.push(contextPath);
 
