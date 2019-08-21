@@ -15,7 +15,7 @@
  */
 
 import {
-    getInstanceValue,
+    callInstanceMethod,
     useState,
 } from "@adpt/core";
 import { Dispatcher } from "@adpt/utils";
@@ -39,7 +39,7 @@ export function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
                 done.push(f);
                 continue;
             }
-            const image = getInstanceValue<ImageInfo | undefined>(f.image, undefined, "image", { throwOnNoElem: true });
+            const image = callInstanceMethod<ImageInfo | undefined>(f.image, undefined, "image");
             if (image && isObject(image) && isString(image.id)) {
                 done.push({
                     ...f,

@@ -142,9 +142,7 @@ const defaultProps = {
  *
  *   Returns the port number of the NetworkService, once it is known.
  *
- * Instance properties:
- *
- * - image: {@link docker.ImageInfo} | undefined
+ * - image(): {@link docker.ImageInfo} | undefined
  *
  *   Information about the successfully built image, once it has been built.
  * @public
@@ -166,7 +164,7 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
     useImperativeMethods(() => ({
         hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
         port: () => callInstanceMethod(netSvc, undefined, "port"),
-        image
+        image: () => image,
     }));
 
     return <Sequence key={props.key} >
