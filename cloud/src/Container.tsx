@@ -55,10 +55,6 @@ export type Command = string | string[];
  * A single environment variable for a {@link Container}, expressed as an
  * object with `name` and `value` properties.
  *
- * @remarks
- * See the
- * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
- * for more information.
  * @public
  */
 export interface EnvPair {
