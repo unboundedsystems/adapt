@@ -126,7 +126,7 @@ CTR_PROJECT_ROOT=/src
 BIN_DIR="$(realPath "$(dirname "$0")")"
 PROJECT_ROOT="$(realPath "${BIN_DIR}/..")"
 WORK_DIR="${CTR_PROJECT_ROOT}/$(relativePath "${PROJECT_ROOT}" "${PWD}")"
-INNER_DOCKER_ARGS=(-it --rm -w "${WORK_DIR}" "-v${PROJECT_ROOT}:${CTR_PROJECT_ROOT}" "-v${SCRATCHDIR}:/scratch")
+INNER_DOCKER_ARGS=(-it --rm -w "${WORK_DIR}" "-v${PWD}:/cur" "-v${PROJECT_ROOT}:${CTR_PROJECT_ROOT}" "-v${SCRATCHDIR}:/scratch")
 
 # Unset NPM_CONFIG_LOGLEVEL that the official node container sets so any
 # .npmrc log level settings can take effect if desired
