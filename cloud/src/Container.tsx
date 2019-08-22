@@ -16,6 +16,7 @@
 
 import { AdaptElement, Handle, isHandle, PrimitiveComponent, useMethod } from "@adpt/core";
 import { FIXME_NeedsProperType, } from "@adpt/utils";
+import { isArray } from "lodash";
 import { DockerImageInstance, ImageInfo } from "./docker";
 
 /**
@@ -366,4 +367,28 @@ export function useLatestImageFrom(source: ImageId): string | undefined {
     return (typeof source === "string") ? source :
         image ? image.nameTag :
         undefined;
+}
+
+/**
+ * Renames all variables in `e` based on `mapping`
+ *
+ * @param e - {@link Environment} to rename
+ * @param mapping - Object with `(key, value)` pairs that are `(originalName, newName)` pairs.
+ *
+ * @returns An {@link Environment} object with all variables renamed according to `mapping`
+ *
+ * @public
+ */
+export function renameEnvVars(e: Environment, mapping: { [orig: string]: string }): Environment {
+    function lookup(v: string) { return mapping[v] || v; }
+    if (isArray(e)) {
+        return e.map((p: EnvPair) => ({ name: lookup(p.name), value: p.value }));
+    }
+    const ret: EnvSimple = {};
+    for (const k in e) {
+        if (Object.hasOwnProperty.call(e, k)) {
+            ret[lookup(k)] = e[k];
+        }
+    }
+    return ret;
 }

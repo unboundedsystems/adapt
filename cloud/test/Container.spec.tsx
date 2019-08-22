@@ -41,7 +41,13 @@ import {
     Container as AContainer,
     createAnsiblePlugin
 } from "../src/ansible";
-import { Container, ContainerProps, ContainerStatus } from "../src/Container";
+import {
+    Container,
+    ContainerProps,
+    ContainerStatus,
+    Environment,
+    renameEnvVars
+} from "../src/Container";
 import { act, randomName } from "./testlib";
 
 const { deleteContainer } = dockerutils;
@@ -105,7 +111,7 @@ describe("Container component", () => {
             </Group>;
         const style =
             <Style>
-                {Container} {rule<ContainerProps>(({handle, ...props}) => <AContainer {...props} />)}
+                {Container} {rule<ContainerProps>(({ handle, ...props }) => <AContainer {...props} />)}
             </Style>;
         const stateStore = createStateStore();
         const { mountedOrig, contents: dom } = await build(root, style, { stateStore });
@@ -144,5 +150,44 @@ describe("Container component", () => {
         should(ctrStatus.Path).equal("sleep");
         should(ctrStatus.Args).eql(["100000"]);
         should(ctrStatus.State.Status).equal("running");
+    });
+});
+
+describe("renameEnvVars Tests", () => {
+    const mapping = {
+        BAR: "NEW_BAR",
+        BAZ: "NEW_BAZ"
+    };
+
+    it("should rename SimpleEnv style Environment object", () => {
+        const orig: Environment = {
+            FOO: "fooval",
+            BAR: "barval",
+            BAZ: "bazval"
+        };
+
+        const xformed = renameEnvVars(orig, mapping);
+
+        should(xformed).eql({
+            FOO: "fooval",
+            NEW_BAR: "barval",
+            NEW_BAZ: "bazval"
+        });
+    });
+
+    it("should rename EnvPair[] style Environment objects", () => {
+        const orig: Environment = [
+            { name: "FOO", value: "fooval" },
+            { name: "BAR", value: "barval" },
+            { name: "BAZ", value: "bazval" }
+        ];
+
+        const xformed = renameEnvVars(orig, mapping);
+
+        should(xformed).eql([
+            { name: "FOO", value: "fooval" },
+            { name: "NEW_BAR", value: "barval" },
+            { name: "NEW_BAZ", value: "bazval" }
+        ]);
     });
 });
