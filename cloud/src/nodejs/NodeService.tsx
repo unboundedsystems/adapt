@@ -20,11 +20,10 @@ import Adapt, {
     handle,
     Sequence,
     SFCDeclProps,
-    useAsync,
     useImperativeMethods,
     useMethod,
 } from "@adpt/core";
-import { toArray } from "@adpt/utils";
+import { useConnectTo } from "../ConnectTo";
 import { Container, Environment, mergeEnvPairs } from "../Container";
 import { ImageInfo } from "../docker";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
@@ -153,10 +152,8 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
     const netSvc = handle();
     const nodeCtr = handle();
 
-    const connectEnvs = useAsync<(Environment | undefined)[]>(() => {
-        return toArray(connectTo).map((h) => callInstanceMethod(h, undefined, "connectEnv"));
-    }, []);
-    const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, ...connectEnvs, env);
+    const connectEnvs = useConnectTo(connectTo);
+    const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, connectEnvs, env);
 
     const img = handle();
     const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
