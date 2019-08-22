@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-import { Environment } from "./Container";
+import { callInstanceMethod, Handle, useAsync } from "@adpt/core";
+import { toArray } from "@adpt/utils";
+import { Environment, mergeEnvPairs } from "./Container";
 
 /**
  * Components that provide a service, such as a database service or API
@@ -57,4 +59,24 @@ export interface ConnectToInstance {
      * until all required connection information is available.
      */
     connectEnv(): Environment | undefined;
+}
+
+/**
+ * Hook that will build an {@link Environment} object from components that comply with {@link ConnectToInstance}
+ *
+ * @param connectTo - A handle or array of handles that point to components that implement {@link ConnectToInstance}
+ * @param xform - A method that can transform the provided environment before it is returned
+ *
+ * @remarks
+ * See {@link renameEnvVars} as a function that is useful as an `xform` argument.
+ *
+ * @public
+ */
+export function useConnectTo(connectTo: Handle | Handle[],
+    xform?: (e: Environment | undefined) => Environment): Environment | undefined {
+    const lxform = xform || ((x) => x);
+    const connectEnvs = useAsync<(Environment | undefined)[]>(() =>
+        toArray(connectTo)
+            .map((h) => lxform(callInstanceMethod(h, undefined, "connectEnv"))), []);
+    return mergeEnvPairs(...connectEnvs);
 }
