@@ -1,0 +1,15 @@
+{
+  "name": "reactapp-api",
+  "version": "0.0.1",
+  "description": "API endpoint for demo app",
+  "main": "index.js",
+  "scripts": {
+    "build": ":"
+  },
+  "author": "",
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "express": "^4.16.2",
+    "pg": "^7.9.0"
+  }
+}
