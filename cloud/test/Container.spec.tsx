@@ -46,7 +46,9 @@ import {
     ContainerProps,
     ContainerStatus,
     Environment,
-    renameEnvVars
+    lookupEnvVar,
+    renameEnvVars,
+    updateEnvVars
 } from "../src/Container";
 import { act, randomName } from "./testlib";
 
@@ -150,6 +152,80 @@ describe("Container component", () => {
         should(ctrStatus.Path).equal("sleep");
         should(ctrStatus.Args).eql(["100000"]);
         should(ctrStatus.State.Status).equal("running");
+    });
+});
+
+describe("lookupEnvVar Tests", () => {
+    it("should lookup in SimpleEnv style Environment object", () => {
+        const env = {
+            FOO: "fooval",
+            BAR: "barval"
+        };
+
+        should(lookupEnvVar(env, "FOO")).equal("fooval");
+        should(lookupEnvVar(env, "BAR")).equal("barval");
+        should(lookupEnvVar(env, "BAZ")).Undefined();
+    });
+
+    it("should lookup in an EnvPair[] style Environment object", () => {
+        const env = [
+            { name: "FOO", value: "fooval" },
+            { name: "BAR", value: "barval" }
+        ];
+
+        should(lookupEnvVar(env, "FOO")).equal("fooval");
+        should(lookupEnvVar(env, "BAR")).equal("barval");
+        should(lookupEnvVar(env, "BAZ")).Undefined();
+    });
+});
+
+describe("updateEnvVars Tests", () => {
+    function upd(name: string, value: string) {
+        switch (name) {
+            case "FOO": return { name: "NEW_FOO", value: "newfooval" };
+            case "BAR": return { name: "NEW_BAR", value };
+            case "BAZ": return { name, value: "newbazval" };
+            case "REMOVE": return undefined;
+            default: return { name, value };
+        }
+    }
+
+    it("should update names and values in SimpleEnv style Environment object", () => {
+        const orig: Environment = {
+            FOO: "fooval",
+            BAR: "barval",
+            BAZ: "bazval",
+            REMOVE: "oldval",
+            NOTOUCH: "origval"
+        };
+
+        const xformed = updateEnvVars(orig, upd);
+
+        should(xformed).eql({
+            NEW_FOO: "newfooval",
+            NEW_BAR: "barval",
+            BAZ: "newbazval",
+            NOTOUCH: "origval"
+        });
+    });
+
+    it("should update names and values in EnvPair[] style Environment object", () => {
+        const orig: Environment = [
+            { name: "FOO", value: "fooval" },
+            { name: "BAR", value: "barval" },
+            { name: "BAZ", value: "bazval" },
+            { name: "REMOVE", value: "oldval" },
+            { name: "NOTOUCH", value: "origval" }
+        ];
+
+        const xformed = updateEnvVars(orig, upd);
+
+        should(xformed).eql([
+            { name: "NEW_FOO", value: "newfooval" },
+            { name: "NEW_BAR", value: "barval" },
+            { name: "BAZ", value: "newbazval" },
+            { name: "NOTOUCH", value: "origval" }
+        ]);
     });
 });
 
