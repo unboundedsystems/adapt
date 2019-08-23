@@ -132,7 +132,7 @@ INNER_DOCKER_ARGS=(-it --rm -w "${WORK_DIR}" "-v${PWD}:/cur" "-v${PROJECT_ROOT}:
 # .npmrc log level settings can take effect if desired
 INNER_DOCKER_ARGS+=(-e NPM_CONFIG_LOGLEVEL)
 
-# Tell adapt CLI to use the local registry
-INNER_DOCKER_ARGS+=(-e ADAPT_NPM_REGISTRY=http://127.0.0.1:4873)
+# Use the local registry
+INNER_DOCKER_ARGS+=(-e NPM_CONFIG_REGISTRY=http://127.0.0.1:4873)
 
 exec docker run "${INNER_DOCKER_ARGS[@]}" ${DOCKER_ARGS:-} "${IMAGE}" sh -c "${WRAPPER}"
