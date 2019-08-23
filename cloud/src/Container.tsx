@@ -15,7 +15,7 @@
  */
 
 import { AdaptElement, Handle, isHandle, PrimitiveComponent, useMethod } from "@adpt/core";
-import { FIXME_NeedsProperType, } from "@adpt/utils";
+import { FIXME_NeedsProperType, notNull, } from "@adpt/utils";
 import { isArray } from "lodash";
 import { DockerImageInstance, ImageInfo } from "./docker";
 
@@ -328,7 +328,7 @@ export function mergeEnvPairs(...envs: (Environment | undefined)[]): EnvPairs | 
         if (Array.isArray(e)) e.forEach((pair) => vals.set(pair.name, pair));
         else Object.keys(e).map((name) => vals.set(name, { name, value: e[name] }));
     }
-    return vals.size ? [ ...vals.values() ] : undefined;
+    return vals.size ? [...vals.values()] : undefined;
 }
 
 /**
@@ -366,7 +366,7 @@ export function useLatestImageFrom(source: ImageId): string | undefined {
     if (image && !image.nameTag) throw new Error(`Built image info has no nameTag`);
     return (typeof source === "string") ? source :
         image ? image.nameTag :
-        undefined;
+            undefined;
 }
 
 /**
@@ -375,19 +375,53 @@ export function useLatestImageFrom(source: ImageId): string | undefined {
  * @param e - {@link Environment} to rename
  * @param mapping - Object with `(key, value)` pairs that are `(originalName, newName)` pairs.
  *
- * @returns An {@link Environment} object with all variables renamed according to `mapping`
+ * @returns A new {@link Environment} object with all variables renamed according to `mapping`
  *
  * @public
  */
 export function renameEnvVars(e: Environment, mapping: { [orig: string]: string }): Environment {
-    function lookup(v: string) { return mapping[v] || v; }
+    return updateEnvVars(e, (name, value) => ({ name: mapping[name] || name, value }));
+}
+
+/**
+ * Find the value of an environment variable in an {@link Environment}
+ *
+ * @param e - {@link Environment} to search
+ * @param name - variable to search for
+ * @returns the value of the variable name in e, or undefined if not found
+ *
+ * @public
+ */
+export function lookupEnvVar(e: Environment, name: string): string | undefined {
+    if (Array.isArray(e)) {
+        const pair = e.find((p) => p.name === name);
+        if (pair === undefined) return undefined;
+        return pair.value;
+    } else {
+        return e[name];
+    }
+}
+
+/**
+ * Updates the names and/or values of variables in an {@link Environment}
+ *
+ * @param e - The source {@link Environment}
+ * @param upd - Updated function that returns an EnvPair with the new name and value of the variable
+ * @returns - A new {@link Environment} that is identical to `e` except for the updates done by `upd`
+ *
+ * @public
+ */
+export function updateEnvVars(e: Environment, upd: (name: string, value: string) => EnvPair | undefined) {
     if (isArray(e)) {
-        return e.map((p: EnvPair) => ({ name: lookup(p.name), value: p.value }));
+        return e.map((p: EnvPair) => upd(p.name, p.value)).filter(notNull);
     }
     const ret: EnvSimple = {};
     for (const k in e) {
         if (Object.hasOwnProperty.call(e, k)) {
-            ret[lookup(k)] = e[k];
+            const res = upd(k, e[k]);
+            if (notNull(res)) {
+                ret[res.name] = res.value;
+            }
         }
     }
     return ret;
