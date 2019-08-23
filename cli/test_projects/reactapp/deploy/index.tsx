@@ -18,7 +18,7 @@ function App() {
                 { path: "/", endpoint: app }
             ]} />
 
-        <ReactApp handle={app} srcDir=".." />
+        <ReactApp handle={app} srcDir="../frontend" />
 
         <NodeService handle={api} srcDir="../backend" connectTo={pg} />
 
