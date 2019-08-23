@@ -1,30 +1,28 @@
-import { HttpServer, UrlRouter } from "@adpt/cloud/http";
-import { NodeService } from "@adpt/cloud/nodejs";
+import { UrlRouter } from "@adpt/cloud/http";
+import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
 import Adapt, { Group, handle } from "@adpt/core";
 import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
 function App() {
     const pg = handle();
+    const app = handle();
     const api = handle();
-    const stat = handle();
 
-    return <Group key="App">
+    return <Group>
 
         <UrlRouter
             port={8080}
             routes={[
                 { path: "/api/", endpoint: api },
-                { path: "/", endpoint: stat }
+                { path: "/", endpoint: app }
             ]} />
 
-        <NodeService handle={api} srcDir=".." connectTo={pg} />
+        <ReactApp handle={app} srcDir="../frontend" />
+
+        <NodeService handle={api} srcDir="../backend" connectTo={pg} />
 
         <Postgres handle={pg} />
-
-        <HttpServer handle={stat} scope="cluster-internal"
-            add={[{ type: "image", image: api, stage: "app",
-                    files: [{ src: "/app/build", dest: "/www/static" }]}]} />
 
     </Group>;
 }

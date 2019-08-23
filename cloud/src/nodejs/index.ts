@@ -20,3 +20,4 @@
  */
 export * from "./NodeService";
 export * from "./LocalNodeImage";
+export * from "./ReactApp";
