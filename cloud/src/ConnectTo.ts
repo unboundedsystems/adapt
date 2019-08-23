@@ -66,8 +66,20 @@ export interface ConnectToInstance {
  *
  * @param connectTo - A handle or array of handles that point to components that implement {@link ConnectToInstance}
  * @param xform - A method that can transform the provided environment before it is returned
+ * @returns Merged {@link Environment} with variables provided by `connectTo` components, or undefined
  *
  * @remarks
+ * Note that this is a hook, and so on first run this will return undefined.
+ * After a full build, a state update will trigger a rebuild, at which point
+ * the returned Environment will begin to be populated with the variables as
+ * the various components are ready to provide them.  However, it can take multiple
+ * turns of the build-deploy loop to get all the variables.
+ *
+ * Moreover, just because a component returns connection information in a variable
+ * does not mean it is ready to accept traffic at that time.  Components that use this
+ * hook to get connection information for other services must be prepared for those
+ * services to be temporarily unavailable.
+ *
  * See {@link renameEnvVars} as a function that is useful as an `xform` argument.
  *
  * @public
