@@ -425,6 +425,8 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
 
 export async function buildAndDeploy(options: BuildOptions): Promise<DeployState> {
     debugAction(`buildAndDeploy: start`);
+
+    const initial = await currentState(options);
     const topTask = options.taskObserver;
     const tasks = topTask.childGroup().add({
         compile: "Compiling project",
@@ -433,11 +435,6 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         observe: "Observing environment",
         deploy: "Deploying",
     });
-    const deployTasks = tasks.deploy.childGroup({ serial: false }).add({
-        status: "Deployment progress",
-        act: "Applying changes to environment",
-    });
-    const initial = await currentState(options);
 
     return withContext(initial, async (ctx: AdaptContext): Promise<DeployState> => {
         const { commit, deployment, stateStore } = initial;
@@ -445,8 +442,10 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
         // This is the inner context's copy of Adapt
         const inAdapt = ctx.Adapt;
 
-        // This grabs a lock on the deployment's uncommitted data dir
-        const dataDir = await deployment.getDataDir(HistoryStatus.complete);
+        const deployTasks = tasks.deploy.childGroup({ serial: false }).add({
+            status: "Deployment progress",
+            act: "Applying changes to environment",
+        });
 
         try {
             debugAction(`buildAndDeploy: build deployOpID: ${initial.deployOpID}`);
@@ -478,17 +477,18 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             const obs = await tasks.observe.complete(() => observe(observeOptions));
 
             debugAction(`buildAndDeploy: deploy`);
-            const { needsData, ...fromBuild } = obs;
-            const passOpts: DeployPassOptions = {
-                ...fromBuild,
-                actTaskObserver: deployTasks.act,
-                dataDir,
-                prevDom,
-                taskObserver: deployTasks.status,
-            };
             const result = await tasks.deploy.complete(() =>
                 deployTasks.status.complete(async () => {
                     try {
+                        const dataDir = await deployment.getDataDir(HistoryStatus.complete);
+                        const { needsData, ...fromBuild } = obs;
+                        const passOpts: DeployPassOptions = {
+                            ...fromBuild,
+                            actTaskObserver: deployTasks.act,
+                            dataDir,
+                            prevDom,
+                            taskObserver: deployTasks.status,
+                        };
                         while (true) {
                             const res = await deployPass(passOpts);
                             if (!res.deployComplete && !res.stateChanged) {
