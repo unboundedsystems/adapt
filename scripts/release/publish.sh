@@ -13,10 +13,12 @@ Usage:
   $0 [ FLAGS ] [ VERSION_TYPE ]
 
   VERSION_TYPE:
-      One of: major, minor, or patch
+      One of: major, minor, patch, or from-package
       For a release branch, the default VERSION_TYPE is patch.
       For any other branch, VERSION_TYPE is ignored and always
       set to prerelease.
+      Use from-package to publish without making any change to the current
+      package.json versions.
 
   FLAGS:
       --dev         Allow publishing from a non-release branch
