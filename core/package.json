@@ -56,8 +56,8 @@
     "tsc": "tsc -p tsconfig.json",
     "build": "npm run gql-gen && npm run tsc",
     "build:watch": "make build && tsc -w -p tsconfig.json",
-    "lint": "tslint -e '**/*.json' --project .",
-    "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
+    "lint": "tslint -e 'generated/**' -e '**/*.json' --project .",
+    "lint-and-fix": "tslint -e 'generated/**' -e '**/*.json' --project . --fix",
     "test": "mocha --opts mocha.opts"
   },
   "devDependencies": {
