@@ -20,7 +20,8 @@ import Listr, { ListrTask, ListrTaskWrapper } from "listr";
 import pDefer from "p-defer";
 import { CustomError } from "ts-custom-error";
 
-const debug = db("cli:tasks");
+const debug = db("adapt:cli:tasks");
+const debugDetail = db("adapt:detail:cli:tasks");
 
 export class DynamicTaskFailed extends CustomError { }
 
@@ -157,6 +158,11 @@ function updateTask(registry: TaskRegistry, id: string, event?: TaskEvent, statu
             break;
         case TaskEvent.Failed:
             const err = new DynamicTaskFailed(status);
+            if (taskStatus.childGroup) {
+                debugDetail("Warning: Child group task Failed and no child has failed: "
+                    + `status: ${taskStatus.status}`
+                    + `settled: ${taskStatus.settled}`);
+            }
             if (!taskStatus.settled) taskStatus.dPromise.reject(err);
             else if (taskStatus.task) taskStatus.task.report(err);
             else throw new Error(`Internal error: dynamic task ${id} cannot report error ${err}`);
