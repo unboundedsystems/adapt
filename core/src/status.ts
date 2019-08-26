@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { isMultiError, MultiError } from "@adpt/utils";
+import { isMultiError, isObject, MultiError } from "@adpt/utils";
 import { DocumentNode as Query } from "graphql";
 import ld from "lodash";
 import pSettle from "p-settle";
@@ -66,7 +66,7 @@ export function errorToNoStatus(err: any): Status {
 export function gqlGetOriginalErrors(err: any): Error[] | undefined {
     if (!isMultiError(err)) return undefined;
     return err.errors.map((e: any) => {
-        const orig = ld.isObject(e) && e.name === "GraphQLError" && e.originalError;
+        const orig = isObject(e) && e.name === "GraphQLError" && e.originalError;
         return orig || e;
     });
 }

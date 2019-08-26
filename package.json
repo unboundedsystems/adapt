@@ -36,18 +36,19 @@
         ]
     },
     "devDependencies": {
-        "@microsoft/api-documenter": "^7.3.3",
+        "@microsoft/api-documenter": "^7.3.16",
         "@types/execa": "^0.9.0",
         "@unboundedsystems/api-extractor": "^7.2.0-unb2",
         "@unboundedsystems/copyright-header": "^0.4.4-unb4",
         "commander": "^3.0.0",
         "doctoc": "^1.4.0",
         "execa": "^0.10.0",
-        "lerna": "^3.13.0",
+        "lerna": "^3.16.4",
         "lint-staged": "^9.2.1",
+        "nyc": "^13.3.0",
         "semver": "^5.6.0",
         "tslint": "^5.18.0",
-        "typescript": "^3.0.3"
+        "typescript": "3.0.3"
     },
     "scripts": {
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",

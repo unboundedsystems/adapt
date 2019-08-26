@@ -24,24 +24,23 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "dependencies": {
-    "lodash": "^4.17.10",
+    "lodash": "^4.17.15",
     "stream-buffers": "^3.0.2",
     "ts-custom-error": "^3.1.1",
-    "tslib": "^1.9.3",
+    "tslib": "^1.10.0",
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.108",
+    "@types/lodash": "^4.14.137",
     "@types/mocha": "^5.2.0",
     "@types/node": "^10.11.7",
-    "@types/stream-buffers": "^3.0.2",
+    "@types/stream-buffers": "^3.0.3",
     "@types/xml2js": "^0.4.3",
     "mocha": "^5.1.1",
     "mocha-slow-options": "^0.0.2",
-    "nyc": "^12.0.2",
-    "should": "^13.2.1",
-    "source-map-support": "^0.5.5",
-    "typescript": "^3.0.3"
+    "should": "^13.2.3",
+    "source-map-support": "^0.5.13",
+    "typescript": "3.0.3"
   },
   "files": [
     "dist/src"

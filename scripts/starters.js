@@ -17,6 +17,7 @@
  */
 
 
+const chalk = require("chalk").default;
 const program = require("commander");
 const execa = require("execa");
 const fs = require("fs-extra");
@@ -46,6 +47,15 @@ program
     .command("tag <tag>")
     .description("Tag all starters")
     .action(cliHandler(commandTag));
+
+program.on("command:*", () => {
+    console.error(chalk.bold(`\nInvalid command: ${program.args.join(' ')}\n`));
+    program.help(); // Exits
+});
+
+if (process.argv.length <= 2) {
+    program.help(); // Exits
+}
 
 program.parse(process.argv);
 

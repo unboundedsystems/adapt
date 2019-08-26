@@ -15,11 +15,12 @@
  */
 
 import {
+    isObject,
     Logger,
     MessageLogger,
     TaskObserver,
 } from "@adpt/utils";
-import { isFunction, isObject, isString } from "lodash";
+import { isFunction, isString } from "lodash";
 import { DomDiff } from "../dom_utils";
 import { InternalError } from "../error";
 import { Handle } from "../handle";

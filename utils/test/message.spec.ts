@@ -96,6 +96,7 @@ describe("MessageStreamServer tests", () => {
         checkMessage(server.messages[3], "task");
 
         const out = outStream.getContentsAsString();
+        if (out === false) throw should(out).be.ok();
         const jsons = out.split("\n").filter((s) => s);
         const msgs = jsons.map((s) => JSON.parse(s));
         should(msgs).have.length(4);
@@ -132,6 +133,7 @@ describe("MessageStreamServer tests", () => {
         checkMessage(root.messages[3], "task", "root");
 
         const out = outStream.getContentsAsString();
+        if (out === false) throw should(out).be.ok();
         const jsons = out.split("\n").filter((s) => s);
         const msgs = jsons.map((s) => JSON.parse(s));
         should(msgs).have.length(4);
@@ -171,6 +173,7 @@ describe("MessageStreamServer tests", () => {
             checkMessage(root.messages[2], "stderr", "root", "\n");
 
             const out = outStream.getContentsAsString();
+            if (out === false) throw should(out).be.ok();
             const jsons = out.split("\n").filter((s) => s);
             const msgs = jsons.map((s) => JSON.parse(s));
             should(msgs).have.length(3);

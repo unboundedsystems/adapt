@@ -15,7 +15,7 @@
  */
 
 import { domFromString, DOMNode, isDOMNode } from "@adpt/dom-parser";
-import { Constructor } from "@adpt/utils";
+import { Constructor, isObject } from "@adpt/utils";
 import * as ld from "lodash";
 import * as util from "util";
 import { InternalError } from "../error";
@@ -87,14 +87,14 @@ async function makeHandle(val: HandleObj, handleReg: HandleReg): Promise<unknown
 
 //val must be a pod, prototpyes are not preserved
 async function convertHandles(val: any, handleReg: HandleReg): Promise<unknown> {
-    if (!(ld.isObject(val) || ld.isArray(val))) return val;
-    if (ld.isObject(val) && isHandleObj(val)) return makeHandle(val, handleReg);
+    if (!(isObject(val) || ld.isArray(val))) return val;
+    if (isObject(val) && isHandleObj(val)) return makeHandle(val, handleReg);
     if (ld.isArray(val)) {
         const retP = val.map(async (v) => convertHandles(v, handleReg));
         const ret = Promise.all(retP);
         return ret;
     }
-    if (ld.isObject(val)) {
+    if (isObject(val)) {
         const ret: any = {};
         for (const key of Object.keys(val)) {
             ret[key] = await convertHandles(val[key], handleReg);

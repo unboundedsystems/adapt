@@ -23,7 +23,7 @@ import {
     throwObserverErrors,
 } from "@adpt/core";
 import { execute, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
-import GraphQLJSON = require("graphql-type-json");
+import GraphQLJSON from "graphql-type-json";
 import * as https from "https";
 import jsonStableStringify = require("json-stable-stringify");
 import fetch, { Response } from "node-fetch";

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { isFunction, isObject } from "lodash";
+import { isObject } from "@adpt/utils";
+import { isFunction } from "lodash";
 import { InternalError } from "../error";
 import { AnyState, isElementImpl } from "../jsx";
 import { currentContext } from "./hooks";

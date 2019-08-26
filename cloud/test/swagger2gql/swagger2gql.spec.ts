@@ -288,7 +288,7 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
         should(result.errors).Undefined();
 
         const data = result.data;
-        if (data === undefined) return should(data).not.Undefined();
+        if (data == null) throw should(data).be.ok();
 
         const pods = data.listCoreV1NamespacedPod;
         if (pods === undefined) return should(pods).not.Undefined();

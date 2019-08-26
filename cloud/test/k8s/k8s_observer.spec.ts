@@ -140,7 +140,7 @@ describe("k8s observer tests", () => {
         should(result.errors).Undefined();
 
         const data = result.data;
-        if (data === undefined) return should(data).not.Undefined();
+        if (data == null) throw should(data).be.ok();
         if (data.withKubeconfig === undefined) return should(data.withKubeconfig).not.Undefined();
 
         const podList = data.withKubeconfig.listCoreV1NamespacedPod;

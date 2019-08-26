@@ -121,3 +121,8 @@ export type TupleToUnion<T extends Literal[]> = T[number];
 export type FIXME_NeedsProperType = unknown;
 
 export type MaybePromise<T> = T | Promise<T>;
+
+export interface AnyObject {
+    [ key: string ]: any;
+    [ key: number ]: any;
+}

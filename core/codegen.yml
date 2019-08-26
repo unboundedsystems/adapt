@@ -1,0 +1,22 @@
+documents: []
+config: {}
+generates:
+  generated/test/observers/test_observer_schema_types.ts:
+    schema: "./test/observers/test_observer.graphql"
+    config:
+      useIndexSignature: true
+    plugins:
+      - typescript
+      - typescript-resolvers
+
+  generated/src/observers/mock_observer_schema_types.ts:
+    schema: "./src/observers/mock_observer.graphql"
+    config:
+      useIndexSignature: true
+    plugins:
+      - typescript
+      - typescript-resolvers
+
+require: []
+
+

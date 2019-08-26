@@ -22,7 +22,7 @@ import {
 import { makeExecutableSchema } from "graphql-tools";
 import * as ld from "lodash";
 import * as path from "path";
-import { Foo, QueryResolvers } from "../../generated/test/observers/test_observer_schema_types";
+import { QueryResolvers } from "../../generated/test/observers/test_observer_schema_types";
 import { ObserverPlugin } from "../../src/observers";
 
 export const modelData = {
@@ -37,14 +37,13 @@ const schemaStr = fs.readFileSync(graphqlFilename).toString();
 function id<T>(x: T): T { return x; }
 
 const resolvers = {
-    Query: {
-        fooById: id<QueryResolvers.FooByIdResolver<Foo | null, typeof modelData, null>>(
-            async (obj, args, _context, _info) => {
+    Query: id<QueryResolvers<any, typeof modelData>>({
+        fooById: async (obj, args, _context, _info) => {
                 await uutil.sleep(0);
                 const ret = obj.foos.find((foo) => foo.id.toString() === args.id);
                 return ret === undefined ? null : ret;
-            })
-    }
+            }
+    })
 };
 
 function rotate<T>(x: T[], amt: number): T[] {
@@ -57,9 +56,8 @@ function rotate<T>(x: T[], amt: number): T[] {
 
 let rotation = 0;
 const rotatingPayloadResolvers = {
-    Query: {
-        fooById: id<QueryResolvers.FooByIdResolver<Foo | null, typeof modelData, null>>(
-            async (obj, args, _context, _info) => {
+    Query: id<QueryResolvers<any, typeof modelData>>({
+        fooById: async (obj, args, _context, _info) => {
                 await uutil.sleep(0);
                 let ret = obj.foos.find((foo) => foo.id.toString() === args.id);
                 if (ret === undefined) return null;
@@ -67,8 +65,8 @@ const rotatingPayloadResolvers = {
                 ret.payload = rotate(ret.payload, rotation);
                 rotation++;
                 return ret;
-            })
-    }
+            }
+    })
 };
 
 abstract class BaseTestObserver implements ObserverPlugin<typeof modelData, typeof modelData> {

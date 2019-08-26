@@ -62,7 +62,7 @@ import {
     createObserverManagerDeployment, isObserverNeedsData, ObserverManagerDeployment
 } from "./observers";
 
-import { Message, MessageType, notNull, removeUndef } from "@adpt/utils";
+import { isObject, Message, MessageType, notNull, removeUndef } from "@adpt/utils";
 import { OmitT, WithPartialT } from "type-ops";
 import { DomError, isDomErrorElement } from "./builtin_components";
 import {
@@ -656,7 +656,7 @@ export interface BuildOutputPartial extends BuildOutputBase {
 }
 export function isBuildOutputPartial(v: any): v is BuildOutputPartial {
     return (
-        ld.isObject(v) &&
+        isObject(v) &&
         v.partialBuild === true &&
         (v.contents === null || isPartialFinalDomElement(v.contents))
     );
@@ -681,7 +681,7 @@ export interface BuildOutputSuccess extends BuildOutputBase {
 }
 export function isBuildOutputSuccess(v: any): v is BuildOutputSuccess {
     return (
-        ld.isObject(v) &&
+        isObject(v) &&
         v.partialBuild === false &&
         v.buildErr !== true &&
         (v.contents === null || isFinalDomElement(v.contents))

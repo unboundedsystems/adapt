@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { isObject } from "@adpt/utils";
 import ld from "lodash";
 import { isElement } from "../jsx";
 
@@ -23,7 +24,7 @@ export const publicElementFields = {
 };
 
 export function deepFilterElemsToPublic(o: any): any {
-    if (!ld.isObject(o)) return o;
+    if (!isObject(o)) return o;
 
     if (ld.isArray(o)) {
         return o.map((item) => deepFilterElemsToPublic(item));

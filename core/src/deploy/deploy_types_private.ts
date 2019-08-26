@@ -15,9 +15,10 @@
  */
 
 import {
+    isObject,
     TaskObserver,
 } from "@adpt/utils";
-import { isFunction, isObject, isString } from "lodash";
+import { isFunction, isString } from "lodash";
 import {
     AdaptMountedElement,
 } from "../jsx";

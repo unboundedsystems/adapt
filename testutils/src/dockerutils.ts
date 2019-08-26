@@ -45,7 +45,7 @@ export async function dockerExec(container: Docker.Container, command: string[])
                 rej(new Error(msg));
                 return;
             }
-            res(buf.getContentsAsString());
+            res(buf.getContentsAsString() || "");
         });
     });
 }
