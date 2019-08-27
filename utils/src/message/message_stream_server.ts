@@ -34,7 +34,7 @@ export interface MessageStreamServerOptions {
     interceptStdio?: boolean;
 }
 
-type WriteCallback = (error: Error | null | undefined) => void;
+export type WriteCallback = (error: Error | null | undefined) => void;
 
 const intercepted = new Map<Writable, Writable["write"]>();
 
