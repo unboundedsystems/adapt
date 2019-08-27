@@ -124,8 +124,10 @@
     "ts-custom-error": "^3.1.1",
     "tslib": "^1.10.0",
     "type-name": "^2.0.2",
-    "typescript": "3.4.5",
     "urn-lib": "^1.1.2",
     "xmlbuilder": "^10.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=3.0.3"
   }
 }
