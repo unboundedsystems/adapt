@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { BuildData, ObserveForStatus } from "@adpt/core";
+import { BuildData, ObserveForStatus, WithChildren } from "@adpt/core";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
@@ -66,7 +66,7 @@ export interface ResourceBase {
     metadata?: Metadata;
 }
 
-export interface ResourcePod extends ResourceBase {
+export interface ResourcePod extends ResourceBase, WithChildren {
     kind: "Pod";
     spec: PodSpec;
 }

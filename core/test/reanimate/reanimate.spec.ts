@@ -319,7 +319,7 @@ describe("registerConstructor", () => {
     });
 
     it("Should store and reanimate nested constructor", async () => {
-        await basicTestConstructor("baseReg", "BaseReg", "BaseRegNested");
+        await basicTestConstructor("baseReg", "BaseReg", "BaseRegNested" as "BaseReg");
     });
     it("Should store and reanimate derived class", async () => {
         await basicTestConstructor("baseReg", "Derived");

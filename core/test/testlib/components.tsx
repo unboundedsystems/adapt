@@ -35,7 +35,7 @@ export function checkChildComponents(element: Adapt.AdaptElement, ...children: a
     should(childComponents).eql(children);
 }
 
-export class Empty extends Adapt.PrimitiveComponent<{ id: number }> { }
+export class Empty extends Adapt.PrimitiveComponent<{ id: number } & Adapt.WithChildren> { }
 
 export function MakeMakeEmpty(props: { id: number }) {
     return <MakeEmpty id={props.id} />;

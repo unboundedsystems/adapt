@@ -109,6 +109,7 @@ function makeMultiGetSwagger(paths: { path: string, op: string, responseSchema: 
 
 function swaggerResolverFactory(spec: Swagger2, host: string, agent?: https.Agent,
     headers?: { [index: string]: string }): ResolverFactory {
+    if (spec.swagger !== "2.0") throw new Error(`Bad swagger version '${spec.swagger}'`);
     return {
         fieldResolvers: (_type, fieldName, isQuery) => {
             if (!isQuery) return;
@@ -266,7 +267,7 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
         const headers = authHeaders(info);
         schema = swagger2gql(
             k8sSwagger,
-            swaggerResolverFactory(k8sSwagger, host, agent, headers));
+            swaggerResolverFactory(k8sSwagger as any as Swagger2, host, agent, headers));
     });
 
     it("Should convert and reparse schema", async () => {

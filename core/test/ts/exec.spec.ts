@@ -123,8 +123,8 @@ describe("Exec module tests", function () {
             ctxObj;
         `;
 
-        host.writeFile("stuff.json", JSON.stringify(orig), false);
-        host.writeFile("index.ts", source, false);
+        host.writeFile("stuff.json", JSON.stringify(orig));
+        host.writeFile("index.ts", source);
 
         const ret = exec(path.join(projDir, "index.ts"), {host});
         should(ret).eql(orig);
@@ -144,8 +144,8 @@ describe("Exec module tests", function () {
             ctxObj;
         `;
 
-        host.writeFile("stuff.json", JSON.stringify(orig), false);
-        host.writeFile("index.ts", source, false);
+        host.writeFile("stuff.json", JSON.stringify(orig));
+        host.writeFile("index.ts", source);
 
         const ret = exec(path.join(projDir, "index.ts"), {host});
         should(ret).eql(orig);

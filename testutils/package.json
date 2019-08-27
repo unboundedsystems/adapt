@@ -58,8 +58,7 @@
     "mocha": "^5.2.0",
     "mocha-slow-options": "^0.0.2",
     "should": "^13.2.3",
-    "source-map-support": "^0.5.13",
-    "typescript": "3.0.3"
+    "source-map-support": "^0.5.13"
   },
   "files": [
     "/dist/src"

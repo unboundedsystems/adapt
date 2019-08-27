@@ -49,7 +49,15 @@ const simplePackageJson = {
 };
 
 const simpleIndexTsx = `
-import Adapt, { Component, Constructor, gql, Observer, PrimitiveComponent, registerObserver } from "@adpt/core";
+import Adapt, {
+    Component,
+    Constructor,
+    gql,
+    Observer,
+    PrimitiveComponent,
+    registerObserver,
+    WithChildren,
+} from "@adpt/core";
 import MockObserver from "@adpt/core/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
@@ -91,7 +99,7 @@ function BuildError(props: { error: boolean; }) {
     return <Simple />;
 }
 
-function makeTwo(Comp: Constructor<Component>) {
+function makeTwo(Comp: Constructor<Component<WithChildren>>) {
     const key = Comp.name;
     return <Comp key={key}><Comp key={key} /></Comp>;
 }
