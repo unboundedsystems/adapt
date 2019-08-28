@@ -372,7 +372,7 @@ export class Compiler {
             if (/\.js$/.test(out.name)) {
                 jsOut = out;
             }
-            this.baseHost.writeFile(out.name, out.text, out.writeByteOrderMark);
+            this.baseHost.writeFile(out.name, out.text);
             debugWrite(out.name, out.text);
         }
         if (!jsOut) throw new Error(`Couldn't find output file`);

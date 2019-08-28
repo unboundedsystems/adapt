@@ -68,7 +68,7 @@ export type KeysAssignableToAny<T, AnyOf> = {
 }[keyof T];
 
 // An opaque type that isn't assignable to any other types except itself and "any"
-type UniqueType = TaggedT<string, "UniqueType">;
+export type UniqueType = TaggedT<string, "UniqueType">;
 
 export type PropertiesOfTypeAny<T extends object> =
     PropertiesOfTypeT<Required<T>, UniqueType>;

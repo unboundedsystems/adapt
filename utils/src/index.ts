@@ -44,6 +44,7 @@ import { removeUndef } from "./removeUndef";
 import * as yarn from "./yarn";
 
 export {
+    ArrayKeys,
     sortArray,
     sortArraysInObject
 } from "./sort_arrays";
@@ -55,6 +56,7 @@ export {
 export {
     TaskDefinitions,
     TaskObserver,
+    TaskObserverOptions,
     TaskObservers,
     TaskObserversKnown,
     TaskObserversUnknown,

@@ -121,7 +121,7 @@ function computeQueryId(clusterId: unknown, fieldName: string, args: unknown) {
     });
 }
 
-export function authHeaders(user: { username?: string; password?: string }) {
+export function authHeaders(user: { username?: string; password?: string }): {} | { Authorization: string } {
     if (!user.username || !user.password) return {};
 
     const auth = Buffer.from(user.username + ":" + user.password).toString("base64");

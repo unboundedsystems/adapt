@@ -82,6 +82,6 @@ export function execString(code: string, context: any = {},
         host = MemFileHost("/");
     }
     const rootPath = path.join(host.getCurrentDirectory(), "[root].ts");
-    host.writeFile(rootPath, code, false);
+    host.writeFile(rootPath, code);
     return exec(rootPath, {context, host});
 }

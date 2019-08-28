@@ -48,7 +48,7 @@
         "nyc": "^13.3.0",
         "semver": "^5.6.0",
         "tslint": "^5.18.0",
-        "typescript": "3.0.3"
+        "typescript": "3.4.5"
     },
     "scripts": {
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",

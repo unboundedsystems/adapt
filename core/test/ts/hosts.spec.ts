@@ -51,7 +51,7 @@ describe("Hosts basic tests", () => {
             new HostFinal("/foo")
         );
 
-        chain.writeFile("testfile", "some stuff", false);
+        chain.writeFile("testfile", "some stuff");
 
         memHost.fileExists("testfile").should.be.True();
         chain.fileExists("testfile").should.be.True();
@@ -66,7 +66,7 @@ describe("MemoryHost", () => {
             new HostFinal("/base/dir")
         );
 
-        chain.writeFile("relative.file", "some data", false);
+        chain.writeFile("relative.file", "some data");
         should(chain.fileExists("relative.file")).be.True();
         should(chain.fileExists("/base/dir/relative.file")).be.True();
         should(chain.readFile("relative.file")).equal("some data");

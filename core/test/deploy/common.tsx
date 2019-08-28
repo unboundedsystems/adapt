@@ -24,6 +24,7 @@ import Adapt, {
     Handle,
     PrimitiveComponent,
     useImperativeMethods,
+    WithChildren,
 } from "../../src";
 import {
     ChangeType,
@@ -41,7 +42,7 @@ export interface IdProps {
 
 export class Prim extends PrimitiveComponent<IdProps> { }
 
-export interface DependProps {
+export interface DependProps extends WithChildren {
     id: number;
     dep?: (id: number, goalStatus: GoalStatus, h: DeployHelpers) => DependsOn | undefined;
     when?: (id: number, goalStatus: GoalStatus, comp: DependPrim) => WaitStatus | Promise<WaitStatus>;

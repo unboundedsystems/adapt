@@ -128,9 +128,7 @@ export abstract class ChainableHost implements ts.CompilerHost {
 
     @tracef(debugChainableHosts)
     @callSource
-    writeFile(fileName: string, data: string, writeByteOrderMark: boolean,
-                onError?: (message: string) => void,
-                sourceFiles?: ReadonlyArray<ts.SourceFile>): void { return noop; }
+    writeFile(fileName: string, data: string) { return noop; }
 
     getCanonicalFileName(fileName: string) {
         return resolve(this.getCurrentDirectory(), fileName);
@@ -282,10 +280,7 @@ export class MemoryHost extends ChainableHost {
     }
 
     @tracef(debugChainableHosts)
-    writeFile(path: string, data: string, writeByteOrderMark: boolean,
-              onError?: (message: string) => void,
-              sourceFiles?: ReadonlyArray<ts.SourceFile>) {
-
+    writeFile(path: string, data: string) {
         let f = this.files.get(path);
         if (f !== undefined) {
             f.version++;

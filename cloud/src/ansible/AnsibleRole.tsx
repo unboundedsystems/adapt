@@ -18,11 +18,12 @@ import {
     FinalDomElement,
     isFinalDomElement,
     PrimitiveComponent,
+    WithChildren,
 } from "@adpt/core";
 import { AnsibleHost } from "./ansible_host";
 import { Vars } from "./common";
 
-export interface AnsibleRoleProps {
+export interface AnsibleRoleProps extends WithChildren {
     ansibleHost?: AnsibleHost;
     galaxy?: string;
     vars?: Vars;

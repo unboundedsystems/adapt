@@ -75,7 +75,7 @@ export function projectExec(projectRoot: string, rootFileName: string) {
     const wrapperFileName = path.join(projectRoot, "[wrapper].ts");
     const host = MemFileHost("/", projectRoot);
 
-    host.writeFile(wrapperFileName, wrapper, false);
+    host.writeFile(wrapperFileName, wrapper);
 
     exec([wrapperFileName, rootFileName], { context, host });
 

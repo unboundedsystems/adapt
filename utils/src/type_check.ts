@@ -25,7 +25,7 @@ export class ValidationError extends CustomError {
     }
 }
 
-interface PropList {
+export interface PropList {
     [prop: string]: string; // typeof prop
 }
 

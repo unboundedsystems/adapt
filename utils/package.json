@@ -54,8 +54,7 @@
     "sinon": "^6.0.0",
     "source-map-support": "^0.5.13",
     "stdout-stderr": "^0.1.9",
-    "stream-buffers": "^3.0.2",
-    "typescript": "3.0.3"
+    "stream-buffers": "^3.0.2"
   },
   "files": [
     "/dist/src"
