@@ -24,7 +24,7 @@ import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
 
-import { ImageInfo } from "../../src/docker";
+import { DockerImageInstance } from "../../src/docker";
 import {
     LocalNodeImage,
     NodeImageBuildOptions,
@@ -83,8 +83,8 @@ describe("LocalNodeImage tests", function () {
     }
 
     function TypescriptProject(props: TypescriptBuildProps) {
-        const img = handle();
-        const image = useMethod<ImageInfo | undefined>(img, undefined, "image");
+        const img = handle<DockerImageInstance>();
+        const image = useMethod(img, "image");
         if (image) {
             imageIds.push(image.id);
             cleanupIds.push(image.id);

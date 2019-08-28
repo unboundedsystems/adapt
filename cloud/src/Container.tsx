@@ -17,7 +17,7 @@
 import { AdaptElement, Handle, isHandle, PrimitiveComponent, useMethod } from "@adpt/core";
 import { FIXME_NeedsProperType, notNull, } from "@adpt/utils";
 import { isArray } from "lodash";
-import { DockerImageInstance, ImageInfo } from "./docker";
+import { DockerImageInstance } from "./docker";
 
 /**
  * Description of a network port for a {@link Container}.
@@ -362,7 +362,7 @@ export function mergeEnvSimple(...envs: (Environment | undefined)[]): EnvSimple 
 export function useLatestImageFrom(source: ImageId): string | undefined {
     // useMethod hook must be called unconditionally, even if source isn't a handle
     const hand = isHandle(source) ? source : null;
-    const image = useMethod<ImageInfo | undefined>(hand, undefined, "latestImage");
+    const image = useMethod(hand, "latestImage");
     if (image && !image.nameTag) throw new Error(`Built image info has no nameTag`);
     return (typeof source === "string") ? source :
         image ? image.nameTag :

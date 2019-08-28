@@ -26,7 +26,7 @@ import Adapt, {
 } from "@adpt/core";
 import should from "should";
 import { LocalContainer } from "../../src";
-import { DockerImage, DockerImageInstance, ImageInfo, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
+import { DockerImage, DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
 import { doBuild } from "../testlib";
 
 class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
@@ -47,9 +47,9 @@ class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
 }
 
 function MockService() {
-    const img = handle();
-    const latest = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
-    const image = useMethod<ImageInfo | undefined>(img, undefined, "image");
+    const img = handle<DockerImageInstance>();
+    const latest = useMethod(img, "latestImage");
+    const image = useMethod(img, "image");
 
     useImperativeMethods(() => ({ image, latest }));
 

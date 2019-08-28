@@ -25,7 +25,7 @@ import Adapt, {
 } from "@adpt/core";
 import { useConnectTo } from "../ConnectTo";
 import { Container, Environment, mergeEnvPairs } from "../Container";
-import { ImageInfo } from "../docker";
+import { DockerImageInstance } from "../docker";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
 import { Service } from "../Service";
 import { LocalNodeImage } from "./LocalNodeImage";
@@ -155,8 +155,8 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
     const connectEnvs = useConnectTo(connectTo);
     const finalEnv = mergeEnvPairs({ HTTP_PORT: `${targetPort}` }, connectEnvs, env);
 
-    const img = handle();
-    const image = useMethod<ImageInfo | undefined>(img, undefined, "latestImage");
+    const img = handle<DockerImageInstance>();
+    const image = useMethod(img, "latestImage");
 
     useImperativeMethods(() => ({
         hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
