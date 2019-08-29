@@ -1,6 +1,6 @@
 {
   "name": "@adpt/cloud",
-  "version": "0.0.6-next.0",
+  "version": "0.0.6-next.1",
   "description": "Unbounded Adapt cloud component library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -40,7 +40,7 @@
     "test": "mocha --opts mocha.opts"
   },
   "dependencies": {
-    "@adpt/core": "0.0.6-next.0",
+    "@adpt/core": "0.0.6-next.1",
     "aws-sdk": "^2.512.0",
     "debug": "^4.1.1",
     "execa": "^0.10.0",
@@ -63,8 +63,8 @@
     "type-ops": "^3.0.3"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.0.6-next.0",
-    "@adpt/utils": "0.0.6-next.0",
+    "@adpt/testutils": "0.0.6-next.1",
+    "@adpt/utils": "0.0.6-next.1",
     "@types/debug": "^4.1.5",
     "@types/dockerode": "^2.5.20",
     "@types/execa": "^0.9.0",
