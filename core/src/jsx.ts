@@ -48,7 +48,7 @@ import { registerConstructor } from "./reanimate";
 import { DeployOpID } from "./server/deployment_data";
 import { applyStateUpdates, StateNamespace, StateStore, StateUpdater } from "./state";
 import { defaultStatus, NoStatusAvailable, ObserveForStatus, Status } from "./status";
-import * as tySup from "./type_support";
+import { Children, ChildType } from "./type_support";
 
 //dom.ts needs to set this since a direct import will cause a circular require
 // tslint:disable-next-line:variable-name
@@ -689,8 +689,8 @@ export function createElement<Props extends object>(
         ClassComponentTyp<Props, AnyState>,
     //props should never be null, but tsc will pass null when Props = {} in .js
     //See below for null workaround, exclude null here for explicit callers
-    props: ExcludeInterface<Props, tySup.Children<any>> & Partial<BuiltinProps>,
-    ...children: tySup.ChildType<Props>[]): AdaptElement {
+    props: ExcludeInterface<Props, Children<any>> & Partial<BuiltinProps>,
+    ...children: ChildType<Props>[]): AdaptElement {
 
     if (typeof ctor === "string") {
         throw new Error("createElement cannot called with string element type");
@@ -745,7 +745,7 @@ export function cloneElement(
     }
 }
 
-type PrimitiveChildType<T> =
+export type PrimitiveChildType<T> =
     T extends (infer U | (infer U)[])[] ? U :
     T extends (infer V)[][] ? V :
     T extends (infer W)[] ? W :

@@ -37,21 +37,21 @@ For the complete list of all APIs, start at the [top level exports](./core) for 
 
 ### Built-in Hooks
 
-- [useAsync(f, initial)](./core.adapt.useasync.md)
-- [useBuildHelpers()](./core.adapt.usebuildhelpers.md)
+- [useAsync(f, initial)](./core.useasync.md)
+- [useBuildHelpers()](./core.usebuildhelpers.md)
 - [useContext(context)](./core.usecontext.md)
-- [useDependsOn(f)](./core.adapt.usedependson.md)
-- [useDeployedWhen(f)](./core.adapt.usedeployedwhen.md)
-- [useImperativeMethods(create)](./core.adapt.useimperativemethods.md)
-- [useMethod(hand, initial, method, args)](./core.adapt.usemethod.md)
-- [useMethodFrom(hand, methodName, defaultVal, args)](./core.adapt.usemethodfrom.md)
-- [useReadyFrom(targetHand)](./core.adapt.usereadyfrom.md)
-- [useState(init)](./core.adapt.usestate.md)
+- [useDependsOn(f)](./core.usedependson.md)
+- [useDeployedWhen(f)](./core.usedeployedwhen.md)
+- [useImperativeMethods(create)](./core.useimperativemethods.md)
+- [useMethod(hand, initial, method, args)](./core.usemethod.md)
+- [useMethodFrom(hand, methodName, defaultVal, args)](./core.usemethodfrom.md)
+- [useReadyFrom(targetHand)](./core.usereadyfrom.md)
+- [useState(init)](./core.usestate.md)
 
 ### Utilities
 
-- [callInstanceMethod(hand, def, methodName, args)](./core.adapt.callinstancemethod.md)
-- [callNextInstanceMethod(hand, def, methodName, args)](./core.adapt.callnextinstancemethod.md)
+- [callInstanceMethod(hand, def, methodName, args)](./core.callinstancemethod.md)
+- [callNextInstanceMethod(hand, def, methodName, args)](./core.callnextinstancemethod.md)
 - [childrenToArray(propsChildren)](./core.childrentoarray.md)
 - [handle(name)](./core.handle.md)
 

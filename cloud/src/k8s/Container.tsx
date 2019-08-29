@@ -26,7 +26,12 @@ import Adapt, {
 } from "@adpt/core";
 import { mapMap } from "@adpt/utils";
 import { ReplaceT } from "type-ops";
-import * as abs from "../Container";
+import {
+    Container as AbsContainer,
+    ContainerProps as AbsContainerProps,
+    mergeEnvPairs,
+    useLatestImageFrom,
+} from "../Container";
 
 /**
  * Resource spec for a Kubernetes container.
@@ -92,7 +97,7 @@ export interface EnvVarFrom {
     valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
-const toK8sEnv = abs.mergeEnvPairs;
+const toK8sEnv = mergeEnvPairs;
 
 const defaultProtocol = "tcp";
 
@@ -128,7 +133,7 @@ class PortInfo {
     }
 }
 
-function toK8sPorts(abstractProps: abs.ContainerProps): ContainerPort[] | undefined {
+function toK8sPorts(abstractProps: AbsContainerProps): ContainerPort[] | undefined {
     const { ports, portBindings } = abstractProps;
     const pInfo = new PortInfo();
 
@@ -145,7 +150,7 @@ function toK8sPorts(abstractProps: abs.ContainerProps): ContainerPort[] | undefi
  * See {@link k8s.k8sContainerProps}.
  * @public
  */
-export type FromContainerProps = ReplaceT<abs.ContainerProps, { image: string }> & BuiltinProps;
+export type FromContainerProps = ReplaceT<AbsContainerProps, { image: string }> & BuiltinProps;
 
 /**
  * Low level utility function to translate from the abstract {@link Container}
@@ -216,7 +221,7 @@ export class K8sContainer extends PrimitiveComponent<K8sContainerProps> {
  * Props for {@link k8s.Container}.
  * @public
  */
-export interface ContainerProps extends SFCDeclProps<abs.ContainerProps> {
+export interface ContainerProps extends SFCDeclProps<AbsContainerProps> {
     /**
      * Additional {@link k8s.K8sContainerProps}-specific props that should be
      * added to the instantiated {@link k8s.K8sContainer}.
@@ -235,7 +240,7 @@ export function Container(props: ContainerProps) {
         k8sContainerProps: addlProps,
         ...rest
     } = props as SFCBuildProps<ContainerProps>;
-    const image = abs.useLatestImageFrom(imgOrHandle);
+    const image = useLatestImageFrom(imgOrHandle);
 
     useDeployedWhen((gs) => {
         if (gs === GoalStatus.Destroyed || image) return true;
@@ -247,4 +252,4 @@ export function Container(props: ContainerProps) {
     return <K8sContainer {...kProps} />;
 }
 (Container as any).displayName = "k8s.Container";
-(Container as any).defaultProps = abs.Container.defaultProps;
+(Container as any).defaultProps = AbsContainer.defaultProps;

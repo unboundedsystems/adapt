@@ -21,8 +21,8 @@ import { AnyState, isElementImpl } from "../jsx";
 import { currentContext } from "./hooks";
 
 export type CombinedState = AnyState;
-export type StateUpdater<S> = (prev: S) => S | Promise<S>;
-export type SetState<S> = (s: S | StateUpdater<S>) => void;
+export type HookStateUpdater<S> = (prev: S) => S | Promise<S>;
+export type SetState<S> = (s: S | HookStateUpdater<S>) => void;
 export type UseStateInit<S> = S | (() => S);
 
 export function useState<ItemState>(init: UseStateInit<ItemState>): [ItemState, SetState<ItemState>] {
@@ -45,7 +45,7 @@ export function useState<ItemState>(init: UseStateInit<ItemState>): [ItemState, 
         stateStore.setElementState(ns, stateValue);
     }
 
-    function setState(val: ItemState | Promise<ItemState> | StateUpdater<ItemState>) {
+    function setState(val: ItemState | Promise<ItemState> | HookStateUpdater<ItemState>) {
         const updater = async (prev: CombinedState): Promise<CombinedState> => {
             if (prev == null || !isObject(prev)) throw new InternalError(`previous state was not an object`);
 

@@ -408,12 +408,13 @@ function ApplyStyle(props: ApplyStyleProps) {
     };
 
     const hand = getInternalHandle(props.element);
-    const ret = props.override(props.element.props, {
+    const opts = {
         buildNum: props.buildNum,
         origBuild,
         origElement: props.element,
         [css.$matchInfoReg]: props.matchInfoReg,
-    });
+    };
+    const ret = props.override(props.element.props, opts);
 
     // Default behavior if they don't explicitly call
     // handle.replaceTarget is to do the replace for them.

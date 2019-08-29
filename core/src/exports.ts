@@ -14,7 +14,25 @@
  * limitations under the License.
  */
 
-export * from "./hooks";
+export {
+    AnyMethods,
+    callInstanceMethod,
+    callNextInstanceMethod,
+    hasInstanceMethod,
+    SetState,
+    HookStateUpdater,
+    useAsync,
+    useBuildHelpers,
+    useDependsOn,
+    useDeployedWhen,
+    useImperativeMethods,
+    useInstanceValue,
+    useMethod,
+    useMethodFrom,
+    useReadyFrom,
+    useState,
+    UseStateInit,
+} from "./hooks";
 export * from "./jsx_namespace";
 export {
     childrenToArray,
@@ -23,16 +41,26 @@ export {
     Component,
     DeferredComponent,
     PrimitiveComponent,
+    AdaptDeferredElement,
     AdaptElement,
     AdaptMountedElement,
+    AdaptMountedPrimitiveElement,
     AdaptElementOrNull,
     AdaptPrimitiveElement,
     AnyProps,
     AnyState,
     BuildHelpers,
+    ClassComponentTyp,
+    ComponentStatic,
+    ComponentType,
+    DeferredClassComponentTyp,
+    DeployInfo,
+    ElementID,
     FinalDomElement,
+    FunctionComponentTyp,
     GenericInstance,
     GenericInstanceMethods,
+    KeyPath,
     BuiltinProps,
     ElementPredicate,
     PartialFinalDomElement,
@@ -41,10 +69,13 @@ export {
     isElement,
     isPartialFinalDomElement,
     isMountedElement,
+    isMountedPrimitiveElement,
     isDeferredElement,
     isPrimitiveElement,
     isReady,
     WithChildren,
+    PrimitiveChildType,
+    PrimitiveClassComponentTyp,
     PropsType,
     SFC,
     SFCBuildProps,
@@ -57,15 +88,28 @@ export {
     build,
     BuildData,
     buildOnce,
+    BuildOptions,
     BuildOutput,
-    DomPath
+    BuildOutputBase,
+    BuildOutputError,
+    BuildOutputPartial,
+    BuildOutputSuccess,
+    DomPath,
+    ProcessStateUpdates,
 } from "./dom";
 
 export {
+    AdaptComponentConstructor,
+    AbstractComponentCtor,
+    BuildOverride,
     concatStyles,
     Style,
     StyleBuildInfo,
+    StyleList,
+    StyleProps,
+    StyleRule,
     rule,
+    Rule,
     ruleNoRematch,
     findElementsInDom,
     findPathsInDom
@@ -73,6 +117,7 @@ export {
 
 export {
     serializeDom,
+    SerializeOptions,
 } from "./dom_serialize";
 
 export * from "./dom_build_data_recorder";
@@ -92,8 +137,12 @@ export {
 } from "./handle";
 export { ElementKey, isDefaultKey } from "./keys";
 export {
+    Consumer,
+    ConsumerProps,
     Context,
     createContext,
+    Provider,
+    ProviderProps,
     useContext
 } from "./context";
 
@@ -102,8 +151,10 @@ export {
 } from "./stack";
 
 export {
+    createStateStore,
+    StateNamespace,
     StateStore,
-    createStateStore
+    StateUpdater,
 } from "./state";
 
 export * from "./ops";
@@ -112,11 +163,15 @@ export {
     registerObserver,
     gql,
     Observer,
+    ObserverManagerDeployment,
     ObserverPlugin,
+    ObserverProps,
     ObserverResponse,
+    ObserverNameHolder,
     ObserverNeedsData,
     ExecutedQuery,
     throwObserverErrors,
+    Variables,
 } from "./observers";
 
 export {
@@ -129,12 +184,14 @@ export {
     mergeDefaultChildStatus,
     NoStatus,
     noStatusOnError,
+    noTransform,
     ObserveForStatus,
     Status,
 } from "./status";
 
 export {
-    Children
+    Children,
+    ChildType,
 } from "./type_support";
 
 export {

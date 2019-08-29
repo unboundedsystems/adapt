@@ -101,7 +101,7 @@ export async function defaultStatus<P extends object, S = unknown>(
     return noStatusOnError(() => succ.status());
 }
 
-function noTransform(val: unknown): Status {
+export function noTransform(val: unknown): Status {
     if (val == null) return { noStatus: `Error: parent status is null`};
     return val as Status;
 }
