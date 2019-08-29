@@ -10,11 +10,15 @@ Adapt is the easiest way to reliably and repeatably deploy your apps anywhere --
 
 ## Getting Started
 For a new project, you can get started without knowing much about Adapt by using a starter.  The [Getting Started Guide](https://adapt.unbounded.systems/docs/getting_started) will walk through installing Adapt and deploying a starter project.
-```shell
-adapt new <starter> <project directory> #Create a new project from a starter
-adapt run --deployID <myID> #Create a new deployment of the starter project
-... #write some code
-adapt update <myID> #Update the running deployment
+```bash
+# Create a new project from a starter
+adapt new <starter> <project directory>
+# Create a new deployment of the starter project
+adapt run --deployID <myID>
+# Write some code
+  ...
+# Update the running deployment
+adapt update <myID>
 ```
 
 Deploy a sample application with a [React](https://reactjs.org) front-end, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, along with a static file server and a URL router:
@@ -23,33 +27,31 @@ Deploy a sample application with a [React](https://reactjs.org) front-end, a [No
 
 A snippet of the corresponding Adapt specification that the starter sets up for this example:
 ```jsx
-import { HttpServer, UrlRouter } from "@adpt/cloud/http";
-import { NodeService } from "@adpt/cloud/nodejs";
+import { UrlRouter } from "@adpt/cloud/http";
+import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
 import Adapt, { Group, handle } from "@adpt/core";
-import { k8sStyle, laptopStyle, prodStyle } from "./styles";
+import { k8sStyle } from "./styles";
 
 function App() {
     const pg = handle();
+    const app = handle();
     const api = handle();
-    const stat = handle();
 
-    return <Group key="App">
+    return <Group>
 
         <UrlRouter
             port={8080}
             routes={[
                 { path: "/api/", endpoint: api },
-                { path: "/", endpoint: stat }
+                { path: "/", endpoint: app }
             ]} />
 
-        <NodeService handle={api} srcDir=".." connectTo={pg} />
+        <ReactApp handle={app} srcDir="../frontend" />
+
+        <NodeService handle={api} srcDir="../backend" connectTo={pg} />
 
         <Postgres handle={pg} />
-
-        <HttpServer handle={stat} scope="cluster-internal"
-            add={[{ type: "image", image: api, stage: "app",
-                    files: [{ src: "/app/build", dest: "/www/static" }]}]} />
 
     </Group>;
 }
