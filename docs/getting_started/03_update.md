@@ -9,16 +9,16 @@ title: "Add Code and Update - MovieDB App"
 ## Writing the Real Application Code
 
 As we've seen, the starter template we used with `adapt new` has created a default set of code for both our front end and back end application.
-If we were writing our app from scratch, we'd start writing some React code in the `src` directory and some Node.js code for our API in the `backend` directory.
+If we were writing our app from scratch, we'd start writing some React code in the `frontend/src` directory and some Node.js code for our API in the `backend` directory.
 But for this guide, we'll simply copy in some already-written code for our movie database app:
 <!-- doctest command -->
 
 ```console
-curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v1/gsg-moviedb-v1.tar.gz | tar -zxv --strip=1 -C ..
+curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v2/gsg-moviedb-v2.tar.gz | tar -zxv --strip=1 -C ..
 ```
 
 This command should have added:
-* Some new React UI code in `moviedb/src` and `moviedb/public`.
+* Some new React UI code in `moviedb/frontend`.
 * Some new Node.js code in `moviedb/backend`.
 * A file with some test data `moviedb/deploy/test_db.sql` that will be pre-loaded into the Postgres database when we update the deployment.
 
