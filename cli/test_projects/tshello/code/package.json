@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
-    "@types/node": "10.11.7",
+    "@types/node": "^10.11.7",
     "typescript": "^3.0.3"
   }
 }

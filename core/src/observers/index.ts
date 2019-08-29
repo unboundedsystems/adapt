@@ -34,7 +34,8 @@ export {
     ExecutedQuery,
     simplifyNeedsData,
     ObserversThatNeedData,
-    Observations
+    Observations,
+    Variables,
 } from "./obs_manager_deployment";
 
 export {
@@ -46,10 +47,12 @@ export {
     registerObserver,
     observe,
     makeObserverManagerDeployment,
+    ObserverNameHolder,
 } from "./registry";
 
 export {
-    Observer
+    Observer,
+    ObserverProps,
 } from "./Observer";
 
 export function patchInNewQueries(observations: Observations, queries: { [name: string]: ExecutedQuery[] }): void {

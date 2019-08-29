@@ -33,7 +33,7 @@ import Adapt, {
 import { removeUndef } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, isObject, pick } from "lodash";
-import * as abs from "../NetworkService";
+import { NetworkServiceProps, NetworkServiceScope, targetPort } from "../NetworkService";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
@@ -166,7 +166,7 @@ export interface ServicePort {
     targetPort?: number | string;
 }
 
-function toServiceType(scope: abs.NetworkServiceScope | undefined) {
+function toServiceType(scope: NetworkServiceScope | undefined) {
     switch (scope) {
         case "cluster-internal":
         case undefined:
@@ -180,14 +180,14 @@ function toServiceType(scope: abs.NetworkServiceScope | undefined) {
     }
 }
 
-export function k8sServiceProps(abstractProps: abs.NetworkServiceProps & BuiltinProps): ServiceSpec {
+export function k8sServiceProps(abstractProps: NetworkServiceProps & BuiltinProps): ServiceSpec {
     if (typeof abstractProps.port !== "number") throw new Error(`Service: Port string not yet implemented`);
     if (abstractProps.ip != null) throw new Error(`Service: IP not yet implemented`);
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
 
     const port: ServicePort = {
         port: abstractProps.port,
-        targetPort: abs.targetPort(abstractProps),
+        targetPort: targetPort(abstractProps),
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 

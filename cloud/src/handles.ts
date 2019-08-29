@@ -17,16 +17,11 @@
 import { AdaptElement, Handle, handle, useMethod } from "@adpt/core";
 import ld from "lodash";
 
-//Move to separate file
-interface HandleIndex {
-    [name: string]: ExtendedHandle;
+export interface HandlesCreate {
+    create: HandlesIndex;
 }
 
-interface HandlesCreate {
-    create: HandleIndex;
-}
-
-interface HandlesIndex {
+export interface HandlesIndex {
     [hand: string]: ExtendedHandle;
 }
 
@@ -80,7 +75,7 @@ export function extendedHandle() {
 export function handles() {
     const ret: Handles = ({
         // tslint:disable-next-line:no-object-literal-type-assertion
-        create: new Proxy<HandleIndex>({} as HandleIndex, {
+        create: new Proxy<HandlesIndex>({} as HandlesIndex, {
             get: (_target: any, prop: string | number | symbol, _rx: unknown) => {
                 if (!ld.isString(prop)) return undefined;
                 const hand = extendedHandle();

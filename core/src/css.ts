@@ -22,20 +22,48 @@ import * as ld from "lodash";
 import { DomPath } from "./dom";
 import { InternalError } from "./error";
 import { BuildId } from "./handle";
-import * as jsx from "./jsx";
+import {
+    AdaptElement,
+    AdaptElementOrNull,
+    AnyProps,
+    AnyState,
+    BuiltinProps,
+    childrenToArray,
+    Component,
+    createElement,
+    isElement,
+    isMountedElement,
+    SFC,
+} from "./jsx";
 
+/**
+ * An array of {@link StyleRule}s
+ * @public
+ */
 export type StyleList = StyleRule[];
+
+/**
+ * Informational object provided to the callback of a
+ * {@link rule}.
+ * @public
+ */
+export interface StyleBuildInfo extends BuildId {
+    origBuild: SFC;
+    origElement: any;
+}
 
 /** @internal */
 export const $matchInfoReg = Symbol.for("$matchInfoReg");
-export interface StyleBuildInfo extends BuildId {
-    origBuild: jsx.SFC;
-    origElement: any;
-    /** @internal */
+/** @internal */
+export interface StyleBuildInfoInternal extends StyleBuildInfo {
     [$matchInfoReg]: MatchInfoReg;
 }
-export type BuildOverride<P = jsx.AnyProps> =
-    (props: P & jsx.BuiltinProps, info: StyleBuildInfo) => jsx.AdaptElementOrNull;
+function isStyleBuildInfoInternal(val: StyleBuildInfo): val is StyleBuildInfoInternal {
+    return (val as any)[$matchInfoReg] != null;
+}
+
+export type BuildOverride<P = AnyProps> =
+    (props: P & BuiltinProps, info: StyleBuildInfo) => AdaptElementOrNull;
 
 export interface StyleRule {
     selector: string;
@@ -75,7 +103,7 @@ function last<T>(arr: T[]): { prefix: T[], elem: T | null } {
     return { prefix: arr.slice(0, -1), elem: lastElem };
 }
 
-function getPropValue(elem: jsx.AdaptElement, prop: string, ignoreCase: boolean): string | undefined {
+function getPropValue(elem: AdaptElement, prop: string, ignoreCase: boolean): string | undefined {
     let val: any;
 
     if (ignoreCase) {
@@ -283,25 +311,25 @@ function parseStyles(styles: RawStyle[]): StyleList {
     return ret;
 }
 export type AbstractComponentCtor
-    <P extends object = jsx.AnyProps,
-    S extends object = jsx.AnyState,
-    T extends jsx.Component<P, S> = jsx.Component<P, S>> =
+    <P extends object = AnyProps,
+    S extends object = AnyState,
+    T extends Component<P, S> = Component<P, S>> =
     // tslint:disable-next-line:ban-types
     Function & { prototype: T };
 
 export type AdaptComponentConstructor =
-    new (props: jsx.AnyProps) => jsx.Component<jsx.AnyProps, jsx.AnyState>;
+    new (props: AnyProps) => Component<AnyProps, AnyState>;
 
 export interface StyleProps {
-    children: (AbstractComponentCtor | jsx.SFC | string |
+    children: (AbstractComponentCtor | SFC | string |
         AdaptComponentConstructor | Rule)[];
 }
 
-export class Rule<P = jsx.AnyProps> {
+export class Rule<P = AnyProps> {
     constructor(readonly override: BuildOverride<P>) { }
 }
 
-export function rule<P = jsx.AnyProps>(override?: BuildOverride<P>) {
+export function rule<P = AnyProps>(override?: BuildOverride<P>) {
     if (override === undefined) {
         override = (_, i) => i.origElement;
     }
@@ -322,13 +350,14 @@ export interface MatchInfo {
     matched?: Set<StyleRule>;
     neverMatch?: true;
 }
-export type MatchInfoReg = Map<jsx.AdaptElement, MatchInfo>;
+
+export type MatchInfoReg = Map<AdaptElement, MatchInfo>;
 
 export function createMatchInfoReg() {
-    return new Map<jsx.AdaptElement, MatchInfo>();
+    return new Map<AdaptElement, MatchInfo>();
 }
 
-function getCssMatched(reg: MatchInfoReg, el: jsx.AdaptElement): MatchInfo {
+function getCssMatched(reg: MatchInfoReg, el: AdaptElement): MatchInfo {
     let mi = reg.get(el);
     if (mi === undefined) {
         mi = {};
@@ -337,31 +366,31 @@ function getCssMatched(reg: MatchInfoReg, el: jsx.AdaptElement): MatchInfo {
     return mi;
 }
 
-export function ruleHasMatched(reg: MatchInfoReg, el: jsx.AdaptElement, r: StyleRule) {
+export function ruleHasMatched(reg: MatchInfoReg, el: AdaptElement, r: StyleRule) {
     const m = getCssMatched(reg, el);
     return (m.matched && m.matched.has(r)) === true;
 }
 
-export function ruleMatches(reg: MatchInfoReg, el: jsx.AdaptElement, r: StyleRule) {
+export function ruleMatches(reg: MatchInfoReg, el: AdaptElement, r: StyleRule) {
     const m = getCssMatched(reg, el);
     if (!m.matched) m.matched = new Set<StyleRule>();
     m.matched.add(r);
 }
 
-export function neverMatch(reg: MatchInfoReg, el: jsx.AdaptElement) {
+export function neverMatch(reg: MatchInfoReg, el: AdaptElement) {
     const m = getCssMatched(reg, el);
     m.neverMatch = true;
 }
 
-export function canMatch(reg: MatchInfoReg, el: jsx.AdaptElement) {
+export function canMatch(reg: MatchInfoReg, el: AdaptElement) {
     const m = getCssMatched(reg, el);
     return m.neverMatch !== true;
 }
 
 export function copyRuleMatches(
     reg: MatchInfoReg,
-    fromEl: jsx.AdaptElement,
-    toEl: jsx.AdaptElement) {
+    fromEl: AdaptElement,
+    toEl: AdaptElement) {
     const from = getCssMatched(reg, fromEl);
     const to = getCssMatched(reg, toEl);
 
@@ -390,9 +419,12 @@ export function copyRuleMatches(
  *     specified rule.
  * @public
  */
-export function ruleNoRematch(info: StyleBuildInfo, elem: jsx.AdaptElement) {
-    if (jsx.isMountedElement(elem)) {
+export function ruleNoRematch(info: StyleBuildInfo, elem: AdaptElement) {
+    if (isMountedElement(elem)) {
         throw new Error(`elem has already been mounted. elem must be a newly created element`);
+    }
+    if (!isStyleBuildInfoInternal(info)) {
+        throw new Error(`Unable to find $matchInfoReg symbol on StyleBuildInfo object`);
     }
     copyRuleMatches(info[$matchInfoReg], info.origElement, elem);
     return elem;
@@ -427,7 +459,7 @@ function uniqueName(o: object): string {
     return ret;
 }
 
-export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
+export function buildStyles(styleElem: AdaptElement | null): StyleList {
     if (styleElem == null) {
         return [];
     }
@@ -439,7 +471,7 @@ export function buildStyles(styleElem: jsx.AdaptElement | null): StyleList {
 
     let curSelector = "";
     const rawStyles: RawStyle[] = [];
-    for (const child of jsx.childrenToArray(styleElem.props.children)) {
+    for (const child of childrenToArray(styleElem.props.children)) {
         if (typeof child === "function") {
             curSelector = curSelector + uniqueName(child);
         } else if (typeof child === "string") {
@@ -474,9 +506,9 @@ function findInDomImpl(styles: StyleList, path: DomPath):
         }
     }
 
-    const children = jsx.childrenToArray(elem.props.children);
+    const children = childrenToArray(elem.props.children);
     for (const child of children) {
-        if (jsx.isElement(child)) {
+        if (isElement(child)) {
             matches.push(...findInDomImpl(styles, [...path, child]));
         }
     }
@@ -485,25 +517,25 @@ function findInDomImpl(styles: StyleList, path: DomPath):
 }
 
 export function findElementsInDom(
-    stylesIn: StyleList | jsx.AdaptElement | null,
-    dom: jsx.AdaptElementOrNull): jsx.AdaptElement[] {
+    stylesIn: StyleList | AdaptElement | null,
+    dom: AdaptElementOrNull): AdaptElement[] {
 
     return ld.compact(findPathsInDom(stylesIn, dom)
         .map((path) => ld.last(path)));
 }
 
 export function findPathsInDom(
-    stylesIn: StyleList | jsx.AdaptElement | null,
-    dom: jsx.AdaptElementOrNull): DomPath[] {
+    stylesIn: StyleList | AdaptElement | null,
+    dom: AdaptElementOrNull): DomPath[] {
 
     if (stylesIn == null) return [];
-    const styles = jsx.isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
+    const styles = isElement(stylesIn) ? buildStyles(stylesIn) : stylesIn;
 
     if (dom === null) return [];
     return findInDomImpl(styles, [dom]);
 }
 
-export class Style extends jsx.Component<StyleProps> {
+export class Style extends Component<StyleProps> {
     build(): null {
         return null; //Don't output anything for styles if it makes it to DOM
     }
@@ -520,10 +552,11 @@ export class Style extends jsx.Component<StyleProps> {
  * @returns
  *   A new Style element containing the concatenation of all
  *   of the rules from the passed in Style elements.
+ * @public
  */
 export function concatStyles(
-    ...styles: jsx.AdaptElement[]
-): jsx.AdaptElement {
+    ...styles: AdaptElement[]
+): AdaptElement {
 
     const rules: Rule[] = [];
     for (const styleElem of styles) {
@@ -539,5 +572,5 @@ export function concatStyles(
         }
         rules.push(...styleElem.props.children);
     }
-    return jsx.createElement(Style, {}, rules);
+    return createElement(Style, {}, rules);
 }

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+import { MethodNames, ReturnTypeOrNever } from "@adpt/utils";
 import ld from "lodash";
 import { serializeDom } from "../dom_serialize";
-import { Handle } from "../handle";
+import { Handle, HandleInstanceType } from "../handle";
 import {
     AdaptElement,
     ElementPredicate,
@@ -64,11 +65,75 @@ import { useAsync } from "./use_async";
  * @param method - Name of the instance method to call.
  *
  * @param args - Variable arguments to be passed to the method call.
+ *
+ * @privateremarks
+ * This overload is used when no explicit type parameters are defined and
+ * only two arguments are passed.
+ * @beta
  */
-export function useMethod<T>(hand: Handle | null, initial: T, method: string, ...args: any[]): T {
-    return useAsync<T>(async () => {
+export function useMethod<
+    H extends Handle,
+    Instance = HandleInstanceType<H>,
+    MethodName extends MethodNames<Instance> = MethodNames<Instance>,
+    Ret = ReturnTypeOrNever<Instance[MethodName]>
+    >
+    (hand: H | null, method: MethodName): Ret | undefined;
+
+/**
+ * {@inheritdoc useMethod}
+ * @privateremarks
+ * This overload is used when no explicit type parameters are defined and
+ * three or more arguments are passed.
+ * @beta
+ */
+export function useMethod<
+    Initial,
+    H extends Handle,
+    Instance = HandleInstanceType<H>,
+    MethodName extends MethodNames<Instance> = MethodNames<Instance>,
+    Ret = ReturnTypeOrNever<Instance[MethodName]>
+    >
+    (hand: H | null, initial: Initial, method: MethodName, ...args: any[]): Ret | Initial;
+
+/**
+ * {@inheritdoc useMethod}
+ * @privateremarks
+ * This overload is used when an explicit type parameter is passed, along
+ * with two function arguments.
+ * @beta
+ */
+export function useMethod<
+    OverrideReturn,
+    H extends Handle = Handle,
+    Instance = HandleInstanceType<H>,
+    MethodName extends MethodNames<Instance> = MethodNames<Instance>,
+    >
+    (hand: Handle | null, method: MethodName): OverrideReturn | undefined;
+
+/**
+ * {@inheritdoc useMethod}
+ * @privateremarks
+ * This overload is used when an explicit type parameter is passed, along
+ * with three or more function arguments.
+ * @beta
+ */
+export function useMethod<OverrideReturn>
+    (hand: Handle | null, initial: OverrideReturn, method: string, ...args: any[]): OverrideReturn;
+
+// Function implementation
+export function useMethod<
+    Initial,
+    H extends Handle,
+    Instance = HandleInstanceType<H>,
+    MethodName extends MethodNames<Instance> = MethodNames<Instance>,
+    Ret = ReturnTypeOrNever<Instance[MethodName]>
+    >
+    (hand: H | null, initialOrMethod: Initial | MethodName, method?: MethodName, ...args: any[]) {
+    const mName = method || initialOrMethod as MethodName;
+    const initial = method ? initialOrMethod as Initial : undefined;
+    return useAsync<Ret | typeof initial>(async () => {
         if (hand == null) return initial;
-        return callInstanceMethod<T>(hand, initial, method, ...args);
+        return callInstanceMethod<Ret | typeof initial>(hand, initial, mName, ...args);
     }, initial);
 }
 
@@ -92,8 +157,8 @@ export function notReplacedByStyle(): ElementPredicate {
 }
 
 /**
- *  @beta
  *  Immediately call method on instance pointed to by handle
+ *  @beta
  */
 export function callInstanceMethod<T = any>(hand: Handle, def: T, methodName: string, ...args: any[]): T {
     const method = getInstanceValue<(...args: any[]) => T>(hand, () => def, methodName);
