@@ -62,7 +62,6 @@ export function PreloadedPostgresImage(props: PreloadedPostgresImageProps) {
                 FROM postgres:11
                 COPY --from=files mockdata.sql /docker-entrypoint-initdb.d/mockdata.sql
             `,
-            dockerHost: process.env.DOCKER_HOST,
             options: {
                 imageName: "preloaded-postgres",
                 uniqueTag: true

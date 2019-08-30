@@ -16,14 +16,14 @@
 
 import { InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
-import execa, { ExecaError, ExecaReturns } from "execa";
+import execa, { ExecaError, ExecaReturns, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
-import { ContainerStatus } from "../Container";
+import { ContainerStatus, Environment, mergeEnvSimple } from "../Container";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
     DockerBuildOptions,
@@ -123,6 +123,7 @@ export async function withFilesImage<T>(files: File[] | undefined,
 
 export interface ExecDockerOptions extends DockerGlobalOptions {
     stdin?: string;
+    env?: Environment;
 }
 
 async function execDocker(args: string[], options: ExecDockerOptions) {
@@ -130,14 +131,20 @@ async function execDocker(args: string[], options: ExecDockerOptions) {
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
     args = globalArgs.concat(args);
-    const opts = options.stdin ? { input: options.stdin } : undefined;
+    const execaOpts: ExecaOptions = {};
+    execaOpts.input = options.stdin;
+    execaOpts.extendEnv = false;
+    //Note(manishv) execa (via cross-spawn) uses path from opts.env instead of the parent env, ugh.
+    //See https://github.com/sindresorhus/execa/issues/366
+    const pathEnv = { PATH: process.env.PATH || ""};
+    execaOpts.env = mergeEnvSimple(pathEnv, options.env);
 
     const cmdDebug =
         debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
             debug.enabled ? debug :
                 null;
     if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
-    const ret = execa("docker", args, opts);
+    const ret = execa("docker", args, execaOpts);
     if (debugOut.enabled && cmdDebug) {
         streamToDebug(ret.stdout, cmdDebug);
         streamToDebug(ret.stderr, cmdDebug);
