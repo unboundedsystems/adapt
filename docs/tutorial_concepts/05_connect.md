@@ -53,7 +53,7 @@ Because Adapt components can only build into a single component.
 However, that single component can contain other components.
 The `<Group>` component's only purpose is to act as a container for other components.
 
-## Component instance methods
+## Connecting components together
 
 Our new definition of our app now has a Postgres database.
 But in order for our Node.js service to connect to the database, it will need to be provided some information about how to connect and authenticate to the database.
@@ -61,19 +61,16 @@ But in order for our Node.js service to connect to the database, it will need to
 One of the strengths of a system like Adapt is that it can dynamically create and destroy a complete set of new infrastructure resources, like you might do for a test environment.
 But if we create a new Postgres instance on the fly for each test, how will the Node.js service know how to connect to the database?
 
-The `<Postgres>` component solves this problem by providing an **instance method** called `connectEnv` that returns all the information needed to connect to itself, in the form of a set of environment variables in the format that a typical Postgres client can consume.
-
-You can see more information about the `connectEnv` instance method in the [Postgres component API documentation](../api/cloud/cloud.postgres.postgres.md).
+The `<NodeService>` component solves this by [accepting a prop](../api/cloud/cloud.nodejs.nodeserviceprops) called `connectTo` that identifies other components that `<NodeService>` will connect to.
 
 ## Handles
 
-In order to call a method for a particular instance of a component, we need a way to identify which instance of which component we're talking about.
-In Adapt, every instance of a component has a unique handle that identifies that instance.
-A **handle** is simply a reference to a specific component instance.
+To identify which component that `<NodeService>` should connect to, we use a **handle**, which is just a reference to a specific component instance.
+In Adapt, every instance of a component is associated with a unique handle that identifies that instance.
 
 A new handle is created each time you call the `handle` function from the Adapt API.
 Let's create a handle for referring to the `<Postgres>` instance and store it in the variable `pg`.
-Add this line as the first line inside the `App` function:
+Add this line as the first line inside the `App` function component:
 ```tsx
     const pg = handle();
 ```
@@ -85,39 +82,30 @@ Now replace the existing `<Postgres />` instance with:
 All Adapt components accept a prop called `handle`.
 Here, we're associating the `pg` handle we created with the `<Postgres>` instance, so `pg` will refer to `<Postgres>`.
 
-## Calling a component instance method
-
-Now we can use the `pg` handle to get the database connection info. Add this line just after `const pg = handle()`:
+And finally, replace the existing `<NodeService ... />` instance with:
 ```tsx
-    const connectEnv = useMethod(pg, {}, "connectEnv");
-```
-The `useMethod` function calls a method on the component instance that the handle references.
-The second argument to `useMethod` is the default value, which is returned in certain cases that the referenced component instance is not yet built.
-
-The `<NodeService>` prop named `env` allows us to specify a set of environment variables that will be built into the container image that `<NodeService>` creates.
-
-So let's pass the database connection environment variables we have in the `connectEnv` variable into `<NodeService>` by replacing the existing `<NodeService>` line in our spec with:
-```tsx
-        <NodeService srcDir=".." scope="external" env={connectEnv} />
+        <NodeService srcDir=".." scope="external" connectTo={pg} />
 ```
 
-We also need to add imports for the `Group` component and the `handle` and `useMethod` functions.
+Here, we're now passing the `pg` handle into the `connectTo` prop of `<NodeService>`, which will make it possible for `<NodeService>` to connect to `<Postgres>`.
+
+
+We also need to add imports for the `Group` component and the `handle` function.
 So your complete `index.tsx` file should now look like this:
 <!-- doctest file-replace { file: "index.tsx" } -->
 
 ```tsx
-import Adapt, { Group, handle, useMethod } from "@adpt/core";
+import Adapt, { Group, handle } from "@adpt/core";
 import { Postgres } from "@adpt/cloud/postgres";
 import { NodeService } from "@adpt/cloud/nodejs";
 import { k8sStyle } from "./styles";
 
 function App() {
     const pg = handle();
-    const connectEnv = useMethod(pg, {}, "connectEnv");
 
     return (
       <Group>
-        <NodeService srcDir=".." scope="external" env={connectEnv} />
+        <NodeService srcDir=".." scope="external" connectTo={pg} />
         <Postgres handle={pg} />
       </Group>
     );
@@ -155,11 +143,19 @@ import Adapt, { Style } from "@adpt/core";
 import { Service, ServiceProps } from "@adpt/cloud";
 import { ServiceDeployment } from "@adpt/cloud/k8s";
 import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
+import * as fs from "fs";
 
 export function kubeconfig() {
+    let configPath = process.env.KUBECONFIG;
+    if (!configPath) {
+        configPath = "./kubeconfig.json";
+        if (!fs.existsSync(configPath)) {
+            throw new Error(`Cannot find kubeconfig. Environment variable KUBECONFIG not set and ${configPath} not found`);
+        }
+    }
     return {
-        kubeconfig: require("./kubeconfig.json")
-    };
+        kubeconfig: require(configPath)
+    }
 }
 
 /*

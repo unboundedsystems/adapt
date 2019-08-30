@@ -116,7 +116,8 @@ We create an Adapt **stack** to tell Adapt that `<App>` is the root component th
 
 Each stack also needs a unique name that we'll be able to use to refer to it later.
 
-In our `index.tsx` file, we've defined one stack named `k8s` that associates our `<App>` component with the `k8sStyle` style sheet:
+In our `index.tsx` file, we've defined two stacks, named `default` and `k8s`.
+The line below creates the stack named `k8s`, which says that our `<App>` component will be the root component of the stack and associates it with the `k8sStyle` style sheet:
 ```tsx
 Adapt.stack("k8s", <App />, k8sStyle);
 ```
