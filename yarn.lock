@@ -1684,13 +1684,6 @@
     source-map "~0.6.1"
     typescript "~3.4.3"
 
-"@unboundedsystems/copyright-header@^0.4.4-unb4":
-  version "0.4.4-unb4"
-  resolved "https://registry.yarnpkg.com/@unboundedsystems/copyright-header/-/copyright-header-0.4.4-unb4.tgz#009317da9cf34d633e46660c582d6a1ca652f18e"
-  integrity sha512-RfqFgtPb9ay6uK4cTWT9eQtM8QBwbZfz+HHaiS6HVguCh5Y27xBd0wpYMuLpPBdaZiU+yy4X0fM+NLOyIHPNTw==
-  dependencies:
-    commander "^2.16.0"
-
 "@unboundedsystems/plugin-autocomplete@0.1.0-unb2":
   version "0.1.0-unb2"
   resolved "https://registry.yarnpkg.com/@unboundedsystems/plugin-autocomplete/-/plugin-autocomplete-0.1.0-unb2.tgz#29998674b53050616b6448b35aefae1595dbeeb2"
@@ -2973,7 +2966,7 @@ commander@2.15.1:
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.15.1.tgz#df46e867d0fc2aec66a34662b406a9ccafff5b0f"
   integrity sha512-VlfT9F3V0v+jr4yxPc5gg9s62/fIVWsd2Bk2iD435um1NlGMYdVCq+MjcXnhYq2icNOizHr1kK+5TI6H0Hy0ag==
 
-commander@2.20.0, commander@^2.12.1, commander@^2.16.0, commander@^2.20.0, commander@^2.7.1, commander@~2.20.0:
+commander@2.20.0, commander@^2.12.1, commander@^2.20.0, commander@^2.7.1, commander@~2.20.0:
   version "2.20.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.20.0.tgz#d58bb2b5c1ee8f87b0d340027e9e94e222c5a422"
   integrity sha512-7j2y+40w61zy6YC2iRNpUe/NwhNyoXrYpHMrSunaMG64nRnaf96zO/KMQR4OyN/UnE5KLyEBnKHd4aG3rskjpQ==
@@ -3233,6 +3226,13 @@ copy@^0.3.2:
     mkdirp "^0.5.1"
     resolve-dir "^0.1.0"
     to-file "^0.2.0"
+
+copyright-header@^0.4.6:
+  version "0.4.6"
+  resolved "https://registry.yarnpkg.com/copyright-header/-/copyright-header-0.4.6.tgz#cc5270aeda476efb7cc365e815c13ae1a8f4c598"
+  integrity sha512-hgGACVnDvkkFd7i4S0i5aMQBrljUT9O8Dzos+3itkcjKFiCOJGIhwt5IgB1XT4eHZ9AAS4fngPOWyPxBgueaUQ==
+  dependencies:
+    commander "^3.0.0"
 
 core-js@^2.6.5:
   version "2.6.9"
