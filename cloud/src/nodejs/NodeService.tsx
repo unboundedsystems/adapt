@@ -23,7 +23,7 @@ import Adapt, {
     useImperativeMethods,
     useMethod,
 } from "@adpt/core";
-import { useConnectTo } from "../ConnectTo";
+import { ConnectToInstance, useConnectTo } from "../ConnectTo";
 import { Container, Environment, mergeEnvPairs } from "../Container";
 import { DockerImageInstance } from "../docker";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
@@ -38,12 +38,11 @@ export interface NodeServiceProps {
     /**
      * Handles for services that this component connects to.
      * @remarks
-     * The referenced service components should implement the
+     * The referenced service components must implement the
      * {@link ConnectToInstance} interface. The Node Container will be
      * started with the combined set of environment variables that are
-     * provided by all of the referenced components' {@link ConnectToInstance.connectEnv}
-     * methods, in addition to those provided via the {@link nodejs.NodeServiceProps.deps}
-     * prop.
+     * provided by all of the referenced components'
+     * {@link ConnectToInstance.connectEnv | connectEnv} methods.
      *
      * In case of environment variable naming conflicts among those in
      * from the `connectTo` prop, the value from the handle with the highest
@@ -51,9 +50,8 @@ export interface NodeServiceProps {
      * In case of naming conflicts between `connectTo` and `env`, the value
      * in `env` will take precedence.
      * @defaultValue `[]`
-     * @public
      */
-    connectTo: Handle | Handle[];
+    connectTo: Handle<ConnectToInstance> | Handle<ConnectToInstance>[];
     /**
      * Dependencies that must be deployed before the Container image will
      * build.
@@ -133,17 +131,19 @@ const defaultProps = {
  *
  * Instance methods:
  *
- * - hostname(): string | undefined
+ * - `hostname(): string | undefined`
  *
  *   Returns the hostname of the NetworkService, once it is known.
  *
- * - port(): number | undefined
+ * - `port(): number | undefined`
  *
  *   Returns the port number of the NetworkService, once it is known.
  *
- * - image(): {@link docker.ImageInfo} | undefined
+ * - `image():` {@link docker.ImageInfo} | `undefined`
  *
  *   Information about the successfully built image, once it has been built.
+ *
+ * @param props - See {@link nodejs.NodeServiceProps}
  * @public
  */
 export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof defaultProps>) {

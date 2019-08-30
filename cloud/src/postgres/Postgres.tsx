@@ -15,16 +15,19 @@
  */
 
 import { useImperativeMethods } from "@adpt/core";
-import { Environment } from "../Container";
+import { ConnectToInstance } from "../ConnectTo";
 
 /**
  * An abstract component representing a Postgres database within a Postgres
  * server or service.
  *
  * @remarks
+ *
+ * Implements the {@link ConnectToInstance} interface.
+ *
  * Instance methods:
  *
- * - connectEnv(): Environment | undefined
+ * - `connectEnv(): Environment | undefined`
  *
  *   Returns the set of environment variables that have all the information
  *   needed for a Postgres client to connect to this database. The
@@ -39,11 +42,17 @@ import { Environment } from "../Container";
  *
  *   `PGPASSWORD`: Password to use to authenticate to the database server or service.
  *
+ *   Note that because this component is an abstract component, `connectEnv`
+ *   always returns `undefined`. This abstract component should be replaced
+ *   (using a style sheet) with a non-abstract component, such as
+ *   {@link postgres.TestPostgres} that will provide its own implementation
+ *   of `connectEnv`.
+ *
  * @public
  */
 export function Postgres() {
-    useImperativeMethods(() => ({
-        connectEnv: (): Environment | undefined => undefined
+    useImperativeMethods<ConnectToInstance>(() => ({
+        connectEnv: () => undefined
     }));
     return null;
 }

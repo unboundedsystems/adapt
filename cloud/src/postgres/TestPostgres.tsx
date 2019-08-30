@@ -30,6 +30,28 @@ export interface TestPostgresProps {
  * A component suitable for creating test scenarios that creates a simple,
  * temporary Postgres database that loads test data from a .sql file and
  * which implements the abstract {@link postgres.Postgres} interface.
+ *
+ * @remarks
+ *
+ * Implements the {@link ConnectToInstance} interface.
+ *
+ * Instance methods:
+ *
+ * - `connectEnv(): Environment | undefined`
+ *
+ *   Returns the set of environment variables that have all the information
+ *   needed for a Postgres client to connect to this database. The
+ *   returned environment variables are named such that some common Postgres
+ *   clients can use them directly:
+ *
+ *   `PGHOST`: The host to connect to.
+ *
+ *   `PGDATABASE`: The name of the database.
+ *
+ *   `PGUSER`: Username to use to authenticate to the database server or service.
+ *
+ *   `PGPASSWORD`: Password to use to authenticate to the database server or service.
+ *
  * @public
  */
 export function TestPostgres(props: SFCDeclProps<TestPostgresProps>) {
