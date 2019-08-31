@@ -1,10 +1,8 @@
 ---
 id: index
-title: Adapt Documentation
+title: Welcome to Adapt
 ---
 <!-- DOCTOC SKIP -->
-
-## Welcome to Adapt
 
 Adapt is the easiest way to reliably and repeatably deploy your apps anywhere -- to your laptop, a Kubernetes cluster, your favorite cloud, or anywhere else. Adapt specifications look like [ReactJS](https://reactjs.org) apps, but instead of rendering browser DOM elements like input, or div, Adapt specifications render to DOM elements like AWS EC2 instances, Lambdas, Kubernetes Pods, or any other building block for your application architecture.  If you are already familiar with React, many of the concepts will look familiar. If not, don't worry, knowledge of React isn't required to start using Adapt.
 
@@ -23,7 +21,24 @@ adapt update <myID>
 
 Deploy a sample application with a [React](https://reactjs.org) front-end, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, along with a static file server and a URL router:
 
-![Adapt in action](assets/getting_started/adapt-demo-scaled.gif)
+<div class="term center-block">
+    <div class="term-header">
+        <button class="term-header-button term-header-button-close"></button>
+        <button class="term-header-button term-header-button-minimize"></button>
+        <button class="term-header-button term-header-button-expand"></button>
+        <div class="term-header-title">
+            <span>Unbounded Adapt</span>
+        </div>
+    </div>
+    <div class="term-content">
+        <!-- NOTE: Workaround for docusaurus not re-writing URLs in HTML blocks
+          -- is to use an absolute path, but this will always be the "next"
+          -- version of the image.
+          -->
+        <img src="/docs/assets/getting_started/adapt-demo-scaled.gif" alt="Adapt in action">
+    </div>
+</div>
+
 
 A snippet of the corresponding Adapt specification that the starter sets up for this example:
 ```jsx
