@@ -24,8 +24,9 @@ import Adapt, {
     useMethod,
 } from "@adpt/core";
 import { ConnectToInstance, useConnectTo } from "../ConnectTo";
-import { Container, Environment, mergeEnvPairs } from "../Container";
+import { Container } from "../Container";
 import { DockerImageInstance } from "../docker";
+import { Environment, mergeEnvPairs } from "../env";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
 import { Service } from "../Service";
 import { LocalNodeImage } from "./LocalNodeImage";

@@ -20,11 +20,11 @@ import {
     Container as AbsContainer,
     ContainerProps as AbsContainerProps,
     Links,
-    mergeEnvSimple,
     PortBinding,
     useLatestImageFrom,
 } from "../Container";
 import { containerStatus } from "../docker/DockerContainer";
+import { mergeEnvSimple } from "../env";
 import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
 /**

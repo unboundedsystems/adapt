@@ -23,7 +23,8 @@ import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
-import { ContainerStatus, Environment, mergeEnvSimple } from "../Container";
+import { ContainerStatus } from "../Container";
+import { Environment, mergeEnvSimple } from "../env";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
     DockerBuildOptions,

@@ -24,6 +24,7 @@ import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
 import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps } from "../docker";
+import { Environment, mergeEnvPairs } from "../env";
 
 /**
  * Props for {@link nodejs.LocalNodeImage}
@@ -35,6 +36,13 @@ export interface LocalNodeImageProps extends Partial<BuiltinProps> {
     srcDir: string;
     /** Build options */
     options?: NodeImageBuildOptions;
+}
+
+function argLines(env: Environment) {
+    const pairs = mergeEnvPairs(env);
+    if (!pairs) return "";
+    const lines = pairs.map((v) => `ARG ${v.name}`);
+    return lines.join("\n");
 }
 
 /**
@@ -67,6 +75,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
         return {
             dockerfile: `
                     FROM node:10-stretch-slim
+                    ${argLines(opts.buildEnv)}
                     WORKDIR /app
                     ADD . /app
                     RUN ${opts.packageManager} install
@@ -101,10 +110,19 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
      * that should be run during the image build.
      */
     runNpmScripts?: string | string[];
+    /**
+     * Environment variables that should be present during docker build
+     *
+     * @remarks
+     * This adds an `ARG <varName>` line to the Dockerfile for every variable in env, and sets the
+     * variable in the environment before running `docker build`.
+     */
+    buildEnv?: Environment;
 }
 
 const defaultContainerBuildOptions = {
     imageName: "node-service",
     packageManager: "npm",
     uniqueTag: true,
+    buildEnv: {}
 };

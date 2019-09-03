@@ -29,9 +29,11 @@ import { ReplaceT } from "type-ops";
 import {
     Container as AbsContainer,
     ContainerProps as AbsContainerProps,
-    mergeEnvPairs,
     useLatestImageFrom,
 } from "../Container";
+import {
+    mergeEnvPairs
+} from "../env";
 
 /**
  * Resource spec for a Kubernetes container.
