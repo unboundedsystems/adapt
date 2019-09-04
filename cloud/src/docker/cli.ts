@@ -24,7 +24,7 @@ import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
 import { ContainerStatus } from "../Container";
-import { Environment, mergeEnvSimple } from "../env";
+import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
     DockerBuildOptions,
@@ -137,7 +137,7 @@ async function execDocker(args: string[], options: ExecDockerOptions) {
     execaOpts.extendEnv = false;
     //Note(manishv) execa (via cross-spawn) uses path from opts.env instead of the parent env, ugh.
     //See https://github.com/sindresorhus/execa/issues/366
-    const pathEnv = { PATH: process.env.PATH || ""};
+    const pathEnv = { PATH: process.env.PATH || "" };
     execaOpts.env = mergeEnvSimple(pathEnv, options.env);
 
     const cmdDebug =
@@ -158,6 +158,14 @@ export const defaultDockerBuildOptions = {
     forceRm: true,
     uniqueTag: false,
 };
+
+function collectBuildArgs(opts: DockerBuildOptions): string[] {
+    if (!opts.buildArgs) return [];
+    const buildArgs = mergeEnvPairs(opts.buildArgs);
+    if (!buildArgs) return [];
+    const expanded = buildArgs.map((e) => ["--build-arg", `${e.name}=${e.value}`]);
+    return ld.flatten(expanded);
+}
 
 export async function dockerBuild(
     dockerfile: string,
@@ -185,6 +193,8 @@ export async function dockerBuild(
     if (opts.deployID) {
         args.push("--label", `${adaptDockerDeployIDKey}=${opts.deployID}`);
     }
+    const buildArgs = collectBuildArgs(opts);
+    args.push(...buildArgs);
     args.push(contextPath);
 
     const cmdRet = await execDocker(args, opts);

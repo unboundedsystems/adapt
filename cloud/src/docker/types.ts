@@ -16,6 +16,7 @@
 
 import { Handle } from "@adpt/core";
 import { ContainerLabels, ContainerProps } from "../Container";
+import { Environment } from "../env";
 import { DockerImageInstance } from "./DockerImage";
 
 /**
@@ -50,6 +51,7 @@ export interface DockerBuildOptions extends DockerGlobalOptions {
      * If set, will add a Docker LABEL with the DeployID.
      */
     deployID?: string;
+    buildArgs?: Environment;
 }
 
 /**
