@@ -45,11 +45,13 @@ import {
     Container,
     ContainerProps,
     ContainerStatus,
+} from "../src/Container";
+import {
     Environment,
     lookupEnvVar,
     renameEnvVars,
     updateEnvVars
-} from "../src/Container";
+} from "../src/env";
 import { act, randomName } from "./testlib";
 
 const { deleteContainer } = dockerutils;

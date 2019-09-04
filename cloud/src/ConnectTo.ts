@@ -16,7 +16,7 @@
 
 import { callInstanceMethod, Handle, useAsync } from "@adpt/core";
 import { toArray } from "@adpt/utils";
-import { Environment, mergeEnvPairs } from "./Container";
+import { Environment, mergeEnvPairs } from "./env";
 
 /**
  * Components that provide a service, such as a database service or API

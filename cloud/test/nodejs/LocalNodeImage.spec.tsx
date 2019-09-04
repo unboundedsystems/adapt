@@ -30,8 +30,8 @@ import {
     NodeImageBuildOptions,
 } from "../../src/nodejs";
 
-async function checkDockerRun(image: string) {
-    const { stdout } = await execa("docker", ["run", "--rm", image]);
+async function checkDockerRun(image: string, ...args: string[]) {
+    const { stdout } = await execa("docker", ["run", "--rm", image, ...args]);
     return stdout;
 }
 
@@ -109,7 +109,8 @@ describe("LocalNodeImage tests", function () {
         version: "0.0.1",
         main: "dist/index.js",
         scripts: {
-            build: "tsc",
+            "build": "tsc && npm run build-test-var",
+            "build-test-var": `printf '#!/usr/bin/env bash'"\\necho \${TEST_VAR}\\n" > /test-var.sh && chmod 755 /test-var.sh`
         },
         devDependencies: {
             typescript: "3.2.x"
@@ -196,5 +197,14 @@ describe("LocalNodeImage tests", function () {
         const { id, tag } = await basicTest(options);
         should(tag).equal("myimage:bar");
         should(uniq(imageIds)).eql([id]);
+    });
+
+    it("Should expose buildArgs during build", async () => {
+        const testVarValue = "This is a test";
+        const { id } = await basicTest({
+            buildArgs: { TEST_VAR: testVarValue }
+        });
+        const output = await checkDockerRun(id, "/test-var.sh");
+        should(output).equal(testVarValue);
     });
 });

@@ -127,6 +127,7 @@ export class LocalDockerImage
 
     static defaultProps = {
         options: {
+            dockerHost: process.env.DOCKER_HOST,
             forceRm: true,
         },
     };
