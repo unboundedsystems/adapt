@@ -21,7 +21,7 @@ adapt update <myID>
 
 Deploy a sample application with a [React](https://reactjs.org) front-end, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, along with a static file server and a URL router:
 
-<div class="term center-block">
+<div class="term term-demo center-block">
     <div class="term-header">
         <button class="term-header-button term-header-button-close"></button>
         <button class="term-header-button term-header-button-minimize"></button>
