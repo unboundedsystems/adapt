@@ -405,18 +405,31 @@ export function copyRuleMatches(
 }
 
 /**
- * User API function that can be used in a style rule build function to
+ * Marks an element returned by a style rule to not rematch that rule.
+ *
+ *  @param info - The second argument to a rule callback
+ *     function. This indicates which rule to ignore matches of.
+ * @param elem - The element that should not match the
+ *     specified rule.
+ * @returns `elem` is returned as a convenience
+ *
+ * @remarks
+ * This function can be used in a style rule build function to
  * mark the props of the passed in element such that the rule associated
  * with the info parameter will not match against the specified element.
  *
  * This works by copying the set of all rules that have already matched
  * successfully against the original element (origElement) specified in the
  * info parameter onto the passed in elem.
- * Returns the passed in elem as a convenience. Does not create a new element.
- * @param info - The second argument to a rule callback
- *     function. This indicates which rule to ignore matches of.
- * @param elem - The element that should not match the
- *     specified rule.
+ *
+ * @example
+ * ```tsx
+ * <Style>
+ *   {MyComponent} {Adapt.rule<MyComponentProps>(({ handle, ...props}, info) =>
+ *     ruleNoRematch(info, <MyComponent {...props} />))}
+ * </Style>
+ * ```
+ *
  * @public
  */
 export function ruleNoRematch(info: StyleBuildInfo, elem: AdaptElement) {
