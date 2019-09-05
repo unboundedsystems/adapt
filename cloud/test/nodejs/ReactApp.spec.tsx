@@ -17,6 +17,7 @@
 import Adapt, {
     AnyProps,
     callInstanceMethod,
+    concatStyles,
     findElementsInDom,
     handle,
     PrimitiveComponent,
@@ -41,20 +42,23 @@ class Final extends PrimitiveComponent<AnyProps> {
     static noPlugin = true;
 }
 
-const mockStyle =
+const mockStyleNoHttpServer = <Style>
+    {Service} {rule(({ handle: _h, ...props }) => <Final kind="Service" {...props} />)}
+    {NetworkService} {rule(({ handle: _h, ...props }) => <Final kind="NetworkService" {...props} />)}
+    {Container} {rule(({ handle: _h, ...props }) => <Final kind="Container" {...props} />)}
+</Style>;
+
+const mockStyle = concatStyles(mockStyleNoHttpServer,
     <Style>
-        {Service} {rule(({ handle: _h, ...props }) => <Final kind="Service" {...props} />)}
-        {NetworkService} {rule(({ handle: _h, ...props }) => <Final kind="NetworkService" {...props} />)}
-        {Container} {rule(({ handle: _h, ...props }) => <Final kind="Container" {...props} />)}
         {HttpServer} {rule<HttpServerProps>(({ handle: _h, ...props }) =>
             <nginx.HttpServer {...props} />)}
-    </Style>;
+    </Style>);
 
 const getNet = <Style>{Final}[kind=NetworkService] {Adapt.rule()}</Style>;
 const getImage = <Style>{LocalDockerImage} {Adapt.rule()}</Style>;
 
 async function checkDockerRun(image: string, cmd: string[] = []) {
-    const { stdout } = await execa("docker", [ "run", "--rm", image, ...cmd ]);
+    const { stdout } = await execa("docker", ["run", "--rm", image, ...cmd]);
     return stdout;
 }
 
@@ -115,7 +119,14 @@ describe("ReactApp", function () {
         should(imageInfo.id).be.a.String();
 
         // Check that the nginx image got the file "built" in the app image
-        const out = await checkDockerRun(imageInfo.id, [ "cat", "/www/static/file1" ]);
+        const out = await checkDockerRun(imageInfo.id, ["cat", "/www/static/file1"]);
         should(out).equal("contents");
+    });
+
+    it("Should not build without HttpServer style", async () => {
+        const hand = handle();
+        const orig = <ReactApp handle={hand} srcDir="." />;
+        return should(mockDeploy.deploy(orig, { style: mockStyleNoHttpServer }))
+            .rejectedWith(/HttpServer/);
     });
 });
