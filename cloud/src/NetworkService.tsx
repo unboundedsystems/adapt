@@ -48,7 +48,7 @@ export interface NetworkServiceProps extends WithChildren {
  */
 export const externalNetwork = "external";
 /**
- *  Default {@link NetworkScope}, usually internal/cluster scope only 
+ *  Default {@link NetworkScope}, usually internal/cluster scope only
  *
  * @public
  */

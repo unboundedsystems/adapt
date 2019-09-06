@@ -26,14 +26,16 @@ import Adapt, {
     SFCBuildProps,
     SFCDeclProps,
     useBuildHelpers,
+    useDeployedWhen,
     useImperativeMethods,
     useState,
-    waiting
+    waiting,
+    Waiting
 } from "@adpt/core";
 import { removeUndef } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, isObject, pick } from "lodash";
-import { NetworkServiceProps, NetworkServiceScope, targetPort } from "../NetworkService";
+import { externalNetwork, NetworkScope, NetworkServiceProps, NetworkServiceScope, targetPort } from "../NetworkService";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
@@ -218,6 +220,59 @@ function findInArray<T extends { [key: string]: any }>(arr: T[] | undefined | nu
     return undefined;
 }
 
+interface NoExternalName {
+    noName: true;
+}
+const noExternalName: NoExternalName = { noName: true };
+function isNoExternalName(x: any): x is NoExternalName {
+    return x === noExternalName;
+}
+
+async function getExternalName(props: SFCBuildProps<ServiceProps, typeof defaultProps>):
+    Promise<string | NoExternalName | Waiting> {
+    const log = console; //FIXME(manishv) Use proper logger here
+    const resourceHand = props.handle;
+    const resourceElem = resourceHand.target;
+    if (!resourceElem) return noExternalName; //This should not be able to happen
+    if (!isMountedElement(resourceElem)) return noExternalName; //Should not be possible
+
+    //Don't fetch status if we don't need it
+    if (!(props.type === "LoadBalancer" || props.type === "ExternalName")) return noExternalName;
+    let statusTop: any;
+    try {
+        statusTop = await resourceElem.status<any>();
+    } catch (e) {
+        //Status not available yet
+        if (e.message.startsWith("Resource not found")) return waiting("Waiting for resource to be created");
+        throw e;
+    }
+    if (!statusTop) return waiting("Waiting for status from k8s");
+
+    const spec = statusTop.spec;
+    const status = statusTop.status;
+    if (!status) return waiting("Waiting for status from k8s");
+    if (spec.type === "LoadBalancer") {
+        if (status.loadBalancer === undefined) return waiting("Waiting for loadBlancer status from k8s");
+        const ingresses: string | string[] | undefined | null | unknown = status.loadBalancer.ingress;
+        if (ingresses == null) return waiting("Waiting for Ingress IP");
+        if (typeof ingresses === "string") return ingresses;
+        if (Array.isArray(ingresses)) {
+            if (ingresses.length === 0) return noExternalName;
+            if (ingresses.length !== 1) log.warn(`Multiple k8s LoadBalancer ingresses returned, using only one: ${ingresses}`);
+            for (const ingress of ingresses as { hostname: string | null; ip: string | null }[]) {
+                if (ingress.hostname) return ingress.hostname;
+                if (ingress.ip) return ingress.ip;
+            }
+        }
+
+        return noExternalName;
+    }
+
+    if (spec.type === "ExternalName" && spec.externalName) return spec.externalName as string;
+
+    return noExternalName;
+}
+
 export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<ServiceProps, typeof defaultProps>;
     const helpers = useBuildHelpers();
@@ -229,16 +284,24 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
         }
     }
 
+    const [externalName, setExternalName] = useState<string | NoExternalName | undefined>(undefined);
+
     const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
     const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
     useImperativeMethods(() => ({
-        hostname: () => {
+        hostname: (scope?: NetworkScope) => {
             const resourceHand = props.handle;
             const resourceElem = resourceHand.target;
             if (!resourceElem) return undefined;
-            const resourceName = resourceElementToName(resourceElem, deployID);
-            const namespace = computeNamespaceFromMetadata(manifest.metadata);
-            return `${resourceName}.${namespace}.svc.cluster.local.`;
+            if (scope && scope === externalNetwork) {
+                if (isNoExternalName(externalName)) throw new Error("External name request for element, but no external name available");
+                if (typeof externalName === "string") return externalName;
+                return undefined;
+            } else {
+                const resourceName = resourceElementToName(resourceElem, deployID);
+                const namespace = computeNamespaceFromMetadata(manifest.metadata);
+                return `${resourceName}.${namespace}.svc.cluster.local.`;
+            }
         },
         port: (name?: string) => {
             if (name) {
@@ -253,6 +316,15 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
             }
         }
     }));
+
+    useDeployedWhen(async () => {
+        const statusName = await getExternalName(props);
+        if ((typeof statusName === "string") || isNoExternalName(statusName)) {
+            setExternalName(statusName);
+            return true;
+        }
+        return statusName;
+    });
 
     updateSelector(async () => {
         const { selector: ep } = props;
