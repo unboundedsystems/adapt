@@ -42,14 +42,14 @@ async function runCommand(cmd: string[], cmdName: string, log: MessageLogger, al
         err = ensureError(err);
 
         // execa throws a plain Error, but with additional stuff attached
-        if (err.failed === true && err.code !== undefined) {
+        if (err.failed === true && err.exitCode !== undefined) {
             if (err.stdout) log.info(err.stdout);
             if (err.stderr) log.error(err.stderr);
 
-            if (allowCode1 && err.code === 1) return 1;
+            if (allowCode1 && err.exitCode === 1) return 1;
 
             const output = err.stderr || err.stdout;
-            let msg = `Command ${cmdName} (${cmd.join(" ")}) failed. [returned ${err.code}]`;
+            let msg = `Command ${cmdName} (${cmd.join(" ")}) failed. [returned ${err.exitCode}]`;
             if (output) msg += `:\n${output}`;
             throw new Error(msg);
         }

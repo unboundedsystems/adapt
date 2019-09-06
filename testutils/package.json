@@ -28,7 +28,7 @@
     "aws-sdk": "^2.512.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.8",
-    "execa": "^0.10.0",
+    "execa": "^2.0.4",
     "fs-extra": "^8.1.0",
     "heapdump": "^0.3.14",
     "js-yaml": "^3.13.1",
@@ -47,7 +47,6 @@
   "devDependencies": {
     "@types/callsites": "^2.0.0",
     "@types/dockerode": "^2.5.20",
-    "@types/execa": "^0.9.0",
     "@types/fs-extra": "^8.0.0",
     "@types/heapdump": "^0.3.1",
     "@types/js-yaml": "^3.12.1",

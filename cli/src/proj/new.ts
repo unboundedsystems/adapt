@@ -318,7 +318,7 @@ async function runScripts(config: StarterConfig, log: LogString,
         debugNew(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
 
     } catch (err) {
-        throw new UserError(`Error running init script:\n${err.message}`);
+        throw new UserError(`Error running init script:\n${err.message}\n${err.all}\n`);
     }
 }
 
