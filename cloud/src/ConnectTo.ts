@@ -85,10 +85,14 @@ export interface ConnectToInstance {
  * @public
  */
 export function useConnectTo(connectTo: Handle | Handle[],
-    xform?: (e: Environment | undefined) => Environment): Environment | undefined {
+    xform?: (e: Environment) => Environment): Environment | undefined {
     const lxform = xform || ((x) => x);
+    const noUndefXform = (e: Environment | undefined) => {
+        if (e === undefined) return lxform({});
+        return lxform(e);
+    };
     const connectEnvs = useAsync<(Environment | undefined)[]>(() =>
         toArray(connectTo)
-            .map((h) => lxform(callInstanceMethod(h, undefined, "connectEnv"))), []);
+            .map((h) => noUndefXform(callInstanceMethod(h, undefined, "connectEnv"))), []);
     return mergeEnvPairs(...connectEnvs);
 }
