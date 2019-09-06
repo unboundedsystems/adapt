@@ -30,8 +30,8 @@ describe("yarn run", function () {
         const ret = await retP;
 
         // Check that ret is an ExecaReturns
-        should(ret.cmd).be.a.String();
-        should(ret.code).equal(0);
+        should(ret.command).be.a.String();
+        should(ret.exitCode).equal(0);
         should(ret.failed).equal(false);
 
         should(ret.stdout).match(/http_parser:/);

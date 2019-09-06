@@ -388,7 +388,7 @@ describe("project:new sshHostKeyCheck", () => {
             console.log(`Expected command to fail.\n${ret.stdout}\n${ret.stderr}`);
             throw new Error(`Expected command to fail`);
         } catch (err) {
-            expect(err.code).to.equal(2);
+            expect(err.exitCode).to.equal(2);
             expect(err.stderr).matches(/Host key verification failed/);
             expect(trying(err.stdout)).eqls([
                 `${testStarterPrivate}#adapt-v1.0.0`,
@@ -448,8 +448,8 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed: badcommand\n` +
-            `/bin/sh: 1: badcommand: not found\n\n`);
+            `Command failed with exit code 127 (Unknown system error -127): badcommand\n` +
+            `/bin/sh: 1: badcommand: not found\n`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error on bad command");
@@ -466,9 +466,9 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed: echo To stdout ; echo To stderr 1>&2; false\n` +
-            `To stderr\n\n` +
-            `To stdout\n`);
+            `Command failed with exit code 1 (EPERM): echo To stdout ; echo To stderr 1>&2; false\n` +
+            `To stdout\n` +
+            `To stderr\n`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error on non-zero exit code");

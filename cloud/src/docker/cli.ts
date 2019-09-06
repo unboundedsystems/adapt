@@ -16,7 +16,7 @@
 
 import { InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
-import execa, { ExecaError, ExecaReturns, Options as ExecaOptions } from "execa";
+import execa, { ExecaError, ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
 import * as path from "path";
@@ -132,26 +132,31 @@ async function execDocker(args: string[], options: ExecDockerOptions) {
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
     args = globalArgs.concat(args);
-    const execaOpts: ExecaOptions = {};
-    execaOpts.input = options.stdin;
-    execaOpts.extendEnv = false;
-    //Note(manishv) execa (via cross-spawn) uses path from opts.env instead of the parent env, ugh.
-    //See https://github.com/sindresorhus/execa/issues/366
     const pathEnv = { PATH: process.env.PATH || "" };
-    execaOpts.env = mergeEnvSimple(pathEnv, options.env);
+    const execaOpts: ExecaOptions = {
+        input: options.stdin,
+        extendEnv: false,
+        //Note(manishv) execa (via cross-spawn) uses path from opts.env instead of the parent env, ugh.
+        //See https://github.com/sindresorhus/execa/issues/366
+        env: mergeEnvSimple(pathEnv, options.env)
+    };
 
     const cmdDebug =
         debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
             debug.enabled ? debug :
                 null;
     if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
-    const ret = execa("docker", args, execaOpts);
-    if (debugOut.enabled && cmdDebug) {
-        streamToDebug(ret.stdout, cmdDebug);
-        streamToDebug(ret.stderr, cmdDebug);
+    try {
+        const ret = execa("docker", args, execaOpts);
+        if (debugOut.enabled && cmdDebug) {
+            streamToDebug(ret.stdout, cmdDebug);
+            streamToDebug(ret.stderr, cmdDebug);
+        }
+        return await ret;
+    } catch (e) {
+        if (e.all) e.message += "\n" + e.all;
+        throw e;
     }
-
-    return ret;
 }
 
 export const defaultDockerBuildOptions = {
@@ -225,7 +230,7 @@ export async function dockerBuild(
     return ret;
 }
 
-function debugBuild(cmdRet: execa.ExecaReturns) {
+function debugBuild(cmdRet: execa.ExecaReturnValue<string>) {
     const steps: string[] = [];
     let cur = "";
     cmdRet.stdout.split("\n").forEach((l) => {
@@ -238,7 +243,7 @@ function debugBuild(cmdRet: execa.ExecaReturns) {
     });
     if (cur) steps.push(cur);
     const cached = cur.includes("Using cache");
-    debug(`docker ${cmdRet.cmd}:\n  Cached: ${cached}\n  ${steps.join("\n  ")}`);
+    debug(`docker ${cmdRet.command}:\n  Cached: ${cached}\n  ${steps.join("\n  ")}`);
 }
 
 /**
@@ -309,8 +314,8 @@ export interface DockerInspectOptions extends DockerGlobalOptions {
 }
 
 function isExecaError(e: Error): e is ExecaError {
-    if (!e.message.startsWith("Command failed:")) return false;
-    if (!("code" in e)) return false;
+    if (!e.message.startsWith("Command failed")) return false;
+    if (!("exitCode" in e)) return false;
     return true;
 }
 
@@ -322,7 +327,7 @@ function isExecaError(e: Error): e is ExecaError {
 export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}): Promise<InspectReport[]> {
     const execArgs = ["inspect"];
     if (opts.type) execArgs.push(`--type=${opts.type}`);
-    let inspectRet: ExecaReturns;
+    let inspectRet: ExecaReturnValue<string>;
     try {
         inspectRet = await execDocker([...execArgs, ...namesOrIds], opts);
     } catch (e) {

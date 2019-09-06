@@ -109,7 +109,7 @@ describeLong("reactapp system tests", function () {
         });
 
         await waitForNoThrow(5, 2, async () => {
-            const resp = await execa.stdout("curl", [
+            const { stdout: resp } = await execa("curl", [
                 ...curlOptions,
                 `http://${dockerHost}:8080/api/search/The%20Incredibles`
             ]);
@@ -120,7 +120,7 @@ describeLong("reactapp system tests", function () {
         });
 
         await waitForNoThrow(5, 2, async () => {
-            const resp = await execa.stdout("curl", [
+            const { stdout: resp } = await execa("curl", [
                 ...curlOptions,
                 `http://${dockerHost}:8080/`
             ]);

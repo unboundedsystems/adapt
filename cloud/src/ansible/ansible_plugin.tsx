@@ -194,7 +194,9 @@ async function execPlaybook(el: PlaybookElement, pluginDir: string, log: Logger)
             if (err.stderr) log(err.stderr);
             if (err.stdout) log(err.stdout);
             const msg = err.message || err;
-            throw new Error(`Error executing ansible-playbook: ${msg}`);
+            let output = "";
+            if (err.all) output = "\n" + err.all;
+            throw new Error(`Error executing ansible-playbook: ${msg}${output}`);
         }
 
     } finally {
@@ -222,7 +224,9 @@ async function installGalaxyRoles(roleEls: RoleElement[], pluginDir: string,
             if (err.stderr) log(err.stderr);
             if (err.stdout) log(err.stdout);
             const msg = err.message || err;
-            throw new Error(`Error installing Ansible role: ${msg}`);
+            let output = "";
+            if (err.all) output = "\n" + err.all;
+            throw new Error(`Error installing Ansible role: ${msg}${output}`);
         }
     }
 }
@@ -379,8 +383,8 @@ export class AnsiblePluginImpl
     findElems = (dom: AdaptElementOrNull): PlaybookElement[] => {
         const objs =
             dom === this.curDom ? this.curObjs :
-            dom === this.prevDom ? this.prevObjs :
-            undefined;
+                dom === this.prevDom ? this.prevObjs :
+                    undefined;
         if (!objs) throw new Error(`Unexpected DOM passed to findElems`);
         return objs.playbooks;
     }

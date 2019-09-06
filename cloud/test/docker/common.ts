@@ -22,7 +22,7 @@ import { dockerInspect, dockerPull, dockerRemoveImage } from "../../src/docker/c
 
 export async function deleteAllContainers(deployID: string) {
     try {
-        const ctrList = await execa.stdout("docker", ["ps", "-a", "-q",
+        const { stdout: ctrList } = await execa("docker", ["ps", "-a", "-q",
             "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
         if (!ctrList) return;
         const ctrs = ctrList.split(/\s+/);
@@ -35,7 +35,7 @@ export async function deleteAllContainers(deployID: string) {
 
 export async function deleteAllImages(deployID: string) {
     try {
-        const imgList = await execa.stdout("docker", ["image", "ls", "-q",
+        const { stdout: imgList } = await execa("docker", ["image", "ls", "-q",
             "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
         if (!imgList) return;
         const imgs = uniq(imgList.split(/\s+/m));

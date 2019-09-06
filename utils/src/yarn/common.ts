@@ -78,7 +78,7 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
     }
     if (args) finalArgs.push(...args);
 
-    const childProc = execa("yarn", finalArgs, { stripEof: false });
+    const childProc = execa("yarn", finalArgs, { stripFinalNewline: false });
     if (pipeOutput) {
         childProc.stdout.pipe(process.stdout);
         childProc.stderr.pipe(process.stdout);
@@ -89,7 +89,7 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
     // extra work to insert our translation into the promise chain rather
     // than just adding a .catch handler.
     const translateError = (err: ExecaError) => {
-        err.message = `yarn ${action} failed: ${err.message}`;
+        err.message = `yarn ${action} failed: ${err.message}\n${err.all}`;
         return Promise.reject(err);
     };
     insertCatch(childProc, translateError);

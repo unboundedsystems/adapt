@@ -19,6 +19,7 @@ import * as pacote from "pacote";
 import * as path from "path";
 
 import { mkdtmp, ValidationError, yarn } from "@adpt/utils";
+import { ExecaChildProcess } from "execa";
 import { UserError } from "../error";
 import {
     AdaptModule,
@@ -163,7 +164,7 @@ export class Project {
      * the caller access to the output streams without having to wait for
      * completion of the yarn process.
      */
-    installModules() {
+    installModules(): ExecaChildProcess<string> | undefined {
         if (this.installed) return;
         const ret = yarn.install(yarnInstallOptions(this.options));
         ret.then(() => this.installed = true).catch();

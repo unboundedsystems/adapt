@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Unbounded Systems, LLC
+ * Copyright 2018-2019 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ export function run(action: string, options: CommonOptions | AnyOptions, args?: 
     if (args) finalArgs = finalArgs.concat(args);
 
     try {
-        const prom = execa("npm", finalArgs, { cwd, stripEof: false });
+        const prom = execa("npm", finalArgs, { cwd, stripFinalNewline: false });
         if (pipeOutput) {
             prom.stdout.pipe(process.stdout);
             prom.stderr.pipe(process.stdout);
@@ -66,6 +66,7 @@ export function run(action: string, options: CommonOptions | AnyOptions, args?: 
         return prom;
     } catch (err) {
         err.message = `npm ${action} failed: ${err.message}`;
+        if (err.all) err.message += "\n" + err.all;
         throw err;
     }
 }

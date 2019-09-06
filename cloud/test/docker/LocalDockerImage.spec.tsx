@@ -65,7 +65,7 @@ describe("buildFilesImage", function () {
         const image = await dockerBuild("-", ".",
             { stdin: dockerfile, imageName: "adapt-test-buildfiles"});
         cleanupIds.push(image.id);
-        return execa.stdout("docker", [ "run", "--rm", image.id ]);
+        return (await execa("docker", [ "run", "--rm", image.id ])).stdout;
     }
 
     it("Should build an image", async () => {
