@@ -53,6 +53,7 @@ const defaultDeployOptions = {
 
 export interface DeployOutput extends ActComplete {
     dom: FinalDomElement | null;
+    mountedOrig: AdaptMountedElement | null;
     stepID: DeployStepID;
 }
 
@@ -123,6 +124,7 @@ export class MockDeploy {
     async deploy(orig: AdaptElement | null, options: DeployOptions = {}): Promise<DeployOutput> {
         const { debug, style, ...opts } = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
+        let mountedOrig: AdaptMountedElement | null;
         let processStateUpdates: ProcessStateUpdates;
         let builtElements: AdaptMountedElement[];
 
@@ -135,6 +137,7 @@ export class MockDeploy {
 
             if (orig === null) {
                 dom = null;
+                mountedOrig = null;
             } else {
                 const res = await doBuild(orig, {
                     debug,
@@ -143,6 +146,7 @@ export class MockDeploy {
                     style,
                 });
                 dom = res.dom;
+                mountedOrig = res.mountedOrig;
                 processStateUpdates = res.processStateUpdates;
                 builtElements = res.builtElements;
             }
@@ -173,7 +177,7 @@ export class MockDeploy {
 
                 if (opts.once || (actResults.deployComplete && !actResults.stateChanged)) {
                     const stepID = await this.deployment.currentStepID(this.deployOpID);
-                    return { ...actResults, dom, stepID };
+                    return { ...actResults, dom, mountedOrig, stepID };
                 }
             } catch (err) {
                 // tslint:disable-next-line: no-console
