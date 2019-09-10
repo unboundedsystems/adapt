@@ -337,7 +337,7 @@ describe("k8s Service Operation Tests", function () {
         const expectedIP = ingress.hostname || ingress.ip;
 
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
-        const hostname = callInstanceMethod(mountedOrig.props.handle, undefined, "hostname", abs.externalNetwork);
+        const hostname = callInstanceMethod(mountedOrig.props.handle, undefined, "hostname", abs.NetworkScope.external);
         should(hostname).equal(expectedIP);
     });
 

@@ -35,7 +35,13 @@ import Adapt, {
 import { removeUndef } from "@adpt/utils";
 import stringify from "json-stable-stringify";
 import { isEqual, isObject, pick } from "lodash";
-import { externalNetwork, NetworkScope, NetworkServiceProps, NetworkServiceScope, targetPort } from "../NetworkService";
+import {
+    NetworkScope,
+    NetworkServiceInstance,
+    NetworkServiceProps,
+    NetworkServiceScope,
+    targetPort
+} from "../NetworkService";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
@@ -273,6 +279,13 @@ async function getExternalName(props: SFCBuildProps<ServiceProps, typeof default
     return noExternalName;
 }
 
+/**
+ * Native Kubernetes Service resource
+ *
+ * @remarks
+ *
+ * Implements the {@link NetworkServiceInstance} interface.
+ */
 export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<ServiceProps, typeof defaultProps>;
     const helpers = useBuildHelpers();
@@ -288,12 +301,12 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
 
     const [epSelector, updateSelector] = useState<EndpointSelector | undefined>(undefined);
     const manifest = makeSvcManifest(props, { endpointSelector: epSelector });
-    useImperativeMethods(() => ({
+    useImperativeMethods<NetworkServiceInstance>(() => ({
         hostname: (scope?: NetworkScope) => {
             const resourceHand = props.handle;
             const resourceElem = resourceHand.target;
             if (!resourceElem) return undefined;
-            if (scope && scope === externalNetwork) {
+            if (scope && scope === NetworkScope.external) {
                 if (isNoExternalName(externalName)) throw new Error("External name request for element, but no external name available");
                 if (typeof externalName === "string") return externalName;
                 return undefined;

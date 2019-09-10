@@ -42,18 +42,6 @@ export interface NetworkServiceProps extends WithChildren {
 }
 
 /**
- * External {@link NetworkScope}
- *
- * @public
- */
-export const externalNetwork = "external";
-/**
- *  Default {@link NetworkScope}, usually internal/cluster scope only
- *
- * @public
- */
-export const defaultNetwork = "default";
-/**
  * Type for various network address scopes
  *
  * @remarks
@@ -62,7 +50,10 @@ export const defaultNetwork = "default";
  *
  * @beta
  */
-export type NetworkScope = "external" | "default";
+export enum NetworkScope {
+    external = "external",
+    default = "default"
+}
 
 /**
  * Interface for components that expose Network Services via hostname and port
