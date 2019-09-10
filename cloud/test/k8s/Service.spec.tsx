@@ -15,6 +15,7 @@
  */
 
 import Adapt, {
+    callInstanceMethod,
     ChangeType,
     childrenToArray,
     Group,
@@ -26,8 +27,10 @@ import Adapt, {
 } from "@adpt/core";
 import should from "should";
 
-import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
+import { createMockLogger, k8sutils, mochaTmpdir, MockLogger } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
+import * as fs from "fs-extra";
+import * as path from "path";
 import * as abs from "../../src";
 import {
     ClusterInfo,
@@ -44,7 +47,7 @@ import {
 } from "../../src/k8s";
 import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
-import { act, checkNoChanges, doBuild, randomName } from "../testlib";
+import { act, checkNoChanges, doBuild, MockDeploy, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
@@ -170,6 +173,8 @@ describe("k8s Service Operation Tests", function () {
     let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
+
+    mochaTmpdir.all(`adapt-cloud-k8s-Service`);
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
@@ -306,6 +311,34 @@ describe("k8s Service Operation Tests", function () {
         const hostname = mountedOrig.instance.hostname();
         should(hostname).equal(
             resourceElementToName(dom, options.deployID) + ".default.svc.cluster.local.");
+    });
+
+    it("Should return an external ingress IP as the LoadBalancer external hostname", async function () {
+        this.timeout(30 * 1000);
+        const pluginDir = path.join(process.cwd(), "plugins");
+        await fs.remove(pluginDir);
+        const svc = <Service key="test" ports={[{ port: 8080}]} type="LoadBalancer" config={clusterInfo} />;
+        const deploy = new MockDeploy({
+            pluginCreates: [createK8sPlugin],
+            tmpDir: pluginDir,
+            uniqueDeployID: true
+        });
+        await deploy.init();
+        const { dom, mountedOrig } = await deploy.deploy(svc);
+
+        const svcs = await getAll("services", { client, deployID: deploy.deployID });
+        should(svcs).length(1);
+        if (dom === null) throw should(dom).not.Null();
+        should(svcs[0].metadata.name).equal(resourceElementToName(dom, deploy.deployID));
+        should(svcs[0].status).not.Undefined();
+        should(svcs[0].status.loadBalancer).not.Undefined();
+        should(svcs[0].status.loadBalancer.ingress).be.Array().of.length(1);
+        const ingress = svcs[0].status.loadBalancer.ingress[0];
+        const expectedIP = ingress.hostname || ingress.ip;
+
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        const hostname = callInstanceMethod(mountedOrig.props.handle, undefined, "hostname", abs.NetworkScope.external);
+        should(hostname).equal(expectedIP);
     });
 
     async function createService(name: string) {
