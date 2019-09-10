@@ -15,13 +15,13 @@
  */
 
 import Adapt, {
-    callInstanceMethod,
     Handle,
     handle,
     Sequence,
     SFCDeclProps,
     useImperativeMethods,
     useMethod,
+    useMethodFrom,
 } from "@adpt/core";
 import { ConnectToInstance, useConnectTo } from "../ConnectTo";
 import { Container } from "../Container";
@@ -159,9 +159,9 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
     const img = handle<DockerImageInstance>();
     const image = useMethod(img, "latestImage");
 
+    useMethodFrom(netSvc, "hostname");
+    useMethodFrom(netSvc, "port");
     useImperativeMethods(() => ({
-        hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
-        port: () => callInstanceMethod(netSvc, undefined, "port"),
         image: () => image,
     }));
 
