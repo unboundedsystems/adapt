@@ -1,66 +1,69 @@
-![npm](https://img.shields.io/npm/v/@adpt/cli?color=blue)
+[![Adapt logo](https://adaptjs.org/img/logo_lockup.svg)](https://adaptjs.org)
+
+[![npm](https://img.shields.io/npm/v/@adpt/cli?color=blue)](https://www.npmjs.com/package/@adpt/cli)
 [![Gitter](https://badges.gitter.im/UnboundedSystems/Adapt.svg)](https://gitter.im/UnboundedSystems/Adapt)
-![GitHub](https://img.shields.io/github/license/unboundedsystems/adapt)
+[![License](https://img.shields.io/github/license/unboundedsystems/adapt)](https://opensource.org/licenses/Apache-2.0)
 
-# Unbounded Adapt
+# Adapt - ReactJS for your infrastructure.
 
-Adapt is a system to easily, reliably, and repeatably deploy applications.  Adapt specifications look like [ReactJS](https://reactjs.org) apps, but instead of rendering browser DOM elements like input, or div, Adapt specifications render to DOM elements like AWS EC2 instances, Lambdas, Kubernetes Pods, or any other building block for your application architecture.  If you are already familiar with React, many of the concepts will look familiar. If not, don't worry, knowledge of React isn't required to start using Adapt.
+Adapt is a system to easily, reliably, and repeatably deploy your full-stack applications.  Adapt specifications look like [React](https://reactjs.org) apps, but instead of rendering browser DOM elements like `<input>`, or `<div>`, Adapt specifications use elements like AWS `<EC2Instance>`, Kubernetes `<Pod>`, or `<MongoDB>` database.
+
+If you're already familiar with React, you'll feel right at home with Adapt.
+But if not, don't worry, knowledge of React isn't required to start using Adapt.
 
 ## Getting Started
-For a new project, you can get started without knowing much about Adapt by using a starter.  The [Getting Started Guide](https://adapt.unbounded.systems/docs/getting_started) will walk through installing Adapt and deploying a starter project.
-```shell
-adapt new <starter> <project directory> #Create a new project from a starter
-adapt run --deployID <myID> #Create a new deployment of the starter project
-... #write some code
-adapt update <myID> #Update the running deployment
+For a new project, it's easy to get started with Adapt by using a starter template.
+The [Getting Started Guide](https://adaptjs.org/docs/getting_started) will walk through installing Adapt and deploying your first starter app.
+
+## Creating and deploying an app
+This example creates a new full-stack app from a starter template.
+It has a [React](https://reactjs.org) UI, an [Nginx](https://nginx.org) web server, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, then deploys it to [Kubernetes](https://kubernetes.io/):
+```bash
+# Install adapt
+npm install -g @adpt/cli
+
+# Create a new app from a starter template
+adapt new hello-react-node-postgres ./myapp
+cd myapp/deploy
+
+# Deploy to Kubernetes using "k8s" style sheet
+adapt run k8s
 ```
 
-Deploy a sample application with a [React](https://reactjs.org) front-end, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, along with a static file server and a URL router:
-
-![Adapt in action](./docs/assets/getting_started/adapt-demo-scaled.gif)
-
-A snippet of the corresponding Adapt specification that the starter sets up for this example:
+The Adapt description for the complete app stack looks like this:
 ```jsx
-import { HttpServer, UrlRouter } from "@adpt/cloud/http";
-import { NodeService } from "@adpt/cloud/nodejs";
+import Adapt from "@adpt/core";
+import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
-import Adapt, { Group, handle } from "@adpt/core";
-import { k8sStyle, laptopStyle, prodStyle } from "./styles";
 
-function App() {
-    const pg = handle();
-    const api = handle();
-    const stat = handle();
+function MyApp() {
+  const pg = Adapt.handle();
 
-    return <Group key="App">
-
-        <UrlRouter
-            port={8080}
-            routes={[
-                { path: "/api/", endpoint: api },
-                { path: "/", endpoint: stat }
-            ]} />
-
-        <NodeService handle={api} srcDir=".." connectTo={pg} />
-
-        <Postgres handle={pg} />
-
-        <HttpServer handle={stat} scope="cluster-internal"
-            add={[{ type: "image", image: api, stage: "app",
-                    files: [{ src: "/app/build", dest: "/www/static" }]}]} />
-
-    </Group>;
+  return (
+    <Adapt.Group>
+      <ReactApp srcDir="../frontend" />
+      <NodeService srcDir="../backend" connectTo={pg} />
+      <Postgres handle={pg} />
+    </Adapt.Group>
+  );
 }
-
-Adapt.stack("default", <App />, k8sStyle);
 ```
 
-## Further Reading
-* [Getting Started Guide](https://adapt.unbounded.systems/docs/getting_started)
+## Adapt in action
+This demo shows using Adapt to create and deploy a simple app called MovieDB that has a [React](https://reactjs.org) UI, an [Nginx](https://nginx.org) web server, an Nginx URL router, a [Node.js](https://nodejs.org) API server, and a [Postgres](https://postgresql.org) database, then deploys it to [Kubernetes](https://kubernetes.io/):
+
+![Adapt in action](https://adaptjs.org/docs/assets/getting_started/adapt-demo-scaled.gif)
+
+## More info
+* [Adaptjs.org](https://adaptjs.org)
+
+    Learn more about Adapt.
+
+* [Getting Started Guide](https://adaptjs.org/docs/getting_started)
 
     This guide will walk you through setting up Adapt and then deploying an example MovieDB app.
 
-* [Adapt Documentation](https://adapt.unbounded.systems)
+* [Adapt Documentation](https://adaptjs.org/docs)
 
     Adapt tutorials, API References, and more.
 
