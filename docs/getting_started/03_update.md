@@ -10,7 +10,12 @@ title: "Add Code and Update - MovieDB App"
 
 As we've seen, the starter template we used with `adapt new` has created a default set of code for both our front end and back end application.
 If we were writing our app from scratch, we'd start writing some React code in the `frontend/src` directory and some Node.js code for our API in the `backend` directory.
-But for this guide, we'll simply copy in some already-written code for our movie database app:
+But for this guide, we'll simply copy in some already-written code for our movie database app, using `curl`.
+
+> **IMPORTANT**
+>
+> Make sure you're in the `moviedb/deploy` directory before you run the following command.
+
 <!-- doctest command -->
 
 ```console
