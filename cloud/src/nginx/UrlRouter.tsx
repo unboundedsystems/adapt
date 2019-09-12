@@ -162,10 +162,20 @@ const defaultProps = {
     debug: false,
 };
 
+/**
+ * Props for {@link nginx.UrlRouter}
+ *
+ * @public
+ */
 export interface UrlRouterProps extends AbsUrlRouterProps {
     debug: boolean;
 }
 
+/**
+ * {@link http.UrlRouter} implementation based on {@link https://nginx.org | nginx}
+ *
+ * @public
+ */
 export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<UrlRouterProps, typeof defaultProps>;
     const h = handles();

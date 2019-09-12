@@ -28,6 +28,7 @@ import {
     isFilesResolved,
 } from "./http_server_types";
 
+/** @public */
 export function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
     const [resolved, setResolved] = useState<FilesResolved[] | undefined>(undefined);
 
@@ -72,6 +73,7 @@ filesFrom.add("image", (fObj) => {
     return { dockerCommands, stage: { image: fObj.image, name: fObj.stage } };
 });
 
+/** @public */
 export function useFilesInfo(files: Files[]): FilesInfo[] | undefined {
     const resolved = useResolvedFiles(files);
     return resolved && resolved.map((f) => filesFrom.dispatch(f));

@@ -1,3 +1,10 @@
 {
-    "extends": "../api-extractor-base.json"
+    "extends": "../api-extractor-base.json",
+    "messages": {
+        "extractorMessageReporting": {
+            "ae-missing-release-tag": {
+                "logLevel": "error"
+            }
+        }
+    }
 }

@@ -16,7 +16,12 @@
 
 import { Component, WithChildren } from "@adpt/core";
 
+/**
+ * Props for {@link Service}
+ * @public
+ */
 export interface ServiceProps extends WithChildren {
+    /** Optional name for the service */
     name?: string;
 }
 
@@ -24,6 +29,11 @@ export interface ServiceProps extends WithChildren {
  * An abstract component that represents a group of components that
  * implements a service. Note that this is not necessarily a network
  * service, but will often be.
+ *
+ * @remarks
+ * Typical children will be {@link NetworkService} and {@link Container} elements.
+ *
+ * @public
  */
 export abstract class Service extends Component<ServiceProps, {}> {
 }

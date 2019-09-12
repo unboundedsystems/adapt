@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+ /** @alpha */
 export interface AnsibleHostSsh {
     ansible_connection: "smart" | "ssh" | "paramiko";
     ansible_host: string;
@@ -24,10 +25,12 @@ export interface AnsibleHostSsh {
     ansible_ssh_private_key?: string;
 }
 
+/** @alpha */
 export interface AnsibleHostLocal {
     ansible_connection: "local";
 }
 
+/** @alpha */
 export interface AnsibleHostDocker {
     ansible_connection: "docker";
     ansible_host?: string;
@@ -35,15 +38,18 @@ export interface AnsibleHostDocker {
     ansible_docker_extra_args?: string;
 }
 
+/** @alpha */
 export type AnsibleHost =
     AnsibleHostSsh |
     AnsibleHostLocal |
     AnsibleHostDocker;
 
+/** @alpha */
 export const ansibleHostLocal: AnsibleHostLocal = {
     ansible_connection: "local"
 };
 
+/** @alpha */
 export function isAnsibleHostSsh(host: AnsibleHost): host is AnsibleHostSsh {
     switch (host.ansible_connection) {
         case "smart":

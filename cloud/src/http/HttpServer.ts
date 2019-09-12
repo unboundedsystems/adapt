@@ -17,6 +17,10 @@
 import { Component } from "@adpt/core";
 import { HttpServerProps } from "./http_server_types";
 
+/**
+ *  Abstract component that represents an HTTP server
+ *  @public
+ */
 export abstract class HttpServer extends Component<HttpServerProps> {
     static defaultProps = {
         port: 80,

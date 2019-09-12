@@ -49,6 +49,7 @@ const defaultProps = {
     port: 5000,
 };
 
+/** @public */
 export interface DockerRegistryInstance {
     registry(): RegistryString | undefined;
 }

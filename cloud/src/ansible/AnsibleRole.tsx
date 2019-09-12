@@ -23,19 +23,23 @@ import {
 import { AnsibleHost } from "./ansible_host";
 import { Vars } from "./common";
 
+/** @alpha */
 export interface AnsibleRoleProps extends WithChildren {
     ansibleHost?: AnsibleHost;
     galaxy?: string;
     vars?: Vars;
 }
 
+/** @alpha */
 export function roleName(props: AnsibleRoleProps): string | undefined {
     return props.galaxy;
 }
 
+/** @alpha */
 export class AnsibleRole extends PrimitiveComponent<AnsibleRoleProps> { }
 export default AnsibleRole;
 
+/** @alpha */
 export function isAnsibleRoleFinalElement(
     val: any): val is FinalDomElement<AnsibleRoleProps> {
     return isFinalDomElement(val) && val.componentType === AnsibleRole;

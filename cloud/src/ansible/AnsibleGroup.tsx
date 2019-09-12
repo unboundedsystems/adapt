@@ -21,6 +21,7 @@ import {
 } from "@adpt/core";
 import { AnsibleHost } from "./ansible_host";
 
+/** @alpha */
 export interface AnsibleGroupProps {
     ansibleHost: AnsibleHost;
     groups: string | string[];
@@ -34,14 +35,17 @@ export interface AnsibleGroupProps {
     */
 }
 
+/** @beta */
 export function getGroups(props: AnsibleGroupProps): string[] {
     if (Array.isArray(props.groups)) return props.groups;
     return [props.groups];
 }
 
+/** @alpha */
 export class AnsibleGroup extends PrimitiveComponent<AnsibleGroupProps> { }
 export default AnsibleGroup;
 
+/** @alpha */
 export function isAnsibleGroupFinalElement(
     val: any): val is FinalDomElement<AnsibleGroupProps> {
     return isFinalDomElement(val) && val.componentType === AnsibleGroup;

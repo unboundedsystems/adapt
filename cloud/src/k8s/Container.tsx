@@ -61,41 +61,57 @@ export interface ContainerSpec {
  */
 export interface K8sContainerProps extends ContainerSpec { }
 
+/** @public */
 export interface ContainerPort {
-    // Number of port to expose on the pod's IP address. This must be a
-    // valid integer port number, 0 < x < 65536.
+    /**
+     * Number of port to expose on the pod's IP address.
+     * @remarks
+     * This must be a valid integer port number, `0 < x < 65536`.
+     */
     containerPort: number;
-    // What host IP to bind the external port to.
+    /** What host IP to bind the external port to. */
     hostIP?: string;
-    // Number of port to expose on the host. If specified, this must be a
-    // valid integer port number, 0 < x < 65536. If HostNetwork is specified,
-    // this must match ContainerPort. Most containers do not need this.
+    /**
+     * Number of port to expose on the host.
+     * @remarks
+     * If specified, this must be a valid integer port number,
+     * `0 < x < 65536`. If HostNetwork is specified,
+     * this must match ContainerPort. Most containers do not need this.
+     */
     hostPort?: number;
-    // If specified, this must be an IANA_SVC_NAME and unique within the pod.
-    // Each named port in a pod must have a unique name. Name for the port
-    // that can be referred to by services.
+    /**
+     * A unique-within-pod name for the container
+     * @remarks
+     * If specified, this must be an IANA_SVC_NAME and unique within the pod.
+     * Each named port in a pod must have a unique name. Name for the port
+     * that can be referred to by services.
+     */
     name?: string;
-    // Protocol for port. Must be UDP or TCP. Defaults to "TCP".
+    /** Protocol for port. Must be UDP or TCP. Defaults to "TCP". */
     protocol?: string;
 }
 
+/** @public */
 export type EnvVar = EnvVarSimple | EnvVarFrom;
 
+/** @public */
 export interface EnvVarSimple {
-    // Name of the environment variable. Must be a C_IDENTIFIER.
+    /** Name of the environment variable. Must be a C_IDENTIFIER. */
     name: string;
-    // Variable references $(VAR_NAME) are expanded using the previous defined
-    // environment variables in the container and any service environment
-    // variables. If a variable cannot be resolved, the reference in the input
-    // string will be unchanged. The $(VAR_NAME) syntax can be escaped with a
-    // double $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
-    // regardless of whether the variable exists or not. Defaults to "".
+    /**
+     * Variable references $(VAR_NAME) are expanded using the previous defined
+     * environment variables in the container and any service environment
+     * variables. If a variable cannot be resolved, the reference in the input
+     * string will be unchanged. The $(VAR_NAME) syntax can be escaped with a
+     * double $$, ie: $$(VAR_NAME). Escaped references will never be expanded,
+     * regardless of whether the variable exists or not. Defaults to "".
+     */
     value: string;
-    // Source for the environment variable's value. Cannot be used if value is
-    // not empty.
 }
 
+/** @public */
 export interface EnvVarFrom {
+    /** Source for the environment variable's value. Cannot be used if value is not empty. */
     valueFrom?: any; //EnvVarSource; // NOTE(mansihv): EnvVarSource needs implementation
 }
 
@@ -195,6 +211,16 @@ export function k8sContainerProps(abstractProps: FromContainerProps,
     return ret;
 }
 
+/**
+ * Tests whether an element is a {@link k8s.K8sContainer} element
+ * @param x - element to test
+ * @returns `true` if element is a {@link k8s.K8sContainer}, `false` otherwise
+ *
+ * @remarks
+ * Acts as a TypeScript type assertion that will assert that `x` is `AdaptElement<K8sContainerProps>`
+ *
+ * @public
+ */
 export function isK8sContainerElement(x: AdaptElement): x is AdaptElement<K8sContainerProps> {
     return x.componentType === K8sContainer;
 }

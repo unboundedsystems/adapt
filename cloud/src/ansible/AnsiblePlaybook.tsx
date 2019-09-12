@@ -21,6 +21,7 @@ import {
 } from "@adpt/core";
 import { Env, Vars } from "./common";
 
+/** @alpha */
 export interface Common {
     become?: string;
     become_method?: string;
@@ -30,9 +31,11 @@ export interface Common {
     [ key: string ]: any;
 }
 
+/** @alpha */
 export interface Role extends Common {
 }
 
+/** @alpha */
 export interface Play extends Common {
     hosts: string;
 
@@ -46,15 +49,18 @@ export interface Play extends Common {
     tasks?: Task[];
 }
 
+/** @alpha */
 export interface Task extends Common {
     notify?: string[];
 }
 
+/** @alpha */
 export interface Handler {
     name: string;
     [ key: string ]: any;
 }
 
+/** @alpha */
 export interface AnsiblePlaybookProps {
     // One of playbookFile or playbookPlays must be specified
     playbookFile?: string;
@@ -63,16 +69,20 @@ export interface AnsiblePlaybookProps {
     vars?: Vars;
 }
 
+/** @alpha */
 export class AnsiblePlaybook extends PrimitiveComponent<AnsiblePlaybookProps> { }
 export default AnsiblePlaybook;
 
+/** @alpha */
 export function isAnsiblePlaybookFinalElement(
     val: any): val is FinalDomElement<AnsiblePlaybookProps> {
     return isFinalDomElement(val) && val.componentType === AnsiblePlaybook;
 }
 
+/** @alpha */
 export class AnsibleImplicitPlaybook extends AnsiblePlaybook { }
 
+/** @alpha */
 export function isAnsibleImplicitPlaybookFinalElement(
     val: any): val is FinalDomElement<AnsiblePlaybookProps> {
     return isFinalDomElement(val) && val.componentType === AnsibleImplicitPlaybook;

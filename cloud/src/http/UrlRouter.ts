@@ -18,24 +18,31 @@ import { Handle, PrimitiveComponent } from "@adpt/core";
 import { URL } from "url";
 import { isString } from "util";
 
+/** @public */
 export interface UrlRouterRoute {
     path: string;
     endpoint: Handle | string;
     upstreamPath?: string;
 }
 
+/** @public */
 export interface UrlRouterProps {
     port: number;
     externalPort?: number;
     routes: UrlRouterRoute[];
 }
 
+/** @public */
 export interface ResolvedRoute {
     path: string;
     upstreamPath: string;
     url: string;
 }
 
+/**
+ * Abstract component for URL routing
+ * @public
+ */
 export abstract class UrlRouter extends PrimitiveComponent<UrlRouterProps> {
     static defaultProps = {
         port: 80,
@@ -44,6 +51,18 @@ export abstract class UrlRouter extends PrimitiveComponent<UrlRouterProps> {
 
 export default UrlRouter;
 
+/**
+ * Function to check if the routes prop for {@link http.UrlRouter | UrlRouter} components is valid
+ * @param routes - routes from {@link http.UrlRouter | UrlRouter} props
+ *
+ * @remarks
+ * Throws and error if the routes are invalid, along with specific error details in the exception
+ *
+ * This can be used by concrete implementation of {@link http.UrlRouter | UrlRouter} to check
+ * their props for validity.
+ *
+ * @public
+ */
 export function checkUrlEndpoints(routes: UrlRouterRoute[]) {
     const errs: string[] = [];
     for (const route of routes) {

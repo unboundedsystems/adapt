@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+/**
+ * Ansible library for Adapt.
+ * @alpha
+ */
+
 export {
     AnsibleHost,
     ansibleHostLocal,

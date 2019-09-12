@@ -33,6 +33,7 @@ import { withCredentials, WithCredentials } from "./credentials";
 import { AwsEc2Observer } from "./ec2_observer";
 import { adaptDeployIdTag, adaptResourceId, adaptResourceIdTag } from "./plugin_utils";
 
+/** @beta */
 export interface EC2Props extends ComputeProps, WithChildren, WithCredentials {
     imageId: string;
     instanceType: string;
@@ -41,10 +42,12 @@ export interface EC2Props extends ComputeProps, WithChildren, WithCredentials {
     userData?: string;
 }
 
+/** @beta */
 export interface EC2InstanceStatus extends Status, AWS.EC2.Instance { }
 
 const resourceType = "AWS::EC2::Instance";
 
+/** @beta */
 class EC2InstanceNC extends Component<EC2Props> {
     build() {
         const props = this.props;
@@ -139,5 +142,6 @@ class EC2InstanceNC extends Component<EC2Props> {
     }
 }
 
+/** @beta */
 // tslint:disable-next-line:variable-name
 export const EC2Instance = withCredentials(EC2InstanceNC);

@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
+ /**
+  * Adapt components for Kubernetes
+  *
+  * @public
+  */
 export * from "./Container";
 export * from "./Resource"; //This must be before Pod and Service, but why?
 export * from "./Pod";

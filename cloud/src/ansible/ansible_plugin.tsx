@@ -66,18 +66,21 @@ type PlaybookPair = WidgetPair<PlaybookElement, PlaybookObs>;
 type RoleElement = FinalDomElement<AnsibleRoleProps>;
 type GroupElement = FinalDomElement<AnsibleGroupProps>;
 
+/** @internal */
 export function findPlaybookElems(dom: AdaptElementOrNull): PlaybookElement[] {
     const rules = <Style>{AnsiblePlaybook},{AnsibleImplicitPlaybook} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
     return compact(candidateElems.map((e) => isAnsiblePlaybookFinalElement(e) ? e : null));
 }
 
+/** @internal */
 export function findRoleElems(dom: AdaptElementOrNull): RoleElement[] {
     const rules = <Style>{AnsibleRole} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);
     return compact(candidateElems.map((e) => isAnsibleRoleFinalElement(e) ? e : null));
 }
 
+/** @internal */
 export function findGroupElems(dom: AdaptElementOrNull): GroupElement[] {
     const rules = <Style>{AnsibleGroup} {Adapt.rule()}</Style>;
     const candidateElems = findElementsInDom(rules, dom);

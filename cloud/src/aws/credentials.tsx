@@ -27,27 +27,34 @@ import Adapt, {
     WithChildren,
 } from "@adpt/core";
 
+/** @beta */
 export interface AwsCredentialsProps {
     awsAccessKeyId: string;
     awsSecretAccessKey: string;
     awsRegion: string;
 }
+
+/** @beta */
 export interface WithCredentials {
     awsCredentials?: AwsCredentialsProps;
 }
 
+/** @beta */
 export type AwsCredentialsContext = Context<AwsCredentialsProps>;
 
+/** @beta */
 export function awsCredentialsContext(defaultCreds: AwsCredentialsProps) {
     return createContext(defaultCreds);
 }
 
+/** @beta */
 export const awsDefaultCredentialsContext = awsCredentialsContext({
     awsAccessKeyId: "",
     awsSecretAccessKey: "",
     awsRegion: "",
 });
 
+/** @beta */
 export function withCredentials<
     W extends Constructor<Component<any, any>>>(
     // tslint:disable-next-line:variable-name
@@ -69,16 +76,19 @@ export function withCredentials<
     };
 }
 
+/** @beta */
 export interface AwsCredentials {
     awsAccessKeyId: string;
     awsSecretAccessKey: string;
     awsRegion: string;
 }
 
+/** @beta */
 export interface AwsCredsOptions {
     credsFile?: string;
 }
 
+/** @beta */
 export async function loadAwsCreds(options: AwsCredsOptions = {}): Promise<AwsCredentials> {
     let { credsFile } = options;
     let creds = loadEnvCreds();

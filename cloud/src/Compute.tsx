@@ -16,11 +16,21 @@
 
 import { Component, WithChildren } from "@adpt/core";
 
+/**
+ * Props for a {@link Compute} element
+ *
+ * @beta
+ */
 export interface ComputeProps extends WithChildren {
     name?: string;
     ip?: string;
 }
 
+/**
+ * Abstract element to represent a computational resource
+ *
+ * @beta
+ */
 export abstract class Compute extends Component<ComputeProps, {}> {
 }
 export default Compute;

@@ -18,29 +18,39 @@ import { BuildData, ObserveForStatus, WithChildren } from "@adpt/core";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
+/**
+ * Kubernetes Kind
+ *
+ * @public
+ */
 export type Kind = string;
 
+/** @public */
 export interface CRSpec {
     [key: string]: any;
 }
 
+/** @public */
 export type Spec =
     PodSpec |
     ServiceSpec |
     CRSpec;
 
+/** @public */
 export interface Metadata {
     namespace?: string;
     labels?: { [key: string]: string };
     annotations?: { [key: string]: string };
 }
 
+/** @public */
 export type ResourceProps = { key: string } & (
     ResourcePod |
     ResourceService |
     ResourceCR
 );
 
+/** @public */
 export interface ResourceInfo {
     kind: Kind;
     apiName: string;
@@ -60,33 +70,39 @@ export interface ClusterInfo {
     registryUrl?: string;
 }
 
+/** @public */
 export interface ResourceBase {
     config: ClusterInfo;
     kind: Kind;
     metadata?: Metadata;
 }
 
+/** @public */
 export interface ResourcePod extends ResourceBase, WithChildren {
     kind: "Pod";
     spec: PodSpec;
 }
 
+/** @public */
 export interface ResourceService extends ResourceBase {
     kind: "Service";
     spec: ServiceSpec;
 }
 
+/** @public */
 export interface ResourceCR extends ResourceBase {
     kind: string;
     spec: CRSpec;
 }
 
+/** @public */
 export function computeNamespaceFromMetadata(metadata?: Metadata) {
     if (!metadata) return "default";
     if (!metadata.namespace) return "default";
     return metadata.namespace;
 }
 
+/** @public */
 export interface Kubeconfig {
     kind: "Config";
     "current-context": string;
