@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 import { PrimitiveComponent } from "@adpt/core";
+import { ConnectToInstance } from "../ConnectTo";
+import { NetworkScope } from "../NetworkService";
 
 /**
  * Abstract MongoDB component
@@ -29,4 +31,6 @@ import { PrimitiveComponent } from "@adpt/core";
  *
  * @public
  */
-export abstract class MongoDB extends PrimitiveComponent { }
+export abstract class MongoDB extends PrimitiveComponent implements ConnectToInstance {
+    connectEnv(_scope?: NetworkScope) { return undefined; }
+}

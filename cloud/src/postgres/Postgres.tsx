@@ -16,6 +16,7 @@
 
 import { useImperativeMethods } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
+import { NetworkScope } from "../NetworkService";
 
 /**
  * An abstract component representing a Postgres database within a Postgres
@@ -27,7 +28,7 @@ import { ConnectToInstance } from "../ConnectTo";
  *
  * Instance methods:
  *
- * - `connectEnv(): Environment | undefined`
+ * - `connectEnv(scope?: NetworkScope): Environment | undefined`
  *
  *   Returns the set of environment variables that have all the information
  *   needed for a Postgres client to connect to this database. The
@@ -52,7 +53,7 @@ import { ConnectToInstance } from "../ConnectTo";
  */
 export function Postgres() {
     useImperativeMethods<ConnectToInstance>(() => ({
-        connectEnv: () => undefined
+        connectEnv: (_scope: NetworkScope) => undefined
     }));
     return null;
 }

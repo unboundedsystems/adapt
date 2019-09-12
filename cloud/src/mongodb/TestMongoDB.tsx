@@ -23,7 +23,7 @@ import Adapt, {
 } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
 import { Container, } from "../Container";
-import { NetworkService, } from "../NetworkService";
+import { NetworkScope, NetworkService, } from "../NetworkService";
 import { Service, } from "../Service";
 
 const testMongoDefaultProps = {
@@ -64,8 +64,8 @@ export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps>) {
     const mongo = handle();
 
     useImperativeMethods<ConnectToInstance>(() => ({
-        connectEnv: () => {
-            const hostname = callInstanceMethod(svc, undefined, "hostname");
+        connectEnv: (scope?: NetworkScope) => {
+            const hostname = callInstanceMethod(svc, undefined, "hostname", scope);
             const port = callInstanceMethod(svc, undefined, "port");
             if (!hostname || !port) return undefined;
             return {
