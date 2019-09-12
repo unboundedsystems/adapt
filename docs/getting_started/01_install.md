@@ -34,6 +34,12 @@ To install the `adapt` CLI globally:
 npm install -g @adpt/cli
 ```
 
+> **NOTE**
+>
+> Depending on how your `npm` installation is set up, you may need root or administrator privileges to install an `npm` module globally.
+>
+> If you get an `EACCES` error from `npm install`, use the `npx` instructions below or retry the command with administrator privileges (e.g. with `sudo`).
+
 <details>
 <summary>Alternately, if you'd rather not install Adapt globally, you can run Adapt using npx (click to expand)</summary>
 
