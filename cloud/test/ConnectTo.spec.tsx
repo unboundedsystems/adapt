@@ -21,12 +21,15 @@ import Adapt, {
     useImperativeMethods
 } from "@adpt/core";
 import should from "should";
-import { ConnectToInstance, Environment, renameEnvVars, useConnectTo } from "../src";
+import { ConnectToInstance, Environment, NetworkScope, renameEnvVars, useConnectTo } from "../src";
 import { doBuild } from "./testlib";
 
 function Connectable(props: { varname: string, value: string }) {
     useImperativeMethods<ConnectToInstance>(() => ({
-        connectEnv: () => [{ name: props.varname, value: props.value }]
+        connectEnv: (scope: NetworkScope) => [
+            { name: props.varname, value: props.value },
+            ...(scope ? [{ name: props.varname + "_SCOPE", value: scope }] : [])
+        ]
     }));
     return null;
 }
@@ -38,9 +41,12 @@ interface EnvRef {
 function ConnectConsumer(props: {
     envRef: EnvRef,
     connectTo: Handle | Handle[],
-    mapper?: (env: Environment) => Environment
+    mapper?: (env: Environment) => Environment,
+    scope?: NetworkScope
 }) {
-    props.envRef.env = useConnectTo(props.connectTo, props.mapper);
+    props.envRef.env = (props.scope !== undefined)
+        ? useConnectTo(props.connectTo, { xform: props.mapper, scope: props.scope })
+        : useConnectTo(props.connectTo, props.mapper); //Use explicit argument form to test overload
     return null;
 }
 
@@ -90,5 +96,24 @@ describe("useConnectTo Tests", () => {
         should(env.env).eql([
             { name: "FOO", value: "fooVal" },
             { name: "NEW_BAR", value: "barVal" }]);
+    });
+
+    it("should forward scope argument to instances", async () => {
+        const foo = handle();
+        const env: EnvRef = {};
+        const orig = <Group>
+            <Connectable handle={foo} varname="FOO" value="fooVal" />
+            <ConnectConsumer
+                envRef={env}
+                connectTo={[foo]}
+                scope={NetworkScope.external}
+            />
+        </Group>;
+        await doBuild(orig);
+
+        should(env.env).eql([
+            { name: "FOO", value: "fooVal" },
+            { name: "FOO_SCOPE", value: NetworkScope.external }
+        ]);
     });
 });

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import Adapt, { handle, Sequence, SFCBuildProps, SFCDeclProps, useImperativeMethods, useMethod } from "@adpt/core";
+import Adapt, { callInstanceMethod, handle, Sequence, SFCBuildProps, SFCDeclProps, useImperativeMethods } from "@adpt/core";
 import { ConnectToInstance } from "../ConnectTo";
 import { Container } from "../Container";
-import { NetworkService } from "../NetworkService";
+import { NetworkScope, NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
 
@@ -37,7 +37,7 @@ export interface TestPostgresProps {
  *
  * Instance methods:
  *
- * - `connectEnv(): Environment | undefined`
+ * - `connectEnv(scope?: NetworkScope): Environment | undefined`
  *
  *   Returns the set of environment variables that have all the information
  *   needed for a Postgres client to connect to this database. The
@@ -58,10 +58,10 @@ export function TestPostgres(props: SFCDeclProps<TestPostgresProps>) {
     const bProps = props as SFCBuildProps<TestPostgresProps>;
     const dbCtr = handle();
     const svc = handle();
-    const svcHostname = useMethod<string | undefined>(svc, undefined, "hostname");
 
     useImperativeMethods<ConnectToInstance>(() => ({
-        connectEnv: () => {
+        connectEnv: (scope: NetworkScope) => {
+            const svcHostname = callInstanceMethod(svc, undefined, "hostname", scope);
             if (!svcHostname) return undefined;
             return [
                 { name: "PGHOST", value: svcHostname },
