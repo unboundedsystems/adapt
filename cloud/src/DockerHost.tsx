@@ -21,20 +21,40 @@ import Adapt, {
     PrimitiveComponent
 } from "@adpt/core";
 
+/**
+ * Props for {@link ExternalDockerHost}
+ *
+ * @alpha
+ */
 export interface ExternalDockerHostProps {
     dockerHost: string;
 }
 
+/**
+ * Represents an remote Docker Host
+ *
+ * @alpha
+ */
 export class ExternalDockerHost extends PrimitiveComponent<ExternalDockerHostProps> {
     updateState(state: any) {
         state.dockerHost = this.props.dockerHost;
     }
 }
 
+/**
+ * Props for {@link DockerHostProps}
+ *
+ * @alpha
+ */
 export interface DockerHostProps {
     dockerHost?: string;
 }
 
+/**
+ * Represents a Docker Host
+ *
+ * @alpha
+ */
 export class DockerHost extends Component<DockerHostProps> {
     build(): AdaptElementOrNull {
         if (this.props.dockerHost) {

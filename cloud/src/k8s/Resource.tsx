@@ -34,11 +34,24 @@ import * as ld from "lodash";
 import { ResourceProps } from "./common";
 import { getResourceInfo } from "./k8s_plugin";
 
+/**
+ * Type assertion to see if an element is both a {@link k8s.Resource | Resource}
+ * and a {@link @adpt/core#FinalElement | FinalElement}
+ *
+ * @param e - element to test
+ * @returns `true` if e is both a FinalElement and a {@link k8s.Resource | Resource}, `false` otherwise
+ *
+ * @public
+ */
 export function isResourceFinalElement(e: AdaptElement):
     e is FinalDomElement<ResourceProps & Adapt.BuiltinProps> {
     return isFinalDomElement(e) && e.componentType === Resource;
 }
 
+/**
+ * Primitive Component recognized by the k8s plugin to represent resources
+ * @public
+ */
 export class Resource extends PrimitiveComponent<ResourceProps> {
     constructor(props: ResourceProps) {
         super(props);

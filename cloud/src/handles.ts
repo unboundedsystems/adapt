@@ -17,16 +17,20 @@
 import { AdaptElement, Handle, handle, useMethod } from "@adpt/core";
 import ld from "lodash";
 
+/** @alpha */
 export interface HandlesCreate {
     create: HandlesIndex;
 }
 
+/** @alpha */
 export interface HandlesIndex {
     [hand: string]: ExtendedHandle;
 }
 
+/** @alpha */
 export type Handles = HandlesCreate & HandlesIndex;
 
+/** @alpha */
 export interface ExtendedHandle extends Handle {
     [method: string]: any;
 }
@@ -49,6 +53,7 @@ function computeDefault(elem: AdaptElement | null | undefined, prop: string) {
     return defsObj && defsObj[prop];
 }
 
+/** @alpha */
 export function extendedHandle() {
     const wrap = handle();
     return new Proxy(wrap, {
@@ -72,6 +77,7 @@ export function extendedHandle() {
     });
 }
 
+/** @alpha */
 export function handles() {
     const ret: Handles = ({
         // tslint:disable-next-line:no-object-literal-type-assertion

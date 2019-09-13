@@ -49,21 +49,25 @@ import { CFStackContext } from "./stack_context";
 
 const resourceIds = resourceIdList("StackName");
 
+/** @beta */
 export type CFStackPrimitiveProps =
     aws.CloudFormation.CreateStackInput &
     WithChildren &
     WithCredentials;
 
+/** @beta */
 export type Capability =
     "CAPABILITY_IAM" |
     "CAPABILITY_NAMED_IAM" |
     "CAPABILITY_AUTO_EXPAND";
 
+/** @beta */
 export interface StackDriftInformation {
     StackDriftStatus: "DRIFTED" | "IN_SYNC" | "UNKNOWN" | "NOT_CHECKED";
     LastCheckTimestamp: string | null;
 }
 
+/** @beta */
 export interface Output {
     OutputKey: string | null;
     OutputValue: string | null;
@@ -71,6 +75,7 @@ export interface Output {
     ExportName: string | null;
 }
 
+/** @beta */
 export interface Parameter {
     ParameterKey: string | null;
     ParameterValue: string | null;
@@ -78,21 +83,25 @@ export interface Parameter {
     ResolvedValue: string | null;
 }
 
+/** @beta */
 export interface RollbackTrigger {
     Arn: string;
     Type: string;
 }
 
+/** @beta */
 export interface RollbackConfiguration {
     RollbackTriggers: RollbackTrigger[];
     MonitoringTimeInMinutes: number | null;
 }
 
+/** @beta */
 export interface Tag {
     Key: string;
     Value: string;
 }
 
+/** @beta */
 export interface CFStackStatus extends Status {
     Capabilities: Capability[];
     ChangeSetId: string | null;
@@ -118,6 +127,7 @@ export interface CFStackStatus extends Status {
     TimeoutInMinutes: number | null;
 }
 
+/** @beta */
 export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> {
 
     deployedWhen: DeployedWhenMethod = async (goalStatus, helpers) => {
@@ -218,25 +228,28 @@ export class CFStackPrimitive extends PrimitiveComponent<CFStackPrimitiveProps> 
         return mergeDefaultChildStatus(this.props, obsP, observe,
             buildData, (obs: any) => {
 
-            return obs.withCredentials.DescribeStacks.Stacks[0];
-        });
+                return obs.withCredentials.DescribeStacks.Stacks[0];
+            });
     }
 }
 
+/** @beta */
 // Input props for CFStack allow passing a ResourceId to props.StackName
 export type CFStackProps =
     OverwriteT<CFStackPrimitiveProps, ResourceIdProps<typeof resourceIds>>;
 
+/** @beta */
 export interface CFStackState extends ResourceIdState<typeof resourceIds> {
 }
 
+/** @beta */
 export class CFStackBase extends Component<CFStackProps, CFStackState> {
 
     constructor(props: CFStackProps) {
         super(props);
         this.setState((prev) =>
             updateResourceIdState(resourceIds, props, prev,
-                                  ResourceIdPolicy.local, { separator: "-" })
+                ResourceIdPolicy.local, { separator: "-" })
         );
     }
 
@@ -258,9 +271,11 @@ export class CFStackBase extends Component<CFStackProps, CFStackState> {
     }
 }
 
+/** @beta */
 export function isCFStackPrimitiveFinalElement(val: any): val is FinalDomElement<CFStackPrimitiveProps> {
     return isFinalDomElement(val) && val.componentType === CFStackPrimitive;
 }
 
+/** @beta */
 // tslint:disable-next-line:variable-name
 export const CFStack = withCredentials(CFStackBase);

@@ -21,6 +21,11 @@ import { NetworkScope, NetworkService } from "../NetworkService";
 import { Service } from "../Service";
 import { PreloadedPostgresImage } from "./PreloadedPostgresImage";
 
+/**
+ * Props for the {@link postgres.TestPostgres} component
+ *
+ * @public
+ */
 export interface TestPostgresProps {
     mockDataPath: string;
     mockDbName: string;

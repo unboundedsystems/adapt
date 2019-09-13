@@ -108,6 +108,11 @@ const defaultProps = {
     }]
 };
 
+/**
+ * {@link http.HttpServer} implementation based on {@link https://nginx.org | nginx}
+ *
+ * @public
+ */
 export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof defaultProps>) {
     const props = propsIn as SFCBuildProps<HttpServerProps, typeof defaultProps>;
     const netSvc = handle();

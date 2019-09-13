@@ -17,8 +17,14 @@
 import { PrimitiveComponent } from "@adpt/core";
 import { ComputeProps } from "./Compute";
 
+/** @alpha */
 export type LocalComputeProps = ComputeProps;
 
+/**
+ * Element representing a local compute instance
+ *
+ * @alpha
+ */
 export class LocalCompute extends PrimitiveComponent<ComputeProps> {
     static defaultProps = {
         ip: "127.0.0.1",

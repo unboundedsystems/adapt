@@ -20,6 +20,7 @@ import { pick } from "lodash";
 import { CFResource } from "./CFResource";
 import { withCredentials, WithCredentials } from "./credentials";
 
+/** @beta */
 export interface EIPAssociationProps extends WithCredentials {
     AllocationId?: string;
     EIP?: string;
@@ -36,6 +37,7 @@ const resourceProps = tuple(
     "PrivateIpAddress",
 );
 
+/** @beta */
 class EIPAssociationNC extends Component<EIPAssociationProps> {
     build() {
         const properties = pick(this.props, resourceProps);
@@ -49,6 +51,7 @@ class EIPAssociationNC extends Component<EIPAssociationProps> {
     }
 }
 
+/** @beta */
 // tslint:disable-next-line:variable-name
 export const EIPAssociation = withCredentials(EIPAssociationNC);
 export default EIPAssociation;

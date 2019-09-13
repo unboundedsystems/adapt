@@ -22,10 +22,12 @@ import Adapt, {
 import { AnsibleHost } from "./ansible_host";
 import AnsibleRole from "./AnsibleRole";
 
+/** @alpha */
 export interface AnsibleDockerHostProps extends Partial<BuiltinProps>, WithChildren {
     ansibleHost: AnsibleHost;
 }
 
+/** @alpha */
 // tslint:disable-next-line:variable-name
 export const AnsibleDockerHost = (props: AnsibleDockerHostProps) => {
     const { handle, children, ...newProps } = props;

@@ -24,20 +24,40 @@ import {
     WithChildren,
 } from "@adpt/core";
 
+/**
+ * Port for {@link NetworkService }
+ * @public
+ */
 export type ServicePort = number | string;
+
+/**
+ * Network service scope used by {@link NetworkService}
+ * @public
+ */
 export type NetworkServiceScope =
     "local" |
     "cluster-internal" |
     "cluster-public" |
     "external";
 
+/**
+ * Props for the {@link NetworkService} element
+ * @public
+ */
 export interface NetworkServiceProps extends WithChildren {
+    /** IP address of the network service */
     ip?: string;
+    /** Name of the network service */
     name?: string;
+    /** Port on which clients connect to this service */
     port: ServicePort;
+    /** Protocol used by the network service */
     protocol?: string;
+    /** Scope of the service */
     scope?: NetworkServiceScope;
+    /** Port on the endpoint that provides this service */
     targetPort?: ServicePort;
+    /** Endpoint that provides the service */
     endpoint?: Handle;
 }
 
@@ -45,8 +65,8 @@ export interface NetworkServiceProps extends WithChildren {
  * Type for various network address scopes
  *
  * @remarks
- * The details of this type are very experimental.  Use the constants {@link externalNetwork}
- * and {@link defaultNetwork} instead of strings to reduce the chance of breakage.
+ * The details of this type are very experimental.  Use the constants `NetworkScope.external`
+ * and `NetworkScope.default` instead of strings to reduce the chance of breakage.
  *
  * @beta
  */
@@ -84,6 +104,8 @@ export interface NetworkServiceInstance {
 
 /**
  * An abstract component that represents a network service.
+ *
+ * @public
  */
 export abstract class NetworkService extends PrimitiveComponent<NetworkServiceProps> implements NetworkServiceInstance {
     static defaultProps = {
@@ -111,6 +133,14 @@ export abstract class NetworkService extends PrimitiveComponent<NetworkServicePr
 }
 export default NetworkService;
 
+/**
+ * Computes the target port that will be used for a NetworkService
+ *
+ * @param elemOrProps - a {@link NetworkService} element or its props
+ * @returns The target port of the {@link NetworkService} object
+ *
+ * @public
+ */
 export function targetPort(elemOrProps: NetworkServiceProps | AdaptElement): ServicePort {
     let props: AnyProps = elemOrProps;
     if (isElement(elemOrProps)) props = elemOrProps.props;
@@ -119,6 +149,19 @@ export function targetPort(elemOrProps: NetworkServiceProps | AdaptElement): Ser
     throw new Error(`Cannot compute target port for props ${props}`);
 }
 
+/**
+ * Type assertion that tests an element to see if it is a {@link NetworkService}
+ *
+ * @param el - the element to be tested
+ * @returns `true` if  `el` is a NetworkService, `false` otherwise
+ *
+ * @remarks
+ * Also functions as a type assertion for Typescript, so the arguments
+ * type will be adjusted to reflect that it is an `AdaptElement<NetworkServiceProps>`
+ * instead of a generic `AdaptElement`.
+ *
+ * @public
+ */
 export function isNetworkServiceElement(el: AdaptElement): el is AdaptElement<NetworkServiceProps> {
     return el.componentType as any === NetworkService;
 }

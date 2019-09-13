@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/**
+ * AWS library for Adapt.
+ * @beta
+ */
 export * from "./CFResource";
 export * from "./credentials";
 export {

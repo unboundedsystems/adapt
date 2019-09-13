@@ -26,10 +26,12 @@ import Adapt, {
 } from "@adpt/core";
 import { CFStackContext } from "./stack_context";
 
+/** @beta */
 export interface AnyProperties {
     [ propName: string ]: any;
 }
 
+/** @beta */
 export interface CFResourceProps {
     Type: string;
     Properties: AnyProperties;
@@ -42,6 +44,7 @@ export interface CFResourceProps {
     tagsUnsupported?: boolean;
 }
 
+/** @beta */
 export class CFResourcePrimitive extends PrimitiveComponent<CFResourceProps> {
     deployedWhen: DeployedWhenMethod = async (goalStatus, helpers) => {
         const hand = this.props.cfStackHandle;
@@ -58,10 +61,12 @@ export class CFResourcePrimitive extends PrimitiveComponent<CFResourceProps> {
     }
 }
 
+/** @beta */
 export function isCFResourcePrimitiveElement(val: any): val is FinalDomElement<CFResourceProps> {
     return isFinalDomElement(val) && val.componentType === CFResourcePrimitive;
 }
 
+/** @beta */
 export function CFResource(props: SFCDeclProps<CFResourceProps>) {
     const { handle: _h, cfStackHandle, ...rest } = props;
     // Always call hook

@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+/**
+ * Adapt components for HTTP
+ *
+ * @public
+ */
+
 export * from "./files";
 export * from "./HttpServer";
 export * from "./http_server_types";

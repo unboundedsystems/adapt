@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
+/** @alpha */
 export interface Env {
     [ key: string ]: string;
 }
 
+/** @alpha */
 export interface Vars {
     [ key: string ]: any;
 }

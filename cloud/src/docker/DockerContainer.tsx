@@ -41,6 +41,7 @@ import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
 import { DockerContainerProps, ImageInfo } from "./types";
 
+/** @public */
 export interface DockerContainerStatus extends ContainerStatus { }
 
 interface ContainerInfo {

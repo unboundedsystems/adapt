@@ -14,5 +14,10 @@
  * limitations under the License.
  */
 
+/**
+ * Various Adapt Components based on {@link https://nginx.org | nginx}
+ *
+ * @public
+ */
 export * from "./HttpServer";
 export * from "./UrlRouter";

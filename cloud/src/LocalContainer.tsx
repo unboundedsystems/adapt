@@ -17,8 +17,16 @@
 import { PrimitiveComponent } from "@adpt/core";
 import { ContainerProps } from "./Container";
 
+/**
+ * @deprecated Use {@link docker.DockerContainer} instead
+ * @internal
+ */
 export type LocalContainerProps = ContainerProps;
 
+/**
+ * @deprecated Use {@link docker.DockerContainer} instead
+ * @internal
+ */
 export class LocalContainer extends PrimitiveComponent<ContainerProps> {
 }
 export default LocalContainer;

@@ -33,6 +33,7 @@ import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceIdToName } from "./k8s_plugin";
 import { Resource } from "./Resource";
 
+/** @public */
 export interface PodProps {
     config: ClusterInfo;
     terminationGracePeriodSeconds?: number;
@@ -94,6 +95,11 @@ function makePodManifest(props: PodProps) {
     };
 }
 
+/**
+ * Component for Kubernetes Pods
+ *
+ * @public
+ */
 export class Pod extends DeferredComponent<PodProps> {
     static defaultProps = {
         terminationGracePeriodSeconds: 30,
@@ -133,6 +139,11 @@ export class Pod extends DeferredComponent<PodProps> {
  * Plugin info
  */
 
+/**
+ * Spec for for Kubernetes Pods
+ *
+ * @public
+ */
 export interface PodSpec {
     containers: ContainerSpec[];
     terminationGracePeriodSeconds?: number;
@@ -185,6 +196,7 @@ function deployedWhen(statusObj: unknown) {
     return waiting(msg);
 }
 
+/** @internal */
 export const podResourceInfo = {
     kind: "Pod",
     apiName: "pods",

@@ -30,6 +30,11 @@ import { Container, K8sContainerProps } from "./Container";
 import { Pod, PodProps } from "./Pod";
 import { k8sServiceProps, Service, ServiceProps } from "./Service";
 
+/**
+ * Props for {@link k8s.ServiceDeployment}
+ *
+ * @public
+ */
 export interface ServiceDeploymentProps extends AbsServiceProps {
     config: ClusterInfo;
     serviceProps?: Partial<ServiceProps>;
@@ -111,6 +116,8 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  * `ServiceDeployment` also requires the `config` prop which specifies
  * connection and authentication information for the Kubernetes cluster on
  * which these objects should be created.
+ *
+ * @public
  */
 export class ServiceDeployment extends DeferredComponent<ServiceDeploymentProps> {
     build(helpers: BuildHelpers) {

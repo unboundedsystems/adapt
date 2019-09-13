@@ -27,8 +27,6 @@ However, there are technology-specific Components that can be used in Style Shee
 
 - [Compute](./cloud.compute.md)
 - [Container](./cloud.container.md)
-- [DockerHost](./cloud.dockerhost.md)
-- [ExternalDockerHost](./cloud.externaldockerhost.md)
 - [NetworkService](./cloud.networkservice.md)
 - [Service](./cloud.service.md)
 - [HttpServer](./cloud.http.httpserver.md)
@@ -62,13 +60,6 @@ However, there are technology-specific Components that can be used in Style Shee
 - [Resource](./cloud.k8s.resource.md)
 - [Service](./cloud.k8s.service.md)
 - [ServiceDeployment](./cloud.k8s.servicedeployment.md)
-
-## Local
-
-### Components
-- [LocalCompute](./cloud.localcompute.md)
-- [LocalContainer](./cloud.localcontainer.md)
-- [LocalDockerHost](./cloud.localdockerhost.md)
 
 ## Nginx
 

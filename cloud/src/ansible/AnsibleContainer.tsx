@@ -29,14 +29,14 @@ import { AnsiblePlaybook, Play } from "./AnsiblePlaybook";
 
 /**
  * Props for an {@link ansible.AnsibleContainer}.
- * @public
+ * @alpha
  */
 export interface AnsibleContainerProps extends SFCDeclProps<ContainerConfig> {
 }
 
 /**
  * Ansible native container configuration.
- * @public
+ * @alpha
  */
 export interface ContainerConfig {
     name: string;
@@ -130,7 +130,7 @@ export interface ContainerConfig {
 
 /**
  * Ansible-specific defintion of a container.
- * @public
+ * @alpha
  */
 export function AnsibleContainer(props: AnsibleContainerProps) {
     const { handle: h, key, ...config } = props as SFCBuildProps<AnsibleContainerProps>;
@@ -186,7 +186,7 @@ function translateDockerHost(dockerHost: string): string {
 
 /**
  * Props for {@link ansible.Container}.
- * @public
+ * @alpha
  */
 export interface ContainerProps extends SFCDeclProps<AbsContainerProps, typeof AbsContainer.defaultProps> {
     /**
@@ -199,7 +199,7 @@ export interface ContainerProps extends SFCDeclProps<AbsContainerProps, typeof A
 /**
  * Component that implements the abstract {@link Container} interface and
  * translates to an Ansible-specific {@link ansible.AnsibleContainer}.
- * @public
+ * @alpha
  */
 export function Container(props: ContainerProps) {
     const bProps = props as SFCBuildProps<AbsContainerProps, typeof AbsContainer.defaultProps>;
