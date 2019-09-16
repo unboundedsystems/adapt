@@ -111,7 +111,7 @@ export async function kubectlGet(options: KubectlGetOptions) {
             throw e;
         }
         if (result.exitCode !== 0) {
-            if (result.all.match(/Error from server \(NotFound\)/)) return [];
+            if (result.all.match(/Error from server \(NotFound\)/)) return undefined;
             throw new Error(result.all);
         } else {
             return JSON.parse(result.stdout);

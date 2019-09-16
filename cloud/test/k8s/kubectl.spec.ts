@@ -25,6 +25,7 @@ import {
     //kubectlGet,
     getKubectl, kubectlGet, kubectlOpManifest
 } from "../../src/k8s/kubectl";
+import { Manifest } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 
 const { deleteAll, getAll } = k8sutils;
@@ -55,7 +56,7 @@ describe("kubectl utility function tests", function () {
         }
     });
 
-    const origManifest = {
+    const origManifest: Manifest = {
         apiVersion: "v1",
         kind: "Pod",
         metadata: {
@@ -131,7 +132,7 @@ describe("kubectl utility function tests", function () {
         should(origPods[0].metadata.name).equal(origManifest.metadata.name);
 
         const newManifest = ld.cloneDeep(origManifest);
-        newManifest.spec.containers[0].image = "alpine";
+        (newManifest.spec as any).containers[0].image = "alpine";
 
         const result = await kubectlOpManifest("apply", {
             kubeconfig,
@@ -149,6 +150,6 @@ describe("kubectl utility function tests", function () {
         should(pods[0].spec).be.ok();
         should(pods[0].spec.containers).length(1);
         should(pods[0].spec.containers[0]).be.ok();
-        should(pods[0].spec.containers[0].image).equal(newManifest.spec.containers[0].image);
+        should(pods[0].spec.containers[0].image).equal((newManifest.spec as any).containers[0].image);
     });
 });
