@@ -39,6 +39,11 @@ const starters = starterList
     }))
 
 program
+    .command("run <command...>")
+    .description("Run a command in all starters")
+    .action(cliHandler(commandRun));
+
+program
     .command("update")
     .description("Update all starters")
     .action(cliHandler(commandUpdate));
@@ -76,11 +81,11 @@ function cliHandler(func) {
     };
 }
 
-async function exec(args, options = {}) {
+async function exec(argsIn, options = {}) {
     const wd = path.relative(repoRoot, options.cwd || process.cwd());
-    console.log(`\n[${wd}] ` + args.join(" "));
-    const prog = args.shift();
-    const subproc = execa(prog, args, options);
+    console.log(`\n[${wd}] ` + argsIn.join(" "));
+    const prog = argsIn[0];
+    const subproc = execa(prog, argsIn.slice(1), options);
     subproc.stdout.pipe(process.stdout);
     subproc.stderr.pipe(process.stderr);
     return subproc;
@@ -111,6 +116,12 @@ async function gitTag(gitDir, tag) {
 
 async function gitPush(gitDir, what, remote = "origin") {
     await exec(["git", "push", remote, what], { cwd: gitDir });
+}
+
+async function commandRun(args) {
+    await foreachStarter(async (s) => {
+        await exec(args, { cwd: s.dir });
+    });
 }
 
 async function commandUpdate() {
