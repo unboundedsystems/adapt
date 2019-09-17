@@ -39,6 +39,11 @@ const starters = starterList
     }))
 
 program
+    .command("run <command...>")
+    .description("Run a command in all starters")
+    .action(cliHandler(commandRun));
+
+program
     .command("update")
     .description("Update all starters")
     .action(cliHandler(commandUpdate));
@@ -111,6 +116,12 @@ async function gitTag(gitDir, tag) {
 
 async function gitPush(gitDir, what, remote = "origin") {
     await exec(["git", "push", remote, what], { cwd: gitDir });
+}
+
+async function commandRun(args) {
+    await foreachStarter(async (s) => {
+        await exec(args, { cwd: s.dir });
+    });
 }
 
 async function commandUpdate() {
