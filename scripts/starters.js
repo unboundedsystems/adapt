@@ -76,11 +76,11 @@ function cliHandler(func) {
     };
 }
 
-async function exec(args, options = {}) {
+async function exec(argsIn, options = {}) {
     const wd = path.relative(repoRoot, options.cwd || process.cwd());
-    console.log(`\n[${wd}] ` + args.join(" "));
-    const prog = args.shift();
-    const subproc = execa(prog, args, options);
+    console.log(`\n[${wd}] ` + argsIn.join(" "));
+    const prog = argsIn[0];
+    const subproc = execa(prog, argsIn.slice(1), options);
     subproc.stdout.pipe(process.stdout);
     subproc.stderr.pipe(process.stderr);
     return subproc;
