@@ -1,6 +1,6 @@
 {
   "name": "@adpt/core",
-  "version": "0.0.6-next.1",
+  "version": "0.0.6-next.2",
   "description": "Unbounded Adapt core library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -61,7 +61,7 @@
     "test": "mocha --opts mocha.opts"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.0.6-next.1",
+    "@adpt/testutils": "0.0.6-next.2",
     "@graphql-codegen/cli": "^1.6.1",
     "@graphql-codegen/typescript": "^1.6.1",
     "@graphql-codegen/typescript-resolvers": "^1.6.1",
@@ -95,7 +95,7 @@
   },
   "dependencies": {
     "@adpt/dom-parser": "0.0.6-next.1",
-    "@adpt/utils": "0.0.6-next.1",
+    "@adpt/utils": "0.0.6-next.2",
     "@usys/fork-require": "1.0.9-unb1",
     "async-lock": "^1.2.2",
     "callsites": "^2.0.0",
