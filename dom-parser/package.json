@@ -1,6 +1,6 @@
 {
   "name": "@adpt/dom-parser",
-  "version": "0.0.6-next.1",
+  "version": "0.0.7-next.0",
   "description": "Unbounded Adapt DOM Parser",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
