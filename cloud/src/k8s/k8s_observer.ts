@@ -249,11 +249,11 @@ export class K8sObserver implements ObserverPlugin {
             if (!observeSchema) observeSchema = buildObserveSchema();
             const waitFor = queries.map((q) =>
                 Promise.resolve(execute(observeSchema, q.query, null, context, q.variables)));
-            throwObserverErrors(await Promise.all(waitFor));
-            const proxyIds = Object.keys(context.proxies);
-            for (const proxy of proxyIds) {
+            const results = await Promise.all(waitFor);
+            for (const proxy of Object.keys(context.proxies)) {
                 (await context.proxies[proxy]).kill();
             }
+            throwObserverErrors(results);
         }
 
         return { context: context.observations };
