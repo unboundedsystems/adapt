@@ -4,7 +4,7 @@ DEMO_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 . "${DEMO_DIR}/minikube.sh"
 . "${DEMO_DIR}/commands.sh"
 
-cp -R "/src/cli/test_projects/${DEMO_NAME}" /tmp
+cp -R "/src/systemtest/test_projects/${DEMO_NAME}" /tmp
 cd "/tmp/${DEMO_NAME}"
 
 minikubeConnect || \

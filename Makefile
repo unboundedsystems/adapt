@@ -67,7 +67,9 @@ core-build: utils-build dom-parser-build testutils-build
 cli-build: core-build cloud-build utils-build testutils-build
 cloud-build: core-build utils-build testutils-build
 testutils-build: utils-build
+systemtest-build: core-build cloud-build utils-build testutils-build cli-build
 cli-test: ssh-setup
+systemtest-test: ssh-setup
 
 include build_support/docs.mk
 

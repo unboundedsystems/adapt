@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+// tslint:disable: no-submodule-imports
+import { expect } from "@adpt/cli/dist/test/common/fancy";
+import { mkInstance } from "@adpt/cli/dist/test/common/start-minikube";
+import { getNewDeployID, stdoutDivide, stdoutDivider } from "@adpt/cli/dist/test/common/testlib";
 import {
     awsutils,
     describeLong,
@@ -24,9 +28,6 @@ import { sleep } from "@adpt/utils";
 import Docker = require("dockerode");
 import execa from "execa";
 import * as fs from "fs-extra";
-import { expect } from "../common/fancy";
-import { mkInstance } from "../common/start-minikube";
-import { getNewDeployID, stdoutDivide, stdoutDivider } from "../common/testlib";
 import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;

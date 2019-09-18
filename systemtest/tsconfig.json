@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.json",
+  "include": [
+    "src/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ],
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDirs": [
+      "./src"
+    ],
+    "typeRoots": [ // Only allow types to be pulled from specific directories
+      "./node_modules/@types",
+      "../node_modules/@types"
+    ]
+  }
+}
