@@ -169,7 +169,7 @@ export async function kubectlDiff(options: KubectlDiffOptions) {
 
         const forbiddenRegex =
             new RegExp(`^The ${manifest.kind} \"${manifest.metadata.name}\" is invalid: spec: Forbidden`);
-        if (result.stderr.match(forbiddenRegex)) {
+        if (forbiddenRegex.test(result.stderr)) {
             return {
                 errs: result.stderr,
                 forbidden: true
