@@ -25,7 +25,6 @@ import * as ld from "lodash";
 import fetch from "node-fetch";
 import should from "should";
 import { Kubeconfig } from "../../src/k8s/common";
-import { authHeaders, getK8sConnectInfo } from "../../src/k8s/k8s_observer";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
@@ -251,6 +250,48 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
         should(ld.cloneDeep(resultSquareDefault)).eql({ data: { square: 9 } });
     });
 });
+
+function authHeaders(user: { username?: string; password?: string }): {} | { Authorization: string } {
+    if (!user.username || !user.password) return {};
+
+    const auth = Buffer.from(user.username + ":" + user.password).toString("base64");
+    return {
+        Authorization: "Basic " + auth
+    };
+}
+
+function getK8sConnectInfo(kubeconfig: Kubeconfig) {
+    function byName(name: string) { return (x: { name: string }) => x.name === name; }
+    const contextName: string = kubeconfig["current-context"];
+    const context = kubeconfig.contexts.find(byName(contextName));
+    if (!context) throw new Error(`Could not find context ${contextName}`);
+
+    const cluster = kubeconfig.clusters.find(byName(context.context.cluster));
+    const user = kubeconfig.users.find(byName(context.context.user));
+
+    if (!cluster) throw new Error(`Could not find cluster ${context.context.cluster}`);
+    const caData = cluster.cluster["certificate-authority-data"];
+    const ca = caData ? Buffer.from(caData, "base64").toString() : undefined;
+
+    const url = cluster.cluster.server;
+
+    if (!user) throw new Error(`Could not find user ${context.context.user}`);
+    const keyData = user.user["client-key-data"];
+    const certData = user.user["client-certificate-data"];
+    const key = keyData && Buffer.from(keyData, "base64").toString();
+    const cert = certData && Buffer.from(certData, "base64").toString();
+    const username = user.user.username;
+    const password = user.user.password;
+
+    return {
+        ca,
+        url,
+        key,
+        cert,
+        username,
+        password,
+    };
+}
 
 describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
     let schema: GraphQLSchema;
