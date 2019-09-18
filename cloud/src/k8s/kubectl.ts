@@ -155,8 +155,8 @@ export async function kubectlDiff(options: KubectlDiffOptions) {
         try {
             result = await kubectl(args, { kubeconfig: configPath });
         } catch (e) {
-            if (isExecaError(e)) e.message += "\n" + e.all;
             if (!isExecaError(e)) throw e;
+            e.message += "\n" + e.all;
             result = e;
         }
 
