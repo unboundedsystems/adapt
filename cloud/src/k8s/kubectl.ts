@@ -28,6 +28,19 @@ import { Kubeconfig } from "./common";
 import { Manifest } from "./manifest_support";
 
 let kubectlLoc: string;
+
+function kubectlPlatform(platform: string) {
+    switch (platform) {
+        case "linux":
+        case "darwin":
+            return platform;
+        case "win32":
+            return "windows";
+        default:
+            throw new Error(`Unsupported platform for kubectl: ${platform}`);
+    }
+}
+
 /**
  * Downloads kubectl and returns path to its location
  *
@@ -38,7 +51,7 @@ export async function getKubectl(): Promise<string> {
     if (kubectlLoc !== undefined) return kubectlLoc;
     const loc = path.join(await mkdtmp("kubectl"), "kubectl");
     const kubeRelease = "v1.15.3";
-    const platform = os.platform;
+    const platform = kubectlPlatform(os.platform());
     const kubectlUrl = `https://storage.googleapis.com/kubernetes-release/release/${kubeRelease}/bin/${platform}/amd64/kubectl`;
     const kubectlBinResp = await fetch(kubectlUrl);
     const kubectlBin = createWriteStream(loc);
