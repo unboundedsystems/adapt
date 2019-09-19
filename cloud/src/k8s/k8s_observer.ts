@@ -24,13 +24,13 @@ import {
 } from "@adpt/core";
 import { execute, GraphQLNonNull, GraphQLObjectType, GraphQLSchema, } from "graphql";
 import GraphQLJSON from "graphql-type-json";
-import * as https from "https";
 import jsonStableStringify = require("json-stable-stringify");
 import fetch, { Response } from "node-fetch";
 import { CustomError } from "ts-custom-error";
 import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import { Kubeconfig } from "./common";
+import { kubectlProxy, KubectlProxyInfo } from "./kubectl";
 
 // tslint:disable-next-line:no-var-requires
 const swaggerClient = require("swagger-client");
@@ -59,37 +59,15 @@ export class K8sResponseError extends CustomError {
     }
 }
 
-export function getK8sConnectInfo(kubeconfig: Kubeconfig) {
+function getK8sConnectInfo(kubeconfig: Kubeconfig) {
     function byName(name: string) { return (x: { name: string }) => x.name === name; }
     const contextName: string = kubeconfig["current-context"];
     const context = kubeconfig.contexts.find(byName(contextName));
     if (!context) throw new Error(`Could not find context ${contextName}`);
 
     const cluster = kubeconfig.clusters.find(byName(context.context.cluster));
-    const user = kubeconfig.users.find(byName(context.context.user));
-
     if (!cluster) throw new Error(`Could not find cluster ${context.context.cluster}`);
-    const caData = cluster.cluster["certificate-authority-data"];
-    const ca = caData ? Buffer.from(caData, "base64").toString() : undefined;
-
-    const url = cluster.cluster.server;
-
-    if (!user) throw new Error(`Could not find user ${context.context.user}`);
-    const keyData = user.user["client-key-data"];
-    const certData = user.user["client-certificate-data"];
-    const key = keyData && Buffer.from(keyData, "base64").toString();
-    const cert = certData && Buffer.from(certData, "base64").toString();
-    const username = user.user.username;
-    const password = user.user.password;
-
-    return {
-        ca,
-        url,
-        key,
-        cert,
-        username,
-        password,
-    };
+    return { url: cluster.cluster.server };
 }
 
 const infoSym = Symbol("k8sInfoSym");
@@ -103,7 +81,6 @@ interface K8sQueryResolverInfo {
 interface K8sObserveResolverInfo {
     [infoSym]: {
         host: string;
-        agent: https.Agent;
         id: unknown;
         headers: { Authorization?: string; };
     };
@@ -121,13 +98,27 @@ function computeQueryId(clusterId: unknown, fieldName: string, args: unknown) {
     });
 }
 
-export function authHeaders(user: { username?: string; password?: string }): {} | { Authorization: string } {
-    if (!user.username || !user.password) return {};
+interface ObserveContext {
+    proxies: { [id: string]: Promise<KubectlProxyInfo> };
+    observations: Observations;
+}
 
-    const auth = Buffer.from(user.username + ":" + user.password).toString("base64");
-    return {
-        Authorization: "Basic " + auth
-    };
+async function fetchProxy(context: ObserveContext, kubeconfig: Kubeconfig): Promise<KubectlProxyInfo> {
+    const proxies = context.proxies;
+    const id = jsonStableStringify(kubeconfig);
+    if (proxies[id]) return proxies[id];
+    const rawInfo = kubectlProxy({ kubeconfig });
+    proxies[id] = rawInfo.then((info) => {
+        return {
+            url: info.url,
+            child: info.child,
+            kill: () => {
+                delete proxies[id];
+                info.kill();
+            }
+        };
+    });
+    return proxies[id];
 }
 
 const k8sObserveResolverFactory: ResolverFactory = {
@@ -137,24 +128,18 @@ const k8sObserveResolverFactory: ResolverFactory = {
             return async (
                 _obj,
                 args: { kubeconfig: Kubeconfig },
-                _context: Observations): Promise<K8sObserveResolverInfo> => {
+                context: ObserveContext): Promise<K8sObserveResolverInfo> => {
 
                 const kubeconfig = args.kubeconfig;
                 if (kubeconfig === undefined) throw new Error("No kubeconfig specified");
                 const info = getK8sConnectInfo(kubeconfig);
-                const host = info.url;
-                const agent = new https.Agent({
-                    key: info.key,
-                    cert: info.cert,
-                    ca: info.ca,
-                });
-                const headers = authHeaders(info);
+                const { url: proxyUrl } = await fetchProxy(context, kubeconfig);
                 //FIXME(manishv) Canonicalize id here (e.g. port, fqdn, etc.)
-                return { [infoSym]: { host, agent, id: host, headers } };
+                return { [infoSym]: { host: proxyUrl, id: info.url, headers: {} } };
             };
         }
 
-        return async (obj: K8sObserveResolverInfo, args, context: Observations, _info) => {
+        return async (obj: K8sObserveResolverInfo, args, context: ObserveContext, _info) => {
             const req = await swaggerClient.buildRequest({
                 spec: k8sSwagger,
                 operationId: fieldName,
@@ -165,14 +150,14 @@ const k8sObserveResolverFactory: ResolverFactory = {
 
             const url = obj[infoSym].host + req.url;
             const headers = obj[infoSym].headers;
-            const resp = await fetch(url, { ...req, agent: obj[infoSym].agent, headers });
+            const resp = await fetch(url, { ...req, headers });
             const ret = await resp.json();
 
             if (resp.status === 404) throw new K8sNotFound(ret);
             else if (!resp.ok) throw new K8sResponseError(resp, ret);
 
             const queryId = computeQueryId(obj[infoSym].id, fieldName, args);
-            context[queryId] = ret; //Overwrite in case data got updated on later query
+            context.observations[queryId] = ret; //Overwrite in case data got updated on later query
 
             return ret;
         };
@@ -259,15 +244,19 @@ export class K8sObserver implements ObserverPlugin {
     }
 
     observe = async (queries: ExecutedQuery[]): Promise<ObserverResponse<object>> => {
-        const observations = {};
+        const context: ObserveContext = { proxies: {}, observations: {} };
         if (queries.length > 0) {
             if (!observeSchema) observeSchema = buildObserveSchema();
             const waitFor = queries.map((q) =>
-                Promise.resolve(execute(observeSchema, q.query, null, observations, q.variables)));
-            throwObserverErrors(await Promise.all(waitFor));
+                Promise.resolve(execute(observeSchema, q.query, null, context, q.variables)));
+            const results = await Promise.all(waitFor);
+            for (const proxy of Object.keys(context.proxies)) {
+                (await context.proxies[proxy]).kill();
+            }
+            throwObserverErrors(results);
         }
 
-        return { context: observations };
+        return { context: context.observations };
     }
 }
 

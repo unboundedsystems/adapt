@@ -32,11 +32,10 @@ import { sleep } from "@adpt/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import * as abs from "../../src";
+import { ActionPlugin, createActionPlugin } from "../../src/action";
 import {
     ClusterInfo,
-    createK8sPlugin,
     K8sContainer,
-    K8sPlugin,
     k8sServiceProps,
     Kubeconfig,
     Pod,
@@ -45,9 +44,8 @@ import {
     Service,
     ServicePort,
 } from "../../src/k8s";
-import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
-import { act, checkNoChanges, doBuild, MockDeploy, randomName } from "../testlib";
+import { act, checkNoActions, doBuild, MockDeploy, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
@@ -167,7 +165,7 @@ describe("k8s Service Component Tests", () => {
 describe("k8s Service Operation Tests", function () {
     this.timeout(10 * 1000);
 
-    let plugin: K8sPlugin;
+    let plugin: ActionPlugin;
     let logger: MockLogger;
     let options: PluginOptions;
     let clusterInfo: ClusterInfo;
@@ -185,7 +183,7 @@ describe("k8s Service Operation Tests", function () {
     });
 
     beforeEach(async () => {
-        plugin = createK8sPlugin();
+        plugin = createActionPlugin();
         logger = createMockLogger();
         deployID = randomName("cloud-service-op");
         options = {
@@ -204,70 +202,6 @@ describe("k8s Service Operation Tests", function () {
                 deleteAll("services", { client, deployID })
             ]);
         }
-    });
-
-    it("Should compute actions with no services from k8s", async () => {
-        const ports: ServicePort[] = [
-            { name: "9001", port: 9001, targetPort: 9001 },
-            { name: "8001", port: 8001, targetPort: 81 },
-        ];
-        const svc =
-            <Service key="test" ports={ports} config={clusterInfo} />;
-
-        const { dom } = await doBuild(svc, { deployID });
-
-        await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const actions = plugin.analyze(null, dom, obs);
-        should(actions.length).equal(1);
-        should(actions[0].type).equal(ChangeType.create);
-        should(actions[0].detail).equal("Creating Service");
-        should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.create);
-        should(actions[0].changes[0].detail).equal("Creating Service");
-        should(actions[0].changes[0].element.componentName).equal("Resource");
-        should(actions[0].changes[0].element.props.key).equal("test");
-
-        await plugin.finish();
-    });
-
-    it("Should distinguish between modify and create actions", async () => {
-        const ports: ServicePort[] = [
-            { name: "9001", port: 9001, targetPort: 9001 },
-            { name: "8001", port: 8001, targetPort: 81 },
-        ];
-        const svc =
-            <Service key="test" ports={ports} config={clusterInfo} />;
-
-        const { dom } = await doBuild(svc, { deployID });
-
-        await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const mockObservation = {
-            kind: "Service",
-            metadata: {
-                name: resourceElementToName(dom, options.deployID),
-                namespace: "default",
-            },
-            spec: {
-                ports,
-                dataNotUnderstood: ["foo"] //Field that should be ignored
-            },
-            status: { phase: "" }
-        };
-
-        obs[canonicalConfigJSON(clusterInfo.kubeconfig)].push(mockObservation);
-        const actions = plugin.analyze(null, dom, obs);
-        should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.modify);
-        should(actions[0].detail).equal("Replacing Service");
-        should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.modify);
-        should(actions[0].changes[0].detail).equal("Replacing Service");
-        should(actions[0].changes[0].element.componentName).equal("Resource");
-        should(actions[0].changes[0].element.props.key).equal("test");
-
-        await plugin.finish();
     });
 
     it("Should use label for referencing pods as selectors", async () => {
@@ -319,7 +253,7 @@ describe("k8s Service Operation Tests", function () {
         await fs.remove(pluginDir);
         const svc = <Service key="test" ports={[{ port: 8080}]} type="LoadBalancer" config={clusterInfo} />;
         const deploy = new MockDeploy({
-            pluginCreates: [createK8sPlugin],
+            pluginCreates: [createActionPlugin],
             tmpDir: pluginDir,
             uniqueDeployID: true
         });
@@ -356,10 +290,10 @@ describe("k8s Service Operation Tests", function () {
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.create);
-        should(actions[0].detail).equal("Creating Service");
+        should(actions[0].detail).startWith("Creating Service");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.create);
-        should(actions[0].changes[0].detail).equal("Creating Service");
+        should(actions[0].changes[0].detail).startWith("Creating Service");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal(name);
 
@@ -401,10 +335,10 @@ describe("k8s Service Operation Tests", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.modify);
-        should(actions[0].detail).equal("Replacing Service");
+        should(actions[0].detail).startWith("Updating Service");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.modify);
-        should(actions[0].changes[0].detail).equal("Replacing Service");
+        should(actions[0].changes[0].detail).startWith("Updating Service");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
 
@@ -425,7 +359,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, oldDom);
         const actions = plugin.analyze(oldDom, oldDom, obs);
-        checkNoChanges(actions, oldDom);
+        checkNoActions(actions, oldDom);
         await plugin.finish();
     });
 
@@ -468,7 +402,7 @@ describe("k8s Service Operation Tests", function () {
         await plugin.start(options);
         const obs2 = await plugin.observe(oldDom, dom);
         const actions2 = plugin.analyze(oldDom, dom, obs2);
-        checkNoChanges(actions2, dom.props.children);
+        checkNoActions(actions2, dom.props.children);
         await plugin.finish();
     });
 
@@ -482,10 +416,10 @@ describe("k8s Service Operation Tests", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].type).equal(ChangeType.delete);
-        should(actions[0].detail).equal("Destroying removed Service");
+        should(actions[0].detail).startWith("Deleting Service");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.delete);
-        should(actions[0].changes[0].detail).equal("Destroying removed Service");
+        should(actions[0].changes[0].detail).startWith("Deleting Service");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
 

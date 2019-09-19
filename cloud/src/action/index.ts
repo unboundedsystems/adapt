@@ -22,4 +22,7 @@ export {
 } from "./Action";
 export * from "./Command";
 
-export { createActionPlugin } from "./action_plugin";
+export {
+    ActionPlugin,
+    createActionPlugin
+} from "./action_plugin";

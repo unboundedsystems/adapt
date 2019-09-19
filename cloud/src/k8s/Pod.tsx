@@ -26,11 +26,11 @@ import Adapt, {
     waiting
 } from "@adpt/core";
 import { InternalError, removeUndef } from "@adpt/utils";
-import * as ld from "lodash";
+import ld from "lodash";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps } from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
-import { registerResourceKind, resourceIdToName } from "./k8s_plugin";
+import { registerResourceKind, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
 
 /** @public */
@@ -83,8 +83,8 @@ function makePodManifest(props: PodProps) {
             tty: c.props.tty,
             workingDir: c.props.workingDir,
         }))
-        .map(defaultize)
-        .map(removeUndef),
+            .map(defaultize)
+            .map(removeUndef),
         terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
     };
 
@@ -149,38 +149,6 @@ export interface PodSpec {
     terminationGracePeriodSeconds?: number;
 }
 
-const knownContainerPaths = [
-    "args",
-    "command",
-    "env",
-    "image",
-    "name",
-    "ports",
-    "tty",
-    "workingDir",
-    "imagePullPolicy"
-];
-
-const knownPodSpecPaths = [
-    "containers",
-    "terminationGracePeriodSeconds"
-];
-
-function podSpecsEqual(spec1: PodSpec, spec2: PodSpec) {
-    function processContainers(spec: PodSpec) {
-        if (spec.containers === undefined) return;
-        spec.containers = spec.containers
-            .map((c) => ld.pick(c, knownContainerPaths) as any);
-        spec.containers = ld.sortBy(spec.containers, (c) => c.name);
-    }
-    const s1 = ld.pick(spec1, knownPodSpecPaths) as PodSpec;
-    const s2 = ld.pick(spec2, knownPodSpecPaths) as PodSpec;
-    processContainers(s1);
-    processContainers(s2);
-
-    return ld.isEqual(s1, s2);
-}
-
 function deployedWhen(statusObj: unknown) {
     const status: any = statusObj;
     if (!status || !status.status) return waiting(`Kubernetes cluster returned invalid status for Pod`);
@@ -216,7 +184,6 @@ export const podResourceInfo = {
         );
         return obs.withKubeconfig.readCoreV1NamespacedPod;
     },
-    specsEqual: podSpecsEqual,
 };
 
 registerResourceKind(podResourceInfo);

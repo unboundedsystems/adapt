@@ -16,13 +16,14 @@
 
 import { InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
-import execa, { ExecaError, ExecaReturnValue, Options as ExecaOptions } from "execa";
+import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
+import { isExecaError } from "../common";
 import { ContainerStatus } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { adaptDockerDeployIDKey } from "./labels";
@@ -311,12 +312,6 @@ export interface InspectReport extends ContainerStatus { }
 
 export interface DockerInspectOptions extends DockerGlobalOptions {
     type?: "container" | "image" | "network";
-}
-
-function isExecaError(e: Error): e is ExecaError {
-    if (!e.message.startsWith("Command failed")) return false;
-    if (!("exitCode" in e)) return false;
-    return true;
 }
 
 /**

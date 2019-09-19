@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Action, AdaptElement, ChangeType } from "@adpt/core";
+import { Action, AdaptElement, ChangeType, isElement } from "@adpt/core";
 import { toArray } from "@adpt/utils";
 import * as randomstring from "randomstring";
 import should from "should";
@@ -53,20 +53,31 @@ export type NoChangeList = AdaptElement | AdaptElement[] | AdaptElement[][];
 //    change per Action.
 // 3) An array of arrays - then check for one Action per top level array
 //    which contains a Change for each Element in the sub-array.
-export function checkNoChanges(actions: Action[], els: NoChangeList) {
+export function checkNoChanges(actions: Action[], els: NoChangeList,
+    options: { noString: string } = { noString: "No changes required" }) {
     const actionEls = toArray(els);
     should(actions).have.length(actionEls.length);
     actions.forEach((a, i) => {
         const changedEls = toArray(actionEls[i]);
         const elSet = new Set(changedEls);
         should(a.type).equal(ChangeType.none);
-        should(a.detail).equal("No changes required");
+        should(a.detail).equal(options.noString);
         should(a.changes).have.length(elSet.size);
         a.changes.forEach((c) => {
             should(c.type).equal(ChangeType.none);
-            should(c.detail).equal("No changes required");
+            should(c.detail).equal(options.noString);
             const had = elSet.delete(c.element);
             should(had).be.True();
         });
     });
+}
+
+/**
+ * Check that the action plugin has no changes
+ * @internal
+ */
+export function checkNoActions(actions: Action[], els: AdaptElement | AdaptElement[]) {
+    //The if and the else are the same here, but we need the type assertion for the type checker
+    if (isElement(els)) checkNoChanges(actions, [els], { noString: "No action required" });
+    else checkNoChanges(actions, [els], { noString: "No action required" });
 }

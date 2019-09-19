@@ -16,7 +16,9 @@
 
 import Adapt, {
     AdaptElement,
+    AdaptMountedElement,
     BuildData,
+    ChangeType,
     childrenToArray,
     DeployHelpers,
     DeployStatus,
@@ -26,13 +28,19 @@ import Adapt, {
     gqlGetOriginalErrors,
     isFinalDomElement,
     ObserveForStatus,
-    PrimitiveComponent,
     waiting,
 } from "@adpt/core";
 import * as ld from "lodash";
 
+import { InternalError } from "@adpt/utils";
+import { Action, ActionContext, ShouldAct } from "../action";
 import { ResourceProps } from "./common";
-import { getResourceInfo } from "./k8s_plugin";
+import { kubectlDiff, kubectlGet, kubectlOpManifest } from "./kubectl";
+import {
+    getResourceInfo,
+    makeManifest,
+    Manifest,
+} from "./manifest_support";
 
 /**
  * Type assertion to see if an element is both a {@link k8s.Resource | Resource}
@@ -49,10 +57,19 @@ export function isResourceFinalElement(e: AdaptElement):
 }
 
 /**
+ * Decides if an existing Resource is scheduled for deletion
+ */
+function isDeleting(info: Manifest | undefined): boolean {
+    return (info !== undefined) && ("deletionTimestamp" in info.metadata);
+}
+
+/**
  * Primitive Component recognized by the k8s plugin to represent resources
  * @public
  */
-export class Resource extends PrimitiveComponent<ResourceProps> {
+export class Resource extends Action<ResourceProps> {
+    manifest_: Manifest;
+
     constructor(props: ResourceProps) {
         super(props);
     }
@@ -63,6 +80,118 @@ export class Resource extends PrimitiveComponent<ResourceProps> {
         if (!ld.isEmpty(children)) return "Resource elements cannot have children";
 
         //Do other validations of Specs here
+    }
+
+    async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldAct> {
+        const kubeconfig = this.props.config.kubeconfig;
+        const deployID = ctx.buildData.deployID;
+        const manifest = this.manifest(deployID);
+        const name = manifest.metadata.name;
+        const kind = manifest.kind;
+        const oldManifest = await kubectlGet({
+            kubeconfig,
+            name,
+            kind
+        });
+
+        switch (op) {
+            case ChangeType.create:
+            case ChangeType.modify:
+            case ChangeType.replace:
+                if (oldManifest === undefined || isDeleting(oldManifest)) {
+                    return {
+                        act: true,
+                        detail: `Creating ${kind} ${name}`
+                    };
+                } else {
+                    const { forbidden, diff } = await kubectlDiff({
+                        kubeconfig,
+                        manifest
+                    });
+                    const opStr = (forbidden || (op === ChangeType.replace)) ? "Replacing" : "Updating";
+                    if (((diff !== undefined) && (diff !== "")) || forbidden) {
+                        return {
+                            act: true,
+                            detail: `${opStr} ${kind} ${name}`
+                        };
+                    }
+                }
+                return false;
+            case ChangeType.delete:
+                if (oldManifest && !isDeleting(oldManifest)) {
+                    return {
+                        act: true,
+                        detail: `Deleting ${kind} ${name}`
+                    };
+                }
+                return false;
+            case ChangeType.none:
+                return false;
+        }
+    }
+
+    async action(op: ChangeType, ctx: ActionContext): Promise<void> {
+        const kubeconfig = this.props.config.kubeconfig;
+        const deployID = ctx.buildData.deployID;
+        const manifest = this.manifest(deployID);
+        const name = manifest.metadata.name;
+        const kind = manifest.kind;
+        const info = await kubectlGet({
+            kubeconfig,
+            name,
+            kind
+        });
+        let deleted = false;
+
+        if (isDeleting(info)) {
+            //Wait for deleting to complete, else create/modify/apply will fail
+            await kubectlOpManifest("delete", {
+                kubeconfig,
+                manifest,
+                wait: true
+            });
+            deleted = true;
+        }
+
+        if (op === ChangeType.modify) {
+            const { forbidden } = await kubectlDiff({
+                kubeconfig,
+                manifest
+            });
+            op = (op === ChangeType.modify) && forbidden ? ChangeType.replace : op;
+        }
+        switch (op) {
+            case ChangeType.create:
+            case ChangeType.modify:
+                await kubectlOpManifest("apply", {
+                    kubeconfig,
+                    manifest
+                });
+                return;
+            case ChangeType.replace:
+                if (!deleted) {
+                    await kubectlOpManifest("delete", {
+                        kubeconfig,
+                        manifest,
+                        wait: true
+                    });
+                }
+                await kubectlOpManifest("apply", {
+                    kubeconfig,
+                    manifest
+                });
+                return;
+            case ChangeType.delete:
+                if (deleted) return;
+                await kubectlOpManifest("delete", {
+                    kubeconfig,
+                    manifest,
+                    wait: false
+                });
+                return;
+            case ChangeType.none:
+                return;
+        }
     }
 
     deployedWhen = async (goalStatus: GoalStatus, helpers: DeployHelpers) => {
@@ -101,5 +230,20 @@ export class Resource extends PrimitiveComponent<ResourceProps> {
             }
             return errorToNoStatus(err);
         }
+    }
+
+    private mountedElement(): AdaptMountedElement<ResourceProps> {
+        const handle = this.props.handle;
+        if (handle === undefined) throw new InternalError("element requested but props.handle undefined");
+        const elem = handle.mountedOrig;
+        if (elem == null) throw new InternalError(`element requested but handle.mountedOrig is ${elem}`);
+        return elem as AdaptMountedElement<ResourceProps>;
+    }
+
+    private manifest(deployID: string): Manifest {
+        if (this.manifest_) return this.manifest_;
+        const elem = this.mountedElement();
+        this.manifest_ = makeManifest(elem, deployID);
+        return this.manifest_;
     }
 }

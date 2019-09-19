@@ -24,17 +24,15 @@ import should from "should";
 
 import { createMockLogger, k8sutils, MockLogger } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
+import { ActionPlugin, createActionPlugin } from "../../src/action";
 import {
     ClusterInfo,
-    createK8sPlugin,
-    K8sPlugin,
     Kubeconfig,
     Resource,
     resourceElementToName
 } from "../../src/k8s";
-import { canonicalConfigJSON } from "../../src/k8s/k8s_plugin";
 import { mkInstance } from "../run_minikube";
-import { act, checkNoChanges, doBuild, randomName } from "../testlib";
+import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
 
 const { deleteAll, getAll } = k8sutils;
@@ -57,10 +55,10 @@ describe("k8s Resource Component Tests", () => {
     });
 });
 
-describe("k8s Plugin Tests (Resource, Pod)", function () {
+describe("k8s Resource Tests (Resource, Pod)", function () {
     this.timeout(10 * 1000);
 
-    let plugin: K8sPlugin;
+    let plugin: ActionPlugin;
     let logger: MockLogger;
     let options: PluginOptions;
     let clusterInfo: ClusterInfo;
@@ -76,7 +74,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
     });
 
     beforeEach(async () => {
-        plugin = createK8sPlugin();
+        plugin = createActionPlugin();
         logger = createMockLogger();
         deployID = randomName("cloud-k8s-plugin");
         options = {
@@ -93,82 +91,6 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
             await deleteAll("pods", { client, deployID });
             await deleteAll("services", { client, deployID });
         }
-    });
-
-    it("Should compute actions with no resources from k8s", async () => {
-        const resElem =
-            <Resource key="test" config={clusterInfo} kind="Pod" spec={{
-                containers: [{
-                    name: "container",
-                    image: "alpine:latest"
-                }]
-            }}>
-            </Resource >;
-
-        const { dom } = await doBuild(resElem, { deployID });
-
-        await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const actions = plugin.analyze(null, dom, obs);
-        should(actions.length).equal(1);
-        should(actions[0].type).equal(ChangeType.create);
-        should(actions[0].detail).equal("Creating Pod");
-        should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.create);
-        should(actions[0].changes[0].detail).equal("Creating Pod");
-        should(actions[0].changes[0].element.componentName).equal("Resource");
-        should(actions[0].changes[0].element.props.key).equal("test");
-
-        await plugin.finish();
-    });
-
-    it("Should distinguish between modify and create actions", async () => {
-        const resElem =
-            <Resource key="test" config={clusterInfo} kind="Pod" spec={{
-                containers: [{
-                    name: "container",
-                    image: "alpine:3.8"
-                }]
-            }}>
-            </Resource>;
-
-        const { dom } = await doBuild(resElem, { deployID });
-        if (!isMountedElement(dom)) {
-            throw should(isMountedElement(dom)).True();
-        }
-
-        await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const mockObservation = {
-            kind: "Pod",
-            metadata: {
-                name: resourceElementToName(dom, options.deployID),
-                namespace: "default",
-                labels: {},
-                annotations: { adaptName: dom.id }
-            },
-            spec: {
-                containers: [{
-                    name: "container",
-                    image: "alpine:latest", //This is the diff to cause a modify
-                    dataNotUnderstood: ["foo"] //Field that should be ignored
-                }],
-            },
-            status: { phase: "" }
-        };
-
-        obs[canonicalConfigJSON(clusterInfo.kubeconfig)].push(mockObservation);
-        const actions = plugin.analyze(null, dom, obs);
-        should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.modify);
-        should(actions[0].detail).equal("Replacing Pod");
-        should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.modify);
-        should(actions[0].changes[0].detail).equal("Replacing Pod");
-        should(actions[0].changes[0].element.componentName).equal("Resource");
-        should(actions[0].changes[0].element.props.key).equal("test");
-
-        await plugin.finish();
     });
 
     function createPodDom(name: string) {
@@ -202,10 +124,10 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         const actions = plugin.analyze(null, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.create);
-        should(actions[0].detail).equal("Creating Pod");
+        should(actions[0].detail).startWith("Creating Pod");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.create);
-        should(actions[0].changes[0].detail).equal("Creating Pod");
+        should(actions[0].changes[0].detail).startWith("Creating Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal(name);
 
@@ -258,10 +180,10 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
         should(actions[0].type).equal(ChangeType.modify);
-        should(actions[0].detail).equal("Replacing Pod");
+        should(actions[0].detail).startWith("Replacing Pod");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.modify);
-        should(actions[0].changes[0].detail).equal("Replacing Pod");
+        should(actions[0].changes[0].detail).startWith("Replacing Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
 
@@ -301,7 +223,7 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         await plugin.start(options);
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
-        checkNoChanges(actions, dom);
+        checkNoActions(actions, dom);
         await plugin.finish();
     });
 
@@ -315,10 +237,10 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions.length).equal(1);
         should(actions[0].type).equal(ChangeType.delete);
-        should(actions[0].detail).equal("Destroying removed Pod");
+        should(actions[0].detail).startWith("Deleting Pod");
         should(actions[0].changes).have.length(1);
         should(actions[0].changes[0].type).equal(ChangeType.delete);
-        should(actions[0].changes[0].detail).equal("Destroying removed Pod");
+        should(actions[0].changes[0].detail).startWith("Deleting Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
 
@@ -386,11 +308,11 @@ describe("k8s Plugin Tests (Resource, Pod)", function () {
         const obs = await plugin.observe(oldDom, dom);
         const actions = plugin.analyze(oldDom, dom, obs);
         should(actions).length(1);
-        should(actions[0].type).equal(ChangeType.create);
-        should(actions[0].detail).equal("Creating Pod");
+        should(actions[0].type).equal(ChangeType.modify);
+        should(actions[0].detail).startWith("Creating Pod");
         should(actions[0].changes).have.length(1);
-        should(actions[0].changes[0].type).equal(ChangeType.create);
-        should(actions[0].changes[0].detail).equal("Creating Pod");
+        should(actions[0].changes[0].type).equal(ChangeType.modify);
+        should(actions[0].changes[0].detail).startWith("Creating Pod");
         should(actions[0].changes[0].element.componentName).equal("Resource");
         should(actions[0].changes[0].element.props.key).equal("test");
 

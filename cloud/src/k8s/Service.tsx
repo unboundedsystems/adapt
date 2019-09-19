@@ -33,8 +33,7 @@ import Adapt, {
     Waiting
 } from "@adpt/core";
 import { removeUndef } from "@adpt/utils";
-import stringify from "json-stable-stringify";
-import { isEqual, isObject, pick } from "lodash";
+import { isObject } from "lodash";
 import {
     NetworkScope,
     NetworkServiceInstance,
@@ -44,7 +43,7 @@ import {
 } from "../NetworkService";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { registerResourceKind, resourceElementToName, resourceIdToName } from "./k8s_plugin";
+import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
 
 // FIXME(mark): Remove comment when working
@@ -460,120 +459,6 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
     return succ.status();
 };
 
-/*
- * Plugin info
- */
-const knownServiceSpecPaths = [
-    // FIXME(mark): Requires more complex compare logic
-    //"clusterIP",
-
-    "externalIPs",  // array
-    "externalName",
-    "externalTrafficPolicy",
-    "healthCheckNodePort",
-    "loadBalancerIP",
-    "loadBalancerSourceRanges",  // array
-    "ports",  // array
-    "publishNotReadyAddresses",
-    "selector", // object
-    "sessionAffinity",
-    //"sessionAffinityConfig", // object
-    "type",
-];
-
-type ArrayKeys<T> = { [K in keyof T]: Required<T>[K] extends any[] ? K : never }[keyof T];
-/**
- * Given an object, will sort any properties of that object that are arrays.
- * The sort of each array happens in-place, modifying the original arrays.
- * @param obj An object whose array properties will be sorted
- * @param keys  The specific property names to sort
- */
-function sortArrays<T extends object>(obj: T, keys: ArrayKeys<T>[]): void {
-    for (const k of keys) {
-        const arr = obj[k];
-        if (arr === undefined) continue;
-        if (!Array.isArray(arr)) throw new Error(`Unable to sort non-array (key=${k})`);
-        if (arr.length === 0) continue;
-        if (typeof arr[0] === "string") arr.sort();
-        else {
-            arr.sort((a, b) => {
-                a = stringify(a);
-                b = stringify(b);
-                return a === b ? 0 :
-                    a < b ? -1 : 1;
-            });
-        }
-    }
-}
-
-function canonicalize(spec: ServiceSpec, isActual = false): ServiceSpec {
-    const s = pick(spec, knownServiceSpecPaths) as ServiceSpec;
-    if (isActual && spec.type !== "NodePort" && s.ports !== undefined) {
-        s.ports = s.ports.map((port) => {
-            return removeUndef({ ...port, nodePort: undefined });
-        });
-    }
-    sortArrays(s, [
-        "externalIPs",
-        "loadBalancerSourceRanges",
-    ]);
-    return removeUndef(s);
-}
-
-function sortPorts(ports: ServicePort[]): ServicePort[] {
-    ports = [...ports];
-    ports.sort((aP, bP) => {
-        const a = aP.name;
-        const b = bP.name;
-        if (b === undefined) return -1;
-        if (a === undefined) return 1;
-        return a === b ? 0 : (a < b ? -1 : 1);
-    });
-    return ports;
-}
-
-function nodePortsEqual(actual: ServiceSpec, element: ServiceSpec) {
-    if (actual.ports === undefined) return element.ports === undefined;
-    if (element.ports === undefined) return false;
-    if (actual.ports.length !== element.ports.length) return false;
-
-    const actualPorts = sortPorts(actual.ports);
-    const elementPorts = sortPorts(element.ports);
-
-    if (!(actual.type === "NodePort" && element.type === "NodePort")) {
-        return isEqual(actualPorts, elementPorts);
-    }
-
-    // tslint:disable-next-line:prefer-for-of
-    for (let i = 0; i < actualPorts.length; i++) {
-        const aport = { ...actualPorts[i] };
-        const eport = { ...elementPorts[i] };
-        if (isEqual(aport, eport)) continue;
-        if (eport.nodePort !== undefined) return false;
-        delete aport.nodePort;
-        delete eport.nodePort;
-        if (!isEqual(aport, eport)) return false;
-    }
-
-    return true;
-}
-
-function serviceSpecsEqual(actual: ServiceSpec, element: ServiceSpec) {
-    actual = canonicalize(actual, true);
-    element = canonicalize(element);
-
-    const actualPorts = actual.ports;
-    const elementPorts = element.ports;
-    delete actual.ports;
-    delete element.ports;
-    const equalWithoutPorts = isEqual(actual, element);
-    if (!equalWithoutPorts) return false;
-
-    actual.ports = actualPorts;
-    element.ports = elementPorts;
-    return nodePortsEqual(actual, element);
-}
-
 interface MakeManifestOptions {
     endpointSelector?: EndpointSelector;
 }
@@ -631,7 +516,6 @@ export const serviceResourceInfo = {
         );
         return obs.withKubeconfig.readCoreV1NamespacedService;
     },
-    specsEqual: serviceSpecsEqual,
 };
 
 registerResourceKind(serviceResourceInfo);

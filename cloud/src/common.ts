@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2019 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,10 @@
  * limitations under the License.
  */
 
- /**
-  * Adapt components for Kubernetes
-  *
-  * @public
-  */
-export * from "./Container";
-export * from "./Resource"; //This must be before Pod and Service, but why?
-export * from "./Pod";
-export * from "./Service";
-export * from "./ServiceDeployment";
-export * from "./common";
+import { ExecaError } from "execa";
 
-export {
-    resourceElementToName,
-    registerResourceKind
-} from "./manifest_support";
+export function isExecaError(e: Error): e is ExecaError {
+    if (!e.message.startsWith("Command failed")) return false;
+    if (!("exitCode" in e)) return false;
+    return true;
+}
