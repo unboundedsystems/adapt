@@ -84,12 +84,13 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldAct> {
+        const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
         const name = manifest.metadata.name;
         const kind = manifest.kind;
         const oldManifest = await kubectlGet({
-            kubeconfig: this.props.config.kubeconfig,
+            kubeconfig,
             name,
             kind
         });
@@ -105,7 +106,7 @@ export class Resource extends Action<ResourceProps> {
                     };
                 } else {
                     const { forbidden, diff } = await kubectlDiff({
-                        kubeconfig: this.props.config.kubeconfig,
+                        kubeconfig,
                         manifest
                     });
                     const opStr = (forbidden || (op === ChangeType.replace)) ? "Replacing" : "Updating";
@@ -131,12 +132,13 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async action(op: ChangeType, ctx: ActionContext): Promise<void> {
+        const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
         const name = manifest.metadata.name;
         const kind = manifest.kind;
         const info = await kubectlGet({
-            kubeconfig: this.props.config.kubeconfig,
+            kubeconfig,
             name,
             kind
         });
@@ -145,7 +147,7 @@ export class Resource extends Action<ResourceProps> {
         if (isDeleting(info)) {
             //Wait for deleting to complete, else create/modify/apply will fail
             await kubectlOpManifest("delete", {
-                kubeconfig: this.props.config.kubeconfig,
+                kubeconfig,
                 manifest,
                 wait: true
             });
@@ -154,7 +156,7 @@ export class Resource extends Action<ResourceProps> {
 
         if (op === ChangeType.modify) {
             const { forbidden } = await kubectlDiff({
-                kubeconfig: this.props.config.kubeconfig,
+                kubeconfig,
                 manifest
             });
             op = (op === ChangeType.modify) && forbidden ? ChangeType.replace : op;
@@ -163,27 +165,27 @@ export class Resource extends Action<ResourceProps> {
             case ChangeType.create:
             case ChangeType.modify:
                 await kubectlOpManifest("apply", {
-                    kubeconfig: this.props.config.kubeconfig,
+                    kubeconfig,
                     manifest
                 });
                 return;
             case ChangeType.replace:
                 if (!deleted) {
                     await kubectlOpManifest("delete", {
-                        kubeconfig: this.props.config.kubeconfig,
+                        kubeconfig,
                         manifest,
                         wait: true
                     });
                 }
                 await kubectlOpManifest("apply", {
-                    kubeconfig: this.props.config.kubeconfig,
+                    kubeconfig,
                     manifest
                 });
                 return;
             case ChangeType.delete:
                 if (deleted) return;
                 await kubectlOpManifest("delete", {
-                    kubeconfig: this.props.config.kubeconfig,
+                    kubeconfig,
                     manifest,
                     wait: false
                 });
