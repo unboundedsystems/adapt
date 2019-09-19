@@ -40,7 +40,10 @@ describe("kubectl utility function tests", function () {
         this.slow(20 * 1000);
         kubeconfig = await mkInstance.kubeconfig as Kubeconfig;
         client = await mkInstance.client;
-        this.timeout("10*1000");
+    });
+
+    before(async function () {
+        this.timeout("10s");
         await getKubectl();
     });
 
