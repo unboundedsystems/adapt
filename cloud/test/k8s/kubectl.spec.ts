@@ -24,6 +24,7 @@ import {
 import { getKubectl, kubectlGet, kubectlOpManifest } from "../../src/k8s/kubectl";
 import { Manifest } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
+import { makeDeployId } from "../testlib";
 
 const { deleteAll, getAll } = k8sutils;
 
@@ -32,7 +33,7 @@ describe("kubectl utility function tests", function () {
 
     let kubeconfig: Kubeconfig;
     let client: k8sutils.KubeClient;
-    const deployID = "dummy";
+    const deployID = makeDeployId("kubectl");
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
