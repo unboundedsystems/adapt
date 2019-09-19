@@ -25,7 +25,6 @@ import { MockDeploy, smallDockerImage } from "../testlib";
 import { checkRegistryImage, deleteAllContainers, deleteAllImages } from "./common";
 
 import {
-    adaptDockerDeployIDKey,
     computeContainerName,
     DockerBuildOptions,
     DockerContainer,
@@ -83,7 +82,6 @@ describe("RegistryDockerImage", function () {
         dockerfile: `
             FROM ${smallDockerImage}
             CMD sleep 10000
-            LABEL ${adaptDockerDeployIDKey}="${mockDeploy.deployID}"
             `,
         registryUrl: "localhost:5000",
     });
