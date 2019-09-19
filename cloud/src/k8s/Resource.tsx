@@ -68,7 +68,6 @@ function isDeleting(info: Manifest | undefined): boolean {
  * @public
  */
 export class Resource extends Action<ResourceProps> {
-    deployID_: string;
     manifest_: Manifest;
 
     constructor(props: ResourceProps) {
@@ -242,10 +241,9 @@ export class Resource extends Action<ResourceProps> {
     }
 
     private manifest(deployID: string): Manifest {
-        if (this.manifest_ && (this.deployID_ === deployID)) return this.manifest_;
+        if (this.manifest_) return this.manifest_;
         const elem = this.mountedElement();
         this.manifest_ = makeManifest(elem, deployID);
-        this.deployID_ = deployID;
         return this.manifest_;
     }
 }
