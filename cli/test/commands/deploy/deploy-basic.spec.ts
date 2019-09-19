@@ -431,19 +431,6 @@ describe("deploy:list tests", function () {
         expect(ctx.stdout).not.contains("using internal adapt module");
     });
 
-    basicTestChain
-    .command(["deploy:run", "dev"])
-    .do(() => process.chdir("/"))
-    .command(["deploy:list"])
-    .it("Should list deployments from non-project", async (ctx) => {
-        expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Creating new project deployment [completed]");
-        expect(ctx.stdout).contains("Listing Deployments [completed]");
-        expect(ctx.stdout).matches(/Listing Deployments \[completed\]\n\ntest::dev-[a-z]{4}\n/);
-        expect(ctx.stdout).contains("using internal adapt module");
-    });
-
 });
 
 describe("deploy:destroy tests", function () {

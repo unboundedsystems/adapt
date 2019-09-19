@@ -5,10 +5,13 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   ADAPT_RUN_LONG_TESTS: 1
   ADAPT_TEST_HEAPDUMP: 1
+  # This is for certs to be shared between docker client and dind. Must match
+  # a volume mount path in gitlab runner's config.toml.
+  DOCKER_TLS_CERTDIR: "/certs"
 
 services:
   - name: docker:stable-dind
-    command: [ "dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2" ]
+    command: [ "dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2376", "--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2" ]
 
 stages:
   - test

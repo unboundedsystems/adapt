@@ -22,7 +22,7 @@ const path = require('path')
 
 const copyrightHolder = "Unbounded Systems, LLC";
 const excludes = [
-    "^cli/test_projects",
+    "^systemtest/test_projects",
     "^cloud/test/fixtures",
 ];
 

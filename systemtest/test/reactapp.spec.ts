@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+// tslint:disable: no-submodule-imports
+import { expect } from "@adpt/cli/dist/test/common/fancy";
+import { mkInstance } from "@adpt/cli/dist/test/common/start-minikube";
+import { getNewDeployID } from "@adpt/cli/dist/test/common/testlib";
 import {
     describeLong,
     k8sutils,
@@ -22,9 +26,6 @@ import { waitForNoThrow } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
-import { expect } from "../common/fancy";
-import { mkInstance } from "../common/start-minikube";
-import { getNewDeployID } from "../common/testlib";
 import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;

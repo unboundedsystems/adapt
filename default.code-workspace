@@ -13,14 +13,14 @@
 			"path": "cli"
 		},
 		{
-			"path": "dom-parser"
-		},
-		{
 			"path": "utils"
 		},
 		{
 			"path": "testutils"
 		},
+		{
+			"path": "systemtest"
+		}
 	],
 	"settings": {
 		"files.eol": "\n",

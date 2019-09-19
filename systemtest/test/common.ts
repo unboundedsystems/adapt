@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
+// tslint:disable: no-submodule-imports
+import { clitest } from "@adpt/cli/dist/test/common/fancy";
+import { cliLocalRegistry } from "@adpt/cli/dist/test/common/start-local-registry";
 import { mochaTmpdir } from "@adpt/testutils";
-import { filePathToUrl } from "@adpt/utils";
+import { filePathToUrl, findPackageDirs } from "@adpt/utils";
 import fs from "fs-extra";
 import path from "path";
-import { clitest } from "../common/fancy";
-import { pkgRootDir } from "../common/paths";
-import { cliLocalRegistry } from "../common/start-local-registry";
+
+export const packageDirs = findPackageDirs(__dirname);
+export const pkgRootDir = packageDirs.root;
 
 export const systemTestChain =
     clitest
