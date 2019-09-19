@@ -21,10 +21,7 @@ import ld from "lodash";
 import {
     Kubeconfig
 } from "../../src/k8s";
-import {
-    //kubectlGet,
-    getKubectl, kubectlGet, kubectlOpManifest
-} from "../../src/k8s/kubectl";
+import { getKubectl, kubectlGet, kubectlOpManifest } from "../../src/k8s/kubectl";
 import { Manifest } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 
@@ -45,8 +42,6 @@ describe("kubectl utility function tests", function () {
         this.timeout("10*1000");
         await getKubectl();
     });
-
-    beforeEach(async () => { return; });
 
     afterEach(async function () {
         this.timeout(20 * 1000);

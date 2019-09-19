@@ -84,7 +84,6 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldAct> {
-        this.validate();
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
         const name = manifest.metadata.name;
@@ -244,6 +243,7 @@ export class Resource extends Action<ResourceProps> {
         if (this.manifest_ && (this.deployID_ === deployID)) return this.manifest_;
         const elem = this.mountedElement();
         this.manifest_ = makeManifest(elem, deployID);
+        this.deployID_ = deployID;
         return this.manifest_;
     }
 }

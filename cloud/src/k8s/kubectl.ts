@@ -290,7 +290,7 @@ export async function kubectlProxy(options: KubectlProxyOptions): Promise<Kubect
                 e.message += "\n" + e.all;
             } else {
                 kill();
-                e.message = `Failed to extract proxy host from command: ${kubectlPath} ${args.join(" ")}` + e.message;
+                e.message = `Failed to extract proxy host from command: ${kubectlPath} ${args.join(" ")} ` + e.message;
             }
             throw e;
         }
