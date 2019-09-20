@@ -12,6 +12,23 @@ ifeq ($(IN_DOCKER),true)
 all: test
 .PHONY: all
 
+# Clean up the log directory if we're logging. Don't clean in CI because
+# we're already logging to files in the log dir by this point.
+ifneq ($(strip $(ADAPT_BUILD_LOGDIR)),)
+  ifeq ($(strip $(CI)),)
+    # Ensure absolute path
+    export ADAPT_BUILD_LOGDIR:=$(abspath $(ADAPT_BUILD_LOGDIR))
+
+    # Check that we don't accidentally delete the entire repo we're in
+    ifeq ($(ADAPT_BUILD_LOGDIR),$(abspath .))
+      $(error ADAPT_BUILD_LOGDIR cannot be set to the current directory)
+    endif
+
+    # Empty for each build
+    IGNORED:=$(shell rm -rf $(ADAPT_BUILD_LOGDIR); mkdir -p $(ADAPT_BUILD_LOGDIR))
+  endif
+endif
+
 # Variables that modules can add onto
 SETUP_TARGETS :=
 CLEANS :=

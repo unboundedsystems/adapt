@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+export * from "./ci_report";
 export * from "./common_types";
 export * from "./crypto";
 export * from "./diff_objects";
