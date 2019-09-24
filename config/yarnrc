@@ -1,0 +1,19 @@
+# IMPORTANT NOTES
+# - Having the mutex option and the cache-folder option together in this file
+#   ensures that an invocation of yarn will either get BOTH options together
+#   or neither.
+# - The cache-folder MUST be a location other than the default so that a
+#   yarn invocation that does not read this file will not use the shared and
+#   protected cache.
+--cache-folder /var/cache/adapt/yarn
+
+# Default is to acquire the cache mutex for all yarn operations
+--mutex "file:/var/cache/adapt/yarn/.yarn-mutex"
+
+# But for yarn commands that do NOT read or write to the cache, using
+# mutex "file" will protect against two of this type of yarn operation
+# happening in the same directory at the same time. That's actually not
+# quite correct, but the correct fix can only be made within yarn. And holding
+# the cache mutex for all yarn run operations serializes our testing way too
+# much.
+--run.mutex file
