@@ -25,9 +25,25 @@ DOCKER_ARGS+=" --tmpfs /tmp:exec"
 # Add ability to modify resource limits. Needed for ulimit -n for docker setup.
 DOCKER_ARGS+=" --cap-add=SYS_RESOURCE"
 
-CTR_CACHE_DIR="/var/cache/adapt/yarn"
-DOCKER_ARGS+=" -v${TOP_DIR}/config/yarnrc:/root/.yarnrc -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}"
+# Directory for caches inside the container
+# Must agree with yarn cache dir set in config/yarnrc
+CTR_CACHE_DIR="/var/cache/adapt"
+
+# NPM setup
+DOCKER_ARGS+=" -eNPM_CONFIG_CACHE=${CTR_CACHE_DIR}/npm"
+
+# Yarn setup
+DOCKER_ARGS+=" -v${TOP_DIR}/config/yarnrc:/root/.yarnrc"
 DOCKER_ARGS+=' -eYARN_AUTH_TOKEN="faketoken"'
+
+if [ -n "${CI}" ]; then
+    # IN CI, use tmpfs for caches
+    DOCKER_ARGS+=" --tmpfs ${CTR_CACHE_DIR}:exec"
+else
+    # In dev, use the user's cache
+    DOCKER_ARGS+=" -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}/yarn"
+    DOCKER_ARGS+=" -v${HOME}/.npm:${CTR_CACHE_DIR}/npm"
+fi
 
 # Don't print annoying npm upgrade warning
 DOCKER_ARGS+=" -eNO_UPDATE_NOTIFIER=1"
