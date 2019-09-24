@@ -376,7 +376,13 @@ describe("Global CLI install", function () {
 
     before(async () => {
         tmpDir = process.cwd();
-        await globalAdd("@adpt/cli@unit-tests");
+        try {
+            await globalAdd("@adpt/cli@unit-tests");
+        } catch (err) {
+            // tslint:disable-next-line: no-console
+            if (err.all) console.error(`${err.message}\n${err.all}`);
+            throw err;
+        }
     });
 
     after(async () => {
