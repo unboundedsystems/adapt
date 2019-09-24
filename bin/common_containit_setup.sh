@@ -19,6 +19,9 @@ if [ $? -ne 0 ]; then
 fi
 DOCKER_ARGS+=" --dns ${DNS_IP}"
 
+# Use tmpfs for /tmp inside the container
+DOCKER_ARGS+=" --tmpfs /tmp:exec"
+
 # Add ability to modify resource limits. Needed for ulimit -n for docker setup.
 DOCKER_ARGS+=" --cap-add=SYS_RESOURCE"
 
