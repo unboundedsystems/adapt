@@ -15,6 +15,7 @@ npm-debug.log.*
 output
 DebugOut
 /verdaccio/storage/
+/build/
 */build/
 */temp/
 /web/
