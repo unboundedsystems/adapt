@@ -156,7 +156,7 @@ export interface WaitOptions {
     statusFilter?: StatusFilter;
 }
 const waitDefaults = {
-    pollMs: 1000,
+    pollMs: 2000,
     timeoutMs: 30 * 1000,
     terminalOnly: true,
     searchDeleted: false,
