@@ -19,13 +19,34 @@ if [ $? -ne 0 ]; then
 fi
 DOCKER_ARGS+=" --dns ${DNS_IP}"
 
+# Use tmpfs for /tmp inside the container
+DOCKER_ARGS+=" --tmpfs /tmp:exec"
+
 # Add ability to modify resource limits. Needed for ulimit -n for docker setup.
 DOCKER_ARGS+=" --cap-add=SYS_RESOURCE"
 
-CTR_CACHE_DIR="/root/.cache/yarn"
-DOCKER_ARGS+=" -eYARN_CACHE_FOLDER=${CTR_CACHE_DIR} -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}"
-DOCKER_ARGS+=" -eYARN_MUTEX=file:${CTR_CACHE_DIR}/.yarn-mutex"
+# Directory for caches inside the container
+# Must agree with yarn cache dir set in config/yarnrc
+CTR_CACHE_DIR="/var/cache/adapt"
+
+# NPM setup
+DOCKER_ARGS+=" -eNPM_CONFIG_CACHE=${CTR_CACHE_DIR}/npm"
+DOCKER_ARGS+=" -eNPM_CONFIG_FETCH_RETRIES=5"
+DOCKER_ARGS+=" -eNPM_CONFIG_FETCH_RETRY_FACTOR=2"
+DOCKER_ARGS+=" -eNPM_CONFIG_FETCH_RETRY_MINTIMEOUT=50"
+
+# Yarn setup
+DOCKER_ARGS+=" -v${TOP_DIR}/config/yarnrc:/root/.yarnrc"
 DOCKER_ARGS+=' -eYARN_AUTH_TOKEN="faketoken"'
+
+if [ -n "${CI}" ]; then
+    # IN CI, use tmpfs for caches
+    DOCKER_ARGS+=" --tmpfs ${CTR_CACHE_DIR}:exec"
+else
+    # In dev, use the user's cache
+    DOCKER_ARGS+=" -v${HOME}/.cache/yarn:${CTR_CACHE_DIR}/yarn"
+    DOCKER_ARGS+=" -v${HOME}/.npm:${CTR_CACHE_DIR}/npm"
+fi
 
 # Don't print annoying npm upgrade warning
 DOCKER_ARGS+=" -eNO_UPDATE_NOTIFIER=1"

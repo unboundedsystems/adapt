@@ -376,7 +376,13 @@ describe("Global CLI install", function () {
 
     before(async () => {
         tmpDir = process.cwd();
-        await globalAdd("@adpt/cli@unit-tests");
+        try {
+            await globalAdd("@adpt/cli@unit-tests");
+        } catch (err) {
+            // tslint:disable-next-line: no-console
+            if (err.all) console.error(`${err.message}\n${err.all}`);
+            throw err;
+        }
     });
 
     after(async () => {
@@ -591,7 +597,7 @@ describe("deploy:run basic tests", function () {
     mochaTmpdir.all("adapt-cli-test-deploy");
 
     afterEach(async function destroyDeployment() {
-        this.timeout(10 * 1000);
+        this.timeout(60 * 1000);
         await destroyAll({ env: commonEnv() });
     });
 

@@ -61,8 +61,6 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
     // tslint:disable-next-line:prefer-const
     let { boolNoArgOptions = [], loglevel, pipeOutput, ...opts } = { ...commonDefaults, ...options };
 
-    opts.mutex = getMutex();
-
     boolNoArgOptions.push(...noArgOptions);
     const finalOpts = optionsBoolToUndef(opts, boolNoArgOptions);
 
@@ -123,10 +121,6 @@ function optionsBoolToUndef(options: AnyOptions, keys: string[]): AnyOptions {
         else delete ret[k];
     }
     return ret;
-}
-
-function getMutex(): string {
-    return process.env.YARN_MUTEX || "file";
 }
 
 export interface JsonMessage {

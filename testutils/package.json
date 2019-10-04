@@ -25,6 +25,7 @@
   "typings": "dist/src/index.d.ts",
   "dependencies": {
     "@adpt/utils": "0.0.7-next.0",
+    "@unboundedsystems/verdaccio": "4.3.1-test3",
     "aws-sdk": "^2.512.0",
     "callsites": "^2.0.0",
     "dockerode": "^2.5.8",
@@ -41,8 +42,7 @@
     "randomstring": "^1.1.5",
     "stream-buffers": "^3.0.2",
     "strip-ansi": "^4.0.0",
-    "tslib": "^1.10.0",
-    "verdaccio": "^4.2.2"
+    "tslib": "^1.10.0"
   },
   "devDependencies": {
     "@types/callsites": "^2.0.0",

@@ -115,7 +115,7 @@ export async function kubectlGet(options: KubectlGetOptions) {
         try {
             result = await kubectl(args, { kubeconfig: configPath });
         } catch (e) {
-            if (isExecaError(e)) {
+            if (isExecaError(e) && e.all) {
                 e.message += "\n" + e.all;
                 if (e.exitCode !== 0) {
                     if (e.all.match(/Error from server \(NotFound\)/)) return undefined;

@@ -15,7 +15,14 @@
  */
 
 import { diff, Diff } from "deep-diff";
-import { inspect } from "util";
+import { inspect as utilInspect } from "util";
+
+function inspect(val: any): string {
+    return utilInspect(val, {
+        compact: true,
+        breakLength: 60,
+    });
+}
 
 function isIndex(key: string | number | symbol) {
     return Number.isInteger(Number(key));
