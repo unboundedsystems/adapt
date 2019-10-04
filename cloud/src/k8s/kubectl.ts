@@ -141,7 +141,7 @@ async function doExeca(f: () => Promise<execa.ExecaReturnValue<string>>):
         return await f();
     } catch (e) {
         if (!isExecaError(e)) throw e;
-        e.message += "\n" + e.all;
+        e.message += e.all ? "\n" + e.all : "";
         return e;
     }
 }
@@ -341,7 +341,7 @@ export async function kubectlProxy(options: KubectlProxyOptions): Promise<Kubect
             hostPort = extractHostPort(proxyInfoStr);
         } catch (e) {
             if (isExecaError(e)) {
-                e.message += "\n" + e.all;
+                e.message += e.all ? "\n" + e.all : "";
             } else {
                 kill();
                 e.message = `Failed to extract proxy host from command: ${kubectlPath} ${args.join(" ")} ` + e.message;
