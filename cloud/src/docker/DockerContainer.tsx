@@ -25,21 +25,23 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError, sha256hex } from "@adpt/utils";
-import { isError } from "lodash";
+import { difference, intersection, isEqual, isError, pickBy } from "lodash";
 import { Action, ActionContext, ShouldAct } from "../action";
-import { ContainerStatus } from "../Container";
+import { ContainerLabels, ContainerStatus } from "../Container";
 import {
     dockerImageId,
     dockerInspect,
+    dockerNetworkConnect,
+    dockerNetworkDisconnect,
+    dockerNetworks,
     dockerRm,
     dockerRun,
     dockerStop,
-    InspectReport
-} from "./cli";
+    InspectReport} from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
-import { DockerContainerProps, ImageInfo } from "./types";
+import { DockerContainerProps, DockerGlobalOptions, ImageInfo } from "./types";
 
 /** @public */
 export interface DockerContainerStatus extends ContainerStatus { }
@@ -98,14 +100,70 @@ async function getImageId(source: string | Handle<DockerImageInstance>,
     }
 }
 
+function arraysHaveSameElements(x: any[], y: any[]): boolean {
+    if (x.length !== y.length) return false;
+    return intersection([x, y]).length !== x.length;
+}
+
+function userLabels(labels: ContainerLabels) {
+    return pickBy(labels, (_: unknown, key: string) => key !== adaptDockerDeployIDKey);
+}
+
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
-    Promise<"noExist" | "stale" | "existsUnmanaged" | "upToDate"> {
+    Promise<"noExist" | "replace" | "update" | "existsUnmanaged" | "upToDate"> {
     if (!containerExists(info)) return "noExist";
     if (!containerExistsAndIsFromDeployment(info, context)) return "existsUnmanaged";
     if (!info.data) throw new Error(`Container exists, but no info.data??: ${info}`);
-    if (await getImageId(props.image, props) !== info.data.Image) return "stale";
+    if (await getImageId(props.image, props) !== info.data.Image) return "replace";
+    if (!isEqual(props.labels || {}, userLabels(info.data.Config.Labels))) return "replace";
+    let desiredNetworks = props.networks;
+    if (desiredNetworks === undefined) {
+        const defaultNetwork = await dockerDefaultNetwork(props);
+        desiredNetworks = defaultNetwork === undefined ? [] : [defaultNetwork];
+    }
+    if (!arraysHaveSameElements(desiredNetworks, Object.keys(info.data.NetworkSettings.Networks))) return "update";
 
     return "upToDate";
+}
+
+/**
+ * Returns the name of the default docker network
+ *
+ * @returns the name of the default docker network, undefined if it does not exist
+ * @internal
+ */
+async function dockerDefaultNetwork(opts: DockerGlobalOptions): Promise<string | undefined> {
+    const networks = await dockerNetworks(opts);
+    for (const net of networks) {
+        if (net.Options["com.docker.network.bridge.default_bridge"] === "true") return net.Name;
+    }
+    return undefined;
+}
+
+/**
+ * Update a container described in info to match props that are updateable
+ *
+ * @remarks
+ * Note that this will only update props that are updateable.  If there is a non-updateable change,
+ * it will not take effect.  This should only be used if `containerIsUpToDate` returns `"update"` for info
+ * and props.
+ *
+ * @internal
+ */
+async function updateContainer(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps):
+    Promise<void> {
+    //Networks
+    if (!info.data) throw new Error(`No data for container??: ${info}`);
+    const existingNetworks = Object.keys(info.data.NetworkSettings.Networks);
+    let networks = props.networks;
+    if (networks === undefined) {
+        const defaultNetwork = await dockerDefaultNetwork(props);
+        networks = defaultNetwork === undefined ? [] : [defaultNetwork];
+    }
+    const toDisconnect = difference(existingNetworks, networks);
+    const toConnect = difference(networks, existingNetworks);
+    await dockerNetworkConnect(info.name, toConnect, { ...props, alreadyConnectedError: false });
+    await dockerNetworkDisconnect(info.name, toDisconnect, { ...props, alreadyDisconnectedError: false });
 }
 
 async function stopAndRmContainer(
@@ -138,17 +196,24 @@ function getImageNameOrId(props: DockerContainerProps): string | undefined {
 
 async function runContainer(context: ActionContext, props: DockerContainerProps): Promise<void> {
     const image = getImageNameOrId(props);
+    const name = computeContainerNameFromContext(context);
     if (image === undefined) return;
+    const { networks, ...propsNoNetworks } = props;
     const opts = {
-        ...props,
-        name: computeContainerNameFromContext(context),
+        ...propsNoNetworks,
+        name,
         image,
         labels: {
             ...(props.labels || {}),
             [adaptDockerDeployIDKey]: `${context.buildData.deployID}`
-        }
+        },
+        network: (networks && networks[0]) || undefined
     };
     await dockerRun(opts);
+    if (networks && networks.length > 1) {
+        const remainingNetworks = networks.slice(1);
+        await dockerNetworkConnect(name, remainingNetworks, { ...props });
+    }
 }
 
 /**
@@ -184,8 +249,10 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                 switch (await containerIsUpToDate(containerInfo, context, this.props)) {
                     case "noExist":
                         return { act: true, detail: `Creating container ${displayName}` };
-                    case "stale":
+                    case "replace":
                         return { act: true, detail: `Replacing container ${displayName}` };
+                    case "update":
+                        return { act: true, detail: `Updating container ${displayName}` };
                     case "existsUnmanaged":
                         throw new Error(`Container ${containerInfo.name} already exstis,`
                             + ` but is not part of this deployment: ${containerInfo}`);
@@ -209,9 +276,17 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         switch (op) {
             case "none": return;
             case "modify":
+                const status = await containerIsUpToDate(oldInfo, context, this.props);
+                if (status === "update") {
+                    await updateContainer(oldInfo, context, this.props);
+                    break;
+                }
+            //Fallthrough
             case "replace":
+                //FIXME(manishv) Is there a bug here where this will throw if the container
+                //is deleted between shouldAct and action?  Do we care about this?
                 await stopAndRmContainer(context, oldInfo, this.props);
-                // Fallthrough
+            // Fallthrough
             case "create":
                 await runContainer(context, this.props);
                 const info = await fetchContainerInfo(context, this.props);

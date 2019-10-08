@@ -135,8 +135,28 @@ export interface KubectlDiffOptions {
 
 const diffDefaults = {};
 
+async function doExeca(f: () => Promise<execa.ExecaReturnValue<string>>):
+    Promise<execa.ExecaError<string> | execa.ExecaReturnValue<string>> {
+    try {
+        return await f();
+    } catch (e) {
+        if (!isExecaError(e)) throw e;
+        e.message += e.all ? "\n" + e.all : "";
+        return e;
+    }
+}
+
+const lastApplied = "kubectl.kubernetes.io/last-applied-configuration";
+
+export interface KubectlDiffReturns {
+    diff?: string;
+    errs: string;
+    forbidden: boolean;
+    clientFallback: boolean;
+}
+
 /** @internal */
-export async function kubectlDiff(options: KubectlDiffOptions) {
+export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlDiffReturns> {
     const opts = { ...diffDefaults, ...options };
     const { kubeconfig, manifest } = opts;
     return withTmpDir(async (tmpDir) => {
@@ -146,19 +166,51 @@ export async function kubectlDiff(options: KubectlDiffOptions) {
         await writeFile(manifestLoc, JSON.stringify(manifest));
 
         const args = ["diff", "-f", manifestLoc];
-        let result: execa.ExecaError | execa.ExecaReturnValue<string>;
-        try {
-            result = await kubectl(args, { kubeconfig: configPath });
-        } catch (e) {
-            if (!isExecaError(e)) throw e;
-            e.message += "\n" + e.all;
-            result = e;
+        let result: execa.ExecaError | execa.ExecaReturnValue<string> =
+            await doExeca(() => kubectl(args, { kubeconfig: configPath }));
+
+        const serverInternalErrorRegex = new RegExp("^Error from server \\(InternalError\\)");
+        if ((result.exitCode !== 0) && serverInternalErrorRegex.test(result.stderr)) {
+            // Some k8s clusters, GKE included, do not support API-server dry-run for all resources,
+            // which kubectl diff uses so fallback to using the old style client side diff algorithm that kubectl uses.
+            result = await doExeca(
+                () => kubectl(["get", "-o", "json", "-f", manifestLoc], { kubeconfig: configPath }));
+            if (result.exitCode === 0) {
+                const srvManifest = JSON.parse(result.stdout);
+                if (!srvManifest.annotations || !srvManifest.annotations[lastApplied]) {
+                    return {
+                        //FIXME(manishv) mimic kubectl diff output here
+                        diff: `No ${lastApplied} annotation, assuming diff`,
+                        errs: "",
+                        forbidden: false,
+                        clientFallback: true
+                    };
+                }
+                const srvApplyManifestJSON = srvManifest.annotations[lastApplied];
+                const srvApplyManifest = JSON.parse(srvApplyManifestJSON);
+                const strippedManifest = JSON.parse(JSON.stringify(manifest));
+                if (!ld.isEqual(strippedManifest, srvApplyManifest)) {
+                    return {
+                        diff: "Unknown diff", //FIXME(manishv) mimic kubectl diff output here
+                        errs: "",
+                        forbidden: false,
+                        clientFallback: true
+                    };
+                } else {
+                    return {
+                        errs: result.stderr,
+                        forbidden: false,
+                        clientFallback: true
+                    };
+                }
+            }
         }
 
         if (result.exitCode === 0) {
             return {
                 errs: result.stderr,
                 forbidden: false,
+                clientFallback: false
             };
         }
 
@@ -167,7 +219,8 @@ export async function kubectlDiff(options: KubectlDiffOptions) {
         if (forbiddenRegex.test(result.stderr)) {
             return {
                 errs: result.stderr,
-                forbidden: true
+                forbidden: true,
+                clientFallback: false
             };
         }
 
@@ -175,7 +228,8 @@ export async function kubectlDiff(options: KubectlDiffOptions) {
             return {
                 diff: result.stdout,
                 errs: "",
-                forbidden: false
+                forbidden: false,
+                clientFallback: false
             };
         }
 
@@ -287,7 +341,7 @@ export async function kubectlProxy(options: KubectlProxyOptions): Promise<Kubect
             hostPort = extractHostPort(proxyInfoStr);
         } catch (e) {
             if (isExecaError(e)) {
-                e.message += "\n" + e.all;
+                e.message += e.all ? "\n" + e.all : "";
             } else {
                 kill();
                 e.message = `Failed to extract proxy host from command: ${kubectlPath} ${args.join(" ")} ` + e.message;

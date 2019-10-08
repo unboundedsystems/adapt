@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { InternalError, withTmpDir } from "@adpt/utils";
+import { FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
 import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
@@ -23,6 +23,7 @@ import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
+import { OmitT } from "type-ops";
 import { isExecaError } from "../common";
 import { ContainerStatus } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
@@ -128,7 +129,8 @@ export interface ExecDockerOptions extends DockerGlobalOptions {
     env?: Environment;
 }
 
-async function execDocker(args: string[], options: ExecDockerOptions) {
+/** @internal */
+export async function execDocker(args: string[], options: ExecDockerOptions) {
     const globalArgs = [];
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
@@ -309,6 +311,43 @@ function createTag(baseTag: string | undefined, appendUnique: boolean): string |
 }
 
 export interface InspectReport extends ContainerStatus { }
+export interface NetworkInspectReport {
+    Id: string;
+    Created: string;
+    Name: string;
+    Driver: string;
+    Scope: "local" | string;
+    EnableIPv6: boolean;
+    IPAM: {
+        Driver: string,
+        Options: null | FIXME_NeedsProperType;
+        Config: FIXME_NeedsProperType[];
+    };
+    Internal: boolean;
+    Attachable: boolean;
+    Ingress: boolean;
+    ConfigFrom: {
+        Network: string;
+    };
+    ConfigOnly: boolean;
+    Containers: {
+        [id: string]: {
+            Name: string;
+            EndpointId: string;
+            MacAddress: string; //In xx:yy:zz:aa:bb:cc form
+            IPv4Address: string; //In x.y.z.a/n form
+            IPv6Address: string; //Can be empty
+        }
+    };
+    Options: {
+        [name: string]: string; //Values here are always strings
+    };
+}
+
+export interface ImageInspectReport {
+    Id: string;
+    [key: string]: FIXME_NeedsProperType;
+}
 
 export interface DockerInspectOptions extends DockerGlobalOptions {
     type?: "container" | "image" | "network";
@@ -319,7 +358,16 @@ export interface DockerInspectOptions extends DockerGlobalOptions {
  *
  * @internal
  */
-export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}): Promise<InspectReport[]> {
+export async function dockerInspect(namesOrIds: string[], opts: { type: "image" } & DockerInspectOptions):
+    Promise<ImageInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: { type: "network" } & DockerInspectOptions):
+    Promise<NetworkInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: { type: "container" } & DockerInspectOptions):
+    Promise<InspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts?: DockerInspectOptions):
+    Promise<InspectReport[] | NetworkInspectReport[] | ImageInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}):
+    Promise<InspectReport[] | NetworkInspectReport[] | ImageInspectReport[]> {
     const execArgs = ["inspect"];
     if (opts.type) execArgs.push(`--type=${opts.type}`);
     let inspectRet: ExecaReturnValue<string>;
@@ -337,6 +385,32 @@ export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOpt
     } catch (err) {
         throw new Error(`Error inspecting docker objects ${namesOrIds}: ${err.message}`);
     }
+}
+
+export type NetworkReport = NetworkInspectReport[];
+
+/**
+ * Return a list of all network names
+ *
+ * @internal
+ */
+export async function dockerNetworkLs(opts: DockerGlobalOptions): Promise<string[]> {
+    const result = await execDocker(["network", "ls", "--format", "{{json .Name}}"], opts);
+    const ret: string[] = [];
+    for (const line of result.stdout.split("\n")) {
+        ret.push(JSON.parse(line));
+    }
+    return ret;
+}
+
+/**
+ * Return all networks and their inspect reports
+ *
+ * @internal
+ */
+export async function dockerNetworks(opts: DockerGlobalOptions): Promise<NetworkReport> {
+    const networks = await dockerNetworkLs(opts);
+    return dockerInspect(networks, { ...opts, type: "network" });
 }
 
 /**
@@ -364,10 +438,11 @@ export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions):
  *
  * @internal
  */
-export interface DockerRunOptions extends DockerContainerProps {
+export interface DockerRunOptions extends OmitT<DockerContainerProps, "networks"> {
     background?: boolean;
     name?: string;
     image: ImageNameString;
+    network?: string;
 }
 
 const defaultDockerRunOptions = {
@@ -398,11 +473,62 @@ export async function dockerRun(options: DockerRunOptions) {
     }
     if (opts.stopSignal) args.push("--stop-signal", opts.stopSignal);
 
+    if (opts.network !== undefined) {
+        args.push("--network", opts.network);
+    }
+
     args.push(opts.image);
     if (typeof opts.command === "string") args.push(...shellwords.split(opts.command));
     if (Array.isArray(opts.command)) args.push(...opts.command);
 
     return execDocker(args, opts);
+}
+
+/**
+ * Attach containers to given networks
+ *
+ * @internal
+ */
+export async function dockerNetworkConnect(containerNameOrId: string, networks: string[],
+    opts: { alreadyConnectedError?: boolean } & ExecDockerOptions) {
+    const optsWithDefs = { alreadyConnectedError: true, ...opts };
+    const { alreadyConnectedError, ...execOpts } = optsWithDefs;
+    const alreadyConnectedRegex =
+        new RegExp(`^Error response from daemon: endpoint with name ${containerNameOrId} already exists in network`);
+    for (const net of networks) {
+        try {
+            await execDocker(["network", "connect", net, containerNameOrId], execOpts);
+        } catch (e) {
+            if (!alreadyConnectedError && isExecaError(e)) {
+                if (alreadyConnectedRegex.test(e.stderr)) continue;
+            }
+            throw e;
+        }
+    }
+}
+
+/**
+ * Detach containers from given networks
+ *
+ * @internal
+ */
+export async function dockerNetworkDisconnect(containerNameOrId: string, networks: string[],
+    opts: { alreadyDisconnectedError?: boolean } & ExecDockerOptions) {
+    const optsWithDefs = { alreadyDisconnectedError: true, ...opts };
+    const { alreadyDisconnectedError, ...execOpts } = optsWithDefs;
+    for (const net of networks) {
+        try {
+            await execDocker(["network", "disconnect", net, containerNameOrId], execOpts);
+        } catch (e) {
+            if (!alreadyDisconnectedError && isExecaError(e)) {
+                if (/^Error response from daemon: container [0-9a-fA-F]+ is not connected to network/.test(e.stderr) ||
+                    (new RegExp(`^Error response from daemon: network ${net} not found`).test(e.stderr))) {
+                    continue;
+                }
+            }
+            throw e;
+        }
+    }
 }
 
 /**

@@ -33,6 +33,19 @@ export async function deleteAllContainers(deployID: string) {
     }
 }
 
+export async function deleteAllNetworks(deployID: string) {
+    try {
+        const { stdout: netList } = await execa("docker", ["network", "ls", "-q",
+            "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
+        if (!netList) return;
+        const nets = netList.split(/\s+/);
+        if (nets.length > 0) await execa("docker", ["network", "rm", ...nets]);
+    } catch (err) {
+        // tslint:disable-next-line: no-console
+        console.log(`Error deleting networks (ignored):`, err);
+    }
+}
+
 export async function deleteAllImages(deployID: string) {
     try {
         const { stdout: imgList } = await execa("docker", ["image", "ls", "-q",

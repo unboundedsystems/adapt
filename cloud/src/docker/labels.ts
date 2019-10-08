@@ -18,7 +18,7 @@
  * The base string used for Adapt Docker labels.
  * @internal
  */
-export const adaptDockerKey = "io.adpt"; //FIXME(manishv) is this what we want?
+export const adaptDockerKey = "org.adaptjs";
 
 /**
  * Docker label for the deployID the object was created from.
