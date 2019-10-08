@@ -260,4 +260,11 @@ export interface DockerContainerProps extends DockerGlobalOptions,
      * Labels to apply to the container.
      */
     labels?: ContainerLabels;
+    /**
+     * Networks to connect the container to
+     *
+     * @remarks
+     * Accepts the same strings as docker network connect
+     */
+    networks?: string[];
 }
