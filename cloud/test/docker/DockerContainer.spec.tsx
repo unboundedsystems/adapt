@@ -78,7 +78,7 @@ describe("DockerContainer", function () {
         const contName = computeContainerName(dom.id, dom.buildData.deployID);
         should(contName).startWith("adapt-");
 
-        const infos = await dockerInspect([contName]);
+        const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const info = infos[0];
         if (info === undefined) should(info).not.Undefined();

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { InternalError, withTmpDir } from "@adpt/utils";
+import { FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
 import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
@@ -309,6 +309,43 @@ function createTag(baseTag: string | undefined, appendUnique: boolean): string |
 }
 
 export interface InspectReport extends ContainerStatus { }
+export interface NetworkInspectReport {
+    Id: string;
+    Created: string;
+    Name: string;
+    Driver: string;
+    Scope: "local" | string;
+    EnableIPv6: boolean;
+    IPAM: {
+        Driver: string,
+        Options: null | FIXME_NeedsProperType;
+        Config: FIXME_NeedsProperType[];
+    };
+    Internal: boolean;
+    Attachable: boolean;
+    Ingress: boolean;
+    ConfigFrom: {
+        Network: string;
+    };
+    ConfigOnly: boolean;
+    Containers: {
+        [id: string]: {
+            Name: string;
+            EndpointId: string;
+            MacAddress: string; //In xx:yy:zz:aa:bb:cc form
+            IPv4Address: string; //In x.y.z.a/n form
+            IPv6Address: string; //Can be empty
+        }
+    };
+    Options: {
+        [name: string]: string; //Values here are always strings
+    };
+}
+
+export interface ImageInspectReport {
+    Id: string;
+    [key: string]: FIXME_NeedsProperType;
+}
 
 export interface DockerInspectOptions extends DockerGlobalOptions {
     type?: "container" | "image" | "network";
@@ -319,7 +356,16 @@ export interface DockerInspectOptions extends DockerGlobalOptions {
  *
  * @internal
  */
-export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}): Promise<InspectReport[]> {
+export async function dockerInspect(namesOrIds: string[], opts: { type: "image" } & DockerInspectOptions):
+    Promise<ImageInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: { type: "network" } & DockerInspectOptions):
+    Promise<NetworkInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: { type: "container" } & DockerInspectOptions):
+    Promise<InspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts?: DockerInspectOptions):
+    Promise<InspectReport[] | NetworkInspectReport[] | ImageInspectReport[]>;
+export async function dockerInspect(namesOrIds: string[], opts: DockerInspectOptions = {}):
+    Promise<InspectReport[] | NetworkInspectReport[] | ImageInspectReport[]> {
     const execArgs = ["inspect"];
     if (opts.type) execArgs.push(`--type=${opts.type}`);
     let inspectRet: ExecaReturnValue<string>;

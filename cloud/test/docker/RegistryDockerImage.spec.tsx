@@ -133,7 +133,7 @@ describe("RegistryDockerImage", function () {
         should(ctrEl.componentType).equal(DockerContainer);
         const contName = computeContainerName(ctrEl.id, mockDeploy.deployID);
         should(contName).startWith("adapt-");
-        const infos = await dockerInspect([contName]);
+        const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const ctrInfo = infos[0];
         if (ctrInfo == null) throw should(ctrInfo).be.ok();
@@ -153,7 +153,7 @@ describe("RegistryDockerImage", function () {
 
         //Delete
         await mockDeploy.deploy(null);
-        const finalInfos = await dockerInspect([contName]);
+        const finalInfos = await dockerInspect([contName], { type: "container" });
         should(finalInfos).be.Array().of.length(0);
     }
 
