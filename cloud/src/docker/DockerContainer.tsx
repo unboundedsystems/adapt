@@ -337,9 +337,13 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     async dockerIP(network?: string) {
         if (!this.state.info || !this.state.info.data) return undefined;
         const stat = this.state.info.data;
-        if (!network) return stat.NetworkSettings.IPAddress;
+        if (!network) {
+            if (stat.NetworkSettings.IPAddress === "") return undefined;
+            return stat.NetworkSettings.IPAddress;
+        }
         const netStat = stat.NetworkSettings.Networks[network];
         if (!netStat) return undefined;
+        if (netStat.IPAddress === "") return undefined;
         return netStat.IPAddress;
     }
 
