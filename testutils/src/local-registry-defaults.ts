@@ -92,7 +92,7 @@ export const config: Config = {
             // mark the upstream as DOWN.
             max_fails: 100,
             // Timeout on each individual request to the upstream
-            timeout: "1s",
+            timeout: "3s",
             // Once the upstream is marked DOWN, it will stay that way
             // for this long before we try to use it again.
             fail_timeout: "0s",
