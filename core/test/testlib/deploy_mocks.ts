@@ -48,6 +48,7 @@ export interface DeployOptions {
     logError?: boolean;
     pollDelayMs?: number;
     style?: AdaptElement | null;
+    timeoutInMs?: number;
 }
 
 export interface GetExecutionPlanOptions {
@@ -65,6 +66,7 @@ const defaultDeployOptions = {
     logError: true,
     pollDelayMs: 1000,
     style: null,
+    timeoutInMs: 10 * 60 * 1000
 };
 
 export interface DeployOutput extends ActComplete {
@@ -167,7 +169,14 @@ export class MockDeploy {
         let processStateUpdates: ProcessStateUpdates;
         let builtElements: AdaptMountedElement[];
 
+        const startTime = new Date().getTime();
         while (true) {
+            const now = new Date().getTime();
+            const elapsed = now - startTime;
+            if (elapsed > opts.timeoutInMs) {
+                throw new Error(`MockDeploy.deploy timed out in ${opts.timeoutInMs / 1000}s`);
+            }
+
             const taskObserver = createTaskObserver("parent", { logger: this.logger });
             taskObserver.started();
 
@@ -204,6 +213,7 @@ export class MockDeploy {
                 pollDelayMs: opts.pollDelayMs,
                 processStateUpdates,
                 taskObserver,
+                timeoutMs: opts.timeoutInMs - elapsed
             };
 
             const mgr = createPluginManager(this.plugins);
