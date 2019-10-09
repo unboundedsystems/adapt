@@ -334,7 +334,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
      *
      * @beta
      */
-    async dockerIP(network?: string) {
+    dockerIP(network?: string) {
         if (!this.state.info || !this.state.info.data) return undefined;
         const stat = this.state.info.data;
         if (!network) {
