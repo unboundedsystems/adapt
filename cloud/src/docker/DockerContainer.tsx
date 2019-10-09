@@ -37,7 +37,8 @@ import {
     dockerRm,
     dockerRun,
     dockerStop,
-    InspectReport} from "./cli";
+    InspectReport
+} from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
@@ -292,6 +293,8 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                 const status = await containerIsUpToDate(oldInfo, context, this.props);
                 if (status === "update") {
                     await updateContainer(oldInfo, context, this.props);
+                    const newInfo = await fetchContainerInfo(context, this.props);
+                    this.setState({ info: newInfo });
                     break;
                 }
             //Fallthrough
