@@ -25,7 +25,7 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError, sha256hex } from "@adpt/utils";
-import { difference, intersection, isEqual, isError, pickBy } from "lodash";
+import { difference, intersection, isEqual, isError, pickBy, uniq } from "lodash";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { ContainerLabels, ContainerStatus } from "../Container";
 import {
@@ -100,9 +100,16 @@ async function getImageId(source: string | Handle<DockerImageInstance>,
     }
 }
 
-function arraysHaveSameElements(x: any[], y: any[]): boolean {
-    if (x.length !== y.length) return false;
-    return intersection([x, y]).length !== x.length;
+async function networksToIds(networks: string[], opts: DockerGlobalOptions): Promise<string[]> {
+    const infos = await dockerInspect(networks, { ...opts, type: "network" });
+    return uniq(infos.map((i) => i.Id));
+}
+
+async function arraysHaveSameNetworks(x: any[], y: any[], opts: DockerGlobalOptions): Promise<boolean> {
+    const xIds = await networksToIds(x, opts);
+    const yIds = await networksToIds(y, opts);
+    if (xIds.length !== yIds.length) return false;
+    return intersection([xIds, yIds]).length !== xIds.length;
 }
 
 function userLabels(labels: ContainerLabels) {
@@ -121,7 +128,11 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
         const defaultNetwork = await dockerDefaultNetwork(props);
         desiredNetworks = defaultNetwork === undefined ? [] : [defaultNetwork];
     }
-    if (!arraysHaveSameElements(desiredNetworks, Object.keys(info.data.NetworkSettings.Networks))) return "update";
+    const hasSameNets = await arraysHaveSameNetworks(
+        desiredNetworks,
+        Object.keys(info.data.NetworkSettings.Networks),
+        props);
+    if (!hasSameNets) return "update";
 
     return "upToDate";
 }
@@ -160,8 +171,10 @@ async function updateContainer(info: ContainerInfo, _context: ActionContext, pro
         const defaultNetwork = await dockerDefaultNetwork(props);
         networks = defaultNetwork === undefined ? [] : [defaultNetwork];
     }
-    const toDisconnect = difference(existingNetworks, networks);
-    const toConnect = difference(networks, existingNetworks);
+    const existingNetworkIds = await networksToIds(existingNetworks, props);
+    const networkIds = await networksToIds(networks, props);
+    const toDisconnect = difference(existingNetworkIds, networkIds);
+    const toConnect = difference(networkIds, existingNetworkIds);
     await dockerNetworkConnect(info.name, toConnect, { ...props, alreadyConnectedError: false });
     await dockerNetworkDisconnect(info.name, toDisconnect, { ...props, alreadyDisconnectedError: false });
 }

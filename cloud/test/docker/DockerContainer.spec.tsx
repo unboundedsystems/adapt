@@ -198,7 +198,7 @@ describe("DockerContainer", function () {
         const defaultNet = netKeys[0];
 
         //Add networks to see if default is removed
-        const addNets = <DockerContainer image="alpine:3.8" networks={[testNet1, testNet2]}/>;
+        const addNets = <DockerContainer image="alpine:3.8" networks={[testNet1, testNet2]} />;
         await mockDeploy.deploy(addNets);
         //Purposely look at old container name
         const infos2 = await dockerInspect([contName], { type: "container" });
@@ -208,5 +208,21 @@ describe("DockerContainer", function () {
         should(info2.NetworkSettings.Networks).have.keys(testNet1, testNet2);
         should(info2.NetworkSettings.Networks).not.have.keys(defaultNet);
         should(info2.Id).equal(info.Id); //Update not replace
+    });
+
+    it("Should attach container to networks by network id", async () => {
+        const [testNet1Id, testNet2Id] =
+            (await dockerInspect([testNet1, testNet2], { type: "network" })).map((i) => i.Id);
+        const orig = <DockerContainer image="alpine:3.8" networks={[testNet1Id, testNet2Id]} />;
+
+        const { dom } = await mockDeploy.deploy(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+
+        const infos = await dockerInspect([contName], { type: "container" });
+        should(infos).be.Array().of.length(1);
+        const info = infos[0];
+        if (info === undefined) throw should(info).not.Undefined();
+        should(info.NetworkSettings.Networks).have.keys(testNet1, testNet2);
     });
 });
