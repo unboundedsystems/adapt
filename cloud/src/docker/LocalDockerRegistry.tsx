@@ -15,6 +15,7 @@
  */
 
 import Adapt, {
+    callInstanceMethod,
     handle,
     SFCBuildProps,
     SFCDeclProps,
@@ -69,11 +70,13 @@ export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps
     const dockerHost = buildProps.dockerHost;
     const image = `registry:${imageTag}`;
 
-    const ipAddr = useMethod<string | undefined>(ctr, undefined, "dockerIP");
+    const ipAddr = useMethod<string | undefined>(ctr, undefined, "dockerIP", props.networks && props.networks[0]);
 
-    function registry() {
-        if (!ipAddr) return undefined;
-        return `${ipAddr}:${props.port}`;
+    function registry(network?: string) {
+        let netIP = ipAddr;
+        if (network) netIP = callInstanceMethod(ctr, undefined, "dockerIP", network);
+        if (netIP === undefined) return undefined;
+        return `${netIP}:${props.port}`;
     }
 
     useDeployedWhen(async () => {
