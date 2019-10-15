@@ -245,7 +245,7 @@ export interface ImageInfo {
  * @public
  */
 export interface DockerContainerProps extends DockerGlobalOptions,
-    Pick<ContainerProps, "autoRemove" | "portBindings" | "command" | "stopSignal"> {
+    Pick<ContainerProps, "autoRemove" | "environment" | "portBindings" | "command" | "stopSignal"> {
     /** image name as a string, or a handle to a DockerImage component */
     image: ImageNameString | Handle<DockerImageInstance>;
 

@@ -106,6 +106,22 @@ describe("DockerContainer", function () {
         should(finalInfos).be.Array().of.length(0);
     });
 
+    it("Should pass environment variables to docker run", async () => {
+        const orig = <DockerContainer image="alpine:3.8" environment={{ FOO: "foo", BAR: "bar" }} />;
+        const { dom } = await mockDeploy.deploy(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const infos = await dockerInspect([contName], { type: "container" });
+        should(infos).be.Array().of.length(1);
+        const info = infos[0];
+        if (info === undefined) throw should(info).not.Undefined();
+
+        should(info.Name).equal(`/${contName}`);
+        should(info.Config.Env).containEql("FOO=foo");
+        should(info.Config.Env).containEql("BAR=bar");
+    });
+
     it("Should attach container to networks", async () => {
         const orig = <DockerContainer image="alpine:3.8" networks={[testNet1, testNet2]} />;
 

@@ -23,7 +23,7 @@ import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
-import { OmitT } from "type-ops";
+import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
 import { ContainerStatus } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
@@ -475,6 +475,15 @@ export async function dockerRun(options: DockerRunOptions) {
 
     if (opts.network !== undefined) {
         args.push("--network", opts.network);
+    }
+
+    if (opts.environment !== undefined) {
+        const envPairs = mergeEnvPairs(opts.environment);
+        if (envPairs) {
+            for (const evar of envPairs) {
+                args.push("-e", `${evar.name}=${evar.value}`);
+            }
+        }
     }
 
     args.push(opts.image);
