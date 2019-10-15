@@ -438,7 +438,7 @@ export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions):
  *
  * @internal
  */
-export interface DockerRunOptions extends OmitT<DockerContainerProps, "networks"> {
+export interface DockerRunOptions extends OmitT<WithPartialT<DockerContainerProps, "dockerHost">, "networks"> {
     background?: boolean;
     name?: string;
     image: ImageNameString;
