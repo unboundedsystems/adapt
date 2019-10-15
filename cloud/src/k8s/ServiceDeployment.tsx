@@ -22,7 +22,10 @@ import Adapt, {
     Group,
     handle,
 } from "@adpt/core";
+import ld from "lodash";
+import { OmitT } from "type-ops";
 import { ContainerProps as AbsContainerProps, isContainerElement } from "../Container";
+import { DockerImageInstance, RegistryDockerImage } from "../docker";
 import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService";
 import { ServiceProps as AbsServiceProps } from "../Service";
 import { ClusterInfo } from "./common";
@@ -39,7 +42,7 @@ export interface ServiceDeploymentProps extends AbsServiceProps {
     config: ClusterInfo;
     serviceProps?: Partial<ServiceProps>;
     podProps?: Partial<PodProps>;
-    containerProps?: Partial<K8sContainerProps>;
+    containerProps?: Partial<OmitT<K8sContainerProps, "image">>;
 }
 
 function mapChild(kid: ServiceDeploymentProps["children"],
@@ -51,13 +54,30 @@ function mapChild(kid: ServiceDeploymentProps["children"],
 
 function mapContainer(absEl: AdaptElement<AbsContainerProps>,
     props: ServiceDeploymentProps, helpers: BuildHelpers) {
-    const { config, containerProps = {}, podProps = {} } = props;
+    const { config, containerProps: rawContainerProps = {}, podProps = {} } = props;
+    //just in case image is there anyway, remove it since Container will use it if present
+    const { image: _i, ...containerProps } = rawContainerProps as K8sContainerProps;
     const { handle: _h, ...absProps } = absEl.props;
+    let registryImage: AdaptElement | undefined;
+    let image = absProps.image;
+    if (config.registryUrl !== undefined) {
+        //FIXME(manishv) when RegistryDockerImage can push arbitrary string images, remove this
+        if (!ld.isString(image)) {
+            const regImg = handle<DockerImageInstance>();
+            registryImage = <RegistryDockerImage handle={regImg} registryUrl={config.registryUrl} imageSrc={image} />;
+            image = regImg;
+        } else {
+            //FIXME(manishv) when helpers gives a way to warn, warn that string images aren't supported
+        }
+    }
+
     const pod =
         <Pod config={config} key={absEl.props.key} {...podProps} >
-            <Container {...absProps} k8sContainerProps={containerProps} />
+            <Container {...absProps} image={image} k8sContainerProps={containerProps} />
         </Pod>;
+
     absEl.props.handle.replaceTarget(pod, helpers);
+    if (registryImage) return [registryImage, pod];
     return pod;
 }
 
@@ -86,6 +106,7 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  * This component is intended to be used to replace {@link Container} and
  * {@link NetworkService} components that are grouped together, as the
  * only children of a common parent in a pattern that looks like this:
+ *
  * ```tsx
  * <Service>
  *   <Container ... />
@@ -93,13 +114,16 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  *   <NetworkService ... />
  * </Service>
  * ```
+ *
  * `ServiceDeployment` would map those abstract components into corresponding
  * k8s components like this:
  * ```tsx
  * <Group>
+ *   <docker.RegistryDockerImage ... /> //If props.config specifies a registry
  *   <k8s.Pod ... >
  *     <k8s.K8sContainer ... />
  *   </k8s.Pod>
+ *   <docker.RegistryDockerImage ... /> //If props.config specifies a registry
  *   <k8s.Pod ... >
  *     <k8s.K8sContainer ... />
  *   </k8s.Pod>
@@ -121,8 +145,8 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  */
 export class ServiceDeployment extends DeferredComponent<ServiceDeploymentProps> {
     build(helpers: BuildHelpers) {
-        const mappedChildren = childrenToArray(this.props.children).map((c) =>
-            mapChild(c, this.props, helpers));
+        const mappedChildren = ld.flatten(childrenToArray(this.props.children).map((c) =>
+            mapChild(c, this.props, helpers)));
         return <Group>{mappedChildren}</Group>;
     }
 }

@@ -46,7 +46,7 @@ describe("DockerContainer", function () {
     this.timeout(60 * 1000);
     this.slow(4 * 1000);
 
-    mochaTmpdir.all(`adapt-cloud-localdockerimage`);
+    mochaTmpdir.all(`adapt-cloud-dockercontainer`);
 
     before(() => {
         pluginDir = path.join(process.cwd(), "plugins");

@@ -66,8 +66,33 @@ export interface ResourceInfo {
 export interface ClusterInfo {
     /** Javascript object formed by parsing a valid kubeconfig file */
     kubeconfig: Kubeconfig;
-    /** URL to which Docker images used by the cluster in `kubeconfig` should be pushed */
-    registryUrl?: string;
+    /**
+     * URL or string to which Docker images used by the cluster in `kubeconfig` should be pushed and pulled
+     *
+     * @remarks
+     * If `registry` is a string, it is assumed that the cluster can pull from the same string
+     * that outsiders can push to.
+     *
+     * If `registry` is of the form `{ external: string, internal: string }` then the `external`
+     * string will be used to push images, and the `internal` string will be used to pull images.
+     *
+     * Note(manishv)
+     * This is a bit of a hack to allow one hostname or IP address to push images from outside
+     * a particular environment (say k8s) and a different URL for that environment to pull
+     * images.
+     *
+     * A good example of this is a k3s-dind (k3s docker-in-docker) instance of kubernetes where
+     * a private registry is running on a docker network attached to the k3s-dind instance, but where we
+     * want to push {@link docker.LocalDockerImage} built images to that registry.  Since
+     * {@link docker.LocalDockerImage | LocalDockerImage} is outside the k3s-dind environment, it must
+     * use a host accessible network to push to the registry.  However, since the k3s-dind instance sees
+     * the registry from within Docker, it must use a different address to pull the images for use.
+     *
+     * Once network scopes are fully supported, this interface will change to whatever is appropriate.  It
+     * is best if you can arrange to have the same URL or registry string work for all access regardless
+     * of which network the registry, Adapt host, and ultimate container running environment uses.
+     */
+    registryUrl?: string | { external: string, internal: string };
 }
 
 /** @public */
