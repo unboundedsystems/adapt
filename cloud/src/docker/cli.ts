@@ -468,7 +468,7 @@ export async function dockerRun(options: DockerRunOptions) {
     }
     if (opts.autoRemove) args.push("--rm");
     if (portBindings) {
-        const portArgs = Object.keys(portBindings).map((k) => `-p${k}:${portBindings[k]}`);
+        const portArgs = Object.keys(portBindings).map((k) => `-p${portBindings[k]}:${k}`);
         args.push(...portArgs);
     }
     if (opts.stopSignal) args.push("--stop-signal", opts.stopSignal);
