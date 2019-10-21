@@ -21,14 +21,11 @@ import { getNewDeployID, stdoutDivide, stdoutDivider } from "@adpt/cli/dist/test
 import {
     awsutils,
     describeLong,
-    dockerutils,
     k8sutils,
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
-import Docker = require("dockerode");
-import execa from "execa";
 import * as fs from "fs-extra";
-import { curlOptions, systemAppSetup, systemTestChain } from "./common";
+import { systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
 const {
@@ -37,7 +34,6 @@ const {
     getAwsClient,
     getStacks,
 } = awsutils;
-const { deleteContainer } = dockerutils;
 
 // FIXME(mark): The following line needs to be a require because importing
 // the types from adapt currently causes a compile error due to adapt
@@ -55,10 +51,8 @@ const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 // times, both to test that functionality and to reduce setup runtime (mostly
 // from NPM).
 describeLong("Nodecellar system tests", function () {
-    const docker = new Docker({ socketPath: "/var/run/docker.sock" });
     let kClient: k8sutils.KubeClient;
     let aClient: AWS.CloudFormation;
-    let lDeployID: string | undefined;
     let kDeployID: string | undefined;
     let aDeployID: string | undefined;
 
@@ -71,21 +65,11 @@ describeLong("Nodecellar system tests", function () {
         const results = await Promise.all([
             mkInstance.client,
             loadAwsCreds(),
-            deleteContainer(docker, "mongo"),
-            deleteContainer(docker, "nodecellar"),
             fs.outputJson("kubeconfig.json", await mkInstance.kubeconfig),
         ]);
 
         kClient = results[0];
         aClient = getAwsClient(results[1]);
-    });
-
-    after(async function () {
-        this.timeout(30 * 1000);
-        await Promise.all([
-            deleteContainer(docker, "mongo"),
-            deleteContainer(docker, "nodecellar"),
-        ]);
     });
 
     afterEach(async function () {
@@ -101,40 +85,6 @@ describeLong("Nodecellar system tests", function () {
             await deleteAllStacks(aClient, aDeployID, 60 * 1000, false);
             aDeployID = undefined;
         }
-    });
-
-    systemTestChain
-    .command(["run", "dev"])
-
-    .it("Should deploy local style", async (ctx) => {
-        expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("Validating project [completed]");
-        expect(ctx.stdout).contains("Creating new project deployment [completed]");
-
-        // TODO(mark): This test currently currently generates a warning
-        // for the implicit playbook Element from the Ansible plugin not
-        // being found in the DOMs. Uncomment this when fixed.
-        //expect(ctx.stdout).does.not.contain("WARNING");
-
-        const matches = ctx.stdout.match(newDeployRegex);
-        expect(matches).to.be.an("array").with.length(2);
-        if (matches && matches[1]) lDeployID = matches[1];
-        expect(lDeployID).to.be.a("string").with.length.greaterThan(0);
-
-        const nc = docker.getContainer("nodecellar");
-        const ncIP = (await nc.inspect()).NetworkSettings.IPAddress;
-
-        let ret = await execa("curl", [
-            ...curlOptions,
-            `http://${ncIP}:8080/`
-        ]);
-        expect(ret.stdout).contains("<title>Node Cellar</title>");
-
-        ret = await execa("curl", [
-            ...curlOptions,
-            `http://${ncIP}:8080/wines`
-        ]);
-        expect(ret.stdout).contains("Though dense and chewy, this wine does not overpower");
     });
 
     systemTestChain

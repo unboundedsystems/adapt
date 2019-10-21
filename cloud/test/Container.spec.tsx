@@ -15,145 +15,106 @@
  */
 
 import Adapt, {
-    Action,
-    AdaptElement,
     AdaptMountedElement,
-    build,
-    ChangeType,
-    createStateStore,
     Group,
     rule,
     Style,
 } from "@adpt/core";
 import {
-    createMockLogger,
-    dockerutils,
     mochaTmpdir,
 } from "@adpt/testutils";
-import Docker = require("dockerode");
 import fs from "fs-extra";
 import path from "path";
 import should from "should";
 
-import {
-    AnsibleDockerHost,
-    ansibleHostLocal,
-    Container as AContainer,
-    createAnsiblePlugin
-} from "../src/ansible";
+import { createActionPlugin } from "../src/action/action_plugin";
 import {
     Container,
     ContainerProps,
     ContainerStatus,
 } from "../src/Container";
+import { DockerContainer } from "../src/docker";
 import {
     Environment,
     lookupEnvVar,
     renameEnvVars,
     updateEnvVars
 } from "../src/env";
-import { act, randomName } from "./testlib";
-
-const { deleteContainer } = dockerutils;
+import { deleteAllContainers } from "./docker/common";
+import { MockDeploy, smallDockerImage } from "./testlib";
 
 describe("Container component", () => {
-    const docker = new Docker({ socketPath: "/var/run/docker.sock" });
-    let name: string;
+    let mockDeploy: MockDeploy;
+    let pluginDir: string;
 
     mochaTmpdir.all("adapt-test-Container");
 
-    beforeEach(() => {
-        name = randomName("adapt-cloud-test");
+    before(() => {
+        pluginDir = path.join(process.cwd(), "plugins");
     });
 
-    afterEach(async () => {
-        await deleteContainer(docker, name);
+    beforeEach(async () => {
+        await fs.remove(pluginDir);
+        mockDeploy = new MockDeploy({
+            pluginCreates: [createActionPlugin],
+            tmpDir: pluginDir,
+            uniqueDeployID: true
+        });
+        await mockDeploy.init();
     });
 
-    async function runPlugin(dom: AdaptElement, checkActions: (actions: Action[]) => void) {
-        const dataDir = path.join(process.cwd(), "pluginData");
-        const plugin = createAnsiblePlugin();
-        const logger = createMockLogger();
-        const options = {
-            deployID: "abc123",
-            log: logger.info,
-            logger,
-            dataDir,
-        };
-
-        await fs.ensureDir(dataDir);
-        await plugin.start(options);
-        const obs = await plugin.observe(null, dom);
-        const actions = plugin.analyze(null, dom, obs);
-        await act(actions);
-        checkActions(actions);
-        await plugin.finish();
-    }
+    afterEach(async function () {
+        this.timeout(20 * 1000);
+        await deleteAllContainers(mockDeploy.deployID);
+    });
 
     async function getContainerStatus(orig: AdaptMountedElement): Promise<ContainerStatus> {
         const status = await orig.status<any>();
         should(status).be.type("object");
-        should(status.childStatus).have.length(2);
+        should(status.childStatus).have.length(1);
         const ctrStatus: ContainerStatus = status.childStatus[0];
         return ctrStatus;
     }
 
     it("Should build with local style and have status", async function () {
-        this.timeout(3 * 60 * 1000);
-        this.slow(1 * 60 * 1000);
+        this.timeout("60s");
+
         const root =
             <Group>
                 <Container
-                    dockerHost="file:///var/run/docker.sock"
-                    name={name}
-                    image="busybox:latest"
+                    name="unused"
+                    dockerHost="unix:///var/run/docker.sock"
+                    image={smallDockerImage}
                     command="sleep 100000"
                     autoRemove={true}
                     stopSignal="SIGKILL"
                 />
-                <AnsibleDockerHost ansibleHost={ansibleHostLocal} />
             </Group>;
         const style =
             <Style>
-                {Container} {rule<ContainerProps>(({ handle, ...props }) => <AContainer {...props} />)}
+                {Container} {rule<ContainerProps>(({ handle, ...props }) => <DockerContainer {...props} />)}
             </Style>;
-        const stateStore = createStateStore();
-        const { mountedOrig, contents: dom } = await build(root, style, { stateStore });
 
-        if (mountedOrig == null) throw should(mountedOrig).not.be.Null();
+        const { dom, mountedOrig } = await mockDeploy.deploy(root, { style });
         if (dom == null) throw should(dom).not.be.Null();
+        if (mountedOrig == null) throw should(mountedOrig).not.be.Null();
 
         let ctrStatus = await getContainerStatus(mountedOrig);
-        should(ctrStatus).eql({ noStatus: `No such container: ${name}` });
-
-        await runPlugin(dom, (actions) => {
-            should(actions.length).equal(2);
-
-            should(actions[0].detail).equal("Executing Playbook");
-            should(actions[0].changes).have.length(1);
-            should(actions[0].changes[0].type).equal(ChangeType.create);
-            should(actions[0].changes[0].detail).equal("Executing Playbook");
-            should(actions[0].changes[0].element.componentName).equal("AnsiblePlaybook");
-
-            should(actions[1].detail).equal("Executing Playbook");
-            should(actions[1].changes).have.length(3);
-            should(actions[1].changes[0].type).equal(ChangeType.create);
-            should(actions[1].changes[0].detail).equal("Executing Playbook");
-            should(actions[1].changes[0].element.componentName).equal("AnsibleImplicitPlaybook");
-            should(actions[1].changes[1].type).equal(ChangeType.create);
-            should(actions[1].changes[1].detail).equal("Executing Playbook");
-            should(actions[1].changes[1].element.componentName).equal("AnsibleRole");
-            should(actions[1].changes[2].type).equal(ChangeType.create);
-            should(actions[1].changes[2].detail).equal("Executing Playbook");
-            should(actions[1].changes[2].element.componentName).equal("AnsibleRole");
-        });
-
-        ctrStatus = await getContainerStatus(mountedOrig);
         should(ctrStatus).be.type("object");
-        should(ctrStatus.Name).equal("/" + name);
+        should(ctrStatus.Config.Image).equal(smallDockerImage);
         should(ctrStatus.Path).equal("sleep");
         should(ctrStatus.Args).eql(["100000"]);
         should(ctrStatus.State.Status).equal("running");
+
+        let name = ctrStatus.Name;
+        should(name).be.a.String().and.startWith("/");
+        name = name.slice(1);
+
+        // Delete the container without telling Adapt
+        await deleteAllContainers(mockDeploy.deployID);
+
+        ctrStatus = await getContainerStatus(mountedOrig);
+        should(ctrStatus).eql({ noStatus: `No such container: ${name}` });
     });
 });
 
