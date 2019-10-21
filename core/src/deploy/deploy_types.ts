@@ -228,7 +228,6 @@ export interface PluginObservations {
 }
 
 export interface Plugin<Observations extends object = object> {
-    seriesActions?: boolean;
     start(options: PluginOptions): Promise<void>;
     observe(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull): Promise<Observations>; //Pull data needed for analyze
     analyze(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull, obs: Observations): Action[];
@@ -322,7 +321,6 @@ export interface ExecutionPlanOptions {
     deployOpID: DeployOpID;
     diff: DomDiff;
     goalStatus: GoalStatus;
-    seriesActions?: Action[][];
 }
 
 export interface ExecutionPlan {

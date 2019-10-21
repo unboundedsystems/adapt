@@ -169,7 +169,6 @@ class PluginManagerImpl implements PluginManager {
     prevDom?: AdaptElementOrNull;
     diff?: DomDiff;
     parallelActions: Action[] = [];
-    seriesActions: Action[][] = [];
     logger?: MessageLogger;
     state: PluginManagerState;
     observations: AnyObservation;
@@ -246,7 +245,6 @@ class PluginManagerImpl implements PluginManager {
         }
 
         this.parallelActions = [];
-        this.seriesActions = [];
 
         for (const [name, plugin] of this.plugins) {
             const obs = JSON.parse(this.observations[name]);
@@ -268,11 +266,7 @@ class PluginManagerImpl implements PluginManager {
     }
 
     addActions(actions: Action[], plugin: Plugin) {
-        if (plugin.seriesActions) {
-            this.seriesActions.push(actions);
-        } else {
-            this.parallelActions = this.parallelActions.concat(actions);
-        }
+        this.parallelActions = this.parallelActions.concat(actions);
     }
 
     async act(options: ActOptions): Promise<ActComplete> {
@@ -295,7 +289,6 @@ class PluginManagerImpl implements PluginManager {
             deployOpID,
             diff,
             goalStatus,
-            seriesActions: this.seriesActions
         });
         plan.check();
 
@@ -329,7 +322,6 @@ class PluginManagerImpl implements PluginManager {
         await Promise.all(waitingFor);
         this.dom = undefined;
         this.prevDom = undefined;
-        this.seriesActions = [];
         this.parallelActions = [];
         this.logger = undefined;
         this.observations = {};
@@ -337,7 +329,7 @@ class PluginManagerImpl implements PluginManager {
     }
 
     private get actions(): Action[] {
-        return this.parallelActions.concat(ld.flatten(this.seriesActions));
+        return this.parallelActions;
     }
 }
 

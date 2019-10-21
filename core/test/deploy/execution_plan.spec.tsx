@@ -184,52 +184,6 @@ describe("Execution plan", () => {
         should(plan.leaves).have.length(1);
         should(plan.nodes).have.length(1);
     });
-
-    it("Should create a plan with series actions", async () => {
-        const orig =
-            <Group>
-                <Prim id={0} />
-                <Prim id={1} />
-                <Prim id={2} />
-                <Prim id={3} />
-                <Prim id={4} />
-                <Prim id={5} />
-            </Group>;
-        const { dom } = await doBuild(orig);
-        const kids: FinalDomElement[][] = [
-            dom.props.children.slice(0, 3),
-            dom.props.children.slice(3, 6),
-        ];
-        const nKids = dom.props.children.length;
-        const seriesActions = [0, 1].map((group) => kids[group].map((k, i): Action => ({
-            type: ChangeType.create,
-            detail: `Group${group} Action${i}`,
-            act: () => Promise.resolve(),
-            changes: [
-                {
-                    detail: `Group${group} Action${i} Change0`,
-                    type: ChangeType.create,
-                    element: k
-                }
-            ]
-        })));
-
-        const plan = await createExecutionPlan({
-            ...planOpts,
-            seriesActions,
-            diff: domDiff(null, dom),
-            goalStatus: DeployStatus.Deployed,
-        });
-
-        if (!(plan instanceof ExecutionPlanImpl)) {
-            throw new Error(`plan is not an ExecutionPlanImpl`);
-        }
-        should(plan.elems).have.length(1 + nKids);
-        // GroupEl + kids * (1 elem + 1 action)
-        should(plan.nodes).have.length(1 + nKids * 2);
-        // GroupEl + 1 action from each series group
-        should(plan.leaves).have.length(3);
-    });
 });
 
 type ActionCheck = (idx: number) => Promise<void>;

@@ -86,7 +86,7 @@ import { createStatusTracker } from "./status_tracker";
 const debugExecute = db("adapt:deploy:execute");
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
-    const { actions, builtElements, diff, seriesActions } = options;
+    const { actions, builtElements, diff } = options;
 
     const plan = new ExecutionPlanImpl(options);
 
@@ -95,16 +95,6 @@ export async function createExecutionPlan(options: ExecutionPlanOptions): Promis
     diff.deleted.forEach((e) => plan.addElem(e, DeployStatus.Destroyed));
     builtElements.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     actions.forEach((a) => plan.addAction(a));
-    if (seriesActions) {
-        seriesActions.forEach((group) => {
-            let prev: EPNode | undefined;
-            group.forEach((a) => {
-                const node = plan.addAction(a);
-                if (prev && node) plan.addHardDep(node, prev);
-                if (node) prev = node;
-            });
-        });
-    }
     plan.updateElemWaitInfo();
 
     return plan;
