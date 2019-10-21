@@ -1850,7 +1850,7 @@ describe("Execution plan state", () => {
             throw new InternalError(`Error in action`);
         };
         const orig = <ActionState action={action} />;
-        await should(dep.deploy(orig)).be.rejectedWith(/during plugin action/);
+        await should(dep.deploy(orig, { logError: false })).be.rejectedWith(/during plugin action/);
 
         should(dep.stateStore.elementState(["ActionState"])).eql({
             initial: "initial",

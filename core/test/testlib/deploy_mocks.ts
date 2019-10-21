@@ -41,6 +41,7 @@ export interface DeployOptions {
     dryRun?: boolean;
     once?: boolean;
     debug?: boolean;
+    logError?: boolean;
     style?: AdaptElement | null;
 }
 
@@ -48,6 +49,7 @@ const defaultDeployOptions = {
     dryRun: false,
     once: false,
     debug: false,
+    logError: true,
     style: null,
 };
 
@@ -180,10 +182,12 @@ export class MockDeploy {
                     return { ...actResults, dom, mountedOrig, stepID };
                 }
             } catch (err) {
-                // tslint:disable-next-line: no-console
-                console.log(`Deploy error:`, err.message,
-                    `\nDumping log messages:\n`,
-                    messagesToString(this.logger.messages));
+                if (opts.logError) {
+                    // tslint:disable-next-line: no-console
+                    console.log(`Deploy error:`, err.message,
+                        `\nDumping log messages:\n`,
+                        messagesToString(this.logger.messages));
+                }
                 throw err;
             }
         }
