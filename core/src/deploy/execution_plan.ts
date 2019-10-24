@@ -167,7 +167,10 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         const cycleGroups = alg.findCycles(this.graph);
         if (cycleGroups.length > 0) {
             const cycles = cycleGroups.map(printCycleGroups).join("\n");
-            throw new Error(`There are circular dependencies present in this deployment:\n${cycles}`);
+            if (debugExecute.enabled) {
+                debugExecute(`Execution plan dependencies:\n${this.print()}`);
+            }
+            throw new UserError(`There are circular dependencies present in this deployment:\n${cycles}`);
         }
     }
 
@@ -393,20 +396,44 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     print() {
         const epDeps = this.toDependencies();
+        const depIDs = Object.keys(epDeps);
+        if (depIDs.length === 0) return "<empty>";
+
         const succs = (id: string) => {
             const list = epDeps[id] && epDeps[id].deps;
-            if (!list || list.length === 0) return "  <none>";
-            return list.map((s) => `  ${name(s.id)} [${s.type[0]}]`).join("\n");
+            if (!list || list.length === 0) return "    <none>";
+            return list.map((s) => `    ${name(s.id)} [${s.type[0]}]`).join("\n");
         };
         const name = (id: string) => {
             const w = this.getNode(id).waitInfo;
             if (w) id += ` (${w.description})`;
             return id;
         };
+        const printDeps = (ids: string[]) =>
+            ids
+            .map((id) => `  ${name(id)}\n${succs(id)}`);
 
-        return Object.keys(epDeps)
-            .map((id) => `${name(id)}\n${succs(id)}`)
-            .join("\n");
+        const byGoal: { [ goal: string ]: string[] | undefined } = {};
+        const insert = (id: string, goal: string) => {
+            const l = byGoal[goal] || [];
+            l.push(id);
+            byGoal[goal] = l;
+        };
+
+        for (const id of depIDs) {
+            insert(id, this.getNode(id).goalStatus);
+        }
+
+        const lines: string[] = [];
+        for (const goal of Object.keys(byGoal).sort()) {
+            let gName = goal;
+            try {
+                gName = goalToInProgress(goal as any);
+            } catch (e) { /* */ }
+            lines.push(`${gName}:`, ...printDeps(byGoal[goal]!));
+        }
+
+        return lines.join("\n");
     }
 
     /*
