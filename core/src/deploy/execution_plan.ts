@@ -528,7 +528,18 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         // If a is in a group, all outbound dependencies are attached to
         // the group leader (and "a" will already have a dependency on the
         // group leader from when it joined the group).
-        this.addEdgeInternal(this.groupLeader(a) || a, b, hardDep);
+        const leader = this.groupLeader(a);
+
+        // If there's a leader, re-make the check for dissimilar goalStatus
+        // but with the leader.
+        if (leader && leader.goalStatus !== b.goalStatus) {
+            if (leader.goalStatus === GoalStatus.Destroyed) {
+                throw new InternalError(`Unable to create dependency for ` +
+                    `leader being Destroyed on dependency being Deployed`);
+            }
+            return; // Intentionally no edge
+        }
+        this.addEdgeInternal(leader || a, b, hardDep);
     }
 
     protected addEdgeInternal(obj: EPObject, dependsOn: EPObject, hardDep: boolean) {
