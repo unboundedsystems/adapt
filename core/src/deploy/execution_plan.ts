@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ensureError, formatUserError, notNull, sleep, UserError } from "@adpt/utils";
+import { ensureError, formatUserError, notNull, sleep, toArray, UserError } from "@adpt/utils";
 import AsyncLock from "async-lock";
 import db from "debug";
 import { alg, Graph } from "graphlib";
@@ -916,8 +916,8 @@ class DeployHelpersFactory {
 
     makeDependsOn = (current: Handle) => (hands: Handle | Handle[]): Relation => {
         const toEdge = (h: Handle) => Edge(current, h, this.isDeployed);
-        if (!Array.isArray(hands)) return toEdge(hands);
-        return And(...hands.map(toEdge));
+        const hArray = toArray(hands);
+        return hArray.length === 1 ? toEdge(hArray[0]) : And(...hArray.map(toEdge));
     }
 
     create = (elem: AdaptMountedElement): DeployHelpers => ({
