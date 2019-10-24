@@ -878,7 +878,7 @@ function nodeIsDeployed(n: EPNode, id: EPNodeId, tracker: StatusTracker): boolea
     const sStat = tracker.get(n);
     if (sStat === n.goalStatus) return true; // Dependency met
     if (sStat === DeployStatusExt.Failed) {
-        throw new Error(`A dependency failed to deploy successfully`);
+        throw new UserError(`A dependency failed to deploy successfully`);
     }
     if (isWaiting(sStat) || isInProgress(sStat)) return false;
     throw new InternalError(`Invalid status ${sStat} for ${id}`);
