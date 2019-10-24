@@ -564,7 +564,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
     try {
         while (true) {
-            const stepNum = (nodeStatus.stepID && nodeStatus.stepID.deployStepNum) || "DR";
+            const stepNum = nodeStatus.stepID ? nodeStatus.stepID.deployStepNum : "DR";
             const stepStr = `${deployOpID}.${stepNum}`;
             debugExecute(`\n\n-----------------------------\n\n` +
                 `**** Starting execution step ${stepStr}`);
@@ -576,6 +576,8 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             debugExecute(`**** execution step ${stepStr} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
 
+            // Keep polling until we're done or the state changes, which means
+            // we should do a re-build.
             if (ret.deploymentStatus === DeployOpStatus.StateChanged ||
                 isFinalStatus(ret.deploymentStatus)) {
                 debugExecute(`**** Execution completed`);
