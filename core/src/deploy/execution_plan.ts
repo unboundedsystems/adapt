@@ -84,6 +84,7 @@ import { And, Edge } from "./relations";
 import { createStatusTracker } from "./status_tracker";
 
 const debugExecute = db("adapt:deploy:execute");
+const debugExecuteDetail = db("adapt:detail:deploy:execute");
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
     const { actions, builtElements, diff } = options;
@@ -571,6 +572,9 @@ export function isExecutionPlanImpl(val: any): val is ExecutionPlanImpl {
 function debugExecId(id: string, ...args: any[]) {
     debugExecute(`* ${(id as any).padEnd(26)}`, ...args);
 }
+function debugExecDetailId(id: string, ...args: any[]) {
+    debugExecuteDetail(`* ${(id as any).padEnd(26)}`, ...args);
+}
 
 const defaultExecuteOptions = {
     concurrency: Infinity,
@@ -776,7 +780,7 @@ export async function executePass(opts: ExecutePassOptions) {
         // But if the node is being Destroyed, we instead evaluate all of our
         // successors' WaitInfos, each in the inverse direction.
         const succs = plan.successors(n);
-        debugExecId(mkIdStr(ids), `  Evaluating: ${succs.length} successors`);
+        debugExecDetailId(mkIdStr(ids), `  Evaluating: ${succs.length} successors`);
         for (const s of succs) {
             // TODO: There probably needs to be a check here comparing
             // goalStatus for s and n, similar to addEdge.
@@ -796,7 +800,7 @@ export async function executePass(opts: ExecutePassOptions) {
             const desc = !w ? "no soft dep" :
                 dep ? `soft dep (${w.description}) - Relation${invert ? " (inverted)" : ""}: ${relationToString(dep)}` :
                 `no soft dep (${w.description})`;
-            debugExecId(idStr, `  Evaluating: ${desc}`);
+            debugExecDetailId(idStr, `  Evaluating: ${desc}`);
             if (!dep) return true;
             const relStatus = relationIsReadyStatus(dep);
             debugExecId(idStr, `  Relation status:`, relStatus === true ? "READY" : relStatus);
@@ -807,7 +811,7 @@ export async function executePass(opts: ExecutePassOptions) {
 
     const dependenciesMet = (n: EPNode, id: EPNodeId): boolean => {
         const hardDeps = n.hardDeps || new Set();
-        debugExecId(id, `  Evaluating: ${hardDeps.size} hard deps`);
+        debugExecDetailId(id, `  Evaluating: ${hardDeps.size} hard deps`);
         for (const d of hardDeps) {
             if (!nodeIsDeployed(d, id, nodeStatus)) {
                 debugExecId(id, `NOTYET: hard deps`);
@@ -821,7 +825,7 @@ export async function executePass(opts: ExecutePassOptions) {
         }
 
         const followers = plan.groupFollowers(n);
-        debugExecId(id, `  Evaluating: ${followers.length} followers`);
+        debugExecDetailId(id, `  Evaluating: ${followers.length} followers`);
         for (const f of followers) {
             const fStat = nodeStatus.get(f);
             const fId = plan.getId(f);
