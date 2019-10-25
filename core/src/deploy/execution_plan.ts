@@ -30,8 +30,7 @@ import {
     AdaptMountedElement,
     // @ts-ignore - here to deal with issue #71
     AnyProps,
-    // @ts-ignore - here to deal with issue #71
-    GenericInstance,
+    ElementID,
     isMountedElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -133,6 +132,7 @@ export interface EPDependency {
 }
 export interface EPDependencies {
     [epNodeId: string]: {
+        elementId?: ElementID;
         detail: string;
         deps: EPDependency[];
     };
@@ -379,7 +379,9 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                 throw new InternalError(`Internal consistency check failed: ` +
                     `not all hardDeps are successors`);
             }
-            return { detail: detail(node), deps };
+            const entry: EPDependencies[string] = { detail: detail(node), deps };
+            if (node.element) entry.elementId = node.element.id;
+            return entry;
         };
 
         const ret: EPDependencies = {};

@@ -15,19 +15,21 @@
  */
 
 import { createMockLogger } from "@adpt/testutils";
-import { createTaskObserver, messagesToString } from "@adpt/utils";
+import { createTaskObserver, InternalError, messagesToString } from "@adpt/utils";
 import fs from "fs-extra";
 import { isFunction } from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
-import { ActComplete, Action, ChangeType, Plugin, PluginModule } from "../../src/deploy";
-import { createPluginManager } from "../../src/deploy/plugin_support";
+import { ActComplete, Action, ChangeType, ExecutionPlan, Plugin, PluginModule } from "../../src/deploy";
+import { isExecutionPlanImpl } from "../../src/deploy/execution_plan";
+import { createPluginManager, isPluginManagerImpl } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
 import { domDiff } from "../../src/dom_utils";
 import { AdaptElement, AdaptMountedElement, FinalDomElement } from "../../src/jsx";
 import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID } from "../../src/server/deployment_data";
 import { createStateStore, StateStore } from "../../src/state";
+import { dependencies, StringDependencies } from "../deploy/common";
 import { doBuild } from "./do_build";
 import { createMockDeployment } from "./server_mocks";
 
@@ -47,6 +49,14 @@ export interface DeployOptions {
     style?: AdaptElement | null;
 }
 
+export interface GetExecutionPlanOptions {
+    style?: AdaptElement | null;
+}
+
+interface DeployOptionsInternal extends DeployOptions {
+    returnPlan?: boolean;
+}
+
 const defaultDeployOptions = {
     dryRun: false,
     once: false,
@@ -59,6 +69,13 @@ export interface DeployOutput extends ActComplete {
     dom: FinalDomElement | null;
     mountedOrig: AdaptMountedElement | null;
     stepID: DeployStepID;
+}
+
+export interface ExecutionPlanOutput {
+    dependencies: StringDependencies;
+    dom: FinalDomElement | null;
+    mountedOrig: AdaptMountedElement | null;
+    plan: ExecutionPlan;
 }
 
 export function makeDeployId(prefix: string) {
@@ -125,7 +142,23 @@ export class MockDeploy {
         this.deployOpID_ = id;
     }
 
-    async deploy(orig: AdaptElement | null, options: DeployOptions = {}): Promise<DeployOutput> {
+    async deploy(orig: AdaptElement | null,
+        options: DeployOptions = {}): Promise<DeployOutput> {
+        return this._deploy(orig, { returnPlan: false, ...options });
+    }
+
+    async getExecutionPlan(orig: AdaptElement | null,
+        options: GetExecutionPlanOptions = {}): Promise<ExecutionPlanOutput> {
+        return this._deploy(orig, { returnPlan: true, ...options });
+    }
+
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal & { returnPlan: true }): Promise<ExecutionPlanOutput>;
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal & { returnPlan: false }): Promise<DeployOutput>;
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal): Promise<DeployOutput | ExecutionPlanOutput> {
+
         const { debug, style, ...opts } = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
         let mountedOrig: AdaptMountedElement | null;
@@ -176,6 +209,19 @@ export class MockDeploy {
                 await mgr.start(this.prevDom, dom, mgrOpts);
                 await mgr.observe();
                 mgr.analyze();
+
+                if (opts.returnPlan) {
+                    if (!isPluginManagerImpl(mgr)) throw new InternalError(`Not a PluginManagerImpl`);
+                    const plan = await mgr._createExecutionPlan(actOpts);
+                    if (!isExecutionPlanImpl(plan)) throw new InternalError(`Not an ExecutionPlanImpl`);
+                    return {
+                        dependencies: dependencies(plan, { key: "id" }),
+                        dom,
+                        mountedOrig,
+                        plan,
+                    };
+                }
+
                 const actResults = await mgr.act(actOpts);
                 await mgr.finish();
 

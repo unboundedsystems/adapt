@@ -40,6 +40,7 @@ import {
     Action,
     ActOptions,
     DeployOpStatus,
+    ExecutionPlan,
     GoalStatus,
     Plugin,
     PluginConfig,
@@ -57,6 +58,13 @@ import { createExecutionPlan, execute } from "./execution_plan";
 export function createPluginManager(modules: PluginModules): PluginManager {
     const config = createPluginConfig(modules);
     return new PluginManagerImpl(config);
+}
+
+/**
+ * For testing only.
+ */
+export function isPluginManagerImpl(val: any): val is PluginManagerImpl {
+    return val !== null && val instanceof PluginManagerImpl;
 }
 
 enum PluginManagerState {
@@ -269,16 +277,15 @@ class PluginManagerImpl implements PluginManager {
         this.parallelActions = this.parallelActions.concat(actions);
     }
 
-    async act(options: ActOptions): Promise<ActComplete> {
-        const { builtElements, deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
+    /**
+     * Creates an ExecutionPlan. Solely intended for unit testing.
+     * @internal
+     */
+    async _createExecutionPlan(options: ActOptions): Promise<ExecutionPlan> {
+        const { builtElements, deployOpID, goalStatus } = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
-        const { deployment, diff, logger } = this;
+        const { deployment, diff } = this;
 
-        if (opts.taskObserver.state !== TaskState.Started) {
-            throw new InternalError(
-                `PluginManager: A new TaskObserver must be provided for additional calls to act()`);
-        }
-        if (logger == null) throw new InternalError("Must call start before act (logger == null)");
         if (diff == null) throw new InternalError("Must call analyze before act (diff == null)");
         if (deployment == null) throw new InternalError("Must start analyze before act (deployment == null)");
 
@@ -291,6 +298,21 @@ class PluginManagerImpl implements PluginManager {
             goalStatus,
         });
         plan.check();
+        return plan;
+    }
+
+    async act(options: ActOptions): Promise<ActComplete> {
+        const { builtElements, deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
+        // tslint:disable-next-line: no-this-assignment
+        const { logger } = this;
+
+        if (opts.taskObserver.state !== TaskState.Started) {
+            throw new InternalError(
+                `PluginManager: A new TaskObserver must be provided for additional calls to act()`);
+        }
+        if (logger == null) throw new InternalError("Must call start before act (logger == null)");
+
+        const plan = await this._createExecutionPlan(options);
 
         this.transitionTo(PluginManagerState.Acting);
 

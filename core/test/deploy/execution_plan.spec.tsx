@@ -60,7 +60,6 @@ import {
 } from "../../src/deploy/deploy_types_private";
 import {
     createExecutionPlan,
-    EPDependency,
     execute,
     ExecutionPlanImpl,
     ExecutionPlanImplOptions,
@@ -77,6 +76,7 @@ import { DeployOpID, DeployStepID, ElementStatusMap } from "../../src/server/dep
 import { createMockDeployment, DeployOptions, doBuild, Empty, MockDeploy } from "../testlib";
 import { ActionState, ActionStateState, createActionStatePlugin } from "./action_state";
 import {
+    dependencies,
     DependPrim,
     DependProps,
     MakeDependPrim,
@@ -86,17 +86,6 @@ import {
     toChangeType,
     toDiff,
 } from "./common";
-
-function dependencies(plan: ExecutionPlanImpl) {
-    const ret: { [ id: string]: string[] } = {};
-    const epDeps = plan.toDependencies();
-    const toDetail = (d: EPDependency) => epDeps[d.id].detail;
-    Object.keys(epDeps).map((id) => {
-        const ep = epDeps[id];
-        ret[ep.detail] = ep.deps.map(toDetail).sort();
-    });
-    return ret;
-}
 
 const timeoutMs = inDebugger() ? 0 : 1500;
 
