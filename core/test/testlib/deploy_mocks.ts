@@ -17,11 +17,13 @@
 import { createMockLogger } from "@adpt/testutils";
 import { createTaskObserver, messagesToString } from "@adpt/utils";
 import fs from "fs-extra";
+import { isFunction } from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
-import { ActComplete, PluginModule } from "../../src/deploy";
+import { ActComplete, Action, ChangeType, Plugin, PluginModule } from "../../src/deploy";
 import { createPluginManager } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
+import { domDiff } from "../../src/dom_utils";
 import { AdaptElement, AdaptMountedElement, FinalDomElement } from "../../src/jsx";
 import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID } from "../../src/server/deployment_data";
@@ -192,4 +194,45 @@ export class MockDeploy {
             }
         }
     }
+}
+
+/**
+ * A plugin that claims ALL primitive DOM elements. For any element
+ * that has an `action` prop that's a function, that function will
+ * get executed during the element's Action. Otherwise, the Action will
+ * be a no-op.
+ */
+export class BasicTestPlugin implements Plugin<{}> {
+    async start() {/* */}
+    async observe() { return {}; }
+    analyze(oldDom: FinalDomElement | null, newDom: FinalDomElement | null, _obs: {}): Action[] {
+        const diff = domDiff(oldDom, newDom);
+        const actions = (elems: FinalDomElement[], ct: ChangeType) => {
+            return elems
+                .map((el) => {
+                    const act = async () => isFunction(el.instance.action) && el.instance.action();
+                    const type = el.instance.action ? ct : ChangeType.none;
+                    const detail = `Action ${type} - ${el.props.key}`;
+                    return {
+                        act,
+                        type,
+                        detail,
+                        changes: [{
+                            type,
+                            element: el,
+                            detail,
+                        }]
+                    };
+                });
+        };
+
+        return actions([...diff.added], ChangeType.create)
+            .concat(actions([...diff.commonNew], ChangeType.modify))
+            .concat(actions([...diff.deleted], ChangeType.delete));
+    }
+    async finish() {/* */}
+}
+
+export function createBasicTestPlugin() {
+    return new BasicTestPlugin();
 }
