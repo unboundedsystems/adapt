@@ -16,53 +16,59 @@
 
 import { notNull } from "@adpt/utils";
 import * as util from "util";
+import { DeployHelpers, GoalStatus, waiting } from "../deploy";
 import { Handle, isHandle } from "../handle";
 import {
     AdaptElement,
-    BuildHelpers,
     childrenToArray,
-    Component,
     createElement,
+    DeferredComponent,
     isElement,
-    isReady,
 } from "../jsx";
 import { Children } from "../type_support";
 import { Group } from "./group";
 
 export interface SequenceProps extends Children<Handle | AdaptElement | null> { }
 
-interface SequenceState {
-    stage: number;
+function toHandle(val: Handle | AdaptElement): Handle {
+    return isElement(val) ? val.props.handle : val;
 }
 
-function checkChildren(kids: unknown[]) {
-    for (const k of kids) {
-        if (!isHandle(k) && !isElement(k)) {
-            throw new Error("Child of Sequence component not element or handle: "
-                + util.inspect(k));
+function handleDependsOn(h: Handle, dependency: Handle) {
+    const orig = h.mountedOrig;
+    if (!orig) return;
+    orig.addDependency(dependency);
+}
+
+export class Sequence extends DeferredComponent<SequenceProps> {
+    build() {
+        const props = this.props;
+        const kids = childrenToArray(props.children).filter(notNull);
+        if (kids.length === 0) return null;
+
+        let prev: Handle | undefined;
+        for (const k of kids) {
+            if (!isHandle(k) && !isElement(k)) {
+                throw new Error("Children of a Sequence component must be an " +
+                    "Element or Handle. Invalid child: " + util.inspect(k));
+            }
+            const kHandle = toHandle(k);
+
+            // Only Elements inside the Sequence get dependencies. Handles
+            // inside a sequence don't get any new dependencies.
+            if (prev && isElement(k)) handleDependsOn(kHandle, prev);
+            prev = kHandle;
         }
+
+        return createElement(Group, { key: props.key }, kids.filter(isElement));
     }
-}
 
-export abstract class Sequence extends Component<SequenceProps, SequenceState> {
-    static noPlugin = true;
-
-    initialState() { return { stage: 0 }; }
-
-    build(h: BuildHelpers): AdaptElement | null {
-        if (this.props.children === undefined) return null;
-        const stages = childrenToArray(this.props.children).filter(notNull);
-        checkChildren(stages);
-
-        this.setState(async (prev) => {
-            const readyP = stages.slice(0, this.state.stage + 1).map((e) => isReady(h, e));
-            const ready = await Promise.all(readyP);
-            let nextStage = ready.findIndex((r) => !r);
-            if (nextStage < 0) nextStage = ready.length;
-            return { stage: Math.max(prev.stage, nextStage) };
-        });
-
-        return createElement(Group, { key: this.props.key },
-            stages.slice(0, this.state.stage + 1).filter(isElement));
+    deployedWhen = (_goalStatus: GoalStatus, helpers: DeployHelpers) => {
+        const unready = childrenToArray(this.props.children)
+            .map((k) => isElement(k) ? k.props.handle : isHandle(k) ? k : null)
+            .filter(notNull)
+            .filter((h) => !helpers.isDeployed(h));
+        return unready.length === 0 ? true :
+            waiting(`Waiting on ${unready.length} child elements`, unready);
     }
 }

@@ -41,7 +41,6 @@ import {
     Action,
     ChangeType,
     Dependency,
-    DependsOn,
     DeployHelpers,
     DeployOpStatus,
     DeployStatus,
@@ -55,6 +54,7 @@ import {
     isDependsOn,
     isFinalStatus,
     isInProgress,
+    isRelation,
     Relation,
 } from "./deploy_types";
 import {
@@ -110,8 +110,6 @@ export function getWaitInfo(goalStatus: GoalStatus,
     if (elem === null) throw new ElementNotInDom();
 
     const dependsOn = elem.dependsOn(goalStatus, helpers);
-    const compDeployedWhen = elem.instance.deployedWhen;
-    if (dependsOn == null && compDeployedWhen == null) return undefined;
 
     if (dependsOn && !isDependsOn(dependsOn)) {
         throw new UserError(`Component '${elem.componentName}' dependsOn ` +
@@ -120,8 +118,7 @@ export function getWaitInfo(goalStatus: GoalStatus,
     }
     const wi: WaitInfo = {
         description: dependsOn ? dependsOn.description : elem.componentName,
-        deployedWhen: compDeployedWhen ?
-            (gs: GoalStatus) => compDeployedWhen(gs, helpers) : (() => true),
+        deployedWhen: (gs: GoalStatus) => elem.deployedWhen(gs, helpers),
     };
     if (dependsOn) wi.dependsOn = dependsOn;
     return wi;
@@ -914,14 +911,17 @@ function printCycleGroups(group: string[]) {
     return "  " + c.join(" -> ");
 }
 
-function toElemOrWaitInfo(val: Handle | AdaptMountedElement | DependsOn): AdaptMountedElement | WaitInfo {
-    if (isMountedElement(val) || isWaitInfo(val)) return val;
+function toBuiltElemOrWaitInfo(val: Handle | AdaptMountedElement | WaitInfo): AdaptMountedElement | WaitInfo | null {
+    if (isWaitInfo(val)) return val;
+    if (isMountedElement(val)) {
+        if (val.built()) return val;
+        val = val.props.handle;
+    }
     if (!isHandle(val)) {
         throw new Error(`Attempt to convert an invalid object to Element or WaitInfo: ${inspect(val)}`);
     }
-    const elem = val.mountedOrig;
-    if (elem === undefined) throw new InternalError("element has no mountedOrig!");
-    if (elem === null) throw new ElementNotInDom();
+    const elem = val.nextMounted((el) => isMountedElement(el) && el.built());
+    if (elem === undefined) throw new InternalError("Handle has no built Element!");
     return elem;
 }
 
@@ -970,7 +970,11 @@ class DeployHelpersFactory {
     }
 
     isDeployed = (d: Dependency) => {
-        const n = this.plan.getNode(toElemOrWaitInfo(d));
+        if (isRelation(d)) return relationIsReady(d);
+
+        const elOrWait = toBuiltElemOrWaitInfo(d);
+        if (elOrWait === null) return true; // Handle built to null - null is deployed
+        const n = this.plan.getNode(elOrWait);
         return nodeIsDeployed(n, this.plan.getId(n), this.nodeStatus);
     }
 

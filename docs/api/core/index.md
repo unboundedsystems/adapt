@@ -45,7 +45,6 @@ For the complete list of all APIs, start at the [top level exports](./core) for 
 - [useImperativeMethods(create)](./core.useimperativemethods.md)
 - [useMethod(hand, initial, method, args)](./core.usemethod.md)
 - [useMethodFrom(hand, methodName, defaultVal, args)](./core.usemethodfrom.md)
-- [useReadyFrom(targetHand)](./core.usereadyfrom.md)
 - [useState(init)](./core.usestate.md)
 
 ### Utilities

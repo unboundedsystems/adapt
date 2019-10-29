@@ -29,7 +29,6 @@ export {
     useInstanceValue,
     useMethod,
     useMethodFrom,
-    useReadyFrom,
     useState,
     UseStateInit,
 } from "./hooks";
@@ -72,7 +71,6 @@ export {
     isMountedPrimitiveElement,
     isDeferredElement,
     isPrimitiveElement,
-    isReady,
     WithChildren,
     PrimitiveChildType,
     PrimitiveClassComponentTyp,

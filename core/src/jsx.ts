@@ -25,7 +25,9 @@ import {
     isInstance,
     Message,
     MessageType,
+    notNull,
     tagConstructor,
+    toArray,
 } from "@adpt/utils";
 import { printError as gqlPrintError } from "graphql";
 import {
@@ -36,9 +38,10 @@ import {
     GoalStatus,
     WaitStatus,
 } from "./deploy/deploy_types";
+import { And, waiting } from "./deploy/relations";
 import { BuildData } from "./dom";
 import { BuildNotImplemented, InternalError } from "./error";
-import { BuildId, Handle, handle, isHandle, isHandleInternal } from "./handle";
+import { BuildId, Handle, handle, isHandleInternal } from "./handle";
 import { Defaultize } from "./jsx_namespace";
 import { ObserverNeedsData } from "./observers/errors";
 import { ObserverManagerDeployment } from "./observers/obs_manager_deployment";
@@ -93,6 +96,11 @@ export interface AdaptElement<P extends object = AnyProps> {
      * component, defaults to {@link AdaptElement.componentName}.
      */
     readonly displayName: string;
+    /**
+     * Adds a dependency for this Element. This Element will wait to deploy
+     * until all `dependencies` have completed deployment.
+     */
+    addDependency(dependencies: Handle | Handle[]): void;
 }
 export function isElement<P extends object = AnyProps>(val: any): val is AdaptElement<P> {
     return isInstance(val, AdaptElementImpl, "adapt");
@@ -125,6 +133,7 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
     dependsOn: DependsOnMethod;
     deployedWhen: DeployedWhenMethod;
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
+    built(): boolean;
 }
 export function isMountedElement<P extends object = AnyProps>(val: any): val is AdaptMountedElement<P> {
     return isElementImpl(val) && val.mounted;
@@ -261,8 +270,6 @@ export abstract class Component<Props extends object = {}, State extends object 
         // by waiting to init getState.
         this.getState = cData.getState;
     }
-
-    ready(helpers: BuildHelpers): boolean | Promise<boolean> { return true; }
 
     setState(stateUpdate: Partial<State> | StateUpdater<Props, State>): void {
         if (this.initialState == null) {
@@ -422,7 +429,6 @@ export interface ComponentStatic<P> {
 export interface FunctionComponentTyp<P> extends ComponentStatic<P> {
     (props: P & Partial<BuiltinProps>): AdaptElementOrNull;
     status?: (props: P, observe: ObserveForStatus, buildData: BuildData) => Promise<unknown>;
-    ready?: (helpers: BuildHelpers) => boolean | Promise<boolean>;
 }
 export interface ClassComponentTyp<P extends object, S extends object> extends ComponentStatic<P> {
     new(props: P & Partial<BuiltinProps>): Component<P, S>;
@@ -476,6 +482,7 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     buildState = BuildState.initial;
     reanimated: boolean = false;
     stateUpdates: StateUpdater[] = [];
+    private addlDependencies?: Set<Handle>;
 
     constructor(
         readonly componentType: ComponentType<Props>,
@@ -604,21 +611,58 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return this.statusCommon(o || observeForStatus);
     }
 
+    /**
+     * Add one or more deploy dependencies to this Element.
+     * @remarks
+     * Intended to be called during the DOM build process.
+     */
+    addDependency(dependencies: Handle | Handle[]) {
+        const hands = toArray(dependencies);
+        if (hands.length === 0) return;
+
+        if (!this.addlDependencies) this.addlDependencies = new Set();
+        for (const h of hands) this.addlDependencies.add(h);
+    }
+
+    /**
+     * Return all the dependencies of an Element.
+     * @remarks
+     * Intended to be called during the deployment phase from the execution
+     * plan code only.
+     * @internal
+     */
     dependsOn(goalStatus: GoalStatus, helpers: DeployHelpers): DependsOn | undefined {
         if (!this.mounted) {
             throw new InternalError(`dependsOn requested but element is not mounted`);
         }
         const method = this.instance.dependsOn;
-        if (!method) return undefined;
-        return method(goalStatus, helpers);
+        const methodDeps = method && method(goalStatus, helpers);
+        if (!this.addlDependencies) return methodDeps;
+
+        const finalHandles = [...this.addlDependencies]
+            .map((h) => h.mountedOrig)
+            .filter(notNull)
+            .map((el) => el.props.handle);
+
+        const addlDeps = helpers.dependsOn(finalHandles);
+        if (methodDeps === undefined) return addlDeps;
+
+        return And(methodDeps, addlDeps);
     }
 
+    /**
+     * Returns whether this Element (and ONLY this element) has completed
+     * deployment.
+     * @remarks
+     * Intended to be called during the deployment phase from the execution
+     * plan code only.
+     * @internal
+     */
     deployedWhen(goalStatus: GoalStatus, helpers: DeployHelpers): WaitStatus | Promise<WaitStatus> {
         if (!this.mounted) {
             throw new InternalError(`deployedWhen requested but element is not mounted`);
         }
-        const method = this.instance.deployedWhen;
-        if (!method) return true;
+        const method = this.instance.deployedWhen || defaultDeployedWhen(this);
         return method(goalStatus, helpers);
     }
 
@@ -630,6 +674,30 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
     }
 }
 tagConstructor(AdaptElementImpl, "adapt");
+
+function defaultDeployedWhen(el: AdaptElementImpl<AnyProps>): DeployedWhenMethod {
+    return (_goalStatus, helpers) => {
+        const succ = el.buildData.successor;
+
+        // null means there's no successor and nothing in the final DOM for
+        // this element--no primitive element and no children.
+        if (succ === null) return true;
+
+        // undefined means this element is the final one in the chain. If
+        // this element has children, it's deployed when they are.
+        if (succ === undefined) {
+            const unready = childrenToArray(el.props.children)
+                .filter(isMountedElement)
+                .filter((k) => !helpers.isDeployed(k.props.handle))
+                .map((e) => e.props.handle);
+            return unready.length === 0 ? true :
+                waiting(`Waiting on ${unready.length} child elements`, unready);
+        }
+
+        return helpers.isDeployed(succ.props.handle) ? true :
+            waiting(`Waiting on successor element`, [succ.props.handle]);
+    };
+}
 
 enum BuildState {
     initial = "initial",
@@ -771,16 +839,6 @@ export function simplifyChildren(children: any | any[] | undefined): any | any[]
     }
 
     return children;
-}
-
-export async function isReady(h: BuildHelpers, e: AdaptElement | Handle): Promise<boolean> {
-    const hand = isHandle(e) ? e : e.props.handle;
-    const elem = hand.mountedOrig;
-    if (elem === undefined) throw new Error("element has no mountedOrig!");
-    if (elem === null) return true;
-
-    if (!elem.instance.ready) return true;
-    return elem.instance.ready(h);
 }
 
 export interface ComponentConstructorData {

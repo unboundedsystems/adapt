@@ -877,20 +877,20 @@ describe("ExecutionPlanImpl", () => {
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
-            [DeployStatus.Deployed]: 3,
-            [DeployStatus.Deploying]: 0,
-            [DeployStatus.Destroyed]: 0,
-            [DeployStatus.Destroying]: 0,
-            [DeployStatus.Failed]: 8,
-            [DeployStatus.Initial]: 0,
-            [DeployStatus.Waiting]: 0,
-        });
-        should(ret.primStatus).eql({
             [DeployStatus.Deployed]: 2,
             [DeployStatus.Deploying]: 0,
             [DeployStatus.Destroyed]: 0,
             [DeployStatus.Destroying]: 0,
-            [DeployStatus.Failed]: 4,
+            [DeployStatus.Failed]: 9,
+            [DeployStatus.Initial]: 0,
+            [DeployStatus.Waiting]: 0,
+        });
+        should(ret.primStatus).eql({
+            [DeployStatus.Deployed]: 1,
+            [DeployStatus.Deploying]: 0,
+            [DeployStatus.Destroyed]: 0,
+            [DeployStatus.Destroying]: 0,
+            [DeployStatus.Failed]: 5,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
         });
@@ -908,7 +908,8 @@ describe("ExecutionPlanImpl", () => {
             await getDeploymentStatus(0);
         should(deployStatus).equal(DeployStatus.Failed);
         should(goalStatus).equal(DeployStatus.Deployed);
-        checkElemStatus(elementStatus, dom, DeployStatus.Deployed);
+        checkElemStatus(elementStatus, dom, DeployStatus.Failed,
+            /A dependency failed to deploy successfully/);
         checkElemStatus(elementStatus, kids[0], DeployStatus.Failed,
             /A dependency failed to deploy successfully/);
         checkElemStatus(elementStatus, kids[1], DeployStatus.Failed,
@@ -1330,7 +1331,7 @@ describe("ExecutionPlanImpl", () => {
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
             [
-                "Action0 Change0", "Action1 Change0", "Action2 Change0",
+                "Group", "Action0 Change0", "Action1 Change0", "Action2 Change0",
                 "DependPrim", "DependPrim", "DependPrim"
             ]);
 
@@ -1553,7 +1554,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.leaves).have.length(2);
 
         should(dependencies(plan)).eql({
-            [newDom.id]: [],
+            "Group": [],
             "new0 wait": [ "One Action" ],
             "new2 wait": [ "One Action" ],
             "old1 wait": [ "One Action" ],
@@ -1606,6 +1607,7 @@ describe("ExecutionPlanImpl", () => {
         checkElemStatus(elementStatus, oldKids[1], DeployStatus.Destroyed);
 
         const expTaskNames = [
+            "Group",
             "Updating id0",
             "Deleting id1",
             "Creating id2",
