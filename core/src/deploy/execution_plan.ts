@@ -250,11 +250,11 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return node;
     }
 
-    updateElemWaitInfo() {
+    updateElemWaitInfo(refresh = false) {
         this.nodes.forEach((n) => {
             const el = n.element;
             if (el == null) return;
-            if (n.waitInfo != null) throw new InternalError(`Expected EPNode.waitInfo to be null`);
+            if (n.waitInfo != null && !refresh) throw new InternalError(`Expected EPNode.waitInfo to be null`);
             const helpers = this.helpers.create(el);
             n.waitInfo = getWaitInfo(n.goalStatus, el, helpers);
             if (!isEPNodeWI(n)) return;
