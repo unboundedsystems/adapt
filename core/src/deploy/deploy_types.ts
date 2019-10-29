@@ -331,6 +331,11 @@ export interface Waiting {
     done: false;
     status: string;
     related?: Waiting[];
+    /**
+     * Handles for any Elements that must become deployed in order to become
+     * ready and stop waiting.
+     */
+    toDeploy?: Handle[];
 }
 
 export type WaitStatus = true | Waiting | Waiting[];

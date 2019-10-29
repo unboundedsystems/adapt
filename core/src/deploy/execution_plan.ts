@@ -69,8 +69,8 @@ import {
     isWaitInfo,
     StatusTracker,
     WaitInfo,
-
 } from "./deploy_types_private";
+import { DeployedWhenQueue } from "./deployed_when_queue";
 import {
     relatedHandles,
     relationInverse,
@@ -665,6 +665,7 @@ export async function executePass(opts: ExecutePassOptions) {
     const locks = new AsyncLock();
     const queue = new PQueue({ concurrency: opts.concurrency });
     let stopExecuting = false;
+    const dwQueue = new DeployedWhenQueue(debugExecDetailId);
 
     // If an action is on behalf of some Elements, those nodes take on
     // the status of the action in certain cases.
@@ -711,17 +712,19 @@ export async function executePass(opts: ExecutePassOptions) {
 
             const w = n.waitInfo;
             if (w) {
-                await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
+                if (!isInProgress(stat)) {
+                    await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
 
-                if (w.action) {
-                    debugExecId(id, `ACTION: Doing ${w.description}`);
-                    if (w.logAction) logger.info(`Doing ${w.description}`);
-                    try {
-                        if (!dryRun) await w.action();
-                    } catch (err) {
-                        logger.error(`--Error while ${w.description}\n${err}\n----------`);
-                        errorLogged = true;
-                        throw err;
+                    if (w.action) {
+                        debugExecId(id, `ACTION: Doing ${w.description}`);
+                        if (w.logAction) logger.info(`Doing ${w.description}`);
+                        try {
+                            if (!dryRun) await w.action();
+                        } catch (err) {
+                            logger.error(`--Error while ${w.description}\n${err}\n----------`);
+                            errorLogged = true;
+                            throw err;
+                        }
                     }
                 }
                 const wStat = await w.deployedWhen(n.goalStatus);
@@ -729,6 +732,7 @@ export async function executePass(opts: ExecutePassOptions) {
                     const statStr = waitStatusToString(wStat);
                     debugExecId(id, `NOT COMPLETE: ${w.description}: ${statStr}`);
                     nodeStatus.output(n, statStr);
+                    dwQueue.enqueue(n, id, wStat);
                     return;
                 }
                 debugExecId(id, `COMPLETE: ${w.description}`);
@@ -751,6 +755,8 @@ export async function executePass(opts: ExecutePassOptions) {
                     `${nodeDescription(n)}: ${formatUserError(err)}`);
             }
             if (err.name === "InternalError") throw err;
+        } finally {
+            if (n.element) dwQueue.completed(n.element, queueRun);
         }
     };
 

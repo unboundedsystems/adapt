@@ -16,6 +16,7 @@
 
 import { toArray } from "@adpt/utils";
 import { isFunction } from "lodash";
+import { Handle, isHandle } from "../handle";
 import {
     Dependency,
     DeployHelpers,
@@ -31,9 +32,19 @@ import {
     toRelation,
 } from "./relation_utils";
 
-export const waiting = (status: string, related?: Waiting[]): Waiting => {
+export const waiting = (status: string, related?: (Waiting | Handle)[]): Waiting => {
     const ret: Waiting = { done: false, status };
-    if (related) ret.related = related;
+    if (related) {
+        const hands = [];
+        const waits = [];
+
+        for (const r of related) {
+            if (isHandle(r)) hands.push(r);
+            else waits.push(r);
+        }
+        if (hands.length > 0) ret.toDeploy = hands;
+        if (waits.length > 0) ret.related = waits;
+    }
     return ret;
 };
 
@@ -91,7 +102,7 @@ export const Or = (...relatesTo: Relation[]): Relation => ({
 
 export const Edge =
     (a0: Dependency, a1: Dependency, isDeployed: IsDeployedFunc): RelationExt => ({
-    description: "Edge",
+    get description() { return this.toString!(); },
     ready: () => {
         if (isDeployed(a1)) return true;
         return waiting(`Waiting for dependency ${depName(a1)}`);
