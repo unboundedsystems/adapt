@@ -116,8 +116,8 @@ export type GoalStatus =
     DeployStatus.Destroyed;
 // tslint:disable-next-line: variable-name
 export const GoalStatus = {
-    Deployed: DeployStatus.Deployed,
-    Destroyed: DeployStatus.Destroyed,
+    Deployed: DeployStatus.Deployed as GoalStatus,
+    Destroyed: DeployStatus.Destroyed as GoalStatus,
 };
 
 export function isGoalStatus(ds: DeployStatusExt): ds is GoalStatus {
