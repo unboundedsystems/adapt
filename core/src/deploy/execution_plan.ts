@@ -343,13 +343,13 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     getId = (obj: EPObject, create = false): EPNodeId => {
         const id = this.getIdInternal(obj, create);
-        if (!id) throw new Error(`ID not found`);
+        if (!id) throw new Error(`ID not found (${idOrObjInfo(obj)})`);
         return id;
     }
 
     getNode = (idOrObj: EPNodeId | EPObject): EPNode => {
         const node = this.getNodeInternal(idOrObj);
-        if (!node) throw new Error(`Node not found`);
+        if (!node) throw new Error(`Node not found (${idOrObjInfo(idOrObj)})`);
         return node;
     }
 
@@ -938,6 +938,15 @@ function nodeDescription(n: EPNode): string {
     if (n.waitInfo) return n.waitInfo.description;
     if (n.element) return `${n.element.componentName} (id=${n.element.id})`;
     return "Unknown node";
+}
+
+function idOrObjInfo(idOrObj: EPNodeId | EPObject) {
+    return typeof idOrObj === "string" ? idOrObj :
+        isWaitInfo(idOrObj) ? idOrObj.description :
+        isMountedElement(idOrObj) ? idOrObj.id :
+        idOrObj.element ? idOrObj.element.id :
+        idOrObj.waitInfo ? idOrObj.waitInfo.description :
+        "unknown";
 }
 
 class DeployHelpersFactory {
