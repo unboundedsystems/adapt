@@ -46,6 +46,7 @@ export interface DeployOptions {
     once?: boolean;
     debug?: boolean;
     logError?: boolean;
+    pollDelayMs?: number;
     style?: AdaptElement | null;
 }
 
@@ -62,6 +63,7 @@ const defaultDeployOptions = {
     once: false,
     debug: false,
     logError: true,
+    pollDelayMs: 1000,
     style: null,
 };
 
@@ -199,6 +201,7 @@ export class MockDeploy {
                 builtElements,
                 deployOpID: this.deployOpID,
                 dryRun: opts.dryRun,
+                pollDelayMs: opts.pollDelayMs,
                 processStateUpdates,
                 taskObserver,
             };

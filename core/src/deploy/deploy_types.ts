@@ -250,6 +250,7 @@ export interface ActOptions {
     deployOpID: DeployOpID;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
+    pollDelayMs?: number;
     processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
