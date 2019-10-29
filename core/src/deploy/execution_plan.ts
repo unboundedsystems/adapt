@@ -31,6 +31,7 @@ import {
     // @ts-ignore - here to deal with issue #71
     AnyProps,
     ElementID,
+    isApplyStyle,
     isMountedElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -178,10 +179,10 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     /*
      * Semi-private interfaces (for use by this file)
      */
-    addElem(element: AdaptMountedElement, goalStatus: GoalStatus) {
+    addElem(element: AdaptMountedElement, goalStatus: GoalStatus): void {
+        if (isApplyStyle(element)) return;
         const node: EPNode = { element, goalStatus };
         this.addNode(node);
-        return node;
     }
 
     addAction(action: Action) {
