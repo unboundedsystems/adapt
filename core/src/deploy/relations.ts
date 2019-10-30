@@ -76,29 +76,34 @@ export const Not = (a0: Relation): Relation => ({
     relatesTo: [a0],
 });
 
-export const And = (...relatesTo: Relation[]): Relation => ({
-    description: "And",
-    ready: (rList) => {
-        const status = relationIsReadyStatus(rList);
-        if (status === true) return true;
-        const notReady = toArray(status);
-        return waiting(`Waiting for ${nDepends(notReady.length)}`, toArray(notReady));
-    },
-    relatesTo,
-});
+export const And = (...relatesTo: Relation[]): Relation =>
+    relatesTo.length === 0 ? True() :
+    relatesTo.length === 1 ? relatesTo[0] :
+    {
+        description: "And",
+        ready: (rList) => {
+            const status = relationIsReadyStatus(rList);
+            if (status === true) return true;
+            const notReady = toArray(status);
+            return waiting(`Waiting for ${nDepends(notReady.length)}`, notReady);
+        },
+        relatesTo,
+    };
 
-export const Or = (...relatesTo: Relation[]): Relation => ({
-    description: "Or",
-    ready: (rList) => {
-        const status = relationIsReadyStatus(rList);
-        if (status === true) return true;
-        const notReady = toArray(status);
-        if (notReady.length < rList.length) return true;
-        return waiting(`Waiting for any of ${nDepends(notReady.length)}`,
-            toArray(notReady));
-    },
-    relatesTo,
-});
+export const Or = (...relatesTo: Relation[]): Relation =>
+    relatesTo.length === 0 ? True() :
+    relatesTo.length === 1 ? relatesTo[0] :
+    {
+        description: "Or",
+        ready: (rList) => {
+            const status = relationIsReadyStatus(rList);
+            if (status === true) return true;
+            const notReady = toArray(status);
+            if (notReady.length < rList.length) return true;
+            return waiting(`Waiting for any of ${nDepends(notReady.length)}`, notReady);
+        },
+        relatesTo,
+    };
 
 export const Edge =
     (a0: Dependency, a1: Dependency, isDeployed: IsDeployedFunc): RelationExt => ({

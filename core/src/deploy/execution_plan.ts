@@ -980,8 +980,7 @@ class DeployHelpersFactory {
 
     makeDependsOn = (current: Handle) => (hands: Handle | Handle[]): Relation => {
         const toEdge = (h: Handle) => Edge(current, h, this.isDeployed);
-        const hArray = toArray(hands);
-        return hArray.length === 1 ? toEdge(hArray[0]) : And(...hArray.map(toEdge));
+        return And(...toArray(hands).map(toEdge));
     }
 
     create = (elem: AdaptMountedElement): DeployHelpers => ({

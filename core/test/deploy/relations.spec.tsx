@@ -318,6 +318,16 @@ describe("Basic Relation predicates", () => {
         should(table).have.length(2 ** 10);
         table.forEach((v, i) => should(v).equal(i === 0 ? false : true));
     });
+
+    it("Should elide operator for 0 arguments", () => {
+        should(And().description).equal("True");
+        should(Or().description).equal("True");
+    });
+
+    it("Should elide operator for 1 argument", () => {
+        should(And(Value(false, "Foo")).description).equal("Foo");
+        should(Or(Value(false, "Foo")).description).equal("Foo");
+    });
 });
 
 describe("Relation Edge", () => {
