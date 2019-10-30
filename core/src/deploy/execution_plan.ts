@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ensureError, formatUserError, notNull, sleep, UserError } from "@adpt/utils";
+import { ensureError, formatUserError, notNull, sleep, toArray, UserError } from "@adpt/utils";
 import AsyncLock from "async-lock";
 import db from "debug";
 import { alg, Graph } from "graphlib";
@@ -30,8 +30,8 @@ import {
     AdaptMountedElement,
     // @ts-ignore - here to deal with issue #71
     AnyProps,
-    // @ts-ignore - here to deal with issue #71
-    GenericInstance,
+    ElementID,
+    isApplyStyle,
     isMountedElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -41,7 +41,6 @@ import {
     Action,
     ChangeType,
     Dependency,
-    DependsOn,
     DeployHelpers,
     DeployOpStatus,
     DeployStatus,
@@ -55,6 +54,7 @@ import {
     isDependsOn,
     isFinalStatus,
     isInProgress,
+    isRelation,
     Relation,
 } from "./deploy_types";
 import {
@@ -70,8 +70,8 @@ import {
     isWaitInfo,
     StatusTracker,
     WaitInfo,
-
 } from "./deploy_types_private";
+import { DeployedWhenQueue } from "./deployed_when_queue";
 import {
     relatedHandles,
     relationInverse,
@@ -84,6 +84,7 @@ import { And, Edge } from "./relations";
 import { createStatusTracker } from "./status_tracker";
 
 const debugExecute = db("adapt:deploy:execute");
+const debugExecuteDetail = db("adapt:detail:deploy:execute");
 
 export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
     const { actions, builtElements, diff } = options;
@@ -109,8 +110,6 @@ export function getWaitInfo(goalStatus: GoalStatus,
     if (elem === null) throw new ElementNotInDom();
 
     const dependsOn = elem.dependsOn(goalStatus, helpers);
-    const compDeployedWhen = elem.instance.deployedWhen;
-    if (dependsOn == null && compDeployedWhen == null) return undefined;
 
     if (dependsOn && !isDependsOn(dependsOn)) {
         throw new UserError(`Component '${elem.componentName}' dependsOn ` +
@@ -119,8 +118,7 @@ export function getWaitInfo(goalStatus: GoalStatus,
     }
     const wi: WaitInfo = {
         description: dependsOn ? dependsOn.description : elem.componentName,
-        deployedWhen: compDeployedWhen ?
-            (gs: GoalStatus) => compDeployedWhen(gs, helpers) : (() => true),
+        deployedWhen: (gs: GoalStatus) => elem.deployedWhen(gs, helpers),
     };
     if (dependsOn) wi.dependsOn = dependsOn;
     return wi;
@@ -132,6 +130,7 @@ export interface EPDependency {
 }
 export interface EPDependencies {
     [epNodeId: string]: {
+        elementId?: ElementID;
         detail: string;
         deps: EPDependency[];
     };
@@ -167,17 +166,20 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         const cycleGroups = alg.findCycles(this.graph);
         if (cycleGroups.length > 0) {
             const cycles = cycleGroups.map(printCycleGroups).join("\n");
-            throw new Error(`There are circular dependencies present in this deployment:\n${cycles}`);
+            if (debugExecute.enabled) {
+                debugExecute(`Execution plan dependencies:\n${this.print()}`);
+            }
+            throw new UserError(`There are circular dependencies present in this deployment:\n${cycles}`);
         }
     }
 
     /*
      * Semi-private interfaces (for use by this file)
      */
-    addElem(element: AdaptMountedElement, goalStatus: GoalStatus) {
+    addElem(element: AdaptMountedElement, goalStatus: GoalStatus): void {
+        if (isApplyStyle(element)) return;
         const node: EPNode = { element, goalStatus };
         this.addNode(node);
-        return node;
     }
 
     addAction(action: Action) {
@@ -245,11 +247,11 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return node;
     }
 
-    updateElemWaitInfo() {
+    updateElemWaitInfo(refresh = false) {
         this.nodes.forEach((n) => {
             const el = n.element;
             if (el == null) return;
-            if (n.waitInfo != null) throw new InternalError(`Expected EPNode.waitInfo to be null`);
+            if (n.waitInfo != null && !refresh) throw new InternalError(`Expected EPNode.waitInfo to be null`);
             const helpers = this.helpers.create(el);
             n.waitInfo = getWaitInfo(n.goalStatus, el, helpers);
             if (!isEPNodeWI(n)) return;
@@ -339,13 +341,13 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     getId = (obj: EPObject, create = false): EPNodeId => {
         const id = this.getIdInternal(obj, create);
-        if (!id) throw new Error(`ID not found`);
+        if (!id) throw new Error(`ID not found (${idOrObjInfo(obj)})`);
         return id;
     }
 
     getNode = (idOrObj: EPNodeId | EPObject): EPNode => {
         const node = this.getNodeInternal(idOrObj);
-        if (!node) throw new Error(`Node not found`);
+        if (!node) throw new Error(`Node not found (${idOrObjInfo(idOrObj)})`);
         return node;
     }
 
@@ -375,7 +377,9 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                 throw new InternalError(`Internal consistency check failed: ` +
                     `not all hardDeps are successors`);
             }
-            return { detail: detail(node), deps };
+            const entry: EPDependencies[string] = { detail: detail(node), deps };
+            if (node.element) entry.elementId = node.element.id;
+            return entry;
         };
 
         const ret: EPDependencies = {};
@@ -393,20 +397,44 @@ export class ExecutionPlanImpl implements ExecutionPlan {
 
     print() {
         const epDeps = this.toDependencies();
+        const depIDs = Object.keys(epDeps);
+        if (depIDs.length === 0) return "<empty>";
+
         const succs = (id: string) => {
             const list = epDeps[id] && epDeps[id].deps;
-            if (!list || list.length === 0) return "  <none>";
-            return list.map((s) => `  ${name(s.id)} [${s.type[0]}]`).join("\n");
+            if (!list || list.length === 0) return "    <none>";
+            return list.map((s) => `    ${name(s.id)} [${s.type[0]}]`).join("\n");
         };
         const name = (id: string) => {
             const w = this.getNode(id).waitInfo;
             if (w) id += ` (${w.description})`;
             return id;
         };
+        const printDeps = (ids: string[]) =>
+            ids
+            .map((id) => `  ${name(id)}\n${succs(id)}`);
 
-        return Object.keys(epDeps)
-            .map((id) => `${name(id)}\n${succs(id)}`)
-            .join("\n");
+        const byGoal: { [ goal: string ]: string[] | undefined } = {};
+        const insert = (id: string, goal: string) => {
+            const l = byGoal[goal] || [];
+            l.push(id);
+            byGoal[goal] = l;
+        };
+
+        for (const id of depIDs) {
+            insert(id, this.getNode(id).goalStatus);
+        }
+
+        const lines: string[] = [];
+        for (const goal of Object.keys(byGoal).sort()) {
+            let gName = goal;
+            try {
+                gName = goalToInProgress(goal as any);
+            } catch (e) { /* */ }
+            lines.push(`${gName}:`, ...printDeps(byGoal[goal]!));
+        }
+
+        return lines.join("\n");
     }
 
     /*
@@ -501,7 +529,18 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         // If a is in a group, all outbound dependencies are attached to
         // the group leader (and "a" will already have a dependency on the
         // group leader from when it joined the group).
-        this.addEdgeInternal(this.groupLeader(a) || a, b, hardDep);
+        const leader = this.groupLeader(a);
+
+        // If there's a leader, re-make the check for dissimilar goalStatus
+        // but with the leader.
+        if (leader && leader.goalStatus !== b.goalStatus) {
+            if (leader.goalStatus === GoalStatus.Destroyed) {
+                throw new InternalError(`Unable to create dependency for ` +
+                    `leader being Destroyed on dependency being Deployed`);
+            }
+            return; // Intentionally no edge
+        }
+        this.addEdgeInternal(leader || a, b, hardDep);
     }
 
     protected addEdgeInternal(obj: EPObject, dependsOn: EPObject, hardDep: boolean) {
@@ -532,6 +571,9 @@ export function isExecutionPlanImpl(val: any): val is ExecutionPlanImpl {
 
 function debugExecId(id: string, ...args: any[]) {
     debugExecute(`* ${(id as any).padEnd(26)}`, ...args);
+}
+function debugExecDetailId(id: string, ...args: any[]) {
+    debugExecuteDetail(`* ${(id as any).padEnd(26)}`, ...args);
 }
 
 const defaultExecuteOptions = {
@@ -564,7 +606,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
     try {
         while (true) {
-            const stepNum = (nodeStatus.stepID && nodeStatus.stepID.deployStepNum) || "DR";
+            const stepNum = nodeStatus.stepID ? nodeStatus.stepID.deployStepNum : "DR";
             const stepStr = `${deployOpID}.${stepNum}`;
             debugExecute(`\n\n-----------------------------\n\n` +
                 `**** Starting execution step ${stepStr}`);
@@ -576,6 +618,8 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             debugExecute(`**** execution step ${stepStr} status: ${ret.deploymentStatus}\nSummary:`,
                 inspect(ret), "\n", nodeStatus.debug(plan.getId), "\n-----------------------------\n\n");
 
+            // Keep polling until we're done or the state changes, which means
+            // we should do a re-build.
             if (ret.deploymentStatus === DeployOpStatus.StateChanged ||
                 isFinalStatus(ret.deploymentStatus)) {
                 debugExecute(`**** Execution completed`);
@@ -619,6 +663,7 @@ export async function executePass(opts: ExecutePassOptions) {
     const locks = new AsyncLock();
     const queue = new PQueue({ concurrency: opts.concurrency });
     let stopExecuting = false;
+    const dwQueue = new DeployedWhenQueue(debugExecDetailId);
 
     // If an action is on behalf of some Elements, those nodes take on
     // the status of the action in certain cases.
@@ -665,17 +710,19 @@ export async function executePass(opts: ExecutePassOptions) {
 
             const w = n.waitInfo;
             if (w) {
-                await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
+                if (!isInProgress(stat)) {
+                    await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
 
-                if (w.action) {
-                    debugExecId(id, `ACTION: Doing ${w.description}`);
-                    if (w.logAction) logger.info(`Doing ${w.description}`);
-                    try {
-                        if (!dryRun) await w.action();
-                    } catch (err) {
-                        logger.error(`--Error while ${w.description}\n${err}\n----------`);
-                        errorLogged = true;
-                        throw err;
+                    if (w.action) {
+                        debugExecId(id, `ACTION: Doing ${w.description}`);
+                        if (w.logAction) logger.info(`Doing ${w.description}`);
+                        try {
+                            if (!dryRun) await w.action();
+                        } catch (err) {
+                            logger.error(`--Error while ${w.description}\n${err}\n----------`);
+                            errorLogged = true;
+                            throw err;
+                        }
                     }
                 }
                 const wStat = await w.deployedWhen(n.goalStatus);
@@ -683,6 +730,7 @@ export async function executePass(opts: ExecutePassOptions) {
                     const statStr = waitStatusToString(wStat);
                     debugExecId(id, `NOT COMPLETE: ${w.description}: ${statStr}`);
                     nodeStatus.output(n, statStr);
+                    dwQueue.enqueue(n, id, wStat);
                     return;
                 }
                 debugExecId(id, `COMPLETE: ${w.description}`);
@@ -705,6 +753,8 @@ export async function executePass(opts: ExecutePassOptions) {
                     `${nodeDescription(n)}: ${formatUserError(err)}`);
             }
             if (err.name === "InternalError") throw err;
+        } finally {
+            if (n.element) dwQueue.completed(n.element, queueRun);
         }
     };
 
@@ -736,7 +786,7 @@ export async function executePass(opts: ExecutePassOptions) {
         // But if the node is being Destroyed, we instead evaluate all of our
         // successors' WaitInfos, each in the inverse direction.
         const succs = plan.successors(n);
-        debugExecId(mkIdStr(ids), `  Evaluating: ${succs.length} successors`);
+        debugExecDetailId(mkIdStr(ids), `  Evaluating: ${succs.length} successors`);
         for (const s of succs) {
             // TODO: There probably needs to be a check here comparing
             // goalStatus for s and n, similar to addEdge.
@@ -756,7 +806,7 @@ export async function executePass(opts: ExecutePassOptions) {
             const desc = !w ? "no soft dep" :
                 dep ? `soft dep (${w.description}) - Relation${invert ? " (inverted)" : ""}: ${relationToString(dep)}` :
                 `no soft dep (${w.description})`;
-            debugExecId(idStr, `  Evaluating: ${desc}`);
+            debugExecDetailId(idStr, `  Evaluating: ${desc}`);
             if (!dep) return true;
             const relStatus = relationIsReadyStatus(dep);
             debugExecId(idStr, `  Relation status:`, relStatus === true ? "READY" : relStatus);
@@ -767,7 +817,7 @@ export async function executePass(opts: ExecutePassOptions) {
 
     const dependenciesMet = (n: EPNode, id: EPNodeId): boolean => {
         const hardDeps = n.hardDeps || new Set();
-        debugExecId(id, `  Evaluating: ${hardDeps.size} hard deps`);
+        debugExecDetailId(id, `  Evaluating: ${hardDeps.size} hard deps`);
         for (const d of hardDeps) {
             if (!nodeIsDeployed(d, id, nodeStatus)) {
                 debugExecId(id, `NOTYET: hard deps`);
@@ -781,7 +831,7 @@ export async function executePass(opts: ExecutePassOptions) {
         }
 
         const followers = plan.groupFollowers(n);
-        debugExecId(id, `  Evaluating: ${followers.length} followers`);
+        debugExecDetailId(id, `  Evaluating: ${followers.length} followers`);
         for (const f of followers) {
             const fStat = nodeStatus.get(f);
             const fId = plan.getId(f);
@@ -861,14 +911,17 @@ function printCycleGroups(group: string[]) {
     return "  " + c.join(" -> ");
 }
 
-function toElemOrWaitInfo(val: Handle | AdaptMountedElement | DependsOn): AdaptMountedElement | WaitInfo {
-    if (isMountedElement(val) || isWaitInfo(val)) return val;
+function toBuiltElemOrWaitInfo(val: Handle | AdaptMountedElement | WaitInfo): AdaptMountedElement | WaitInfo | null {
+    if (isWaitInfo(val)) return val;
+    if (isMountedElement(val)) {
+        if (val.built()) return val;
+        val = val.props.handle;
+    }
     if (!isHandle(val)) {
         throw new Error(`Attempt to convert an invalid object to Element or WaitInfo: ${inspect(val)}`);
     }
-    const elem = val.mountedOrig;
-    if (elem === undefined) throw new InternalError("element has no mountedOrig!");
-    if (elem === null) throw new ElementNotInDom();
+    const elem = val.nextMounted((el) => isMountedElement(el) && el.built());
+    if (elem === undefined) throw new InternalError("Handle has no built Element!");
     return elem;
 }
 
@@ -876,7 +929,7 @@ function nodeIsDeployed(n: EPNode, id: EPNodeId, tracker: StatusTracker): boolea
     const sStat = tracker.get(n);
     if (sStat === n.goalStatus) return true; // Dependency met
     if (sStat === DeployStatusExt.Failed) {
-        throw new Error(`A dependency failed to deploy successfully`);
+        throw new UserError(`A dependency failed to deploy successfully`);
     }
     if (isWaiting(sStat) || isInProgress(sStat)) return false;
     throw new InternalError(`Invalid status ${sStat} for ${id}`);
@@ -886,6 +939,15 @@ function nodeDescription(n: EPNode): string {
     if (n.waitInfo) return n.waitInfo.description;
     if (n.element) return `${n.element.componentName} (id=${n.element.id})`;
     return "Unknown node";
+}
+
+function idOrObjInfo(idOrObj: EPNodeId | EPObject) {
+    return typeof idOrObj === "string" ? idOrObj :
+        isWaitInfo(idOrObj) ? idOrObj.description :
+        isMountedElement(idOrObj) ? idOrObj.id :
+        idOrObj.element ? idOrObj.element.id :
+        idOrObj.waitInfo ? idOrObj.waitInfo.description :
+        "unknown";
 }
 
 class DeployHelpersFactory {
@@ -908,14 +970,17 @@ class DeployHelpersFactory {
     }
 
     isDeployed = (d: Dependency) => {
-        const n = this.plan.getNode(toElemOrWaitInfo(d));
+        if (isRelation(d)) return relationIsReady(d);
+
+        const elOrWait = toBuiltElemOrWaitInfo(d);
+        if (elOrWait === null) return true; // Handle built to null - null is deployed
+        const n = this.plan.getNode(elOrWait);
         return nodeIsDeployed(n, this.plan.getId(n), this.nodeStatus);
     }
 
     makeDependsOn = (current: Handle) => (hands: Handle | Handle[]): Relation => {
         const toEdge = (h: Handle) => Edge(current, h, this.isDeployed);
-        if (!Array.isArray(hands)) return toEdge(hands);
-        return And(...hands.map(toEdge));
+        return And(...toArray(hands).map(toEdge));
     }
 
     create = (elem: AdaptMountedElement): DeployHelpers => ({

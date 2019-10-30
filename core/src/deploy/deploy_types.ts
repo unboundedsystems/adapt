@@ -116,8 +116,8 @@ export type GoalStatus =
     DeployStatus.Destroyed;
 // tslint:disable-next-line: variable-name
 export const GoalStatus = {
-    Deployed: DeployStatus.Deployed,
-    Destroyed: DeployStatus.Destroyed,
+    Deployed: DeployStatus.Deployed as GoalStatus,
+    Destroyed: DeployStatus.Destroyed as GoalStatus,
 };
 
 export function isGoalStatus(ds: DeployStatusExt): ds is GoalStatus {
@@ -189,11 +189,13 @@ export enum ChangeType {
 }
 
 /**
- * Describes the effect an Action has on an Element
+ * Describes the effect an Action has on a specific Element
+ * @remarks
  * type and detail here explain how the Action affects this specific
  * element, which may or may not be different than the action. For example,
  * an Action that performs a modify on a CloudFormation stack may cause
  * certain Elements to be created and deleted within that Action.
+ * @public
  */
 export interface ActionChange {
     type: ChangeType;
@@ -203,8 +205,10 @@ export interface ActionChange {
 
 /**
  * Describes the overall effect that an Action is performing.
- * type and detail here explain what the Action is doing overall, not how it
+ * @remarks
+ * `type` and `detail` here explain what the Action is doing overall, not how it
  * affects any particular Element.
+ * @public
  */
 export interface ActionInfo {
     type: ChangeType;
@@ -246,6 +250,7 @@ export interface ActOptions {
     deployOpID: DeployOpID;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
+    pollDelayMs?: number;
     processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
     timeoutMs?: number;
@@ -256,6 +261,38 @@ export interface ActComplete {
     stateChanged: boolean;
 }
 
+/**
+ * Relations are used to describe the logic of when an object will be ready.
+ *
+ * @remarks
+ * Relations are primarily used to describe deployment dependencies in Adapt.
+ * They can be combined together to express boolean logic, so you can express
+ * things like "A is ready when B and C are ready":
+ *
+ * Relations should usually be created using the supplied library functions.
+ * The most commonly used Relation functions are the high-level functions.
+ * The high-level Relation functions interact with the Adapt deployment engine
+ * for determining whether components have been deployed. These functions are
+ * useful in a {@link Component.dependsOn} method for describing what a
+ * component depends on.
+ *
+ * Examples of the more commonly used high-level Relation functions are:
+ *   - `Only()` - Creates a `Relation` that is ready when a single dependency
+ *     has been deployed.
+ *   - `AllOf()` - Creates a `Relation` that's ready when all of a given set
+ *     of dependencies have been deployed.
+ *   - `AnyOf()` - Creates a `Relation` that's ready when any of a given set
+ *     of dependencies have been deployed.
+ *
+ * Examples of low-level Relation functions are:
+ *   - `True()` - Creates a `Relation` that's always ready.
+ *   - `False()` - Creates a `Relation` will never be ready.
+ *   - `And()` - Creates a `Relation` that becomes ready when all of its
+ *      arguments are ready.
+ *   - `Edge()` - Creates a `Relation` that checks the deployment status of
+ *      an object to determine readiness.
+ * @public
+ */
 export interface Relation {
     description: string;
     ready: (relatesTo: Relation[]) => true | Waiting | Waiting[];
@@ -294,6 +331,11 @@ export interface Waiting {
     done: false;
     status: string;
     related?: Waiting[];
+    /**
+     * Handles for any Elements that must become deployed in order to become
+     * ready and stop waiting.
+     */
+    toDeploy?: Handle[];
 }
 
 export type WaitStatus = true | Waiting | Waiting[];

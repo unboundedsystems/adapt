@@ -53,6 +53,7 @@ import Adapt, {
     Component,
     Constructor,
     gql,
+    Group,
     Observer,
     PrimitiveComponent,
     registerObserver,
@@ -105,7 +106,7 @@ function makeTwo(Comp: Constructor<Component<WithChildren>>) {
 }
 
 Adapt.stack("default", makeTwo(Simple));
-Adapt.stack("ActError", makeTwo(ActError));
+Adapt.stack("ActError", <Group><ActError /><ActError /></Group>);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
 Adapt.stack("null", null);
 Adapt.stack("BuildNull", <BuildNull />);
@@ -139,7 +140,9 @@ function defaultDomXmlOutput(namespace: string[]) {
 const simplePluginTs = `
 import {
     Action,
+    AdaptElement,
     AdaptElementOrNull,
+    childrenToArray,
     FinalDomElement,
     ChangeType,
     Plugin,
@@ -168,20 +171,30 @@ class EchoPlugin implements Plugin<{}> {
         this.log("analyze");
         if (oldDom == null && dom == null) return [];
 
+        // Gather all the non-Group elements
+        let els: AdaptElement[] = [];
+        if (dom) {
+            els.push(dom);
+            els.push(...childrenToArray(dom.props.children));
+        }
+        els = els.filter((el) => el.componentType.name !== "Group");
+
         const info = (n: number, type = "action") => ({
             type: ChangeType.create,
             detail: "echo " + type + n,
             changes: [{
                 type: ChangeType.create,
-                element: (n === 1 ? dom : dom.props.children) as FinalDomElement,
+                element: els[n - 1] as FinalDomElement,
                 detail: "echo action" + n,
             }]
         });
 
-        if (dom != null && dom.componentType.name === "AnalyzeError") {
+        const firstName = els[0] && els[0].componentType.name;
+
+        if (firstName === "AnalyzeError") {
             throw new Error("AnalyzeError");
         }
-        if (dom != null && dom.componentType.name === "ActError") {
+        if (firstName === "ActError") {
             return [
                 // First action is purposely NOT returning a promise and doing
                 // a synchronous throw
@@ -427,6 +440,7 @@ describe("createDeployment Tests", async function () {
         await createError("ActError", [
             /Error: ActError[12]/,
             /Error: ActError[12]/,
+            /Error while deploying Group: A dependency failed to deploy successfully/,
             /Error creating deployment: Errors encountered during plugin action phase/
         ], [], true);
     });

@@ -16,6 +16,7 @@
 
 import { toArray } from "@adpt/utils";
 import { isFunction } from "lodash";
+import { Handle, isHandle } from "../handle";
 import {
     Dependency,
     DeployHelpers,
@@ -31,9 +32,19 @@ import {
     toRelation,
 } from "./relation_utils";
 
-export const waiting = (status: string, related?: Waiting[]): Waiting => {
+export const waiting = (status: string, related?: (Waiting | Handle)[]): Waiting => {
     const ret: Waiting = { done: false, status };
-    if (related) ret.related = related;
+    if (related) {
+        const hands = [];
+        const waits = [];
+
+        for (const r of related) {
+            if (isHandle(r)) hands.push(r);
+            else waits.push(r);
+        }
+        if (hands.length > 0) ret.toDeploy = hands;
+        if (waits.length > 0) ret.related = waits;
+    }
     return ret;
 };
 
@@ -65,33 +76,38 @@ export const Not = (a0: Relation): Relation => ({
     relatesTo: [a0],
 });
 
-export const And = (...relatesTo: Relation[]): Relation => ({
-    description: "And",
-    ready: (rList) => {
-        const status = relationIsReadyStatus(rList);
-        if (status === true) return true;
-        const notReady = toArray(status);
-        return waiting(`Waiting for ${nDepends(notReady.length)}`, toArray(notReady));
-    },
-    relatesTo,
-});
+export const And = (...relatesTo: Relation[]): Relation =>
+    relatesTo.length === 0 ? True() :
+    relatesTo.length === 1 ? relatesTo[0] :
+    {
+        description: "And",
+        ready: (rList) => {
+            const status = relationIsReadyStatus(rList);
+            if (status === true) return true;
+            const notReady = toArray(status);
+            return waiting(`Waiting for ${nDepends(notReady.length)}`, notReady);
+        },
+        relatesTo,
+    };
 
-export const Or = (...relatesTo: Relation[]): Relation => ({
-    description: "Or",
-    ready: (rList) => {
-        const status = relationIsReadyStatus(rList);
-        if (status === true) return true;
-        const notReady = toArray(status);
-        if (notReady.length < rList.length) return true;
-        return waiting(`Waiting for any of ${nDepends(notReady.length)}`,
-            toArray(notReady));
-    },
-    relatesTo,
-});
+export const Or = (...relatesTo: Relation[]): Relation =>
+    relatesTo.length === 0 ? True() :
+    relatesTo.length === 1 ? relatesTo[0] :
+    {
+        description: "Or",
+        ready: (rList) => {
+            const status = relationIsReadyStatus(rList);
+            if (status === true) return true;
+            const notReady = toArray(status);
+            if (notReady.length < rList.length) return true;
+            return waiting(`Waiting for any of ${nDepends(notReady.length)}`, notReady);
+        },
+        relatesTo,
+    };
 
 export const Edge =
     (a0: Dependency, a1: Dependency, isDeployed: IsDeployedFunc): RelationExt => ({
-    description: "Edge",
+    get description() { return this.toString!(); },
     ready: () => {
         if (isDeployed(a1)) return true;
         return waiting(`Waiting for dependency ${depName(a1)}`);

@@ -34,6 +34,7 @@ import {
     GoalStatus,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
+import { EPDependencies, EPDependency, ExecutionPlanImpl } from "../../src/deploy/execution_plan";
 import { GenericInstance } from "../../src/jsx";
 
 export interface IdProps {
@@ -104,3 +105,30 @@ export const toChangeType = (goal: GoalStatus) =>
 
 export const toDiff = (dom: AdaptMountedElement, goal: GoalStatus) =>
     goal === DeployStatus.Deployed ? domDiff(null, dom) : domDiff(dom, null);
+
+export interface StringDependencies {
+    [ id: string ]: string[];
+}
+
+export interface DependenciesOptions {
+    key?: "id" | "detail";
+}
+const defaultDepOptions = {
+    key: "detail",
+};
+
+export function dependencies(plan: ExecutionPlanImpl,
+    options: DependenciesOptions = {}): StringDependencies {
+
+    const { key } = { ...defaultDepOptions, ...options };
+    const ret: StringDependencies = {};
+    const epDeps = plan.toDependencies();
+    const getKey = (ep: EPDependencies[string]) =>
+        key === "detail" || !ep.elementId ? ep.detail : ep.elementId;
+    const toKey = (d: EPDependency) => getKey(epDeps[d.id]);
+    Object.keys(epDeps).map((id) => {
+        const ep = epDeps[id];
+        ret[getKey(ep)] = ep.deps.map(toKey).sort();
+    });
+    return ret;
+}

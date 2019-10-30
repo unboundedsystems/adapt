@@ -15,17 +15,21 @@
  */
 
 import { createMockLogger } from "@adpt/testutils";
-import { createTaskObserver, messagesToString } from "@adpt/utils";
+import { createTaskObserver, InternalError, messagesToString } from "@adpt/utils";
 import fs from "fs-extra";
+import { isFunction } from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
-import { ActComplete, PluginModule } from "../../src/deploy";
-import { createPluginManager } from "../../src/deploy/plugin_support";
+import { ActComplete, Action, ChangeType, ExecutionPlan, Plugin, PluginModule } from "../../src/deploy";
+import { isExecutionPlanImpl } from "../../src/deploy/execution_plan";
+import { createPluginManager, isPluginManagerImpl } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
+import { domDiff } from "../../src/dom_utils";
 import { AdaptElement, AdaptMountedElement, FinalDomElement } from "../../src/jsx";
 import { Deployment } from "../../src/server/deployment";
 import { DeployOpID, DeployStepID } from "../../src/server/deployment_data";
 import { createStateStore, StateStore } from "../../src/state";
+import { dependencies, StringDependencies } from "../deploy/common";
 import { doBuild } from "./do_build";
 import { createMockDeployment } from "./server_mocks";
 
@@ -41,13 +45,25 @@ export interface DeployOptions {
     dryRun?: boolean;
     once?: boolean;
     debug?: boolean;
+    logError?: boolean;
+    pollDelayMs?: number;
     style?: AdaptElement | null;
+}
+
+export interface GetExecutionPlanOptions {
+    style?: AdaptElement | null;
+}
+
+interface DeployOptionsInternal extends DeployOptions {
+    returnPlan?: boolean;
 }
 
 const defaultDeployOptions = {
     dryRun: false,
     once: false,
     debug: false,
+    logError: true,
+    pollDelayMs: 1000,
     style: null,
 };
 
@@ -55,6 +71,13 @@ export interface DeployOutput extends ActComplete {
     dom: FinalDomElement | null;
     mountedOrig: AdaptMountedElement | null;
     stepID: DeployStepID;
+}
+
+export interface ExecutionPlanOutput {
+    dependencies: StringDependencies;
+    dom: FinalDomElement | null;
+    mountedOrig: AdaptMountedElement | null;
+    plan: ExecutionPlan;
 }
 
 export function makeDeployId(prefix: string) {
@@ -121,7 +144,23 @@ export class MockDeploy {
         this.deployOpID_ = id;
     }
 
-    async deploy(orig: AdaptElement | null, options: DeployOptions = {}): Promise<DeployOutput> {
+    async deploy(orig: AdaptElement | null,
+        options: DeployOptions = {}): Promise<DeployOutput> {
+        return this._deploy(orig, { returnPlan: false, ...options });
+    }
+
+    async getExecutionPlan(orig: AdaptElement | null,
+        options: GetExecutionPlanOptions = {}): Promise<ExecutionPlanOutput> {
+        return this._deploy(orig, { returnPlan: true, ...options });
+    }
+
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal & { returnPlan: true }): Promise<ExecutionPlanOutput>;
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal & { returnPlan: false }): Promise<DeployOutput>;
+    private async _deploy(orig: AdaptElement | null,
+        options: DeployOptionsInternal): Promise<DeployOutput | ExecutionPlanOutput> {
+
         const { debug, style, ...opts } = { ...defaultDeployOptions, ...options };
         let dom: FinalDomElement | null;
         let mountedOrig: AdaptMountedElement | null;
@@ -162,6 +201,7 @@ export class MockDeploy {
                 builtElements,
                 deployOpID: this.deployOpID,
                 dryRun: opts.dryRun,
+                pollDelayMs: opts.pollDelayMs,
                 processStateUpdates,
                 taskObserver,
             };
@@ -172,6 +212,19 @@ export class MockDeploy {
                 await mgr.start(this.prevDom, dom, mgrOpts);
                 await mgr.observe();
                 mgr.analyze();
+
+                if (opts.returnPlan) {
+                    if (!isPluginManagerImpl(mgr)) throw new InternalError(`Not a PluginManagerImpl`);
+                    const plan = await mgr._createExecutionPlan(actOpts);
+                    if (!isExecutionPlanImpl(plan)) throw new InternalError(`Not an ExecutionPlanImpl`);
+                    return {
+                        dependencies: dependencies(plan, { key: "id" }),
+                        dom,
+                        mountedOrig,
+                        plan,
+                    };
+                }
+
                 const actResults = await mgr.act(actOpts);
                 await mgr.finish();
 
@@ -180,12 +233,55 @@ export class MockDeploy {
                     return { ...actResults, dom, mountedOrig, stepID };
                 }
             } catch (err) {
-                // tslint:disable-next-line: no-console
-                console.log(`Deploy error:`, err.message,
-                    `\nDumping log messages:\n`,
-                    messagesToString(this.logger.messages));
+                if (opts.logError) {
+                    // tslint:disable-next-line: no-console
+                    console.log(`Deploy error:`, err.message,
+                        `\nDumping log messages:\n`,
+                        messagesToString(this.logger.messages));
+                }
                 throw err;
             }
         }
     }
+}
+
+/**
+ * A plugin that claims ALL primitive DOM elements. For any element
+ * that has an `action` prop that's a function, that function will
+ * get executed during the element's Action. Otherwise, the Action will
+ * be a no-op.
+ */
+export class BasicTestPlugin implements Plugin<{}> {
+    async start() {/* */}
+    async observe() { return {}; }
+    analyze(oldDom: FinalDomElement | null, newDom: FinalDomElement | null, _obs: {}): Action[] {
+        const diff = domDiff(oldDom, newDom);
+        const actions = (elems: FinalDomElement[], ct: ChangeType) => {
+            return elems
+                .map((el) => {
+                    const act = async () => isFunction(el.instance.action) && el.instance.action();
+                    const type = el.instance.action ? ct : ChangeType.none;
+                    const detail = `Action ${type} - ${el.props.key}`;
+                    return {
+                        act,
+                        type,
+                        detail,
+                        changes: [{
+                            type,
+                            element: el,
+                            detail,
+                        }]
+                    };
+                });
+        };
+
+        return actions([...diff.added], ChangeType.create)
+            .concat(actions([...diff.commonNew], ChangeType.modify))
+            .concat(actions([...diff.deleted], ChangeType.delete));
+    }
+    async finish() {/* */}
+}
+
+export function createBasicTestPlugin() {
+    return new BasicTestPlugin();
 }

@@ -23,7 +23,6 @@ import Adapt, {
     Context,
     createContext,
     PropsType,
-    useReadyFrom,
     WithChildren,
 } from "@adpt/core";
 
@@ -62,12 +61,10 @@ export function withCredentials<
 ) {
     return (props: PropsType<W> & WithChildren) => {
         const { children, handle, ...rest } = props as any;
-        const wHand = Adapt.handle();
-        useReadyFrom(wHand);
         return (
             <Ctx.Consumer key={props.key}>
                 { (awsCredentials) => (
-                    <Wrapped awsCredentials={awsCredentials} handle={wHand} {...rest} >
+                    <Wrapped awsCredentials={awsCredentials} {...rest} >
                         {children}
                     </Wrapped>
                 )}
