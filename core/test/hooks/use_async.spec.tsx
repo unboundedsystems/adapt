@@ -29,4 +29,15 @@ describe("useAsync hook tests", () => {
         await Adapt.build(<Test />, null);
         should(val).eql([3, 10]);
     });
+
+    it("Should return computed value, even when undefined", async () => {
+        const val: (number | undefined)[] = [];
+        function Test(_props: {}) {
+            val.push(useAsync(async () => undefined, 3));
+            return null;
+        }
+
+        await Adapt.build(<Test />, null);
+        should(val).eql([3, undefined]);
+    });
 });
