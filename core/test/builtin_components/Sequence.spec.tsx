@@ -25,6 +25,8 @@ import Adapt, {
     Group,
     handle,
     SFCDeclProps,
+    useImperativeMethods,
+    useState,
     waiting
 } from "../../src";
 import { Sequence } from "../../src/builtin_components/sequence";
@@ -67,9 +69,28 @@ class Prim extends Adapt.PrimitiveComponent<PrimProps, PrimState> {
     }
 }
 
-function ToPrim(props: SFCDeclProps<PrimProps>) {
-    const { handle: _h, ...rest } = props;
+interface ToPrimProps extends PrimProps {
+    toPrimDeployed?: () => boolean;
+}
+
+function ToPrim(props: SFCDeclProps<ToPrimProps>) {
+    const { handle: _h, toPrimDeployed, ...rest } = props;
+    const [ , setDeployed ] = useState<boolean>(false);
+
+    useImperativeMethods(() => {
+        if (!toPrimDeployed) return {};
+        const deployedWhen = () => {
+            setDeployed(toPrimDeployed());
+            return toPrimDeployed() ? true : waiting("ToPrim not ready");
+        };
+        return { deployedWhen };
+    });
+
     return <Prim {...rest} />;
+}
+
+function ToNull() {
+    return null;
 }
 
 describe("Sequence Component Tests", () => {
@@ -99,6 +120,16 @@ describe("Sequence Component Tests", () => {
 
     it("Should instantiate with no children", async () => {
         const root = <Sequence />;
+        const { contents: dom } = await build(root, null);
+        should(dom).equal(null);
+    });
+
+    it("Should instantiate with no primitive children", async () => {
+        const root =
+            <Sequence>
+                <ToNull />
+                <ToNull />
+            </Sequence>;
         const { contents: dom } = await build(root, null);
         should(dom).equal(null);
     });
@@ -157,6 +188,52 @@ describe("Sequence Component Tests", () => {
         }
     });
 
+    it("Should deploy FC elements with deployedWhen in sequence", async () => {
+        const actionsExpected: number[] = [];
+
+        for (deployPass = 0; deployPass <= 3; deployPass++) {
+            const root =
+                <Sequence>
+                    <ToPrim key="1" id={1} toPrimDeployed={deployedFn(1)} deployed={() => true} action={actionFn(1)} />
+                    <ToPrim key="2" id={2} toPrimDeployed={deployedFn(2)} deployed={() => true} action={actionFn(2)} />
+                    <ToPrim key="3" id={3} toPrimDeployed={deployedFn(3)} deployed={() => true} action={actionFn(3)} />
+                </Sequence>;
+
+            if (deployPass === 0) { // Only check deps once
+                const { dom, dependencies, mountedOrig } = await deploy.getExecutionPlan(root, deployOpts);
+                if (dom == null) throw should(dom).be.ok();
+                if (mountedOrig == null) throw should(mountedOrig).be.ok();
+                should(dependencies).eql({
+                    '["Sequence","Sequence","1"]': [],
+                    "Action create - 1": [],
+                    '["Sequence","Sequence","1","1"]': [ "Action create - 1" ],
+
+                    // Dependency should be on the mountedOrig (ToPrim) component
+                    '["Sequence","Sequence","2"]': [ '["Sequence","Sequence","1"]' ],
+                    "Action create - 2": [ '["Sequence","Sequence","1"]' ],
+                    '["Sequence","Sequence","2","2"]': [ "Action create - 2" ],
+
+                    // Dependency should be on the mountedOrig (ToPrim) component
+                    '["Sequence","Sequence","3"]': [ '["Sequence","Sequence","2"]' ],
+                    "Action create - 3": [ '["Sequence","Sequence","2"]' ],
+                    '["Sequence","Sequence","3","3"]': [ "Action create - 3" ],
+
+                    // These don't have dependencies, but they do have deployedWhens
+                    '["Sequence"]': [],
+                    '["Sequence","Sequence"]': [],
+                    '["Sequence","Sequence","Sequence"]': [],
+                });
+            }
+
+            const { deployComplete } = await deploy.deploy(root, deployOpts);
+            // Complete only on final pass
+            should(deployComplete).equal(deployPass === 3);
+
+            if (deployPass < 3) actionsExpected.push(deployPass + 1);
+            should(actionsDone).eql(actionsExpected);
+        }
+    });
+
     it("Should deploy handles in sequence", async () => {
         const actionsExpected: number[] = [];
 
@@ -177,7 +254,8 @@ describe("Sequence Component Tests", () => {
                         {h1}
                         <Prim key="2" id={2} deployed={deployedFn(2)} action={actionFn(2)} />
                         {h3}
-                        <ToPrim key="4" id={4} deployed={deployedFn(4)} action={actionFn(4)} />
+                        <ToPrim key="4" id={4} toPrimDeployed={deployedFn(4)}
+                            deployed={() => true} action={actionFn(4)} />
                         {h5}
                         <Prim key="6" id={6} deployed={deployedFn(6)} action={actionFn(6)} />
                     </Sequence>
@@ -200,9 +278,13 @@ describe("Sequence Component Tests", () => {
                     '["Group","3","3"]': [ "Action create - 3" ],
                     '["Group","5","5"]': [ "Action create - 5" ],
 
-                    '["Group","Sequence","2"]': [ "Action create - 2" ],
-                    '["Group","Sequence","4","4"]': [ "Action create - 4" ],
-                    '["Group","Sequence","6"]': [ "Action create - 6" ],
+                    '["Group","Sequence","Sequence","2"]': [ "Action create - 2" ],
+
+                    // ToPrim gets a dependency on 3
+                    '["Group","Sequence","Sequence","4"]': [ '["Group","3"]' ],
+                    '["Group","Sequence","Sequence","4","4"]': [ "Action create - 4" ],
+
+                    '["Group","Sequence","Sequence","6"]': [ "Action create - 6" ],
 
                     // Intermediate components don't get dependencies
                     '["Group"]': [],
@@ -211,7 +293,7 @@ describe("Sequence Component Tests", () => {
                     '["Group","5"]': [],
                     '["Group","Sequence"]': [],
                     '["Group","Sequence","Sequence"]': [],
-                    '["Group","Sequence","4"]': [],
+                    '["Group","Sequence","Sequence","Sequence"]': [],
                 });
 
             }
@@ -230,6 +312,7 @@ describe("Sequence Component Tests", () => {
             addExpected(4, 3);
             addExpected(6, 5);
 
+            should(actionsDone.length).equal(actionsExpected.length);
             should(actionsDone).containDeep(actionsExpected);
         }
     });

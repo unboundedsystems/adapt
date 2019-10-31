@@ -24,10 +24,15 @@ import {
     createElement,
     DeferredComponent,
     isElement,
+    isMountedElement,
+    SFCDeclProps,
 } from "../jsx";
 import { Children } from "../type_support";
 import { Group } from "./group";
 
+/**
+ * Props for {@link Adapt.Sequence}.
+ */
 export interface SequenceProps extends Children<Handle | AdaptElement | null> { }
 
 function toHandle(val: Handle | AdaptElement): Handle {
@@ -40,14 +45,35 @@ function handleDependsOn(h: Handle, dependency: Handle) {
     orig.addDependency(dependency);
 }
 
-export class Sequence extends DeferredComponent<SequenceProps> {
+/**
+ * Component that deploys its children sequentially.
+ * @public
+ */
+export function Sequence(props: SFCDeclProps<SequenceProps>) {
+    const origChildren = childrenToArray(props.children).filter(notNull);
+    const newProps = {
+        key: props.key,
+        origChildren,
+    };
+    return createElement(SequenceDeferred, newProps, origChildren);
+}
+
+interface SequenceDeferredProps extends SequenceProps {
+    origChildren: (Handle | AdaptElement)[];
+}
+
+function nextBuilt(el: AdaptElement, skip?: AdaptElement) {
+    const next = el.props.handle.nextMounted((e) => e !== skip && isMountedElement(e) && e.built());
+    return next === skip ? undefined : next;
+}
+
+class SequenceDeferred extends DeferredComponent<SequenceDeferredProps> {
     build() {
         const props = this.props;
-        const kids = childrenToArray(props.children).filter(notNull);
-        if (kids.length === 0) return null;
+        const origKids = props.origChildren;
 
         let prev: Handle | undefined;
-        for (const k of kids) {
+        for (const k of origKids) {
             if (!isHandle(k) && !isElement(k)) {
                 throw new Error("Children of a Sequence component must be an " +
                     "Element or Handle. Invalid child: " + util.inspect(k));
@@ -56,11 +82,18 @@ export class Sequence extends DeferredComponent<SequenceProps> {
 
             // Only Elements inside the Sequence get dependencies. Handles
             // inside a sequence don't get any new dependencies.
-            if (prev && isElement(k)) handleDependsOn(kHandle, prev);
+            if (prev && isElement(k)) {
+                for (let el = nextBuilt(k); el != null; el = nextBuilt(el, el)) {
+                    handleDependsOn(el.props.handle, prev);
+                }
+            }
             prev = kHandle;
         }
 
-        return createElement(Group, { key: props.key }, kids.filter(isElement));
+        const finalKids = childrenToArray(props.children).filter(isElement);
+        if (finalKids.length === 0) return null;
+
+        return createElement(Group, { key: props.key }, finalKids);
     }
 
     deployedWhen = (_goalStatus: GoalStatus, helpers: DeployHelpers) => {
