@@ -20,6 +20,10 @@ import execa from "execa";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldActDetail } from "./Action";
 
+/**
+ * Properties for the {@link action.Command | Command} component.
+ * @public
+ */
 export interface CommandProps {
     shouldRun?: string[];
     shouldDelete?: string[];
@@ -57,6 +61,11 @@ async function runCommand(cmd: string[], cmdName: string, log: MessageLogger, al
     }
 }
 
+/**
+ * Primitive component that can be used to interact with commands via the
+ * OS shell to implement actions in Adapt.
+ * @public
+ */
 export class Command extends Action<CommandProps> {
     async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldActDetail> {
         let detail = "Running command: ";
@@ -94,4 +103,3 @@ export class Command extends Action<CommandProps> {
         await runCommand(cmd, cmdName, ctx.logger);
     }
 }
-export default Command;

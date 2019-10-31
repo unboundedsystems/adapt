@@ -24,16 +24,39 @@ import {
 import { isInstance, isObject, MessageLogger, tagConstructor } from "@adpt/utils";
 import { isBoolean } from "util";
 
+/**
+ * Detailed information on why an action should be taken.
+ * @public
+ */
 export interface ShouldActDetail {
+    /**
+     * True if the action should be performed.
+     */
     act: boolean;
+    /**
+     * Explanation of why the action should be performed.
+     */
     detail: string;
 }
+/**
+ * Return type for {@link action.Action.shouldAct} that describes whether an
+ * action should be taken and why.
+ * @public
+ */
 export type ShouldAct = false | ShouldActDetail;
 
+/**
+ * Type guard for {@link action.ShouldActDetail}.
+ * @public
+ */
 export function isShouldActDetail(val: any): val is ShouldActDetail {
     return isObject(val) && typeof val.act === "boolean";
 }
 
+/**
+ * Transforms a {@link action.ShouldAct} into an {@link action.ShouldActDetail}.
+ * @internal
+ */
 export function toDetail(val: ShouldAct) {
     return {
         act: isBoolean(val) ? val : val.act,
@@ -42,7 +65,7 @@ export function toDetail(val: ShouldAct) {
 }
 
 /**
- * Information that can be used to decide to, or perform actions
+ * Helper information for an {@link action.Action} component.
  * @public
  */
 export interface ActionContext {
@@ -78,11 +101,19 @@ export class Action
 }
 tagConstructor(Action, "adapt");
 
+/**
+ * Type guard for Action FinalDomElements.
+ * @internal
+ */
 export function isActionFinalElement(val: any): val is FinalDomElement {
     return isFinalDomElement(val) &&
         isInstance(val.componentType.prototype, Action, "adapt");
 }
 
+/**
+ * Returns the component instance for an {@link action.Action} component.
+ * @internal
+ */
 export function getActionInstance(el: FinalDomElement): Action | null {
     const inst: any = el.instance;
     if (isInstance(inst, Action, "adapt")) return inst;

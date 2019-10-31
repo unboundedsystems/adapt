@@ -24,6 +24,7 @@ export * from "./LocalDockerHost";
 export * from "./NetworkService";
 export * from "./Service";
 
+import * as action from "./action";
 import * as aws from "./aws";
 import * as docker from "./docker";
 import * as http from "./http";
@@ -32,6 +33,7 @@ import * as nginx from "./nginx";
 import * as nodejs from "./nodejs";
 import * as postgres from "./postgres";
 export {
+    action,
     aws,
     docker,
     http,
