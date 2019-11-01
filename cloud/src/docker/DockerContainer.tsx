@@ -27,7 +27,7 @@ import {
 import { InternalError, MultiError, sha256hex } from "@adpt/utils";
 import { difference, intersection, isEqual, isError, pickBy, uniq } from "lodash";
 import { Action, ActionContext, ShouldAct } from "../action";
-import { ContainerLabels, ContainerStatus } from "../Container";
+import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
 import {
     dockerImageId,
     dockerInspect,
@@ -238,6 +238,16 @@ class DockerContainerState {
     info?: ContainerInfo;
 }
 
+function networkStatus(
+    net: string,
+    networks: { [name: string]: ContainerNetwork }): ContainerNetwork | undefined {
+    if ((net in networks) && (networks[net] !== undefined)) return networks[net];
+    for (const name of Object.keys(networks)) {
+        if (net === networks[name].NetworkID) return networks[name];
+    }
+    return undefined;
+}
+
 /**
  * Component to instantiate an image container with docker
  *
@@ -341,7 +351,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
             if (stat.NetworkSettings.IPAddress === "") return undefined;
             return stat.NetworkSettings.IPAddress;
         }
-        const netStat = stat.NetworkSettings.Networks[network];
+        const netStat = networkStatus(network, stat.NetworkSettings.Networks);
         if (!netStat) return undefined;
         if (netStat.IPAddress === "") return undefined;
         return netStat.IPAddress;
