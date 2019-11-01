@@ -443,10 +443,12 @@ export interface DockerRunOptions extends OmitT<WithPartialT<DockerContainerProp
     name?: string;
     image: ImageNameString;
     network?: string;
+    privileged?: boolean;
 }
 
 const defaultDockerRunOptions = {
     background: true,
+    privileged: false,
 };
 
 /**
@@ -456,9 +458,10 @@ const defaultDockerRunOptions = {
  */
 export async function dockerRun(options: DockerRunOptions) {
     const opts = { ...defaultDockerRunOptions, ...options };
-    const { background, labels, name, portBindings, } = opts;
+    const { background, labels, name, portBindings, privileged } = opts;
     const args: string[] = ["run"];
 
+    if (privileged) args.push("--privileged");
     if (background) args.push("-d");
     if (name) args.push("--name", name);
     if (labels) {
