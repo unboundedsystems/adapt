@@ -93,17 +93,29 @@ export function isHandleObj(val: object): val is HandleObj {
     return (val as any).__adaptIsHandle === handleSignature;
 }
 
-function traverseUntil(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
+/**
+ * Find the Element corresponding to the first handle in the chain for which
+ * `pred` returns true.
+ * @remarks
+ * In the case that the predicate returns true for `hand`, the Element
+ * associated with `hand` will be returned.
+ * @returns
+ * The Element associated to the first handle in the chain for which the
+ * predicate returns true.
+ * If no handles in the chain satisfy the predicate, the function returns
+ * `null` if the chain built to `null`, otherwise `undefined`.
+ * @internal
+ */
+function findFirst(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
     while (!pred(hand)) {
         const orig = hand.origTarget;
         if (orig === undefined) {
             throw new InternalError(`Handle chain has undefined origTarget`);
         }
-        if (hand.childElement === undefined) break;
 
-        // Null child means no Element is present for this handle in
-        // the final DOM.
-        if (hand.childElement === null) return null;
+        // We've reached the end of the chain without finding a Handle that
+        // matches the predicate.
+        if (hand.childElement == null) return hand.childElement;
 
         const childHand = hand.childElement.props.handle;
         if (childHand == null) {
@@ -117,6 +129,32 @@ function traverseUntil(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
     }
 
     return hand.origTarget;
+}
+
+/**
+ * Return the Element associated with the last Handle in the chain.
+ * If the chain ends with `null`, returns `null`.
+ */
+function findLast(hand: HandleImpl) {
+    while (true) {
+        const orig = hand.origTarget;
+        if (orig === undefined) {
+            throw new InternalError(`Handle chain has undefined origTarget`);
+        }
+        if (hand.childElement === undefined) return hand.origTarget;
+
+        if (hand.childElement === null) return null;
+
+        const childHand = hand.childElement.props.handle;
+        if (childHand == null) {
+            throw new InternalError(`no Handle present on Element in child chain`);
+        }
+        if (!isHandleImpl(childHand)) {
+            throw new InternalError(`Handle present on Element is not a HandleImpl`);
+        }
+
+        hand = childHand;
+    }
 }
 
 class HandleImpl implements HandleInternal {
@@ -209,7 +247,7 @@ class HandleImpl implements HandleInternal {
     }
 
     nextMounted(pred: ElementPredicate = () => true): AdaptMountedElement | null | undefined {
-        const elem = traverseUntil(this, (hand) => {
+        const elem = findFirst(this, (hand) => {
             return isMountedElement(hand.origTarget) && pred(hand.origTarget);
         }) as AdaptMountedElement;
         if (elem == null) return elem;
@@ -219,7 +257,7 @@ class HandleImpl implements HandleInternal {
 
     get target(): AdaptElement | null | undefined {
         if (this.origTarget === undefined) return undefined;
-        return traverseUntil(this, () => false);
+        return findLast(this);
     }
 
     toString() {
