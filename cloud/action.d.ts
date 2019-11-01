@@ -14,15 +14,4 @@
  * limitations under the License.
  */
 
- /**
-  * Action library for implementing simple primitive components.
-  * @public
-  */
-
-export * from "./Action";
-export * from "./Command";
-
-export {
-    ActionPlugin,
-    createActionPlugin
-} from "./action_plugin";
+export * from "./dist/src/action";

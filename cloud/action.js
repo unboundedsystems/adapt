@@ -14,15 +14,9 @@
  * limitations under the License.
  */
 
- /**
-  * Action library for implementing simple primitive components.
-  * @public
-  */
-
-export * from "./Action";
-export * from "./Command";
-
-export {
-    ActionPlugin,
-    createActionPlugin
-} from "./action_plugin";
+"use strict";
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+__export(require("./dist/src/action"));
