@@ -15,6 +15,7 @@
  */
 
 import Adapt, {
+    callInstanceMethod,
     handle,
     SFCBuildProps,
     SFCDeclProps,
@@ -62,18 +63,26 @@ export interface DockerRegistryInstance {
  * @public
  */
 export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps, typeof defaultProps>) {
-    const { handle: _h, imageTag, port, ...buildProps } =
+    const { handle: _h, imageTag, port, portBindings: portBindingsIn, ...buildProps } =
         props as SFCBuildProps<LocalDockerRegistryProps, typeof defaultProps>;
+    const hardCodedInternalPort = 5000;
+    let portBindings = portBindingsIn;
+    if (port !== undefined) {
+        if (!portBindings) portBindings = {};
+        portBindings[hardCodedInternalPort] = port;
+    }
     const ctr = handle();
 
     const dockerHost = buildProps.dockerHost;
     const image = `registry:${imageTag}`;
 
-    const ipAddr = useMethod<string | undefined>(ctr, undefined, "dockerIP");
+    const ipAddr = useMethod<string | undefined>(ctr, undefined, "dockerIP", props.networks && props.networks[0]);
 
-    function registry() {
-        if (!ipAddr) return undefined;
-        return `${ipAddr}:${props.port}`;
+    function registry(network?: string) {
+        let netIP = ipAddr;
+        if (network) netIP = callInstanceMethod(ctr, undefined, "dockerIP", network);
+        if (netIP === undefined) return undefined;
+        return `${netIP}:${hardCodedInternalPort}`;
     }
 
     useDeployedWhen(async () => {
@@ -85,7 +94,7 @@ export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps
                     background: false,
                     image: busyboxImage,
                     dockerHost,
-                    command: [ "wget", "--spider", `http://${registry()}/v2/`],
+                    command: ["wget", "--spider", `http://${registry()}/v2/`],
                 });
                 return true;
             } catch (err) {
@@ -101,6 +110,6 @@ export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps
         registry,
     }));
 
-    return <DockerContainer handle={ctr} image={image} {...buildProps} />;
+    return <DockerContainer handle={ctr} image={image} portBindings={portBindings} {...buildProps} />;
 }
 (LocalDockerRegistry as any).defaultProps = defaultProps;

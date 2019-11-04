@@ -79,7 +79,7 @@ export interface LocalDockerImageProps {
      * To create a final Docker image that contains a file that has some
      * programmatically created content, use the `dockerfile` prop along
      * with the `files` prop like this:
-     * ```
+     * ```tsx
      * const files = [{
      *   path: '/path/to/myfile.txt',
      *   contents: 'contents for myfile\n'

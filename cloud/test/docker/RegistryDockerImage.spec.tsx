@@ -42,7 +42,7 @@ describe("RegistryDockerImage", function () {
     let mockDeploy: MockDeploy;
     let pluginDir: string;
 
-    this.timeout(60 * 1000);
+    this.timeout(80 * 1000);
     this.slow(4 * 1000);
 
     mochaTmpdir.all(`adapt-cloud-registrydockerimage`);

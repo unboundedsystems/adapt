@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+IMAGE="google/cloud-sdk:latest"
+
+GCP_CONFIG_CTR="gcloud-config"
+
+# If the gcloud-config container is set up, it has the persistent
+# configuration for gcloud, including auth.
+if [[ -n $(docker ps -aq -f "name=^/${GCP_CONFIG_CTR}$") ]]; then
+    DOCKER_ARGS+=" --volumes-from=${GCP_CONFIG_CTR}"
+fi
+
+DOCKER_ARGS+=" --mount type=volume,source=adapt-gcloud-kube,destination=/root/.kube"
+
+. "${TOP_DIR}/containit/containit.sh"

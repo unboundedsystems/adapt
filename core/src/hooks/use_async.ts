@@ -17,7 +17,7 @@
 import { useState } from "./state";
 
 export function useAsync<T>(f: () => Promise<T> | T, initial: T): T {
-    const [val, setVal] = useState(initial);
-    setVal(f);
-    return val;
+    const [val, setVal] = useState<{ ret: T }>({ ret: initial });
+    setVal(async () => ({ ret: await f() }));
+    return val.ret;
 }

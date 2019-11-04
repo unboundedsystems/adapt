@@ -23,7 +23,7 @@ import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
 import { Readable } from "stream";
-import { OmitT } from "type-ops";
+import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
 import { ContainerStatus } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
@@ -438,15 +438,17 @@ export async function dockerRm(namesOrIds: string[], opts: DockerGlobalOptions):
  *
  * @internal
  */
-export interface DockerRunOptions extends OmitT<DockerContainerProps, "networks"> {
+export interface DockerRunOptions extends OmitT<WithPartialT<DockerContainerProps, "dockerHost">, "networks"> {
     background?: boolean;
     name?: string;
     image: ImageNameString;
     network?: string;
+    privileged?: boolean;
 }
 
 const defaultDockerRunOptions = {
     background: true,
+    privileged: false,
 };
 
 /**
@@ -456,9 +458,10 @@ const defaultDockerRunOptions = {
  */
 export async function dockerRun(options: DockerRunOptions) {
     const opts = { ...defaultDockerRunOptions, ...options };
-    const { background, labels, name, portBindings, } = opts;
+    const { background, labels, name, portBindings, privileged } = opts;
     const args: string[] = ["run"];
 
+    if (privileged) args.push("--privileged");
     if (background) args.push("-d");
     if (name) args.push("--name", name);
     if (labels) {
@@ -468,13 +471,22 @@ export async function dockerRun(options: DockerRunOptions) {
     }
     if (opts.autoRemove) args.push("--rm");
     if (portBindings) {
-        const portArgs = Object.keys(portBindings).map((k) => `-p${k}:${portBindings[k]}`);
+        const portArgs = Object.keys(portBindings).map((k) => `-p${portBindings[k]}:${k}`);
         args.push(...portArgs);
     }
     if (opts.stopSignal) args.push("--stop-signal", opts.stopSignal);
 
     if (opts.network !== undefined) {
         args.push("--network", opts.network);
+    }
+
+    if (opts.environment !== undefined) {
+        const envPairs = mergeEnvPairs(opts.environment);
+        if (envPairs) {
+            for (const evar of envPairs) {
+                args.push("-e", `${evar.name}=${evar.value}`);
+            }
+        }
     }
 
     args.push(opts.image);
