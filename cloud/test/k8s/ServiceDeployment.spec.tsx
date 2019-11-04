@@ -137,7 +137,7 @@ describe("k8s ServiceDeployment tests", function () {
     });
 
     it("should push container to private registry and run in k8s", async function () {
-        const timeout = 30 * 1000;
+        const timeout = 300 * 1000;
         this.timeout(timeout);
 
         const dockerNetworkId = (await mkInstance.info).network.id;
