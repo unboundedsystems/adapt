@@ -32,6 +32,7 @@ import * as k8s from "./k8s";
 import * as nginx from "./nginx";
 import * as nodejs from "./nodejs";
 import * as postgres from "./postgres";
+import * as redis from "./redis";
 export {
     action,
     aws,
@@ -40,7 +41,8 @@ export {
     k8s,
     nginx,
     nodejs,
-    postgres
+    postgres,
+    redis,
 };
 export * from "./handles";
 export * from "./env";

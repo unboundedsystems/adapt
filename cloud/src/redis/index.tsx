@@ -14,5 +14,11 @@
  * limitations under the License.
  */
 
+/**
+ * The {@link https://redis.io/ | Redis} library for Adapt.
+ *
+ * @public
+ */
+
 export * from "./Redis";
 export * from "./TestRedis";
