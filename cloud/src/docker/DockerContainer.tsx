@@ -25,7 +25,7 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError, sha256hex } from "@adpt/utils";
-import { difference, intersection, isEqual, isError, pickBy, uniq } from "lodash";
+import { difference, intersection, isError, uniq } from "lodash";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
 import {
@@ -113,8 +113,15 @@ async function arraysHaveSameNetworks(x: any[], y: any[], opts: DockerGlobalOpti
     return intersection([xIds, yIds]).length !== xIds.length;
 }
 
-function userLabels(labels: ContainerLabels) {
-    return pickBy(labels, (_: unknown, key: string) => key !== adaptDockerDeployIDKey);
+/**
+ * Ensure all labels in `requested` are in `current` with the requested value.
+ * Ignores excess labels in `current`.
+ */
+function hasLabels(requested: ContainerLabels, current: ContainerLabels) {
+    for (const r of Object.keys(requested)) {
+        if (current[r] !== requested[r]) return false;
+    }
+    return true;
 }
 
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
@@ -123,7 +130,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!containerExistsAndIsFromDeployment(info, context)) return "existsUnmanaged";
     if (!info.data) throw new Error(`Container exists, but no info.data??: ${info}`);
     if (await getImageId(props.image, props) !== info.data.Image) return "replace";
-    if (!isEqual(props.labels || {}, userLabels(info.data.Config.Labels))) return "replace";
+    if (!hasLabels(props.labels || {}, info.data.Config.Labels)) return "replace";
     let desiredNetworks = props.networks;
     if (desiredNetworks === undefined) {
         const defaultNetwork = await dockerDefaultNetwork(props);
