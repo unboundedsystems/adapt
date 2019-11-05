@@ -26,6 +26,7 @@ import {
 } from "@adpt/core";
 import { InternalError, MultiError, sha256hex } from "@adpt/utils";
 import { difference, intersection, isError, uniq } from "lodash";
+import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
 import {
@@ -71,11 +72,11 @@ function computeContainerNameFromContext(context: ActionContext): string {
 
 async function fetchContainerInfo(context: ActionContext, props: DockerContainerProps): Promise<ContainerInfo> {
     const name = computeContainerNameFromContext(context);
-    const inspect = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
-    if (inspect.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
+    const insp = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
+    if (insp.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
     const info = {
         name,
-        data: inspect[0] //will be undefined if no container found
+        data: insp[0] //will be undefined if no container found
     };
     return info;
 }
@@ -275,15 +276,14 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     };
 
     /** @internal */
-    async shouldAct(op: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
+    async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
         const containerInfo = await fetchContainerInfo(context, this.props);
         const displayName = this.displayName(context);
-        switch (op) {
-            case "none": return false;
+        switch (diff) {
             case "modify":
-            case "replace":
             case "create":
-                switch (await containerIsUpToDate(containerInfo, context, this.props)) {
+                const status = await containerIsUpToDate(containerInfo, context, this.props);
+                switch (status) {
                     case "noExist":
                         return { act: true, detail: `Creating container ${displayName}` };
                     case "replace":
@@ -296,44 +296,56 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                     case "upToDate":
                         return false;
                     default:
-                        throw new InternalError(`Unhandled ChangeType in DockerContainer`);
+                        throw new InternalError(`Unhandled status '${status}' in DockerContainer`);
                 }
 
             case "delete":
                 return containerExistsAndIsFromDeployment(containerInfo, context)
                     ? { act: true, detail: `Deleting container ${displayName}` }
                     : false;
+
+            case "none":
+            case "replace":
+            default:
+                throw new InternalError(`Unhandled ChangeType '${diff}' in DockerContainer`);
         }
-        return false;
     }
 
     /** @internal */
-    async action(op: ChangeType, context: ActionContext): Promise<void> {
+    async action(diff: ChangeType, context: ActionContext): Promise<void> {
         const oldInfo = await fetchContainerInfo(context, this.props);
-        switch (op) {
-            case "none": return;
+        switch (diff) {
             case "modify":
+            case "create":
                 const status = await containerIsUpToDate(oldInfo, context, this.props);
+                if (status === "existsUnmanaged") {
+                    throw new Error(`Container ${oldInfo.name} already exstis,`
+                        + ` but is not part of this deployment: ${inspect(oldInfo)}`);
+                }
+                if (status === "upToDate") return;
+
                 if (status === "update") {
                     await updateContainer(oldInfo, context, this.props);
-                    const newInfo = await fetchContainerInfo(context, this.props);
-                    this.setState({ info: newInfo });
-                    break;
                 }
-            //Fallthrough
-            case "replace":
-                //FIXME(manishv) Is there a bug here where this will throw if the container
-                //is deleted between shouldAct and action?  Do we care about this?
-                await stopAndRmContainer(context, oldInfo, this.props);
-            // Fallthrough
-            case "create":
-                await runContainer(context, this.props);
-                const info = await fetchContainerInfo(context, this.props);
-                this.setState({ info });
+                if (status === "replace") {
+                    await stopAndRmContainer(context, oldInfo, this.props);
+                }
+                if (status === "replace" || status === "noExist") {
+                    await runContainer(context, this.props);
+                }
+                const newInfo = await fetchContainerInfo(context, this.props);
+                this.setState({ info: newInfo });
                 return;
+
             case "delete":
                 await stopAndRmContainer(context, oldInfo, this.props);
                 this.setState({ info: undefined });
+                return;
+
+            case "none":
+            case "replace":
+            default:
+                throw new InternalError(`Unhandled ChangeType '${diff}' in DockerContainer`);
         }
     }
 
