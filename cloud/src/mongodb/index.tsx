@@ -14,5 +14,10 @@
  * limitations under the License.
  */
 
+/**
+ * The library for {@link https://www.mongodb.com/ | MongoDB} for Adapt.
+ * @public
+ */
+
 export * from "./MongoDB";
 export * from "./TestMongoDB";

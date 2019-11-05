@@ -29,6 +29,7 @@ import * as aws from "./aws";
 import * as docker from "./docker";
 import * as http from "./http";
 import * as k8s from "./k8s";
+import * as mongodb from "./mongodb";
 import * as nginx from "./nginx";
 import * as nodejs from "./nodejs";
 import * as postgres from "./postgres";
@@ -39,6 +40,7 @@ export {
     docker,
     http,
     k8s,
+    mongodb,
     nginx,
     nodejs,
     postgres,
