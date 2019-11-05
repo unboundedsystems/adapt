@@ -50,7 +50,7 @@ function parseArgs() {
 async function main() {
     const args = parseArgs();
 
-    const gitRoot = await execa.stdout("git", ["rev-parse", "--show-toplevel"]);
+    const { stdout: gitRoot } = await execa("git", ["rev-parse", "--show-toplevel"]);
 
     const subprocArgs = [
         "--copyrightHolder", copyrightHolder,
