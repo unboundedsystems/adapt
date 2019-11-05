@@ -24,9 +24,11 @@ import {
     NoStatus,
     ObserveForStatus
 } from "@adpt/core";
-import { InternalError, MultiError, sha256hex } from "@adpt/utils";
-import { difference, intersection, isEqual, isError, pickBy, uniq } from "lodash";
+import { InternalError, MultiError } from "@adpt/utils";
+import { difference, intersection, isError, uniq } from "lodash";
+import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
+import { makeResourceName } from "../common";
 import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
 import {
     dockerImageId,
@@ -57,25 +59,25 @@ interface ContainerInfo {
  *
  * @internal
  */
-export function computeContainerName(id: string, deployID: string) {
-    return "adapt-" + sha256hex(id + "-" + deployID);
+export const computeContainerName = makeResourceName(/[^a-z-.]/g, 63);
+
+function computeContainerNameFromBuildData(props: { key?: string }, buildData: BuildData): string {
+    if (!props.key) throw new InternalError(`DockerContainer with id '${buildData.id}' has no key`);
+    return computeContainerName(props.key, buildData.id, buildData.deployID);
 }
 
-function computeContainerNameFromBuildData(buildData: BuildData) {
-    return computeContainerName(buildData.id, buildData.deployID);
+function computeContainerNameFromContext(props: { key?: string }, context: ActionContext): string {
+    return computeContainerNameFromBuildData(props, context.buildData);
 }
 
-function computeContainerNameFromContext(context: ActionContext): string {
-    return computeContainerNameFromBuildData(context.buildData);
-}
-
-async function fetchContainerInfo(context: ActionContext, props: DockerContainerProps): Promise<ContainerInfo> {
-    const name = computeContainerNameFromContext(context);
-    const inspect = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
-    if (inspect.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
+async function fetchContainerInfo(context: ActionContext,
+    props: DockerContainerProps & { key?: string }): Promise<ContainerInfo> {
+    const name = computeContainerNameFromContext(props, context);
+    const insp = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
+    if (insp.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
     const info = {
         name,
-        data: inspect[0] //will be undefined if no container found
+        data: insp[0] //will be undefined if no container found
     };
     return info;
 }
@@ -113,8 +115,15 @@ async function arraysHaveSameNetworks(x: any[], y: any[], opts: DockerGlobalOpti
     return intersection([xIds, yIds]).length !== xIds.length;
 }
 
-function userLabels(labels: ContainerLabels) {
-    return pickBy(labels, (_: unknown, key: string) => key !== adaptDockerDeployIDKey);
+/**
+ * Ensure all labels in `requested` are in `current` with the requested value.
+ * Ignores excess labels in `current`.
+ */
+function hasLabels(requested: ContainerLabels, current: ContainerLabels) {
+    for (const r of Object.keys(requested)) {
+        if (current[r] !== requested[r]) return false;
+    }
+    return true;
 }
 
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
@@ -123,7 +132,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!containerExistsAndIsFromDeployment(info, context)) return "existsUnmanaged";
     if (!info.data) throw new Error(`Container exists, but no info.data??: ${info}`);
     if (await getImageId(props.image, props) !== info.data.Image) return "replace";
-    if (!isEqual(props.labels || {}, userLabels(info.data.Config.Labels))) return "replace";
+    if (!hasLabels(props.labels || {}, info.data.Config.Labels)) return "replace";
     let desiredNetworks = props.networks;
     if (desiredNetworks === undefined) {
         const defaultNetwork = await dockerDefaultNetwork(props);
@@ -186,7 +195,13 @@ async function stopAndRmContainer(
     props: DockerContainerProps): Promise<void> {
 
     if (!info.data) return;
-    await dockerStop([info.data.Id], { dockerHost: props.dockerHost });
+    try {
+        await dockerStop([info.data.Id], { dockerHost: props.dockerHost });
+    } catch (err) {
+        // Ignore if it's already stopped
+        if (err.message && /No such container/.test(err.message)) return;
+        throw err;
+    }
     try {
         await dockerRm([info.data.Id], { dockerHost: props.dockerHost });
     } catch (err) {
@@ -208,9 +223,9 @@ function getImageNameOrId(props: DockerContainerProps): string | undefined {
     }
 }
 
-async function runContainer(context: ActionContext, props: DockerContainerProps): Promise<void> {
+async function runContainer(context: ActionContext, props: DockerContainerProps & { key?: string }): Promise<void> {
     const image = getImageNameOrId(props);
-    const name = computeContainerNameFromContext(context);
+    const name = computeContainerNameFromContext(props, context);
     if (image === undefined) return;
     const { networks, ...propsNoNetworks } = props;
     const opts = {
@@ -262,15 +277,14 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     };
 
     /** @internal */
-    async shouldAct(op: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
+    async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
         const containerInfo = await fetchContainerInfo(context, this.props);
         const displayName = this.displayName(context);
-        switch (op) {
-            case "none": return false;
+        switch (diff) {
             case "modify":
-            case "replace":
             case "create":
-                switch (await containerIsUpToDate(containerInfo, context, this.props)) {
+                const status = await containerIsUpToDate(containerInfo, context, this.props);
+                switch (status) {
                     case "noExist":
                         return { act: true, detail: `Creating container ${displayName}` };
                     case "replace":
@@ -283,49 +297,63 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                     case "upToDate":
                         return false;
                     default:
-                        throw new InternalError(`Unhandled ChangeType in DockerContainer`);
+                        throw new InternalError(`Unhandled status '${status}' in DockerContainer`);
                 }
 
             case "delete":
                 return containerExistsAndIsFromDeployment(containerInfo, context)
                     ? { act: true, detail: `Deleting container ${displayName}` }
                     : false;
+
+            case "none":
+            case "replace":
+            default:
+                throw new InternalError(`Unhandled ChangeType '${diff}' in DockerContainer`);
         }
-        return false;
     }
 
     /** @internal */
-    async action(op: ChangeType, context: ActionContext): Promise<void> {
+    async action(diff: ChangeType, context: ActionContext): Promise<void> {
         const oldInfo = await fetchContainerInfo(context, this.props);
-        switch (op) {
-            case "none": return;
+        switch (diff) {
             case "modify":
+            case "create":
                 const status = await containerIsUpToDate(oldInfo, context, this.props);
+                if (status === "existsUnmanaged") {
+                    throw new Error(`Container ${oldInfo.name} already exstis,`
+                        + ` but is not part of this deployment: ${inspect(oldInfo)}`);
+                }
+                if (status === "upToDate") return;
+
                 if (status === "update") {
                     await updateContainer(oldInfo, context, this.props);
-                    const newInfo = await fetchContainerInfo(context, this.props);
-                    this.setState({ info: newInfo });
-                    break;
                 }
-            //Fallthrough
-            case "replace":
-                //FIXME(manishv) Is there a bug here where this will throw if the container
-                //is deleted between shouldAct and action?  Do we care about this?
-                await stopAndRmContainer(context, oldInfo, this.props);
-            // Fallthrough
-            case "create":
-                await runContainer(context, this.props);
-                const info = await fetchContainerInfo(context, this.props);
-                this.setState({ info });
+                if (status === "replace") {
+                    await stopAndRmContainer(context, oldInfo, this.props);
+                }
+                if (status === "replace" || status === "noExist") {
+                    await runContainer(context, this.props);
+                }
+                const newInfo = await fetchContainerInfo(context, this.props);
+                this.setState({ info: newInfo });
                 return;
+
             case "delete":
                 await stopAndRmContainer(context, oldInfo, this.props);
                 this.setState({ info: undefined });
+                return;
+
+            case "none":
+            case "replace":
+            default:
+                throw new InternalError(`Unhandled ChangeType '${diff}' in DockerContainer`);
         }
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData) {
-        return containerStatus(observe, computeContainerNameFromBuildData(buildData), this.props.dockerHost);
+        return containerStatus(observe,
+            computeContainerNameFromBuildData(this.props, buildData),
+            this.props.dockerHost);
     }
 
     /**
@@ -361,7 +389,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     initialState() { return {}; }
 
     private displayName(context: ActionContext) {
-        const name = computeContainerNameFromContext(context);
+        const name = computeContainerNameFromContext(this.props, context);
         return `'${this.props.key}' (${name})`;
     }
 }

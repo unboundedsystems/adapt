@@ -91,7 +91,8 @@
     "should": "^13.2.3",
     "sinon": "^6.0.0",
     "source-map-support": "^0.5.13",
-    "type-ops": "^3.0.3"
+    "type-ops": "^3.0.3",
+    "typescript": "3.4.5"
   },
   "dependencies": {
     "@adpt/dom-parser": "0.0.7-next.0",
@@ -125,8 +126,5 @@
     "type-name": "^2.0.2",
     "urn-lib": "^1.1.2",
     "xmlbuilder": "^10.0.0"
-  },
-  "peerDependencies": {
-    "typescript": ">=3.0.3"
   }
 }

@@ -131,8 +131,8 @@ describe("RegistryDockerImage", function () {
         // Info on the running container
         const ctrEl: FinalDomElement = dom.props.children[3];
         should(ctrEl.componentType).equal(DockerContainer);
-        const contName = computeContainerName(ctrEl.id, mockDeploy.deployID);
-        should(contName).startWith("adapt-");
+        const contName = computeContainerName(ctrEl.props.key, ctrEl.id, mockDeploy.deployID);
+        should(contName).startWith("dockercontainer-");
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const ctrInfo = infos[0];
