@@ -23,8 +23,8 @@ import {
     ObserveForStatus,
     WaitStatus,
 } from "@adpt/core";
-import { sha256hex } from "@adpt/utils";
 
+import { makeResourceName } from "../common";
 import { Kind, Metadata, ResourceProps, Spec } from "./common";
 import { isResourceFinalElement } from "./Resource";
 
@@ -60,13 +60,7 @@ export interface Manifest {
     spec: Spec;
 }
 
-export function scrubName(name: string) {
-    return name.toLowerCase().replace(/[^a-z-]/g, "");
-}
-
-export function resourceIdToName(key: string, id: string, deployID: string) {
-    return scrubName(key) + "-" + sha256hex(id + deployID).slice(0, 32);
-}
+export const resourceIdToName = makeResourceName(/[^a-z-]/g, 63);
 
 export function resourceElementToName(
     elem: AdaptElement<AnyProps>,
