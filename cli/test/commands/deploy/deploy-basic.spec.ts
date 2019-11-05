@@ -348,8 +348,16 @@ function registryOpts() {
  * NOTE: yarn cannot be used here because it ignores the --registry option
  * when used with "yarn global". See https://github.com/yarnpkg/yarn/issues/5056
  */
-export function globalAdd(pkg: string) {
-    return execa("npm", ["install", ...registryOpts(), "-g", pkg]);
+export async function globalAdd(pkg: string) {
+    const args = [ "install", ...registryOpts(), "-g", pkg ];
+    const { stdout, stderr } = await execa("npm", args);
+    if (stderr !== "") {
+        const cmd = "npm install " + args.join(" ");
+        // tslint:disable-next-line: no-console
+        console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
+            `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
+        throw new Error(`Warnings in npm install output`);
+    }
 }
 
 function globalRemove(pkg: string) {
