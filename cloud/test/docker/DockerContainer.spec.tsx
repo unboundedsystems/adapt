@@ -82,14 +82,14 @@ describe("DockerContainer", function () {
 
     it("Should create and destroy a container with a string image", async () => {
         const imageName = "alpine:3.8";
-        const orig = <DockerContainer image="alpine:3.8" />;
+        const orig = <DockerContainer key="myctr" image="alpine:3.8" />;
 
         //Create
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
-        should(contName).startWith("adapt-");
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
+        should(contName).startWith("myctr-");
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
@@ -111,7 +111,7 @@ describe("DockerContainer", function () {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const info = infos[0];
@@ -127,7 +127,7 @@ describe("DockerContainer", function () {
 
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
@@ -141,7 +141,7 @@ describe("DockerContainer", function () {
 
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
@@ -177,7 +177,7 @@ describe("DockerContainer", function () {
 
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
@@ -203,7 +203,7 @@ describe("DockerContainer", function () {
 
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
@@ -233,7 +233,7 @@ describe("DockerContainer", function () {
 
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
 
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);

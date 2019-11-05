@@ -24,10 +24,11 @@ import {
     NoStatus,
     ObserveForStatus
 } from "@adpt/core";
-import { InternalError, MultiError, sha256hex } from "@adpt/utils";
+import { InternalError, MultiError } from "@adpt/utils";
 import { difference, intersection, isError, uniq } from "lodash";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
+import { makeResourceName } from "../common";
 import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
 import {
     dockerImageId,
@@ -58,20 +59,20 @@ interface ContainerInfo {
  *
  * @internal
  */
-export function computeContainerName(id: string, deployID: string) {
-    return "adapt-" + sha256hex(id + "-" + deployID);
+export const computeContainerName = makeResourceName(/[^a-z-.]/g, 63);
+
+function computeContainerNameFromBuildData(props: { key?: string }, buildData: BuildData): string {
+    if (!props.key) throw new InternalError(`DockerContainer with id '${buildData.id}' has no key`);
+    return computeContainerName(props.key, buildData.id, buildData.deployID);
 }
 
-function computeContainerNameFromBuildData(buildData: BuildData) {
-    return computeContainerName(buildData.id, buildData.deployID);
+function computeContainerNameFromContext(props: { key?: string }, context: ActionContext): string {
+    return computeContainerNameFromBuildData(props, context.buildData);
 }
 
-function computeContainerNameFromContext(context: ActionContext): string {
-    return computeContainerNameFromBuildData(context.buildData);
-}
-
-async function fetchContainerInfo(context: ActionContext, props: DockerContainerProps): Promise<ContainerInfo> {
-    const name = computeContainerNameFromContext(context);
+async function fetchContainerInfo(context: ActionContext,
+    props: DockerContainerProps & { key?: string }): Promise<ContainerInfo> {
+    const name = computeContainerNameFromContext(props, context);
     const insp = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
     if (insp.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
     const info = {
@@ -222,9 +223,9 @@ function getImageNameOrId(props: DockerContainerProps): string | undefined {
     }
 }
 
-async function runContainer(context: ActionContext, props: DockerContainerProps): Promise<void> {
+async function runContainer(context: ActionContext, props: DockerContainerProps & { key?: string }): Promise<void> {
     const image = getImageNameOrId(props);
-    const name = computeContainerNameFromContext(context);
+    const name = computeContainerNameFromContext(props, context);
     if (image === undefined) return;
     const { networks, ...propsNoNetworks } = props;
     const opts = {
@@ -350,7 +351,9 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData) {
-        return containerStatus(observe, computeContainerNameFromBuildData(buildData), this.props.dockerHost);
+        return containerStatus(observe,
+            computeContainerNameFromBuildData(this.props, buildData),
+            this.props.dockerHost);
     }
 
     /**
@@ -386,7 +389,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     initialState() { return {}; }
 
     private displayName(context: ActionContext) {
-        const name = computeContainerNameFromContext(context);
+        const name = computeContainerNameFromContext(this.props, context);
         return `'${this.props.key}' (${name})`;
     }
 }

@@ -76,8 +76,8 @@ describe("LocalDockerRegistry", function () {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const contName = computeContainerName(dom.id, dom.buildData.deployID);
-        should(contName).startWith("adapt-");
+        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
+        should(contName).startWith("localdockerregistry-");
 
         const infos = await dockerInspect([contName]);
         should(infos).be.Array().of.length(1);
