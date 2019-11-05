@@ -193,7 +193,13 @@ async function stopAndRmContainer(
     props: DockerContainerProps): Promise<void> {
 
     if (!info.data) return;
-    await dockerStop([info.data.Id], { dockerHost: props.dockerHost });
+    try {
+        await dockerStop([info.data.Id], { dockerHost: props.dockerHost });
+    } catch (err) {
+        // Ignore if it's already stopped
+        if (err.message && /No such container/.test(err.message)) return;
+        throw err;
+    }
     try {
         await dockerRm([info.data.Id], { dockerHost: props.dockerHost });
     } catch (err) {
