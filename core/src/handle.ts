@@ -106,54 +106,59 @@ export function isHandleObj(val: object): val is HandleObj {
  * `null` if the chain built to `null`, otherwise `undefined`.
  * @internal
  */
-function findFirst(hand: HandleImpl, pred: (hand: HandleImpl) => boolean) {
-    while (!pred(hand)) {
+function findFirst(start: HandleImpl, pred: (hand: HandleImpl) => boolean) {
+    let hand: Handle = start;
+
+    while (true) {
+        if (!isHandleImpl(hand)) {
+            throw new InternalError(`Handle is not a HandleImpl`);
+        }
         const orig = hand.origTarget;
         if (orig === undefined) {
             throw new InternalError(`Handle chain has undefined origTarget`);
         }
 
-        // We've reached the end of the chain without finding a Handle that
-        // matches the predicate.
-        if (hand.childElement == null) return hand.childElement;
+        if (pred(hand)) return orig; // Success. hand satisfies the predicate
 
-        const childHand = hand.childElement.props.handle;
-        if (childHand == null) {
+        if (hand.childElement == null) {
+            // We've reached the end of the chain without finding a Handle that
+            // matches the predicate.
+            return hand.childElement;
+        }
+
+        hand = hand.childElement.props.handle;
+        if (hand == null) {
             throw new InternalError(`no Handle present on Element in child chain`);
         }
-        if (!isHandleImpl(childHand)) {
-            throw new InternalError(`Handle present on Element is not a HandleImpl`);
-        }
-
-        hand = childHand;
     }
-
-    return hand.origTarget;
 }
 
 /**
- * Return the Element associated with the last Handle in the chain.
+ * Finds the Element for the last associated Handle in the chain.
+ *
+ * @returns The Element associated with the last Handle in the chain.
  * If the chain ends with `null`, returns `null`.
+ * @internal
  */
-function findLast(hand: HandleImpl) {
+function findLast(start: HandleImpl) {
+    let hand: Handle = start;
+
     while (true) {
+        if (!isHandleImpl(hand)) {
+            throw new InternalError(`Handle is not a HandleImpl`);
+        }
         const orig = hand.origTarget;
         if (orig === undefined) {
             throw new InternalError(`Handle chain has undefined origTarget`);
         }
-        if (hand.childElement === undefined) return hand.origTarget;
+        if (hand.childElement === undefined) return orig;
 
         if (hand.childElement === null) return null;
 
-        const childHand = hand.childElement.props.handle;
-        if (childHand == null) {
+        hand = hand.childElement.props.handle;
+        if (hand == null) {
             throw new InternalError(`no Handle present on Element in child chain`);
         }
-        if (!isHandleImpl(childHand)) {
-            throw new InternalError(`Handle present on Element is not a HandleImpl`);
-        }
-
-        hand = childHand;
     }
 }
 
