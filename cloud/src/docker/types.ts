@@ -268,3 +268,12 @@ export interface DockerContainerProps extends DockerGlobalOptions,
      */
     networks?: string[];
 }
+
+/**
+ * Represents a split registry, with pushes going to external and pulls going to internal
+ * @beta
+ */
+export interface DockerSplitRegistryInfo {
+    external: string;
+    internal: string;
+}
