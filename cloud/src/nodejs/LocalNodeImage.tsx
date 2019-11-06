@@ -89,6 +89,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
 
     useMethodFrom(img, "image");
     useMethodFrom(img, "latestImage");
+    useMethodFrom(img, "pushTo");
 
     return imgProps ? <LocalDockerImage handle={img} {...imgProps} /> : null;
 }

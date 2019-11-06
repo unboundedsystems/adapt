@@ -76,6 +76,7 @@ export function PreloadedPostgresImage(props: PreloadedPostgresImageProps) {
     const img = handle();
     useMethodFrom(img, "image");
     useMethodFrom(img, "latestImage");
+    useMethodFrom(img, "pushTo");
 
     return imgProps ? <LocalDockerImage handle={img} {...imgProps} /> : null;
 }
