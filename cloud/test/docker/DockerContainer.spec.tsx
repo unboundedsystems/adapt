@@ -148,6 +148,7 @@ describe("DockerContainer", function () {
         const info = infos[0];
         if (info === undefined) throw should(info).not.Undefined();
         should(info.NetworkSettings.Networks).have.keys(testNet1, testNet2);
+        should(Object.keys(info.NetworkSettings.Networks)).have.length(2);
 
         //Remove testNet2 to see if removal update works
         const removeNet2 = <DockerContainer image="alpine:3.8" networks={[testNet1]} />;
@@ -159,6 +160,7 @@ describe("DockerContainer", function () {
         if (info2 === undefined) throw should(info2).not.Undefined();
         should(info2.NetworkSettings.Networks).have.keys(testNet1);
         should(info2.NetworkSettings.Networks).not.have.keys(testNet2);
+        should(Object.keys(info2.NetworkSettings.Networks)).have.length(1);
         should(info2.Id).equal(info.Id); //Update not replace
 
         //Add the network back to see if update works
@@ -169,6 +171,7 @@ describe("DockerContainer", function () {
         const info3 = infos3[0];
         if (info3 === undefined) throw should(info2).not.Undefined();
         should(info3.NetworkSettings.Networks).have.keys(testNet1, testNet2);
+        should(Object.keys(info3.NetworkSettings.Networks)).have.length(2);
         should(info3.Id).equal(info.Id); //Update not replace
     });
 
