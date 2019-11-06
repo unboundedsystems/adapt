@@ -33,7 +33,7 @@ const testRedisDefaultProps = {
 };
 
 /**
- * Props for {@link redis.TestRedis}git s
+ * Props for {@link redis.TestRedis}.
  *
  * @public
  */
