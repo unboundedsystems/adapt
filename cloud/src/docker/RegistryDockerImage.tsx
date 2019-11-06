@@ -20,7 +20,7 @@ import { URL } from "url";
 import { isString } from "util";
 import { Action, ActionContext } from "../action";
 import { DockerImageInstance, DockerPushableImageInstance } from "./DockerImage";
-import { ImageInfo, NameTagString, RegistryString } from "./types";
+import { DockerSplitRegistryInfo, ImageInfo, NameTagString, RegistryString } from "./types";
 
 /**
  * Props for {@link docker.RegistryDockerImage}
@@ -62,7 +62,7 @@ export interface RegistryDockerImageProps {
      * is best if you can arrange to have the same URL or registry string work for all access regardless
      * of which network the registry, Adapt host, and ultimate container running environment is uses.
      */
-    registryUrl: string | { external: string, internal: string };
+    registryUrl: string | DockerSplitRegistryInfo;
 
     /**
      * Tag to use for the image in the registry.
@@ -94,7 +94,7 @@ function urlToRegistryString(registryUrl: string): RegistryString {
     return ret;
 }
 
-function normalizeRegistryUrl(url: string | { external: string, internal: string }) {
+function normalizeRegistryUrl(url: string | DockerSplitRegistryInfo) {
     if (isString(url)) url = { external: url, internal: url };
     return {
         external: urlToRegistryString(url.external),

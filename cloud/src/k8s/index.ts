@@ -25,6 +25,7 @@ export * from "./Pod";
 export * from "./Service";
 export * from "./ServiceDeployment";
 export * from "./common";
+export * from "./utils";
 
 export {
     resourceElementToName,

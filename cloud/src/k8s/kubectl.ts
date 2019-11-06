@@ -24,6 +24,7 @@ import * as path from "path";
 import * as readline from "readline";
 import { Readable } from "stream";
 import { isExecaError } from "../common";
+import { Environment, mergeEnvSimple } from "../env";
 import { Kubeconfig } from "./common";
 import { Manifest } from "./manifest_support";
 
@@ -70,10 +71,11 @@ export async function getKubectl(): Promise<string> {
 interface KubectlOptions {
     /** path to kubeconfig */
     kubeconfig?: string;
+    env?: Environment;
 }
 const kubectlDefaults = {};
 
-async function kubectl(args: string[], options: KubectlOptions) {
+export async function kubectl(args: string[], options: KubectlOptions) {
     const kubectlPath = await getKubectl();
     const opts = { ...kubectlDefaults, ...options };
     const actualArgs = [];
@@ -82,7 +84,11 @@ async function kubectl(args: string[], options: KubectlOptions) {
     if (kubeconfigLoc) actualArgs.push("--kubeconfig", kubeconfigLoc);
 
     actualArgs.push(...args);
-    return execa(kubectlPath, actualArgs);
+    let execaOptions: execa.Options | undefined;
+    if (options.env !== undefined) {
+        execaOptions = { env: mergeEnvSimple(options.env) };
+    }
+    return execa(kubectlPath, actualArgs, execaOptions);
 }
 
 async function getKubeconfigPath(tmpDir: string, config: Kubeconfig | string) {

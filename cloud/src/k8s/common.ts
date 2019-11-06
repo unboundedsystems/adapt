@@ -15,6 +15,7 @@
  */
 
 import { BuildData, ObserveForStatus, WithChildren } from "@adpt/core";
+import { DockerSplitRegistryInfo } from "../docker";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
@@ -70,10 +71,10 @@ export interface ClusterInfo {
      * URL or string to which Docker images used by the cluster in `kubeconfig` should be pushed and pulled
      *
      * @remarks
-     * If `registry` is a string, it is assumed that the cluster can pull from the same string
+     * If `registryUrl` is a string, it is assumed that the cluster can pull from the same string
      * that outsiders can push to.
      *
-     * If `registry` is of the form `{ external: string, internal: string }` then the `external`
+     * If `registryUrl` is of the form `{ external: string, internal: string }` then the `external`
      * string will be used to push images, and the `internal` string will be used to pull images.
      *
      * Note(manishv)
@@ -92,7 +93,7 @@ export interface ClusterInfo {
      * is best if you can arrange to have the same URL or registry string work for all access regardless
      * of which network the registry, Adapt host, and ultimate container running environment uses.
      */
-    registryUrl?: string | { external: string, internal: string };
+    registryUrl?: string | DockerSplitRegistryInfo;
 }
 
 /** @public */
@@ -129,23 +130,25 @@ export function computeNamespaceFromMetadata(metadata?: Metadata) {
 
 /** @public */
 export interface Kubeconfig {
+    apiVersion?: "v1";
     kind: "Config";
     "current-context": string;
-    contexts: [{
+    contexts: {
         name: string,
         context: {
             cluster: string,
             user: string
         }
-    }];
-    clusters: [{
+    }[];
+    clusters: {
         name: string,
         cluster: {
             "certificate-authority-data": string;
             server: string;
         };
-    }];
-    users: [{
+    }[];
+    preferences?: unknown;
+    users: {
         name: string,
         user: {
             "client-certificate-data"?: string;
@@ -153,5 +156,5 @@ export interface Kubeconfig {
             "username"?: string;
             "password"?: string;
         }
-    }];
+    }[];
 }
