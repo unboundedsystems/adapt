@@ -25,7 +25,7 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError } from "@adpt/utils";
-import { difference, intersection, isError, uniq } from "lodash";
+import { isError } from "lodash";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { makeResourceName } from "../common";
@@ -44,6 +44,7 @@ import {
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
+import { containerNetworks, NetworkDiff } from "./network_set";
 import { DockerContainerProps, DockerGlobalOptions, ImageInfo } from "./types";
 
 /** @public */
@@ -103,16 +104,61 @@ async function getImageId(source: string | Handle<DockerImageInstance>,
     }
 }
 
-async function networksToIds(networks: string[], opts: DockerGlobalOptions): Promise<string[]> {
-    const infos = await dockerInspect(networks, { ...opts, type: "network" });
-    return uniq(infos.map((i) => i.Id));
+/**
+ * Returns the name of the default docker network
+ *
+ * @returns the name of the default docker network, undefined if it does not exist
+ * @internal
+ */
+async function dockerDefaultNetwork(opts: DockerGlobalOptions): Promise<string | undefined> {
+    const networks = await dockerNetworks(opts);
+    for (const net of networks) {
+        if (net.Options["com.docker.network.bridge.default_bridge"] === "true") return net.Name;
+    }
+    return undefined;
 }
 
-async function arraysHaveSameNetworks(x: any[], y: any[], opts: DockerGlobalOptions): Promise<boolean> {
-    const xIds = await networksToIds(x, opts);
-    const yIds = await networksToIds(y, opts);
-    if (xIds.length !== yIds.length) return false;
-    return intersection([xIds, yIds]).length !== xIds.length;
+/**
+ * The list of networks that a container should be connected to, according
+ * to its props.
+ * @internal
+ */
+async function requestedNetworks(props: DockerContainerProps): Promise<string[]> {
+    if (props.networks) return props.networks;
+    const defaultNetwork = await dockerDefaultNetwork(props);
+    return defaultNetwork ? [ defaultNetwork ] : [];
+}
+
+/**
+ * Computes the differences between a container's requested networks and
+ * its actual networks.
+ *
+ * @remarks
+ * This function uses `NetworkSet` to attempt to minimize the number of
+ * inspect requests made to the Docker daemon.
+ *
+ * When `op` is `"diff"`, returns a `NetworkDiff` object that contains which
+ * networks should be added to the container and which should be deleted in
+ * order to match what is requested in `props`.
+ *
+ * When `op` is `"equals"`, returns `true` to indicate the container's
+ * networks are equal to the requested networks in `props`, otherwise `false`.
+ * @internal
+ */
+async function networkDiff(info: ContainerInfo, props: DockerContainerProps, op: "equals"): Promise<boolean>;
+async function networkDiff(info: ContainerInfo, props: DockerContainerProps, op: "diff"): Promise<NetworkDiff>;
+async function networkDiff(info: ContainerInfo, props: DockerContainerProps, op: "diff" | "equals") {
+    async function resolver(names: string[]) {
+        const infos = await dockerInspect(names, { ...props, type: "network" });
+        return infos.map((i) => ({ name: i.Name, id: i.Id }));
+    }
+
+    const data = info.data;
+    if (!data) throw new InternalError(`No inspect report in networkDiff`);
+    const existing = containerNetworks(data);
+    const requested = await requestedNetworks(props);
+
+    return existing[op](requested, resolver);
 }
 
 /**
@@ -133,32 +179,9 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!info.data) throw new Error(`Container exists, but no info.data??: ${info}`);
     if (await getImageId(props.image, props) !== info.data.Image) return "replace";
     if (!hasLabels(props.labels || {}, info.data.Config.Labels)) return "replace";
-    let desiredNetworks = props.networks;
-    if (desiredNetworks === undefined) {
-        const defaultNetwork = await dockerDefaultNetwork(props);
-        desiredNetworks = defaultNetwork === undefined ? [] : [defaultNetwork];
-    }
-    const hasSameNets = await arraysHaveSameNetworks(
-        desiredNetworks,
-        Object.keys(info.data.NetworkSettings.Networks),
-        props);
-    if (!hasSameNets) return "update";
+    if (!(await networkDiff(info, props, "equals"))) return "update";
 
     return "upToDate";
-}
-
-/**
- * Returns the name of the default docker network
- *
- * @returns the name of the default docker network, undefined if it does not exist
- * @internal
- */
-async function dockerDefaultNetwork(opts: DockerGlobalOptions): Promise<string | undefined> {
-    const networks = await dockerNetworks(opts);
-    for (const net of networks) {
-        if (net.Options["com.docker.network.bridge.default_bridge"] === "true") return net.Name;
-    }
-    return undefined;
 }
 
 /**
@@ -175,18 +198,11 @@ async function updateContainer(info: ContainerInfo, _context: ActionContext, pro
     Promise<void> {
     //Networks
     if (!info.data) throw new Error(`No data for container??: ${info}`);
-    const existingNetworks = Object.keys(info.data.NetworkSettings.Networks);
-    let networks = props.networks;
-    if (networks === undefined) {
-        const defaultNetwork = await dockerDefaultNetwork(props);
-        networks = defaultNetwork === undefined ? [] : [defaultNetwork];
-    }
-    const existingNetworkIds = await networksToIds(existingNetworks, props);
-    const networkIds = await networksToIds(networks, props);
-    const toDisconnect = difference(existingNetworkIds, networkIds);
-    const toConnect = difference(networkIds, existingNetworkIds);
-    await dockerNetworkConnect(info.name, toConnect, { ...props, alreadyConnectedError: false });
-    await dockerNetworkDisconnect(info.name, toDisconnect, { ...props, alreadyDisconnectedError: false });
+    const diff = await networkDiff(info, props, "diff");
+    await dockerNetworkConnect(info.name, diff.toAdd,
+        { ...props, alreadyConnectedError: false });
+    await dockerNetworkDisconnect(info.name, diff.toDelete,
+        { ...props, alreadyDisconnectedError: false });
 }
 
 async function stopAndRmContainer(
