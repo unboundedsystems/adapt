@@ -21,7 +21,7 @@ This command creates a complete template for a "Hello World" app in a new direct
 
 Our new Hello World app consists of:
 
-- A simple React user interface, created with [create-react-app](https://reactjs.org/docs/create-a-new-react-app.html#create-react-app), that displays "Hello World!".
+- A simple React user interface, created with [create-react-app](https://create-react-app.dev/docs/getting-started/), that displays "Hello World!".
 Source code for the UI is in the `moviedb/frontend` directory.
 - A simple Node.js back end API server that responds to HTTP requests with "Hello World!".
 Source code for the API server is in the `moviedb/backend` directory.
