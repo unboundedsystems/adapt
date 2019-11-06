@@ -18,9 +18,8 @@ import { Handle } from "../handle";
 import { useImperativeMethods } from "./imperative";
 import { callInstanceMethod } from "./use_method";
 
-export function useMethodFrom(hand: Handle, methodName: string, defaultVal?: any,
-    ...args: any[]) {
+export function useMethodFrom(hand: Handle, methodName: string, defaultVal?: any) {
     useImperativeMethods(() => ({
-        [methodName]: () => callInstanceMethod(hand, defaultVal, methodName, ...args)
+        [methodName]: (...args: any[]) => callInstanceMethod(hand, defaultVal, methodName, ...args)
     }));
 }
