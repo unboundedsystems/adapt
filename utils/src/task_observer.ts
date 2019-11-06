@@ -16,6 +16,7 @@
 
 import ld from "lodash";
 import { CustomError } from "ts-custom-error";
+import { InternalError } from "./internal_error";
 import {
     MessageLogger,
     MessageStreamer,
@@ -42,8 +43,12 @@ export interface TaskObserversUnknown {
 export type TaskObservers<Names extends string> =
     TaskObserversKnown<Names> & TaskObserversUnknown;
 
+export interface TaskAddOptions {
+    createOnly?: boolean;
+    trivial?: boolean;
+}
 export interface TaskGroup {
-    add<T extends TaskDefinitions>(tasks: T, createOnly?: boolean): TaskObservers<Extract<keyof T, string>>;
+    add<T extends TaskDefinitions>(tasks: T, options?: TaskAddOptions): TaskObservers<Extract<keyof T, string>>;
     task(name: string): TaskObserver;
 }
 
@@ -74,6 +79,31 @@ export interface TaskObserver {
 export interface TaskObserverOptions {
     description?: string;
     logger?: MessageLogger;
+    trivial?: boolean;
+}
+
+const defaultTaskObserverOptions = {
+    trivial: false,
+};
+
+export interface TaskInfo {
+    description: string;
+    trivial: boolean;
+}
+
+export function parseTaskInfo(jsonString: string): TaskInfo {
+    try {
+        const ti = JSON.parse(jsonString);
+        if (typeof ti.description !== "string") throw new InternalError(`TaskInfo description invalid`);
+        if (typeof ti.trivial !== "boolean") throw new InternalError(`TaskInfo trivial invalid`);
+        return ti;
+    } catch (err) {
+        throw new InternalError(`Unable to parse TaskInfo from task message: ${err.message}`);
+    }
+}
+
+export function taskInfoToString(ti: TaskInfo) {
+    return JSON.stringify(ti);
 }
 
 export function createTaskObserver(name: string, options: TaskObserverOptions = {}): TaskObserver {
@@ -89,17 +119,21 @@ class TaskObserverImpl implements TaskObserver {
     private childGroup_?: TaskGroupImpl;
 
     constructor(readonly name: string, options: TaskObserverOptions) {
-        let { logger, description } = options;
-        if (logger == null) logger = new MessageStreamer(name);
-        if (description == null) description = name;
+        const { logger, description, trivial } = {
+            ...defaultTaskObserverOptions,
+            description: name,
+            logger: new MessageStreamer(name),
+            ...options
+        };
 
         this.logger = logger;
         this.description_ = description;
         this.options = {
             logger,
             description,
+            trivial,
         };
-        this.log(this.state_, this.description_);
+        this.log(this.state_, taskInfoToString({ description, trivial }));
     }
 
     get description() {
@@ -242,6 +276,11 @@ function badState(task: TaskObserver, x: never): never {
     throw new TaskObserverError(task, `Invalid state ${x}`);
 }
 
+const defaultTaskAddOptions = {
+    createOnly: true,
+    trivial: false,
+};
+
 class TaskGroupImpl implements TaskGroup {
     private tasks_: TaskObserversUnknown = Object.create(null);
 
@@ -249,7 +288,8 @@ class TaskGroupImpl implements TaskGroup {
         readonly options: Required<TaskGroupOptions>,
         readonly taskOptions: TaskObserverOptions) { }
 
-    add<T extends TaskDefinitions>(tasks: T, createOnly = true): TaskObservers<Extract<keyof T, string>> {
+    add<T extends TaskDefinitions>(tasks: T, options: TaskAddOptions = {}): TaskObservers<Extract<keyof T, string>> {
+        const { createOnly, trivial } = { ...defaultTaskAddOptions, ...options };
         // Pre-flight checks
         if (createOnly) {
             for (const name of Object.keys(tasks)) {
@@ -268,6 +308,7 @@ class TaskGroupImpl implements TaskGroup {
                 ...this.taskOptions,
                 logger,
                 description: tasks[name],
+                trivial,
             });
             this.tasks_[name] = task;
         }

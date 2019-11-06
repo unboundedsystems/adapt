@@ -96,13 +96,12 @@ export async function createExecutionPlan(options: ExecutionPlanOptions): Promis
     diff.deleted.forEach((e) => plan.addElem(e, DeployStatus.Destroyed));
     builtElements.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     actions.forEach((a) => plan.addAction(a));
-    plan.updateElemWaitInfo();
 
     return plan;
 }
 
 export function getWaitInfo(goalStatus: GoalStatus,
-    e: AdaptElement | Handle, helpers: DeployHelpers): WaitInfo | undefined {
+    e: AdaptElement | Handle, helpers: DeployHelpers): WaitInfo {
 
     const hand = isHandle(e) ? e : e.props.handle;
     const elem = hand.mountedOrig;
@@ -177,9 +176,13 @@ export class ExecutionPlanImpl implements ExecutionPlan {
      * Semi-private interfaces (for use by this file)
      */
     addElem(element: AdaptMountedElement, goalStatus: GoalStatus): void {
-        if (isApplyStyle(element)) return;
-        const node: EPNode = { element, goalStatus };
+        if (isApplyStyle(element) || this.hasNode(element)) return;
+        const helpers = this.helpers.create(element);
+        const waitInfo = getWaitInfo(goalStatus, element, helpers);
+
+        const node: EPNode = { element, goalStatus, waitInfo };
         this.addNode(node);
+        this.addWaitInfo(node, goalStatus);
     }
 
     addAction(action: Action) {
@@ -191,6 +194,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                 description: action.detail,
                 action: action.act,
                 actingFor: action.changes,
+                activeAction: true,
                 deployedWhen: () => true,
                 logAction: true,
             }
@@ -201,6 +205,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             if (c.type === ChangeType.none) return;
 
             this.addElem(c.element, changeTypeToGoalStatus(c.type));
+            const elNode = this.getNode(c.element);
+            elNode.waitInfo.activeAction = true;
             const leader = this.groupLeader(c.element);
             if (leader === node) return;
             if (leader) {
@@ -247,6 +253,9 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return node;
     }
 
+    /**
+     * Now used only in unit test. Should eventually be removed.
+     */
     updateElemWaitInfo(refresh = false) {
         this.nodes.forEach((n) => {
             const el = n.element;

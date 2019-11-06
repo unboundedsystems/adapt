@@ -55,7 +55,6 @@ import {
 } from "../../src/deploy/deploy_types";
 import {
     EPNode,
-    isEPNodeWI,
     WaitInfo,
 } from "../../src/deploy/deploy_types_private";
 import {
@@ -111,33 +110,6 @@ function AllOfTester(options: AllOfTesterOptions): DependsOn {
 
 function makeAllOf(description: string, helpers: DeployHelpers, deps: Dependency[]) {
     return AllOfTester({ description, helpers, deps });
-}
-
-const getHandles = (els: AdaptMountedElement[]) => els.map((el) => el.props.handle);
-
-function addNodeWithWaitInfo(plan: ExecutionPlanImpl, el: AdaptMountedElement,
-    deps: AdaptMountedElement[], gs: GoalStatus = DeployStatus.Deployed,
-    checkReady?: AllOfTesterOptions["checkReady"]) {
-
-    const helpers = plan.helpers.create(el);
-    let node: EPNode = {
-        element: el,
-        goalStatus: gs,
-    };
-    plan.addNode(node);
-    node = plan.getNode(node);
-    node.waitInfo = {
-        description: el.id,
-        dependsOn: AllOfTester({
-            description: "tester",
-            helpers,
-            deps: getHandles(deps),
-            checkReady,
-        }),
-        deployedWhen: () => true,
-    };
-    if (!isEPNodeWI(node)) throw new Error("node is not EPNodeWI");
-    plan.addWaitInfo(node, gs);
 }
 
 describe("Execution plan", () => {
@@ -382,7 +354,7 @@ describe("ExecutionPlanImpl", () => {
         const { dom, elems, expNodes, kids, plan, spy } = await createPlan1(goal);
         should(plan.leaves).have.length(4);
 
-        should(dependencies(plan)).eql({
+        should(dependencies(plan, { key: "id" })).eql({
             [dom.id]: [],
             [kids[0].id]: [ "Action0" ],
             [kids[1].id]: [ "Action1" ],
@@ -396,7 +368,7 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
+            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0"]);
 
         const { stdout, stderr } = logger;
         should(stdout).match(/Doing Action0/);
@@ -428,7 +400,7 @@ describe("ExecutionPlanImpl", () => {
 
         // The kids elements should ALWAYS depend on their Action (group leader),
         // even when destroying.
-        should(dependencies(plan)).eql({
+        should(dependencies(plan, { key: "id" })).eql({
             [dom.id]: [],
             [kids[0].id]: [ "Action0" ],
             [kids[1].id]: [ "Action1" ],
@@ -442,7 +414,7 @@ describe("ExecutionPlanImpl", () => {
         const ret = await execute({ ...executeOpts, plan });
 
         await checkFinalSimple(plan, ret, goal, TaskState.Complete, elems, expNodes,
-            ["Action0 Change0", "Action1 Change0", "Action2 Change0"]);
+            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0"]);
 
         const { stdout, stderr } = logger;
         should(stdout).match(/Doing Action0/);
@@ -482,13 +454,15 @@ describe("ExecutionPlanImpl", () => {
             const leaves = goal === DeployStatus.Deployed ? depl : dest;
             should(plan.leaves).have.length(leaves, desc);
         };
+        const when: DependProps["when"] = () => true;
+
         const orig =
-            <Group key="root">
+            <DependPrim key="root" when={when} >
                 <Prim key="kid0" id={0} />
                 <Prim key="kid1" id={1} />
                 <Prim key="kid2" id={2} />
                 <Prim key="kid3" id={3} />
-            </Group>;
+            </DependPrim>;
         const { dom } = await doBuild(orig);
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
@@ -556,7 +530,7 @@ describe("ExecutionPlanImpl", () => {
 
             should(plan.leaves).have.length(1);
 
-            should(dependencies(plan)).eql({
+            should(dependencies(plan, { key: "id" })).eql({
                 [dom.id]: [ kids[0].id, kids[3].id ],
                 [kids[0].id]: [ "Action0" ],
                 [kids[1].id]: [ "Action1" ],
@@ -575,7 +549,7 @@ describe("ExecutionPlanImpl", () => {
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
-                ["Group", "Change0", "Change1", "Change2", "Change3"]);
+                ["DependPrim", "Change0", "Change1", "Change2", "Change3"]);
 
             const { stdout, stderr } = logger;
             const lines = stdout.split("\n");
@@ -608,7 +582,7 @@ describe("ExecutionPlanImpl", () => {
 
             should(plan.leaves).have.length(1);
 
-            should(dependencies(plan)).eql({
+            should(dependencies(plan, { key: "id" })).eql({
                 [dom.id]: [],
                 [kids[0].id]: [ "Action0" ],
                 [kids[1].id]: [ "Action1" ],
@@ -625,7 +599,7 @@ describe("ExecutionPlanImpl", () => {
 
             await checkFinalSimple(plan, ret, goal,
                 TaskState.Complete, elems, expNodes,
-                ["Change0", "Change1", "Change2", "Change3"]);
+                ["DependPrim", "Change0", "Change1", "Change2", "Change3"]);
 
             const { stdout, stderr } = logger;
             const lines = stdout.split("\n");
@@ -649,25 +623,32 @@ describe("ExecutionPlanImpl", () => {
     destroyPlan2(false);  // Add actions, then deps
     destroyPlan2(true);   // Add deps, then actions
 
+    function makeDep(deps: Handle[]) {
+        return (_id: number, _goal: GoalStatus, helpers: DeployHelpers) => {
+            return AllOfTester({
+                description: "tester",
+                helpers,
+                deps,
+            });
+        };
+    }
+
     it("Should wait for soft dependencies", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
         const plan = new ExecutionPlanImpl({ ...implOpts, goalStatus: goal });
+        const hKids = makeHandles(4);
         const orig =
-            <Group>
-                <Prim id={0} />
-                <Prim id={1} />
-                <Prim id={2} />
-                <Prim id={3} />
-            </Group>;
+            <DependPrim id={10} dep={makeDep([ hKids[0], hKids[3] ])} >
+                <DependPrim id={0} handle={hKids[0]} dep={makeDep([ hKids[1], hKids[2], hKids[3] ])} />
+                <DependPrim id={1} handle={hKids[1]} dep={makeDep([ hKids[2] ])} />
+                <DependPrim id={2} handle={hKids[2]} dep={makeDep([ hKids[3] ])} />
+                <DependPrim id={3} handle={hKids[3]} dep={makeDep([])} />
+            </DependPrim>;
         const { dom } = await doBuild(orig);
         const kids: FinalDomElement[] = dom.props.children;
         const elems = [ dom, ...kids ];
 
-        addNodeWithWaitInfo(plan, dom, [ kids[0], kids[3] ], goal);
-        addNodeWithWaitInfo(plan, kids[0], [ kids[1], kids[2], kids[3] ], goal);
-        addNodeWithWaitInfo(plan, kids[1], [ kids[2] ], goal);
-        addNodeWithWaitInfo(plan, kids[2], [ kids[3] ], goal);
-        addNodeWithWaitInfo(plan, kids[3], [], goal);
+        elems.forEach((e) => plan.addElem(e, goal));
 
         should(plan.nodes).have.length(5);
         should(plan.elems).have.length(5);
@@ -698,7 +679,7 @@ describe("ExecutionPlanImpl", () => {
         should(plan.elems).have.length(5);
         should(plan.leaves).have.length(4);
 
-        should(dependencies(plan)).eql({
+        should(dependencies(plan, { key: "id" })).eql({
             [dom.id]: [ kids[0].id, kids[3].id ],
             [kids[0].id]: [ "Action0", kids[1].id, kids[2].id, kids[3].id ],
             [kids[1].id]: [ "Action1", kids[2].id ],
@@ -715,7 +696,7 @@ describe("ExecutionPlanImpl", () => {
 
         await checkFinalSimple(plan, ret, goal,
             TaskState.Complete, elems, expNodes,
-            ["Group", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
+            ["DependPrim", "Action0 Change0", "Action1 Change0", "Action2 Change0", "Action3 Change0"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
@@ -865,8 +846,6 @@ describe("ExecutionPlanImpl", () => {
         plan.addHardDep(kids[1], kids[2]);
         plan.addHardDep(kids[2], kids[3]);
 
-        plan.updateElemWaitInfo();
-
         // 6 elems + 5 actions
         should(plan.nodes).have.length(11);
         should(plan.elems).have.length(6);
@@ -985,20 +964,20 @@ describe("ExecutionPlanImpl", () => {
 
         should(ret.deploymentStatus).equal(DeployStatus.Failed);
         should(ret.nodeStatus).eql({
-            [DeployStatus.Deployed]: 5,
+            [DeployStatus.Deployed]: 4,
             [DeployStatus.Deploying]: 0,
             [DeployStatus.Destroyed]: 0,
             [DeployStatus.Destroying]: 0,
-            [DeployStatus.Failed]: 6,
+            [DeployStatus.Failed]: 7,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
         });
         should(ret.primStatus).eql({
-            [DeployStatus.Deployed]: 3,
+            [DeployStatus.Deployed]: 2,
             [DeployStatus.Deploying]: 0,
             [DeployStatus.Destroyed]: 0,
             [DeployStatus.Destroying]: 0,
-            [DeployStatus.Failed]: 3,
+            [DeployStatus.Failed]: 4,
             [DeployStatus.Initial]: 0,
             [DeployStatus.Waiting]: 0,
         });
@@ -1021,7 +1000,7 @@ describe("ExecutionPlanImpl", () => {
             await getDeploymentStatus(0);
         should(deployStatus).equal(DeployStatus.Failed);
         should(goalStatus).equal(DeployStatus.Deployed);
-        checkElemStatus(elementStatus, dom, DeployStatus.Deployed);
+        checkElemStatus(elementStatus, dom, DeployStatus.Failed);
         kids.forEach((k, i) => {
             if (i > 1) {
                 checkElemStatus(elementStatus, k, DeployStatus.Failed,
@@ -1202,7 +1181,7 @@ describe("ExecutionPlanImpl", () => {
 
         await checkFinalSimple(plan, ret, DeployStatus.Deployed,
             TaskState.Complete, elems, expNodes,
-            ["Creating Action0", "Creating Action1", "Creating Action2"]);
+            ["Group", "Creating Action0", "Creating Action1", "Creating Action2"]);
 
         const { stdout, stderr } = logger;
         const lines = stdout.split("\n");
@@ -1233,14 +1212,13 @@ describe("ExecutionPlanImpl", () => {
             </Group>;
         const { dom } = await doBuild(orig);
 
-        plan.addElem(dom, goal);
-        plan.addElem(dom.props.children, goal);
-
         const errRE = RegExp(
             `A Component dependsOn method returned a DependsOn ` +
             `object 'desc' that contains ` +
             `a Handle that is not associated with any Element`);
-        should(() => plan.updateElemWaitInfo()).throwError(errRE);
+
+        plan.addElem(dom, goal);
+        should(() => plan.addElem(dom.props.children, goal)).throwError(errRE);
     });
 
     it("Should check primitive element dependsOn", async () => {
@@ -1293,8 +1271,7 @@ describe("ExecutionPlanImpl", () => {
 
         should(plan.nodes).have.length(7);
         should(plan.elems).have.length(7);
-        // No dependencies yet
-        should(plan.leaves).have.length(7);
+        should(plan.leaves).have.length(2);
 
         // Only the first 3 kids have actions
         const actions = kids.slice(0, 3).map((k, i) => ({
@@ -1312,14 +1289,6 @@ describe("ExecutionPlanImpl", () => {
         actions.forEach((a) => plan.addAction(a));
 
         const expNodes = 10;
-        should(plan.nodes).have.length(expNodes);
-        should(plan.elems).have.length(7);
-        // Added 3 nodes, but also 3 dependencies
-        should(plan.leaves).have.length(7);
-
-        plan.updateElemWaitInfo();
-
-        // Each WaitInfo should attach to it's Element's node - no new nodes
         should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(7);
         // Only Action2 and Group are leaves
@@ -1411,8 +1380,7 @@ describe("ExecutionPlanImpl", () => {
 
         should(plan.nodes).have.length(2);
         should(plan.elems).have.length(2);
-        // No dependencies yet
-        should(plan.leaves).have.length(2);
+        should(plan.leaves).have.length(1);
 
         const action = {
             type: ChangeType.create,
@@ -1432,13 +1400,6 @@ describe("ExecutionPlanImpl", () => {
         should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(2);
         // Primitive is dependent on Action
-        should(plan.leaves).have.length(2);
-
-        plan.updateElemWaitInfo();
-
-        should(plan.nodes).have.length(expNodes);
-        should(plan.elems).have.length(2);
-        // Now there's a dependency between the two elements
         should(plan.leaves).have.length(1);
 
         plan.check();
@@ -1541,14 +1502,6 @@ describe("ExecutionPlanImpl", () => {
 
         // 3 elems in newDom, 1 action, 1 elem from oldDom
         const expNodes = 5;
-        should(plan.nodes).have.length(expNodes);
-        should(plan.elems).have.length(4);
-        should(plan.leaves).have.length(2);
-
-        plan.updateElemWaitInfo();
-
-        // Number of nodes shouldn't change because the 3 new WaitInfos should
-        // be attached to 3 existing elems
         should(plan.nodes).have.length(expNodes);
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(2);

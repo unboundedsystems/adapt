@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { badTaskEvent, MessageClient, TaskEvent, TaskGroupOptions, TaskState } from "@adpt/utils";
+import { badTaskEvent, InternalError, MessageClient, parseTaskInfo, TaskEvent, TaskGroupOptions, TaskState } from "@adpt/utils";
 import db from "debug";
 import Listr, { ListrTask, ListrTaskWrapper } from "listr";
 import pDefer from "p-defer";
@@ -22,6 +22,8 @@ import { CustomError } from "ts-custom-error";
 
 const debug = db("adapt:cli:tasks");
 const debugDetail = db("adapt:detail:cli:tasks");
+// Show status for ALL tasks, including ones marked trivial
+const debugTrivial = db("adapt:detail:cli:status");
 
 export class DynamicTaskFailed extends CustomError { }
 
@@ -34,6 +36,9 @@ export interface DynamicTaskCommon {
     // If task is a child group, allow the group to run when this many tasks
     // have been Created in the group. Minimum 1. Default=1.
     runOnChildTask?: number;
+    // True if this task should be hidden in normal output because it
+    // doesn't have meaningful additional information of its own.
+    trivial?: boolean;
 }
 
 export interface DynamicTaskDef<Ret> extends DynamicTaskCommon {
@@ -80,9 +85,12 @@ export function addDynamicTask<Ret>(
     msgClient.task.on(`task:*:${taskDef.id}:**`, (event, status, from) => {
         debug(`Dynamic task event ${event} (${from}) ${status || ""}`);
         if (event === TaskEvent.Created) {
+            if (typeof status !== "string") throw new InternalError(`Task create status is not string`);
+            const taskInfo = parseTaskInfo(status);
             createTask(registry, {
                 id: from,
-                title: status || "Unknown task name",
+                title: taskInfo.description,
+                trivial: taskInfo.trivial,
             });
         } else {
             updateTask(registry, from, event, status);
@@ -102,6 +110,7 @@ interface ListrTaskStatus {
     dPromise: pDefer.DeferredPromise<void | Listr>;
     settled: boolean;
     childTasksNeeded: number;
+    trivial: boolean;
 }
 
 function parent(id: string) {
@@ -217,6 +226,7 @@ class TaskRegistry {
 const createTaskDefaults = {
     adoptable: false,
     runOnChildTask: 1,
+    trivial: false,
 };
 
 interface Holder<T> {
@@ -225,7 +235,7 @@ interface Holder<T> {
 
 function createTask<Ret>(registry: TaskRegistry, taskDef: DynamicTaskInternal<Ret>) {
     const def = { ...createTaskDefaults, ...taskDef };
-    const { id, title, initiate, adoptable, onComplete, runOnChildTask } = def;
+    const { id, title, initiate, adoptable, onComplete, runOnChildTask, trivial } = def;
 
     if (!Number.isInteger(runOnChildTask) || runOnChildTask < 1) {
         throw new Error(`createTask: runOnChildTask must be an integer >= 1`);
@@ -244,6 +254,7 @@ function createTask<Ret>(registry: TaskRegistry, taskDef: DynamicTaskInternal<Re
             dPromise: pDefer<void | Listr>(),
             settled: false,
             childTasksNeeded: runOnChildTask,
+            trivial,
         };
 
         // Record when the promise has been settled
@@ -252,6 +263,8 @@ function createTask<Ret>(registry: TaskRegistry, taskDef: DynamicTaskInternal<Re
 
         registry.set(id, newStatus);
     }
+
+    if (trivial && !debugTrivial.enabled) return;
 
     const returnHolder: Holder<Ret> = {};
 

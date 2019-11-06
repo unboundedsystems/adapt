@@ -47,6 +47,11 @@ export interface WaitInfo {
 
     actingFor?: ActionChange[];
     action?: () => void | Promise<void>;
+    /**
+     * True if there is an Action that affects this node in the current
+     * execution plan.
+     */
+    activeAction?: boolean;
     dependsOn?: RelationExt;
     logAction?: boolean;
 }
@@ -68,7 +73,7 @@ export interface EPNodeCommon {
 }
 export interface EPNodeEl extends EPNodeCommon {
     element: AdaptMountedElement;
-    waitInfo?: WaitInfo;
+    waitInfo: WaitInfo;
 }
 export interface EPNodeWI extends EPNodeCommon {
     element?: AdaptMountedElement;
