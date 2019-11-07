@@ -26,13 +26,13 @@ function BaseTester() {
     return null;
 }
 
-function Tester(props: { defVal?: any, noBase: boolean }) {
+function Tester(props: { defVal?: any, noBase: boolean, noHand: boolean }) {
     const base = handle();
-    useMethodFrom(base, "doit", props.defVal);
+    useMethodFrom(props.noHand ? null : base, "doit", props.defVal);
     if (props.noBase) return null;
     return <BaseTester handle={base} />;
 }
-Tester.defaultProps = { noBase: false };
+Tester.defaultProps = { noBase: false, noHand: false };
 
 describe("useMethodFrom Tests", () => {
     it("Should return default values when handle is not attached", async () => {
@@ -53,5 +53,12 @@ describe("useMethodFrom Tests", () => {
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         const args = [{ a: 1 }, { b: 2 }, { c: 3 }];
         should(mountedOrig.instance.doit(...args)).eql(args);
+    });
+
+    it("Should return default values when handle is null", async () => {
+        const val = "DEFAULT";
+        const { mountedOrig } = await doBuild(<Tester noHand={true} defVal={val} />, { nullDomOk: true });
+        if (mountedOrig === null) throw should(mountedOrig).not.Null();
+        should(mountedOrig.instance.doit()).equal(val);
     });
 });
