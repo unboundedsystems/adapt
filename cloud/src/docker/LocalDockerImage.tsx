@@ -132,6 +132,10 @@ export class LocalDockerImage
         },
     };
 
+    // Even though we have a custom deployedWhen, don't normally show
+    // status from this component, unless there's an active action.
+    deployedWhenIsTrivial = true;
+
     private image_?: ImageInfo;
     private imagePropsJson_?: string;
     private options_: DockerBuildOptions;
