@@ -131,8 +131,8 @@ async function main() {
                 `title: "${title}"`,
                 `hide_title: true`,
             ];
-            const ns = namespaceId(id);
-            if (ns && ns !== id) header.push(`parent_id: api/${args.project}/${ns}`);
+            const parent = parentId(id);
+            if (parent) header.push(`parent_id: api/${args.project}/${parent}`);
             header.push("---");
 
             const outPath = join(outDir, sanitizeFilename(docFile));
@@ -165,9 +165,10 @@ function sanitizeFilename(filename) {
     return filename.replace(/\(constructor\)/g, "_constructor_");
 }
 
-function namespaceId(id) {
+function parentId(id) {
     const parts = id.split(".");
-    if (parts.length < 2) return undefined;
+    parts.pop(); // Drop the portion that refers to this doc
+    if (parts.length === 0) return undefined; // no parent
     return parts.slice(0, 2).join(".");
 }
 
