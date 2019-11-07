@@ -62,7 +62,8 @@ export {
     TaskObserversUnknown,
     TaskGroup,
     TaskGroupOptions,
-    createTaskObserver
+    createTaskObserver,
+    parseTaskInfo,
 } from "./task_observer";
 
 export {

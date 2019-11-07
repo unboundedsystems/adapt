@@ -113,6 +113,7 @@ export type AdaptElementOrNull = AdaptElement<AnyProps> | null;
 export interface GenericInstanceMethods {
     dependsOn?: DependsOnMethod;
     deployedWhen?: DeployedWhenMethod;
+    deployedWhenIsTrivial?: boolean;
 }
 
 export interface GenericInstance extends GenericInstanceMethods {
@@ -122,6 +123,11 @@ export interface GenericInstance extends GenericInstanceMethods {
 // Unique ID for an element. Currently AdaptElement.id.
 export type ElementID = string;
 
+/**
+ * Interface that represents an AdaptElement that has been mounted during
+ * the DOM build process.
+ * @public
+ */
 export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptElement<P> {
     readonly props: P & Required<BuiltinProps>;
     readonly id: ElementID;
@@ -132,6 +138,23 @@ export interface AdaptMountedElement<P extends object = AnyProps> extends AdaptE
 
     dependsOn: DependsOnMethod;
     deployedWhen: DeployedWhenMethod;
+
+    /**
+     * True if the Element's `deployedWhen` is considered trivial.
+     * @remarks
+     * This flag is a hint for user interfaces, such as the Adapt CLI. It
+     * tells the user interface that this Element's `deployedWhen` function
+     * is "trivial" and therefore its status should not typically be shown in
+     * user interfaces unless the user has requested more detailed status
+     * information on all components, or if there's an active action for
+     * the component.
+     *
+     * This flag is `true` if the component does not have a custom
+     * `deployedWhen` method or if the trivial flag was specifically set via
+     * {@link useDeployedWhen} options (function component) or via
+     * {@link Component.deployedWhenIsTrivial} (class component).
+     */
+    readonly deployedWhenIsTrivial: boolean;
     status<T extends Status>(o?: ObserveForStatus): Promise<T>;
     built(): boolean;
 }
@@ -220,7 +243,38 @@ export abstract class Component<Props extends object = {}, State extends object 
     deployInfo: DeployInfo;
 
     dependsOn?: DependsOnMethod;
+
+    /**
+     * A derived component's custom `deployedWhen` method.
+     *
+     * @remarks
+     * Adding a custom `deployedWhen` method to a component allows the component to
+     * directly control when the component can be considered deployed.
+     *
+     * For more information on using `deployedWhen` methods, see
+     * {@link Adapt.DeployedWhenMethod}.
+     *
+     * For components that do not add a custom `deployedWhen` method, the
+     * default behavior is that a component becomes deployed when all of it's
+     * successors and children have been deployed. See {@link defaultDeployedWhen}
+     * for more information.
+     * @public
+     */
     deployedWhen?: DeployedWhenMethod;
+
+    /**
+     * A derived component can set this flag to `true` to indicate to user
+     * interfaces that this component's status should not typically be shown
+     * to the user, unless requested.
+     * @remarks
+     * This flag is a hint for user interfaces, such as the Adapt CLI. It
+     * tells the user interface that this Element's `deployedWhen` function
+     * is "trivial" and therefore its status should not typically be shown in
+     * user interfaces unless the user has requested more detailed status
+     * information on all components, or if there's an active action for
+     * this component.
+     */
+    deployedWhenIsTrivial?: boolean;
 
     // cleanup gets called after build of this component's
     // subtree has completed.
@@ -469,6 +523,9 @@ export type KeyPath = string[];
 
 export type ElementPredicate = (el: AdaptElement) => boolean;
 
+/**
+ * @internal
+ */
 export class AdaptElementImpl<Props extends object> implements AdaptElement<Props> {
     readonly props: Props & BuiltinProps & WithChildren;
 
@@ -666,6 +723,30 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
         return method(goalStatus, helpers);
     }
 
+    /**
+     * True if the Element's `deployedWhen` is considered trivial.
+     * @remarks
+     * This flag is a hint for user interfaces, such as the Adapt CLI. It
+     * tells the user interface that this Element's `deployedWhen` function
+     * is "trivial" and therefore its status should not typically be shown in
+     * user interfaces unless the user has requested more detailed status
+     * information on all components, or if there's an active action for
+     * this component.
+     *
+     * This flag is `true` if the component does not have a custom
+     * `deployedWhen` method or if the trivial flag was specifically set via
+     * {@link useDeployedWhen} options (function component) or via
+     * {@link Component.deployedWhenIsTrivial} (class component).
+     */
+    get deployedWhenIsTrivial(): boolean {
+        if (!this.mounted || !this.built()) {
+            throw new InternalError(`deployedWhenIsTrivial can only be ` +
+                `accessed on a built Element`);
+        }
+        const inst = this.instance;
+        return inst.deployedWhen == null || this.instance.deployedWhenIsTrivial === true;
+    }
+
     get componentName() { return this.componentType.name || "anonymous"; }
     get displayName() { return this.componentType.displayName || this.componentName; }
     get id() { return JSON.stringify(this.stateNamespace); }
@@ -675,8 +756,30 @@ export class AdaptElementImpl<Props extends object> implements AdaptElement<Prop
 }
 tagConstructor(AdaptElementImpl, "adapt");
 
-function defaultDeployedWhen(el: AdaptElementImpl<AnyProps>): DeployedWhenMethod {
+/**
+ * Creates a function that implements the default `deployedWhen` behavior for
+ * an Element.
+ * @remarks
+ * When a component has not specified a custom `deployedWhen`
+ * method, it will use this function to generate the default `deployedWhen`
+ * method.
+ *
+ * The default `deployedWhen` behavior, implemented by this function, is to
+ * return `true` (meaning the Element has reached the `goalStatus` and is deployed)
+ * once the successor Element of `el` is deployed. If `el` has no successor,
+ * it will return `true` once all of its children have become deployed.
+ *
+ * @param el - The Element for which a default `deployedWhen` function should
+ * be created.
+ *
+ * @returns A `deployedWhen` function for Element `el` that implements the
+ * default behavior.
+ * @public
+ */
+export function defaultDeployedWhen(el: AdaptElement): DeployedWhenMethod {
+    if (!isElement(el)) throw new Error(`Parameter must be an AdaptElement`);
     return (_goalStatus, helpers) => {
+        if (!isElementImpl(el)) throw new InternalError(`Element is not an ElementImpl`);
         const succ = el.buildData.successor;
 
         // null means there's no successor and nothing in the final DOM for

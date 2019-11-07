@@ -86,7 +86,9 @@ export class StatusTrackerImpl implements StatusTracker {
                 else this.nonPrimStatus.Waiting++;
                 if (shouldTrackStatus(n)) {
                     const id = n.element.id;
-                    const tasks = tGroup.add({ [id]: n.element.componentName }, false);
+                    const trivial = isTrivial(n);
+                    const tasks = tGroup.add({ [id]: n.element.componentName },
+                        { createOnly: false, trivial });
                     this.taskMap.set(n, tasks[id]);
                 }
             }
@@ -251,5 +253,11 @@ export class StatusTrackerImpl implements StatusTracker {
 }
 
 export function shouldTrackStatus(n: EPNode) {
-    return n.element != null && (n.waitInfo != null || n.hardDeps != null);
+    return n.element != null;
+}
+
+export function isTrivial(n: EPNode) {
+    if (n.waitInfo.activeAction) return false;
+    if (n.element) return n.element.deployedWhenIsTrivial;
+    return true;
 }

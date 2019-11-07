@@ -68,6 +68,9 @@ function nextBuilt(el: AdaptElement, skip?: AdaptElement) {
 }
 
 class SequenceDeferred extends DeferredComponent<SequenceDeferredProps> {
+    // Don't show status for this component unless requested
+    deployedWhenIsTrivial = true;
+
     build() {
         const props = this.props;
         const origKids = props.origChildren;

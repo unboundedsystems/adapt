@@ -27,6 +27,8 @@ export const pkgRootDir = packageDirs.root;
 
 export const systemTestChain =
     clitest
+    .add("origDir", () => process.cwd())
+    .finally((ctx) => process.chdir(ctx.origDir))
     .onerror((ctx) => {
         // tslint:disable:no-console
         console.log(`\n---------------------------------\nError encountered. Dumping stdout.`);

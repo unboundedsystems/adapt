@@ -322,6 +322,47 @@ export type RelationOp = (...args: Relation[]) => Relation;
 
 export type DependsOn = Relation;
 export type DependsOnMethod = (goalStatus: GoalStatus, helpers: DeployHelpers) => DependsOn | undefined;
+
+/**
+ * A function that gives information about whether an Element has finished
+ * deploying.
+ *
+ * @remarks
+ * Components may provide a custom `deployedWhen` method to directly control
+ * when the component can be considered fully deployed. For class-based
+ * components, see {@link Component.deployedWhen}. For function components,
+ * see {@link useDeployedWhen}.
+ *
+ * During a deployment operation, an Element's `deployedWhen` function will be
+ * executed by the system to determine if the Element has reached its
+ * `goalStatus`. The provided function will **not** be called until after
+ * all of the component's dependencies have been met, but then may be polled
+ * repeatedly.
+ *
+ * An example use of a `deployedWhen` function might be to have a component
+ * be considered deployed once any one of its children are deployed.
+ *
+ * A `deployedWhen` function can also be used to check external resources,
+ * such as with a CLI command or via an API or network call. For example,
+ * if your component deploys a network service, its `deployedWhen` method
+ * could make a network request to the service and return `true` (deployed)
+ * once it connects successfully to the service.
+ *
+ * Important: A `deployedWhen` function should always check the
+ * `goalStatus` parameter to determine whether the component is being
+ * deployed or destroyed and modify its behavior accordingly. For example,
+ * if your `deployedWhen` calls an API function to confirm a resource has
+ * been created when `goalStatus` is `GoalStatus.Deployed`, then when
+ * `goalStatus` is `GoalStatus.Destroyed`, you may need to call an API
+ * function to confirm that the resource has been deleted.
+ *
+ * For components that do not add a custom `deployedWhen` method, the
+ * default behavior is that a component becomes deployed when all of it's
+ * successors and children have been deployed. See {@link defaultDeployedWhen}
+ * for more information.
+ *
+ * @public
+ */
 export type DeployedWhenMethod = (goalStatus: GoalStatus, helpers: DeployHelpers) => WaitStatus | Promise<WaitStatus>;
 export type Dependency = Handle | DependsOn;
 

@@ -130,8 +130,10 @@ async function main() {
                 `id: ${id}`,
                 `title: "${title}"`,
                 `hide_title: true`,
-                "---"
             ];
+            const ns = namespaceId(id);
+            if (ns && ns !== id) header.push(`parent_id: api/${args.project}/${ns}`);
+            header.push("---");
 
             const outPath = join(outDir, sanitizeFilename(docFile));
             await writeFile(outPath, header.concat(output).join("\n"));
@@ -161,6 +163,12 @@ function sanitizeLinks(line) {
 function sanitizeFilename(filename) {
     // See comment in sanitizeLinks
     return filename.replace(/\(constructor\)/g, "_constructor_");
+}
+
+function namespaceId(id) {
+    const parts = id.split(".");
+    if (parts.length < 2) return undefined;
+    return parts.slice(0, 2).join(".");
 }
 
 main();
