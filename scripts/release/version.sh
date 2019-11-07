@@ -44,6 +44,9 @@ fi
 
 VERSION=$(sanitizeSemver "${VERSION}") || exit 1
 
+echo "Ensuring build is up to date. Building..."
+make build
+
 LERNA_ARGS="version --force-publish=* --amend --no-git-tag-version ${VERSION}"
 echo "Running:  lerna ${LERNA_ARGS}"
 "${REPO_ROOT}/node_modules/.bin/lerna" ${LERNA_ARGS} || exit 1
