@@ -35,7 +35,7 @@ import { ImageInfo, LocalDockerImage } from "../../src/docker";
 import { HttpServer, HttpServerProps } from "../../src/http";
 import * as nginx from "../../src/nginx";
 import { ReactApp } from "../../src/nodejs";
-import { deleteAllImages } from "../docker/common";
+import { deleteAllImages, deployIDFilter } from "../docker/common";
 import { MockDeploy } from "../testlib";
 
 class Final extends PrimitiveComponent<AnyProps> {
@@ -83,7 +83,7 @@ describe("ReactApp", function () {
 
     after(async function () {
         this.timeout(60 * 1000);
-        await deleteAllImages(mockDeploy.deployID);
+        await deleteAllImages(deployIDFilter(mockDeploy.deployID));
     });
 
     beforeEach(async () => {

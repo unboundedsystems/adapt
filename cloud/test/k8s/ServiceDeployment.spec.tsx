@@ -39,7 +39,7 @@ import { isExecaError } from "../../src/common";
 import Container from "../../src/Container";
 import { DockerContainer, DockerContainerProps, LocalDockerImage, LocalDockerRegistry } from "../../src/docker";
 import { dockerRun, execDocker } from "../../src/docker/cli";
-import { deleteAllContainers, deleteAllImages } from "../docker/common";
+import { deleteAllContainers, deleteAllImages, deployIDFilter } from "../docker/common";
 import { mkInstance } from "../run_minikube";
 import { MockDeploy } from "../testlib";
 import { forceK8sObserverSchemaLoad } from "./testlib";
@@ -126,12 +126,13 @@ describe("k8s ServiceDeployment tests", function () {
     afterEach(async function () {
         this.timeout(20 * 1000);
         if (client) {
+            const filter = deployIDFilter(mockDeploy.deployID);
             await Promise.all([
                 deleteAll("pods", { client, deployID: mockDeploy.deployID }),
                 deleteAll("services", { client, deployID: mockDeploy.deployID }),
-                deleteAllContainers(mockDeploy.deployID),
+                deleteAllContainers(filter),
             ]);
-            await deleteAllImages(mockDeploy.deployID);
+            await deleteAllImages(filter);
         }
         await revertDaemonJson(mkInstance, oldDaemonJSON);
     });

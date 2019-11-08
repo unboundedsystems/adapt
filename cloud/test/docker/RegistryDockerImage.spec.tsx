@@ -22,7 +22,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
-import { checkRegistryImage, deleteAllContainers, deleteAllImages } from "./common";
+import { checkRegistryImage, deleteAllContainers, deleteAllImages, deployIDFilter } from "./common";
 
 import {
     computeContainerName,
@@ -54,8 +54,9 @@ describe("RegistryDockerImage", function () {
 
     afterEach(async function () {
         this.timeout(20 * 1000);
-        await deleteAllContainers(mockDeploy.deployID);
-        await deleteAllImages(mockDeploy.deployID);
+        const filter = deployIDFilter(mockDeploy.deployID);
+        await deleteAllContainers(filter);
+        await deleteAllImages(filter);
     });
 
     beforeEach(async () => {

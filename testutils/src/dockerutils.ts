@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Unbounded Systems, LLC
+ * Copyright 2018-2019 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 
 import Docker = require("dockerode");
+import execa from "execa";
 import * as fs from "fs";
 import ld from "lodash";
 import * as sb from "stream-buffers";
@@ -166,4 +167,95 @@ export async function getSelfContainer(docker: Docker): Promise<Docker.Container
 
 export function secondsSince(start: number): number {
     return (Date.now() - start) / 1000;
+}
+
+export interface DockerUtilOpts {
+    dockerHost?: string;
+}
+
+function dockerArgs(opts: DockerUtilOpts, ...moreArgs: string[]) {
+    const args = [];
+    if (opts.dockerHost) args.push("-H", opts.dockerHost);
+    return args.concat(moreArgs);
+}
+
+/**
+ * Delete all Docker containers that match a filter string.
+ * @example
+ * Example for deleting containers created for an Adapt deployment:
+ * ```
+ * import { adaptDockerDeployIDKey } from "@adpt/cloud/docker";
+ * const filter = `label=${adaptDockerDeployIDKey}=${lDeployID}`;
+ * await deleteAllContainers(filter);
+ * ```
+ */
+export async function deleteAllContainers(filter: string, opts: DockerUtilOpts = {}) {
+    try {
+        let args = dockerArgs(opts, "ps", "-a", "-q", "--filter", filter);
+        const { stdout: ctrList } = await execa("docker", args);
+        if (!ctrList) return;
+        const ctrs = ctrList.split(/\s+/);
+
+        args = dockerArgs(opts, "rm", "-f", ...ctrs);
+        if (ctrs.length > 0) await execa("docker", args);
+    } catch (err) {
+        if (/invalid argument/.test(err.stderr || "")) throw err;
+        // tslint:disable-next-line: no-console
+        console.log(`Error deleting containers (ignored):`, err);
+    }
+}
+
+/**
+ * Delete all Docker networks that match a filter string.
+ * @example
+ * Example for deleting networks created for an Adapt deployment:
+ * ```
+ * import { adaptDockerDeployIDKey } from "@adpt/cloud/docker";
+ * const filter = `label=${adaptDockerDeployIDKey}=${lDeployID}`;
+ * await deleteAllNetworks(filter);
+ * ```
+ */
+export async function deleteAllNetworks(filter: string, opts: DockerUtilOpts = {}) {
+    try {
+        let args = dockerArgs(opts, "network", "ls", "-q", "--filter", filter);
+        const { stdout: netList } = await execa("docker", args);
+        if (!netList) return;
+        const nets = netList.split(/\s+/);
+
+        args = dockerArgs(opts, "network", "rm", ...nets);
+        if (nets.length > 0) await execa("docker", args);
+    } catch (err) {
+        if (/invalid argument/.test(err.stderr || "")) throw err;
+        // tslint:disable-next-line: no-console
+        console.log(`Error deleting networks (ignored):`, err);
+    }
+}
+
+/**
+ * Delete all Docker images or image tags that match a filter string.
+ * @remarks
+ * Note that this may only delete image tags and may not completely remove
+ * the actual layers stored if other tags reference the same layers.
+ * @example
+ * Example for deleting images created for an Adapt deployment:
+ * ```
+ * import { adaptDockerDeployIDKey } from "@adpt/cloud/docker";
+ * const filter = `label=${adaptDockerDeployIDKey}=${lDeployID}`;
+ * await deleteAllImages(filter);
+ * ```
+ */
+export async function deleteAllImages(filter: string, opts: DockerUtilOpts = {}) {
+    try {
+        let args = dockerArgs(opts, "image", "ls", "-q", "--filter", filter);
+        const { stdout: imgList } = await execa("docker", args);
+        if (!imgList) return;
+        const imgs = ld.uniq(imgList.split(/\s+/m));
+
+        args = dockerArgs(opts, "rmi", "-f", ...imgs);
+        if (imgs.length > 0) await execa("docker", args);
+    } catch (err) {
+        if (/invalid argument/.test(err.stderr || "")) throw err;
+        // tslint:disable-next-line: no-console
+        console.log(`Error deleting images (ignored):`, err);
+    }
 }

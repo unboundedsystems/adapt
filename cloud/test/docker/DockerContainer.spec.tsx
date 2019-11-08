@@ -16,14 +16,12 @@
 
 import Adapt from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
-import execa from "execa";
 import fs from "fs-extra";
-import { uniq } from "lodash";
 import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy } from "../testlib";
-import { deleteAllContainers, deleteAllNetworks } from "./common";
+import { deleteAllContainers, deleteAllNetworks, deployIDFilter } from "./common";
 
 import {
     adaptDockerDeployIDKey,
@@ -37,7 +35,6 @@ import {
 } from "../../src/docker/cli";
 
 describe("DockerContainer", function () {
-    let cleanupImageIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
     let testNet1: string;
@@ -54,12 +51,9 @@ describe("DockerContainer", function () {
 
     afterEach(async function () {
         this.timeout(20 * 1000);
-        await deleteAllContainers(mockDeploy.deployID);
-        await deleteAllNetworks(mockDeploy.deployID);
-        await Promise.all(
-            uniq(cleanupImageIds).map((id) => execa("docker", ["rmi", "-f", id]))
-        );
-        cleanupImageIds = [];
+        const filter = deployIDFilter(mockDeploy.deployID);
+        await deleteAllContainers(filter);
+        await deleteAllNetworks(filter);
     });
 
     beforeEach(async () => {

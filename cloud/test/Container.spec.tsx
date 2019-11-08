@@ -40,7 +40,7 @@ import {
     renameEnvVars,
     updateEnvVars
 } from "../src/env";
-import { deleteAllContainers } from "./docker/common";
+import { deleteAllContainers, deployIDFilter } from "./docker/common";
 import { MockDeploy, smallDockerImage } from "./testlib";
 
 describe("Container component", () => {
@@ -65,7 +65,7 @@ describe("Container component", () => {
 
     afterEach(async function () {
         this.timeout(20 * 1000);
-        await deleteAllContainers(mockDeploy.deployID);
+        await deleteAllContainers(deployIDFilter(mockDeploy.deployID));
     });
 
     async function getContainerStatus(orig: AdaptMountedElement): Promise<ContainerStatus> {
@@ -111,7 +111,7 @@ describe("Container component", () => {
         name = name.slice(1);
 
         // Delete the container without telling Adapt
-        await deleteAllContainers(mockDeploy.deployID);
+        await deleteAllContainers(deployIDFilter(mockDeploy.deployID));
 
         ctrStatus = await getContainerStatus(mountedOrig);
         should(ctrStatus).eql({ noStatus: `No such container: ${name}` });
