@@ -162,3 +162,18 @@ export function updateEnvVars(e: Environment, upd: (name: string, value: string)
     }
     return ret;
 }
+
+/**
+ * Formats an {@link Environment} for printing in human-readable format.
+ *
+ * @param env - The environment to be printed.
+ * @returns - A string representation of the environment for use in logging
+ * or debugging.
+ *
+ * @public
+ */
+export function formatEnvVars(env: Environment) {
+    const pairs = mergeEnvPairs(env);
+    if (!pairs || pairs.length === 0) return "<empty>";
+    return pairs.map((p) => `${p.name}: '${p.value}'`).join("\n");
+}
