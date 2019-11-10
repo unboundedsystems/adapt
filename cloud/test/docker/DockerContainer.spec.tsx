@@ -14,29 +14,33 @@
  * limitations under the License.
  */
 
-import Adapt from "@adpt/core";
+import Adapt, { Group, handle } from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
 import fs from "fs-extra";
 import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
-import { MockDeploy } from "../testlib";
-import { deleteAllContainers, deleteAllNetworks, deployIDFilter } from "./common";
+import { MockDeploy, smallDockerImage } from "../testlib";
+import { deleteAllContainers, deleteAllImages, deleteAllNetworks, deployIDFilter } from "./common";
 
+import { ContainerLabels, EnvSimple } from "../../src";
 import {
     adaptDockerDeployIDKey,
     computeContainerName,
-    DockerContainer
+    DockerContainer,
+    LocalDockerImage
 } from "../../src/docker";
 import {
     dockerImageId,
     dockerInspect,
-    execDocker
+    execDocker,
+    InspectReport
 } from "../../src/docker/cli";
 
 describe("DockerContainer", function () {
     let mockDeploy: MockDeploy;
     let pluginDir: string;
+    let emptyDir: string;
     let testNet1: string;
     let testNet2: string;
 
@@ -45,8 +49,10 @@ describe("DockerContainer", function () {
 
     mochaTmpdir.all(`adapt-cloud-dockercontainer`);
 
-    before(() => {
+    before(async () => {
         pluginDir = path.join(process.cwd(), "plugins");
+        emptyDir = path.join(process.cwd(), "empty");
+        await fs.mkdir(emptyDir);
     });
 
     afterEach(async function () {
@@ -54,6 +60,7 @@ describe("DockerContainer", function () {
         const filter = deployIDFilter(mockDeploy.deployID);
         await deleteAllContainers(filter);
         await deleteAllNetworks(filter);
+        await deleteAllImages(filter);
     });
 
     beforeEach(async () => {
@@ -100,8 +107,18 @@ describe("DockerContainer", function () {
         should(finalInfos).be.Array().of.length(0);
     });
 
-    it("Should pass environment variables to docker run", async () => {
-        const orig = <DockerContainer image="alpine:3.8" environment={{ FOO: "foo", BAR: "bar" }} />;
+    function getEnvValue(info: InspectReport, key: string) {
+        const envArray = info.Config.Env;
+        for (const e of envArray) {
+            const eql = e.indexOf("=");
+            if (eql === -1) throw new Error(`No equal sign in env var`);
+            if (key === e.slice(0, eql)) return e.slice(eql + 1);
+        }
+        return undefined;
+    }
+
+    async function deployAndCheckEnv(env: EnvSimple) {
+        const orig = <DockerContainer image="alpine:3.8" environment={env} />;
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
@@ -109,11 +126,82 @@ describe("DockerContainer", function () {
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const info = infos[0];
-        if (info === undefined) throw should(info).not.Undefined();
+        if (info == null) throw should(info).be.ok();
 
+        should(info.Id).be.a.String();
         should(info.Name).equal(`/${contName}`);
-        should(info.Config.Env).containEql("FOO=foo");
-        should(info.Config.Env).containEql("BAR=bar");
+
+        // Image includes one ENV: PATH
+        should(getEnvValue(info, "PATH")).be.a.String();
+
+        for (const key of Object.keys(env)) {
+            should(getEnvValue(info, key))
+                .equal(env[key], `Incorrect value for key ${key}`);
+        }
+        should(info.Config.Env).have.length(1 + Object.keys(env).length);
+
+        return info;
+    }
+
+    it("Should set environment variables on container and replace on change", async () => {
+        let info = await deployAndCheckEnv({ FOO: "foo", BAR: "bar" });
+        let lastId = info.Id;
+
+        // Update env value => replace
+        info = await deployAndCheckEnv({ FOO: "foo2", BAR: "bar" });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+        lastId = info.Id;
+
+        // Delete env value => replace
+        info = await deployAndCheckEnv({ BAR: "bar" });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+    });
+
+    async function deployAndCheckLabels(labels: ContainerLabels) {
+        const img = handle();
+        const orig =
+            <Group>
+                <LocalDockerImage handle={img} contextDir={emptyDir} dockerfile={`
+                    FROM ${smallDockerImage}
+                    LABEL testlabel=testing
+                `} />
+                <DockerContainer image={img} labels={labels} />
+            </Group>;
+        const { dom } = await mockDeploy.deploy(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        const ctrElem = dom.props.children[1];
+        const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
+        const infos = await dockerInspect([contName], { type: "container" });
+        should(infos).be.Array().of.length(1);
+        const info = infos[0];
+        if (info == null) throw should(info).be.ok();
+
+        should(info.Id).be.a.String();
+        should(info.Name).equal(`/${contName}`);
+        const actual = info.Config.Labels;
+        const expected = {
+            testlabel: "testing",
+            ...labels,
+            [adaptDockerDeployIDKey]: mockDeploy.deployID,
+        };
+
+        should(actual).eql(expected);
+        return info;
+    }
+
+    it("Should set labels on container and replace on change", async () => {
+        let info = await deployAndCheckLabels({ FOO: "foo", BAR: "bar" });
+        let lastId = info.Id;
+
+        // Update label value => replace
+        info = await deployAndCheckLabels({ FOO: "foo2", BAR: "bar" });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+        lastId = info.Id;
+
+        // Delete env value => replace
+        info = await deployAndCheckLabels({ BAR: "bar" });
+        should(info.Id).not.equal(lastId); // Check for replaced container
     });
 
     it("Should attach container to networks", async () => {

@@ -25,11 +25,12 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError } from "@adpt/utils";
-import { isError } from "lodash";
+import { isEqual, isError } from "lodash";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { makeResourceName } from "../common";
-import { ContainerLabels, ContainerNetwork, ContainerStatus } from "../Container";
+import { ContainerNetwork, ContainerStatus } from "../Container";
+import { EnvSimple, mergeEnvSimple } from "../env";
 import {
     dockerImageId,
     dockerInspect,
@@ -39,13 +40,14 @@ import {
     dockerRm,
     dockerRun,
     dockerStop,
-    InspectReport
+    ImageInspectReport,
+    InspectReport,
 } from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
 import { containerNetworks, NetworkDiff } from "./network_set";
-import { DockerContainerProps, DockerGlobalOptions, ImageInfo } from "./types";
+import { DockerContainerProps, DockerGlobalOptions, ImageIdString, ImageInfo } from "./types";
 
 /** @public */
 export interface DockerContainerStatus extends ContainerStatus { }
@@ -53,6 +55,7 @@ export interface DockerContainerStatus extends ContainerStatus { }
 interface ContainerInfo {
     name: string;
     data?: InspectReport;
+    image?: ImageInspectReport;
 }
 
 /**
@@ -71,15 +74,34 @@ function computeContainerNameFromContext(props: { key?: string }, context: Actio
     return computeContainerNameFromBuildData(props, context.buildData);
 }
 
+async function updateImageInfo(id: ImageIdString,
+    savedImage: ImageInspectReport | undefined, props: DockerContainerProps) {
+
+    const savedId = savedImage && savedImage.Id;
+    if (savedId === id) return savedImage;
+
+    const imgs = await dockerInspect([id], { type: "image", dockerHost: props.dockerHost });
+    if (imgs.length === 1) return imgs[0];
+
+    if (imgs.length === 0) {
+        throw new Error(`Image for running container cannot be found. Image Id=${id}`);
+    }
+    throw new Error(`Found ${imgs.length} images matching Id ${id}`);
+}
+
 async function fetchContainerInfo(context: ActionContext,
-    props: DockerContainerProps & { key?: string }): Promise<ContainerInfo> {
+    props: DockerContainerProps & { key?: string },
+    saved: ContainerInfo | undefined): Promise<ContainerInfo> {
+
     const name = computeContainerNameFromContext(props, context);
     const insp = await dockerInspect([name], { type: "container", dockerHost: props.dockerHost });
     if (insp.length > 1) throw new Error(`Multiple containers match single name: ${name}`);
-    const info = {
-        name,
-        data: insp[0] //will be undefined if no container found
-    };
+    const data = insp[0]; //will be undefined if no container found
+    const info: ContainerInfo = { name };
+    if (data) {
+        info.data = data;
+        info.image = await updateImageInfo(data.Image, saved && saved.image, props);
+    }
     return info;
 }
 
@@ -161,15 +183,56 @@ async function networkDiff(info: ContainerInfo, props: DockerContainerProps, op:
     return existing[op](requested, resolver);
 }
 
-/**
- * Ensure all labels in `requested` are in `current` with the requested value.
- * Ignores excess labels in `current`.
- */
-function hasLabels(requested: ContainerLabels, current: ContainerLabels) {
-    for (const r of Object.keys(requested)) {
-        if (current[r] !== requested[r]) return false;
+function labelsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    const img = info.image;
+    if (!ctr) throw new InternalError(`No container report`);
+    if (!img) throw new InternalError(`No image report`);
+
+    const deployLabel = { [adaptDockerDeployIDKey]: context.buildData.deployID };
+    // We expect whatever labels the container's image has, merged with props
+    const expected = mergeEnvSimple(img.Config.Labels, props.labels, deployLabel);
+    const actual = ctr.Config.Labels;
+
+    return isEqual(actual, expected);
+}
+
+function parseEnvString(envString: string) {
+    const eql = envString.indexOf("=");
+    if (eql === -1) {
+        throw new InternalError(`No equal sign in container environment variable`);
     }
-    return true;
+    return {
+        key: envString.slice(0, eql),
+        val: envString.slice(eql + 1),
+    };
+}
+
+function getEnv(report: InspectReport | ImageInspectReport): EnvSimple {
+    const ret: EnvSimple = {};
+    const envArray = report.Config.Env || [];
+    for (const e of envArray) {
+        const { key, val } = parseEnvString(e);
+        if (ret[key] !== undefined) {
+            throw new InternalError(`Repeated environment variable ${key} in ` +
+                `container or image config`);
+        }
+        ret[key] = val;
+    }
+    return ret;
+}
+
+function envUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    const img = info.image;
+    if (!ctr) throw new InternalError(`No container report`);
+    if (!img) throw new InternalError(`No image report`);
+
+    // We expect whatever ENV the container's image has, merged with props
+    const expected = mergeEnvSimple(getEnv(img), props.environment);
+    const actual = getEnv(ctr);
+
+    return isEqual(actual, expected);
 }
 
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
@@ -177,8 +240,17 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!containerExists(info)) return "noExist";
     if (!containerExistsAndIsFromDeployment(info, context)) return "existsUnmanaged";
     if (!info.data) throw new Error(`Container exists, but no info.data??: ${info}`);
+
+    /*
+     * Differences that require the container to be replaced.
+     */
     if (await getImageId(props.image, props) !== info.data.Image) return "replace";
-    if (!hasLabels(props.labels || {}, info.data.Config.Labels)) return "replace";
+    if (!labelsUpToDate(info, context, props)) return "replace";
+    if (!envUpToDate(info, context, props)) return "replace";
+
+    /*
+     * Differences that can be updated on a running container.
+     */
     if (!(await networkDiff(info, props, "equals"))) return "update";
 
     return "upToDate";
@@ -265,7 +337,7 @@ async function runContainer(context: ActionContext, props: DockerContainerProps 
  * State for DockerContainer
  * @internal
  */
-class DockerContainerState {
+interface DockerContainerState {
     info?: ContainerInfo;
 }
 
@@ -294,7 +366,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
 
     /** @internal */
     async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
-        const containerInfo = await fetchContainerInfo(context, this.props);
+        const containerInfo = await fetchContainerInfo(context, this.props, this.state.info);
         const displayName = this.displayName(context);
         switch (diff) {
             case "modify":
@@ -330,7 +402,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
 
     /** @internal */
     async action(diff: ChangeType, context: ActionContext): Promise<void> {
-        const oldInfo = await fetchContainerInfo(context, this.props);
+        const oldInfo = await fetchContainerInfo(context, this.props, this.state.info);
         switch (diff) {
             case "modify":
             case "create":
@@ -350,7 +422,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                 if (status === "replace" || status === "noExist") {
                     await runContainer(context, this.props);
                 }
-                const newInfo = await fetchContainerInfo(context, this.props);
+                const newInfo = await fetchContainerInfo(context, this.props, this.state.info);
                 this.setState({ info: newInfo });
                 return;
 

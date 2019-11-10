@@ -25,7 +25,7 @@ import shellwords from "shellwords-ts";
 import { Readable } from "stream";
 import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
-import { ContainerStatus } from "../Container";
+import { Config, ContainerStatus } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
@@ -346,6 +346,7 @@ export interface NetworkInspectReport {
 
 export interface ImageInspectReport {
     Id: string;
+    Config: Config;
     [key: string]: FIXME_NeedsProperType;
 }
 
