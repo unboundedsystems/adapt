@@ -19,4 +19,8 @@ app.get('/search/:query', (req, res) => {
         .catch(err => res.status(404).end("API server error" + err));
 });
 
-app.listen(port, () => console.log("Backend started on port", port));
+const svr = app.listen(port, () => console.log("Backend started on port", port));
+
+// Graceful shutdown
+process.on('SIGTERM', () => svr.close());
+
