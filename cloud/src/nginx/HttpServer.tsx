@@ -136,7 +136,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
         WORKDIR /nginx
         COPY --from=files / .
         ${commands}
-        CMD bash /nginx/start_nginx.sh
+        CMD [ "/bin/sh", "/nginx/start_nginx.sh" ]
         `;
 
     useImperativeMethods(() => ({
@@ -152,9 +152,9 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
             files={[{
                 path: "start_nginx.sh",
                 contents:
-                    `#!/usr/bin/env bash
-                        nginx -g "daemon off;" -c /nginx/nginx.conf
-                        `
+                    `#!/bin/sh
+                    exec nginx -g "daemon off;" -c /nginx/nginx.conf
+                    `
             },
             {
                 path: "nginx.conf",
