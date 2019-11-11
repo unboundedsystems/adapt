@@ -23,7 +23,7 @@ import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
 import { deleteAllContainers, deleteAllImages, deleteAllNetworks, deployIDFilter } from "./common";
 
-import { ContainerLabels, EnvSimple } from "../../src";
+import { ContainerLabels, EnvSimple, PortDescription } from "../../src";
 import {
     adaptDockerDeployIDKey,
     computeContainerName,
@@ -201,6 +201,54 @@ describe("DockerContainer", function () {
 
         // Delete env value => replace
         info = await deployAndCheckLabels({ BAR: "bar" });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+    });
+
+    async function deployAndCheckPorts(ports: PortDescription[] | undefined) {
+        const toPortStr = (p: PortDescription) => typeof p === "string" ? p : `${p}/tcp`;
+        const img = handle();
+        const orig =
+            <Group>
+                <LocalDockerImage handle={img} contextDir={emptyDir} dockerfile={`
+                    FROM ${smallDockerImage}
+                    EXPOSE 9999
+                `} />
+                <DockerContainer image={img} ports={ports} />
+            </Group>;
+        const { dom } = await mockDeploy.deploy(orig);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        const ctrElem = dom.props.children[1];
+        const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
+        const infos = await dockerInspect([contName], { type: "container" });
+        should(infos).be.Array().of.length(1);
+        const info = infos[0];
+        if (info == null) throw should(info).be.ok();
+
+        should(info.Id).be.a.String();
+        should(info.Name).equal(`/${contName}`);
+        if (info.Config.ExposedPorts == null) throw should(info.Config.ExposedPorts).be.ok();
+        const actual = Object.keys(info.Config.ExposedPorts).sort();
+        const expected = [
+            "9999/tcp",
+            ...(ports || []).map(toPortStr)
+        ].sort();
+
+        should(actual).eql(expected);
+        return info;
+    }
+
+    it("Should expose ports on container and replace on change", async () => {
+        let info = await deployAndCheckPorts([1212]);
+        let lastId = info.Id;
+
+        // Add port => replace
+        info = await deployAndCheckPorts([3434, 1212]);
+        should(info.Id).not.equal(lastId); // Check for replaced container
+        lastId = info.Id;
+
+        // Delete ports => replace
+        info = await deployAndCheckPorts(undefined);
         should(info.Id).not.equal(lastId); // Check for replaced container
     });
 

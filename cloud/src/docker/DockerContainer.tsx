@@ -25,11 +25,11 @@ import {
     ObserveForStatus
 } from "@adpt/core";
 import { InternalError, MultiError } from "@adpt/utils";
-import { isEqual, isError } from "lodash";
+import { isEqual, isError, sortedUniq } from "lodash";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { makeResourceName } from "../common";
-import { ContainerNetwork, ContainerStatus } from "../Container";
+import { ContainerNetwork, ContainerStatus, PortDescription } from "../Container";
 import { EnvSimple, mergeEnvSimple } from "../env";
 import {
     dockerImageId,
@@ -235,6 +235,28 @@ function envUpToDate(info: ContainerInfo, _context: ActionContext, props: Docker
     return isEqual(actual, expected);
 }
 
+function canonicalPort(port: PortDescription) {
+    if (typeof port === "string") return port;
+    if (typeof port !== "number") throw new Error(`Invalid port number ${port}`);
+    return `${port}/tcp`;
+}
+
+function portsUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    const img = info.image;
+    if (!ctr) throw new InternalError(`No container report`);
+    if (!img) throw new InternalError(`No image report`);
+
+    // We expect whatever exposed ports the container's image has, merged with props
+    const imgPorts = Object.keys(img.Config.ExposedPorts || {});
+    const propsPorts = (props.ports || []).map(canonicalPort);
+    const expected = sortedUniq([...imgPorts, ...propsPorts].sort());
+
+    const actual = sortedUniq(Object.keys(ctr.Config.ExposedPorts || {}).sort());
+
+    return isEqual(actual, expected);
+}
+
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
     Promise<"noExist" | "replace" | "update" | "existsUnmanaged" | "upToDate"> {
     if (!containerExists(info)) return "noExist";
@@ -247,6 +269,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (await getImageId(props.image, props) !== info.data.Image) return "replace";
     if (!labelsUpToDate(info, context, props)) return "replace";
     if (!envUpToDate(info, context, props)) return "replace";
+    if (!portsUpToDate(info, context, props)) return "replace";
 
     /*
      * Differences that can be updated on a running container.

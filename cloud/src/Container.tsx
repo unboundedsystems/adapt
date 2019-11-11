@@ -180,6 +180,7 @@ export interface Config {
     OnBuild: FIXME_NeedsProperType;
     Labels: ContainerLabels;
     StopSignal: FIXME_NeedsProperType;
+    ExposedPorts: null | { [port: string]: {} };
 }
 
 /**
