@@ -16,8 +16,10 @@
 
 export {
     AnyMethods,
+    callFirstInstanceWithMethod,
     callInstanceMethod,
     callNextInstanceMethod,
+    callNextInstanceWithMethod,
     hasInstanceMethod,
     SetState,
     HookStateUpdater,
