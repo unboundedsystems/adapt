@@ -31,7 +31,6 @@ import {
     // @ts-ignore - here to deal with issue #71
     AnyProps,
     ElementID,
-    isApplyStyle,
     isMountedElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -175,8 +174,9 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     /*
      * Semi-private interfaces (for use by this file)
      */
-    addElem(element: AdaptMountedElement, goalStatus: GoalStatus): void {
-        if (isApplyStyle(element) || this.hasNode(element)) return;
+    addElem(el: AdaptMountedElement, goalStatus: GoalStatus): void {
+        const element = toBuiltElem(el);
+        if (!element || this.hasNode(element)) return;
         const helpers = this.helpers.create(element);
         const waitInfo = getWaitInfo(goalStatus, element, helpers);
 
@@ -242,11 +242,12 @@ export class ExecutionPlanImpl implements ExecutionPlan {
                         `object '${waitInfo.description}' that contains ` +
                         `a Handle that is not associated with any Element`);
                 }
-                if (h.mountedOrig) {
-                    // If mountedOrig has already been added, its goal
+                const el = toBuiltElem(h);
+                if (el) {
+                    // If el has already been added, its goal
                     // status won't change.
-                    this.addElem(h.mountedOrig, goalStatus);
-                    this.addEdge(node, h.mountedOrig);
+                    this.addElem(el, goalStatus);
+                    this.addEdge(node, el);
                 }
             });
         }
@@ -921,7 +922,10 @@ function printCycleGroups(group: string[]) {
 }
 
 function toBuiltElemOrWaitInfo(val: Handle | AdaptMountedElement | WaitInfo): AdaptMountedElement | WaitInfo | null {
-    if (isWaitInfo(val)) return val;
+    return isWaitInfo(val) ? val : toBuiltElem(val);
+}
+
+function toBuiltElem(val: Handle | AdaptMountedElement): AdaptMountedElement | null {
     if (isMountedElement(val)) {
         if (val.built()) return val;
         val = val.props.handle;
