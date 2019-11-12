@@ -34,7 +34,7 @@ import {
 } from "../../src";
 import { createActionPlugin } from "../../src/action";
 import { TestRedis } from "../../src/redis";
-import { deleteAllImages } from "../docker/common";
+import { deleteAllImages, deployIDFilter } from "../docker/common";
 import { MockDeploy } from "../testlib";
 
 class Final extends PrimitiveComponent<AnyProps> implements NetworkServiceInstance {
@@ -65,7 +65,7 @@ describe("MongoDB", function () {
 
     after(async function () {
         this.timeout(60 * 1000);
-        await deleteAllImages(mockDeploy.deployID);
+        await deleteAllImages(deployIDFilter(mockDeploy.deployID));
     });
 
     beforeEach(async () => {

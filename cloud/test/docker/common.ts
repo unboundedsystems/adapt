@@ -14,50 +14,20 @@
  * limitations under the License.
  */
 
-import execa from "execa";
-import { uniq } from "lodash";
+import { dockerutils } from "@adpt/testutils";
 import should from "should";
 import { adaptDockerDeployIDKey, NameTagString } from "../../src/docker";
 import { dockerInspect, dockerPull, dockerRemoveImage } from "../../src/docker/cli";
 
-export async function deleteAllContainers(deployID: string) {
-    try {
-        const { stdout: ctrList } = await execa("docker", ["ps", "-a", "-q",
-            "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
-        if (!ctrList) return;
-        const ctrs = ctrList.split(/\s+/);
-        if (ctrs.length > 0) await execa("docker", ["rm", "-f", ...ctrs]);
-    } catch (err) {
-        // tslint:disable-next-line: no-console
-        console.log(`Error deleting containers (ignored):`, err);
-    }
-}
+const { deleteAllContainers, deleteAllImages, deleteAllNetworks } = dockerutils;
+export {
+    deleteAllContainers,
+    deleteAllImages,
+    deleteAllNetworks,
+};
 
-export async function deleteAllNetworks(deployID: string) {
-    try {
-        const { stdout: netList } = await execa("docker", ["network", "ls", "-q",
-            "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
-        if (!netList) return;
-        const nets = netList.split(/\s+/);
-        if (nets.length > 0) await execa("docker", ["network", "rm", ...nets]);
-    } catch (err) {
-        // tslint:disable-next-line: no-console
-        console.log(`Error deleting networks (ignored):`, err);
-    }
-}
-
-export async function deleteAllImages(deployID: string) {
-    try {
-        const { stdout: imgList } = await execa("docker", ["image", "ls", "-q",
-            "--filter", `label=${adaptDockerDeployIDKey}=${deployID}`]);
-        if (!imgList) return;
-        const imgs = uniq(imgList.split(/\s+/m));
-        if (imgs.length > 0) await execa("docker", ["rmi", "-f", ...imgs]);
-    } catch (err) {
-        // tslint:disable-next-line: no-console
-        console.log(`Error deleting images (ignored):`, err);
-    }
-}
+export const deployIDFilter = (deployID: string) =>
+    `label=${adaptDockerDeployIDKey}=${deployID}`;
 
 export async function checkRegistryImage(registryTag: NameTagString) {
     // Remove the tag locally and ensure it's gone

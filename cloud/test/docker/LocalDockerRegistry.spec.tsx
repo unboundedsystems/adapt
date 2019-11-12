@@ -23,7 +23,7 @@ import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
-import { checkRegistryImage, deleteAllContainers } from "./common";
+import { checkRegistryImage, deleteAllContainers, deployIDFilter } from "./common";
 
 import {
     computeContainerName,
@@ -53,7 +53,8 @@ describe("LocalDockerRegistry", function () {
 
     afterEach(async function () {
         this.timeout(20 * 1000);
-        await deleteAllContainers(mockDeploy.deployID);
+        const filter = deployIDFilter(mockDeploy.deployID);
+        await deleteAllContainers(filter);
         try {
             await execa("docker", ["rmi", "-f", ...uniq(cleanupImageIds)]);
         } catch (e) { /* ignore errors */ }

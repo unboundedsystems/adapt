@@ -210,7 +210,7 @@ export function UrlRouter(propsIn: SFCDeclProps<UrlRouterProps, typeof defaultPr
                     `#!/bin/sh
                     mkdir conf.d
                     ./make_resolvers.sh
-                    ${nginxExec} -g "daemon off;" -c /router/nginx.conf
+                    exec ${nginxExec} -g "daemon off;" -c /router/nginx.conf
 `
             },
             {
