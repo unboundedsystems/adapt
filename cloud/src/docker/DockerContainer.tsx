@@ -18,6 +18,7 @@ import {
     BuildData,
     callInstanceMethod,
     ChangeType,
+    DependsOnMethod,
     gql,
     Handle,
     isHandle,
@@ -387,6 +388,11 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         dockerHost: process.env.DOCKER_HOST
     };
 
+    dependsOn: DependsOnMethod = (_goalStatus, helpers) => {
+        if (!isHandle(this.props.image)) return undefined;
+        return helpers.dependsOn(this.props.image);
+    }
+
     /** @internal */
     async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
         const containerInfo = await fetchContainerInfo(context, this.props, this.state.info);
@@ -429,6 +435,13 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         switch (diff) {
             case "modify":
             case "create":
+                const image = getImageNameOrId(this.props);
+                if (!image) {
+                    // dependsOn should have prevented this condition
+                    throw new Error(`Container cannot be deployed because the ` +
+                        `specified image is not available`);
+                }
+
                 const status = await containerIsUpToDate(oldInfo, context, this.props);
                 if (status === "existsUnmanaged") {
                     throw new Error(`Container ${oldInfo.name} already exstis,`
