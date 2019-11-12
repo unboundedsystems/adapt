@@ -168,6 +168,7 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
     return <Sequence key={props.key} >
         {deps}
         <LocalNodeImage key={props.key + "-img"} handle={img} srcDir={srcDir} options={{ runNpmScripts: "build" }} />
+        {connectTo}
         <Service key={props.key} >
             <NetworkService
                 key={props.key + "-netsvc"}
