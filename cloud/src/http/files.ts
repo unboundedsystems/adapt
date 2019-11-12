@@ -16,9 +16,10 @@
 
 import {
     callInstanceMethod,
+    Handle,
     useState,
 } from "@adpt/core";
-import { Dispatcher } from "@adpt/utils";
+import { Dispatcher, notNull } from "@adpt/utils";
 import { isObject, isString } from "lodash";
 import { ImageInfo } from "../docker";
 import {
@@ -77,4 +78,12 @@ filesFrom.add("image", (fObj) => {
 export function useFilesInfo(files: Files[]): FilesInfo[] | undefined {
     const resolved = useResolvedFiles(files);
     return resolved && resolved.map((f) => filesFrom.dispatch(f));
+}
+
+/**
+ * Returns all `Handle`s referenced by the set of `files`.
+ * @public
+ */
+export function fileHandles(files: Files[]): Handle[] {
+    return files.map((f) => isFilesResolved(f) ? null : f.image).filter(notNull);
 }

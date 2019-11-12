@@ -26,6 +26,7 @@ import { Container } from "../Container";
 import { LocalDockerImage } from "../docker";
 import {
     Destination,
+    fileHandles,
     HttpServer as AbsHttpServer,
     HttpServerProps,
     Location,
@@ -117,6 +118,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
     const netSvc = handle();
     const nginx = handle();
     const img = handle();
+    const deps = fileHandles(props.add);
 
     const nginxConf = useMakeNginxConf(props);
 
@@ -142,6 +144,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
     useMethodFrom(netSvc, "port");
 
     const ret = <Sequence key={props.key} >
+        {...deps}
         <LocalDockerImage
             key={props.key + "-img"}
             handle={img}
