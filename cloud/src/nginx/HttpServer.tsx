@@ -15,12 +15,11 @@
  */
 
 import Adapt, {
-    callInstanceMethod,
     handle,
     Sequence,
     SFCBuildProps,
     SFCDeclProps,
-    useImperativeMethods,
+    useMethodFrom,
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import { Container } from "../Container";
@@ -139,10 +138,8 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
         CMD [ "/bin/sh", "/nginx/start_nginx.sh" ]
         `;
 
-    useImperativeMethods(() => ({
-        hostname: () => callInstanceMethod(netSvc, undefined, "hostname"),
-        port: () => callInstanceMethod(netSvc, undefined, "port")
-    }));
+    useMethodFrom(netSvc, "hostname");
+    useMethodFrom(netSvc, "port");
 
     const ret = <Sequence key={props.key} >
         <LocalDockerImage
