@@ -20,8 +20,10 @@
  */
 export * from "./DockerImage";
 export * from "./DockerContainer";
+export * from "./NetworkService";
 export * from "./labels";
 export * from "./LocalDockerImage";
 export * from "./LocalDockerRegistry";
 export * from "./RegistryDockerImage";
+export * from "./ServiceContainerSet";
 export * from "./types";
