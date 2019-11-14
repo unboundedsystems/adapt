@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { callInstanceMethod, ChangeType, Handle } from "@adpt/core";
+import { callInstanceMethod, ChangeType, DependsOnMethod, Handle, isHandle } from "@adpt/core";
 import { MaybePromise } from "@adpt/utils";
+import { isEqual } from "lodash";
 import { URL } from "url";
 import { isString } from "util";
-import { Action, ActionContext } from "../action";
+import { Action } from "../action";
 import { DockerImageInstance, DockerPushableImageInstance } from "./DockerImage";
 import { DockerSplitRegistryInfo, ImageInfo, NameTagString, RegistryString } from "./types";
 
@@ -74,7 +75,8 @@ export interface RegistryDockerImageProps {
 }
 
 interface State {
-    image: ImageInfo | undefined;
+    image?: ImageInfo;
+    registryUrl?: DockerSplitRegistryInfo;
 }
 
 function buildNameTag(url: string, nameTag: NameTagString | undefined): NameTagString | undefined {
@@ -112,7 +114,8 @@ function normalizeRegistryUrl(url: string | DockerSplitRegistryInfo) {
 export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     implements DockerImageInstance {
 
-    private newImage: ImageInfo | undefined = undefined;
+    private latestImage_?: ImageInfo;
+    private latestRegistryUrl_?: DockerSplitRegistryInfo;
     private registry: { external: RegistryString, internal: RegistryString };
 
     constructor(props: RegistryDockerImageProps) {
@@ -121,40 +124,69 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
         this.registry = normalizeRegistryUrl(props.registryUrl);
     }
 
+    /**
+     * Returns information about the version of the Docker image that reflects
+     * the current set of props for the component and has been pushed to the
+     * registry.
+     * @remarks
+     * Returns undefined if the `props.imageSrc` component's `latestImage` method
+     * returns undefined (depending on the component referenced by
+     * `props.imageSrc`, that may indicate the source image has not been built).
+     * Also returns undefined if the current image has not yet been
+     * pushed to the registry.
+     */
     image() {
-        const srcInfo = callInstanceMethod<ImageInfo | undefined>(this.props.imageSrc, undefined, "image");
-        if (srcInfo === undefined) return undefined;
-        if (this.state.image === undefined) return undefined;
-        if ((srcInfo.id === this.state.image.id) &&
-            (this.state.image.nameTag === this.currentNameTag(srcInfo.nameTag))) {
-            return this.state.image;
+        const srcImage = callInstanceMethod<ImageInfo | undefined>(this.props.imageSrc, undefined, "latestImage");
+        const latestImg = this.latestImage();
+        const latestReg = this.latestRegistryUrl_ || this.state.registryUrl;
+        if (!srcImage || !latestImg || !latestReg) return undefined;
+        if (srcImage.id === latestImg.id &&
+            this.currentNameTag(srcImage.nameTag) === latestImg.nameTag &&
+            isEqual(this.registry, latestReg)) {
+            return latestImg;
         }
-        return this.newImage;
+        return undefined; // Pushed image is not current
     }
-    latestImage() { return this.state.image; }
+    /**
+     * Returns information about the most current version of the Docker image
+     * that has been pushed to the registry.
+     * @remarks
+     * Returns undefined if no image has ever been pushed by this component.
+     */
+    latestImage() { return this.latestImage_ || this.state.image; }
 
     /** @internal */
-    initialState() { return { image: undefined }; }
+    initialState() { return {}; }
 
     /** @internal */
-    shouldAct() {
+    shouldAct(diff: ChangeType) {
+        if (diff === ChangeType.delete) return false;
         return { act: true, detail: `Pushing image to ${this.registry.external}` };
     }
 
     /** @internal */
-    async action(op: ChangeType, ctx: ActionContext): Promise<void> {
+    dependsOn: DependsOnMethod = (_goalStatus, helpers) => {
+        if (!isHandle(this.props.imageSrc)) return undefined;
+        return helpers.dependsOn(this.props.imageSrc);
+    }
+
+    /** @internal */
+    async action(op: ChangeType): Promise<void> {
         if (op === ChangeType.delete || op === ChangeType.none) return;
         const info = await callInstanceMethod<MaybePromise<ImageInfo | undefined>>(
             this.props.imageSrc,
             undefined,
             "pushTo", this.registry.external, this.props.newTag);
         if (info === undefined) {
-            ctx.logger.info("No image pushed");
-            return;
+            throw new Error(`Image source component did not push image to registry`);
         }
 
-        this.newImage = { ...info };
-        this.setState({ image: this.newImage });
+        this.latestImage_ = { ...info };
+        this.latestRegistryUrl_ = this.registry;
+        this.setState({
+            image: this.latestImage_,
+            registryUrl: this.latestRegistryUrl_,
+        });
     }
 
     private currentNameTag(nameTag: NameTagString | undefined): NameTagString | undefined {
