@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { Action, AdaptElement, ChangeType, isElement } from "@adpt/core";
+import { Action, AdaptElement, ChangeType, Handle, isElement } from "@adpt/core";
 import { toArray } from "@adpt/utils";
 import * as randomstring from "randomstring";
 import should from "should";
 import * as util from "util";
+import { Environment, NetworkScope, useConnectTo } from "../src";
 
 // tslint:disable-next-line:no-submodule-imports
 export { doBuild, MockDeploy, makeDeployId } from "@adpt/core/dist/test/testlib";
@@ -80,4 +81,26 @@ export function checkNoActions(actions: Action[], els: AdaptElement | AdaptEleme
     //The if and the else are the same here, but we need the type assertion for the type checker
     if (isElement(els)) checkNoChanges(actions, [els], { noString: "No action required" });
     else checkNoChanges(actions, [els], { noString: "No action required" });
+}
+
+/** @internal */
+export interface EnvRef {
+    env?: Environment;
+}
+
+/**
+ * Exposes all environment variables from connectTo components in object in envRef.env
+ *
+ * @internal
+ */
+export function ConnectConsumer(props: {
+    envRef: EnvRef,
+    connectTo: Handle | Handle[],
+    mapper?: (env: Environment) => Environment,
+    scope?: NetworkScope
+}) {
+    props.envRef.env = (props.scope !== undefined)
+        ? useConnectTo(props.connectTo, { xform: props.mapper, scope: props.scope })
+        : useConnectTo(props.connectTo, props.mapper); //Use explicit argument form to test overload
+    return null;
 }

@@ -17,12 +17,11 @@
 import Adapt, {
     Group,
     handle,
-    Handle,
     useImperativeMethods
 } from "@adpt/core";
 import should from "should";
-import { ConnectToInstance, Environment, NetworkScope, renameEnvVars, useConnectTo } from "../src";
-import { doBuild } from "./testlib";
+import { ConnectToInstance, NetworkScope, renameEnvVars } from "../src";
+import { ConnectConsumer, doBuild, EnvRef } from "./testlib";
 
 function Connectable(props: { varname: string, value: string }) {
     useImperativeMethods<ConnectToInstance>(() => ({
@@ -31,22 +30,6 @@ function Connectable(props: { varname: string, value: string }) {
             ...(scope ? [{ name: props.varname + "_SCOPE", value: scope }] : [])
         ]
     }));
-    return null;
-}
-
-interface EnvRef {
-    env?: Environment;
-}
-
-function ConnectConsumer(props: {
-    envRef: EnvRef,
-    connectTo: Handle | Handle[],
-    mapper?: (env: Environment) => Environment,
-    scope?: NetworkScope
-}) {
-    props.envRef.env = (props.scope !== undefined)
-        ? useConnectTo(props.connectTo, { xform: props.mapper, scope: props.scope })
-        : useConnectTo(props.connectTo, props.mapper); //Use explicit argument form to test overload
     return null;
 }
 
