@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
-import Adapt, { Group, handle } from "@adpt/core";
+import Adapt, { AdaptElement, childrenToArray, Group, handle } from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
 import fs from "fs-extra";
+import { sortedUniq } from "lodash";
 import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
 import { deleteAllContainers, deleteAllImages, deleteAllNetworks, deployIDFilter } from "./common";
 
-import { ContainerLabels, EnvSimple, PortDescription } from "../../src";
+import { ContainerLabels, EnvSimple, PortBinding, PortDescription } from "../../src";
 import {
     adaptDockerDeployIDKey,
     computeContainerName,
@@ -117,12 +118,12 @@ describe("DockerContainer", function () {
         return undefined;
     }
 
-    async function deployAndCheckEnv(env: EnvSimple) {
-        const orig = <DockerContainer image="alpine:3.8" environment={env} />;
+    async function buildAndGetInfo(orig: AdaptElement) {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const contName = computeContainerName(dom.props.key, dom.id, dom.buildData.deployID);
+        const ctrElem = childrenToArray(dom.props.children)[0];
+        const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const info = infos[0];
@@ -130,6 +131,16 @@ describe("DockerContainer", function () {
 
         should(info.Id).be.a.String();
         should(info.Name).equal(`/${contName}`);
+
+        return info;
+    }
+
+    async function deployAndCheckEnv(env: EnvSimple) {
+        const orig =
+            <Group>
+                <DockerContainer image="alpine:3.8" environment={env} />
+            </Group>;
+        const info = await buildAndGetInfo(orig);
 
         // Image includes one ENV: PATH
         should(getEnvValue(info, "PATH")).be.a.String();
@@ -161,24 +172,14 @@ describe("DockerContainer", function () {
         const img = handle();
         const orig =
             <Group>
+                <DockerContainer image={img} labels={labels} />
                 <LocalDockerImage handle={img} contextDir={emptyDir} dockerfile={`
                     FROM ${smallDockerImage}
                     LABEL testlabel=testing
                 `} />
-                <DockerContainer image={img} labels={labels} />
             </Group>;
-        const { dom } = await mockDeploy.deploy(orig);
-        if (dom == null) throw should(dom).not.be.Null();
+        const info = await buildAndGetInfo(orig);
 
-        const ctrElem = dom.props.children[1];
-        const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
-        const infos = await dockerInspect([contName], { type: "container" });
-        should(infos).be.Array().of.length(1);
-        const info = infos[0];
-        if (info == null) throw should(info).be.ok();
-
-        should(info.Id).be.a.String();
-        should(info.Name).equal(`/${contName}`);
         const actual = info.Config.Labels;
         const expected = {
             testlabel: "testing",
@@ -204,29 +205,21 @@ describe("DockerContainer", function () {
         should(info.Id).not.equal(lastId); // Check for replaced container
     });
 
+    const toPortStr = (p: PortDescription) =>
+        typeof p === "string"  && p.includes("/") ? p : `${p}/tcp`;
+
     async function deployAndCheckPorts(ports: PortDescription[] | undefined) {
-        const toPortStr = (p: PortDescription) => typeof p === "string" ? p : `${p}/tcp`;
         const img = handle();
         const orig =
             <Group>
+                <DockerContainer image={img} ports={ports} />
                 <LocalDockerImage handle={img} contextDir={emptyDir} dockerfile={`
                     FROM ${smallDockerImage}
                     EXPOSE 9999
                 `} />
-                <DockerContainer image={img} ports={ports} />
             </Group>;
-        const { dom } = await mockDeploy.deploy(orig);
-        if (dom == null) throw should(dom).not.be.Null();
+        const info = await buildAndGetInfo(orig);
 
-        const ctrElem = dom.props.children[1];
-        const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
-        const infos = await dockerInspect([contName], { type: "container" });
-        should(infos).be.Array().of.length(1);
-        const info = infos[0];
-        if (info == null) throw should(info).be.ok();
-
-        should(info.Id).be.a.String();
-        should(info.Name).equal(`/${contName}`);
         if (info.Config.ExposedPorts == null) throw should(info.Config.ExposedPorts).be.ok();
         const actual = Object.keys(info.Config.ExposedPorts).sort();
         const expected = [
@@ -249,6 +242,73 @@ describe("DockerContainer", function () {
 
         // Delete ports => replace
         info = await deployAndCheckPorts(undefined);
+        should(info.Id).not.equal(lastId); // Check for replaced container
+    });
+
+    async function deployAndCheckPortBindings(bindings: PortBinding | undefined) {
+        const img = handle();
+        const orig =
+            <Group>
+                <DockerContainer image={img} portBindings={bindings} />
+                <LocalDockerImage handle={img} contextDir={emptyDir} dockerfile={`
+                    FROM ${smallDockerImage}
+                    EXPOSE 9999
+                `} />
+            </Group>;
+        const info = await buildAndGetInfo(orig);
+
+        if (info.Config.ExposedPorts == null) throw should(info.Config.ExposedPorts).be.ok();
+        const actualExposed = Object.keys(info.Config.ExposedPorts).sort();
+        const expectedExposed = sortedUniq([
+            "9999/tcp",
+            ...Object.keys(bindings || {}).map(toPortStr),
+        ].sort());
+        should(actualExposed).eql(expectedExposed);
+
+        const expected: any = {};
+        if (bindings) {
+            Object.keys(bindings).forEach((p) => {
+                expected[toPortStr(p)] = [{
+                    HostIp: "",
+                    HostPort: `${bindings[p]}`
+                }];
+            });
+        }
+        should(info.HostConfig.PortBindings).eql(expected);
+        return info;
+    }
+
+    it("Should bind host ports on container and replace on change", async () => {
+        let info = await deployAndCheckPortBindings({
+            9998: 1000
+        });
+        let lastId = info.Id;
+
+        // Add port => replace
+        info = await deployAndCheckPortBindings({
+            "9998": 1000,
+            "1234/udp": 1212,
+        });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+        lastId = info.Id;
+
+        // Change in format of input only
+        info = await deployAndCheckPortBindings({
+            "9998/tcp": 1000,
+            "1234/udp": 1212,
+        });
+        should(info.Id).equal(lastId); // Check for NOT replaced container
+
+        // Change host port
+        info = await deployAndCheckPortBindings({
+            "9998/tcp": 1001,
+            "1234/udp": 1212,
+        });
+        should(info.Id).not.equal(lastId); // Check for replaced container
+        lastId = info.Id;
+
+        // Delete ports => replace
+        info = await deployAndCheckPortBindings(undefined);
         should(info.Id).not.equal(lastId); // Check for replaced container
     });
 

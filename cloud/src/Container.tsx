@@ -147,7 +147,7 @@ export interface ContainerStatus {
     ProcessLabel: string;
     AppArmorProfile: string;
     ExecIDs: string;
-    HostConfig: FIXME_NeedsProperType;
+    HostConfig: HostConfigStatus;
     GraphDriver: FIXME_NeedsProperType;
     SizeRw: number;
     SizeRootFs: number;
@@ -234,6 +234,31 @@ export interface ContainerNetwork {
     GlobalIPv6PrefixLen: number;
     MacAddress: string;
     DriverOpts: FIXME_NeedsProperType;
+}
+
+/**
+ * PortBindings for {@link ContainerStatus}
+ * @public
+ */
+export interface HostConfigStatus {
+    PortBindings: PortBindingsStatus;
+}
+
+/**
+ * PortBindings for {@link ContainerStatus}
+ * @public
+ */
+export interface PortBindingsStatus {
+    [ ctrPort: string ]: PortBindingStatus[];
+}
+
+/**
+ * PortBinding information for {@link ContainerStatus}
+ * @public
+ */
+export interface PortBindingStatus {
+    HostIp: string;
+    HostPort: string;
 }
 
 /**
