@@ -25,7 +25,7 @@ export async function dockerExec(container: Docker.Container, command: string[])
     const exec = await container.exec({
         AttachStdin: false,
         AttachStdout: true,
-        AttachStderr: false,
+        AttachStderr: true,
         Cmd: command
     });
 
@@ -42,7 +42,10 @@ export async function dockerExec(container: Docker.Container, command: string[])
             }
             if (inspectInfo.ExitCode !== 0) {
                 // tslint:disable-next-line:max-line-length
-                const msg = `dockerExec: ${util.inspect(command)} process exited with error (code: ${inspectInfo.ExitCode})`;
+                let msg = `dockerExec: ${util.inspect(command)} process ` +
+                    `exited with error (code: ${inspectInfo.ExitCode})`;
+                const stderr = errBuf.getContentsAsString();
+                if (stderr) msg += "\n" + stderr;
                 rej(new Error(msg));
                 return;
             }

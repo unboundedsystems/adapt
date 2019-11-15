@@ -18,8 +18,10 @@
 import { expect } from "@adpt/cli/dist/test/common/fancy";
 import { mkInstance } from "@adpt/cli/dist/test/common/start-minikube";
 import { getNewDeployID } from "@adpt/cli/dist/test/common/testlib";
+import { adaptDockerDeployIDKey } from "@adpt/cloud/dist/src/docker/labels";
 import {
     describeLong,
+    dockerutils,
     k8sutils,
 } from "@adpt/testutils";
 import { waitForNoThrow } from "@adpt/utils";
@@ -28,6 +30,7 @@ import fs from "fs-extra";
 import path from "path";
 import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
+const { deleteAllContainers, deleteAllImages, deleteAllNetworks } = dockerutils;
 const { deleteAll, getAll } = k8sutils;
 
 function isPodReady(pod: any) {
@@ -53,11 +56,14 @@ function jsonEql(json: string, ref: any) {
 describeLong("reactapp system tests", function () {
     let kClient: k8sutils.KubeClient;
     let kDeployID: string | undefined;
+    let lDeployID: string | undefined;
     let dockerHost: string;
 
     this.timeout(6 * 60 * 1000);
 
     systemAppSetup.all("reactapp");
+
+    const deployIDFilter = () => `label=${adaptDockerDeployIDKey}=${lDeployID}`;
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
@@ -87,28 +93,16 @@ describeLong("reactapp system tests", function () {
             ]);
             kDeployID = undefined;
         }
+
+        if (lDeployID) {
+            const filter = deployIDFilter();
+            await deleteAllContainers(filter, { dockerHost });
+            await deleteAllImages(filter, { dockerHost });
+            await deleteAllNetworks(filter, { dockerHost });
+        }
     });
 
-    systemTestChain
-    .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
-    .do(() => process.chdir("deploy"))
-    .command(["run", "k8s"])
-
-    .it("Should deploy reactapp to k8s", async ({ stdout, stderr }) => {
-        expect(stderr).equals("");
-        expect(stdout).contains("Validating project [completed]");
-        expect(stdout).contains("Creating new project deployment [completed]");
-
-        kDeployID = getNewDeployID(stdout);
-
-        const pods = await getAll("pods", { client: kClient, deployID: kDeployID });
-        const names = pods.map((p) => p.spec.containers[0].name);
-        expect(names).to.have.members([
-            "nginx-url-router", "nginx-static", "db", "node-service"]);
-        pods.forEach((p: any) => {
-            if (!isPodReady(p)) throw new Error(`Pods not ready`);
-        });
-
+    async function checkApi() {
         await waitForNoThrow(5, 2, async () => {
             const { stdout: resp } = await execa("curl", [
                 ...curlOptions,
@@ -119,7 +113,9 @@ describeLong("reactapp system tests", function () {
                 released: "Fri Nov 05 2004"
             }]);
         });
+    }
 
+    async function checkRoot() {
         await waitForNoThrow(5, 2, async () => {
             const { stdout: resp } = await execa("curl", [
                 ...curlOptions,
@@ -127,5 +123,58 @@ describeLong("reactapp system tests", function () {
             ]);
             expect(resp).contains(`Unbounded Movie Database`);
         });
+    }
+
+    systemTestChain
+    .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
+    .do(() => process.chdir("deploy"))
+    .command(["run", "k8s"])
+
+    .it("Should deploy reactapp to k8s", async ({ stdout, stderr }) => {
+        kDeployID = getNewDeployID(stdout);
+
+        expect(stderr).equals("");
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Creating new project deployment [completed]");
+
+        const pods = await getAll("pods", { client: kClient, deployID: kDeployID });
+        const names = pods.map((p) => p.spec.containers[0].name);
+        expect(names).to.have.members([
+            "nginx-url-router", "nginx-static", "db", "node-service"]);
+        pods.forEach((p: any) => {
+            if (!isPodReady(p)) throw new Error(`Pods not ready`);
+        });
+
+        await checkApi();
+        await checkRoot();
+    });
+
+    systemTestChain
+    .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
+    .do(() => process.chdir("deploy"))
+    .command(["run", "laptop"])
+
+    .it("Should deploy reactapp to local Docker host (laptop style)", async ({ stdout, stderr }) => {
+        lDeployID = getNewDeployID(stdout);
+
+        expect(stderr).equals("");
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Creating new project deployment [completed]");
+
+        const filter = deployIDFilter();
+        const { stdout: psOut } = await execa("docker", [
+            "ps",
+            "--format", "{{.Names}}",
+            "--filter", filter
+        ]);
+        const ctrs = psOut.split(/\s+/).sort();
+        expect(ctrs).has.length(4);
+        expect(ctrs.shift()).matches(/^nodeservice-/);
+        expect(ctrs.shift()).matches(/^postgres-testpostgres-/);
+        expect(ctrs.shift()).matches(/^reactapp-/);
+        expect(ctrs.shift()).matches(/^urlrouter-/);
+
+        await checkApi();
+        await checkRoot();
     });
 });

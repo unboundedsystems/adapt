@@ -36,6 +36,7 @@ const stripAnsi = require("strip-ansi");
 export interface MinikubeInfo {
     docker: Docker;
     container: Docker.Container;
+    hostname: string;
     network: Docker.Network;
     kubeconfig: object;
     stop: () => Promise<void>;
@@ -178,23 +179,25 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         const self = await getSelfContainer(docker);
         let container: Docker.Container;
         let network: Docker.Network;
+        let hostname: string;
 
         if (process.env.ADAPT_TEST_K8S) {
-            container = docker.getContainer(process.env.ADAPT_TEST_K8S);
+            hostname = process.env.ADAPT_TEST_K8S;
+            container = docker.getContainer(hostname);
             network = await getNetwork(docker, container);
             kubeconfig = await getKubeconfig(docker, container, "kubernetes");
         } else {
             // tslint:disable-next-line:no-console
             console.log(`    Starting Minikube`);
             const tstamp = moment().format("MMDD-HHmm-ss-SSSSSS");
-            const newContainerName = `test-k8s-${process.pid}-${tstamp}`;
-            network = await createNetwork(docker, newContainerName);
+            hostname = `test-k8s-${process.pid}-${tstamp}`;
+            network = await createNetwork(docker, hostname);
             stops.unshift(async () => network.remove());
             if (network.id === undefined) throw new Error("Network id was undefined!");
-            container = await runMinikubeContainer(docker, newContainerName, network.id);
+            container = await runMinikubeContainer(docker, hostname, network.id);
             stops.unshift(async () => container.stop());
 
-            kubeconfig = await waitForKubeConfig(docker, container, newContainerName);
+            kubeconfig = await waitForKubeConfig(docker, container, hostname);
             const configTime = secondsSince(startTime);
             // tslint:disable-next-line:no-console
             console.log(`    Got kubeconfig (${configTime} seconds)`);
@@ -216,7 +219,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         }
 
         const exec = (command: string[]) => dockerExec(container, command);
-        return { docker, container, network, kubeconfig, stop, exec };
+        return { docker, container, hostname, network, kubeconfig, stop, exec };
     } catch (e) {
         await stop();
         throw e;

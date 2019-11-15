@@ -18,6 +18,7 @@ import {
     BuildData,
     callInstanceMethod,
     ChangeType,
+    DependsOnMethod,
     gql,
     Handle,
     isHandle,
@@ -29,7 +30,7 @@ import { isEqual, isError, sortedUniq } from "lodash";
 import { inspect } from "util";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { makeResourceName } from "../common";
-import { ContainerNetwork, ContainerStatus, PortDescription } from "../Container";
+import { ContainerNetwork, ContainerStatus, PortBinding, PortDescription } from "../Container";
 import { EnvSimple, mergeEnvSimple } from "../env";
 import {
     dockerImageId,
@@ -235,10 +236,16 @@ function envUpToDate(info: ContainerInfo, _context: ActionContext, props: Docker
     return isEqual(actual, expected);
 }
 
+const stringPortRe = /^\d+(\/(tcp|udp|sctp))?$/;
+
 function canonicalPort(port: PortDescription) {
-    if (typeof port === "string") return port;
-    if (typeof port !== "number") throw new Error(`Invalid port number ${port}`);
-    return `${port}/tcp`;
+    if (typeof port === "number") return `${port}/tcp`;
+    if (typeof port === "string") {
+        if (stringPortRe.test(port)) {
+            return (port.includes("/")) ? port : `${port}/tcp`;
+        }
+    }
+    throw new Error(`Invalid port number ${port}`);
 }
 
 function portsUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
@@ -247,12 +254,53 @@ function portsUpToDate(info: ContainerInfo, _context: ActionContext, props: Dock
     if (!ctr) throw new InternalError(`No container report`);
     if (!img) throw new InternalError(`No image report`);
 
-    // We expect whatever exposed ports the container's image has, merged with props
+    // We expect exposed ports to include:
+    // - exposed ports in the container image
+    // - ports.props
+    // - the container ports from props.portBindings
     const imgPorts = Object.keys(img.Config.ExposedPorts || {});
     const propsPorts = (props.ports || []).map(canonicalPort);
-    const expected = sortedUniq([...imgPorts, ...propsPorts].sort());
+    const boundPorts = Object.keys(props.portBindings || {}).map(canonicalPort);
+
+    const expected =
+        sortedUniq([...imgPorts, ...propsPorts, ...boundPorts].sort());
 
     const actual = sortedUniq(Object.keys(ctr.Config.ExposedPorts || {}).sort());
+
+    return isEqual(actual, expected);
+}
+
+function portBindingsUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    const img = info.image;
+    if (!ctr) throw new InternalError(`No container report`);
+    if (!img) throw new InternalError(`No image report`);
+
+    const fromProps = props.portBindings || {};
+    const fromCtr = ctr.HostConfig.PortBindings;
+
+    const expected: PortBinding = {};
+    Object.keys(fromProps).forEach((p) => {
+        expected[canonicalPort(p)] = fromProps[p];
+    });
+
+    const actual: PortBinding = {};
+    Object.keys(fromCtr).forEach((p) => {
+        const entry = fromCtr[p];
+        if (!Array.isArray(entry)) {
+            throw new InternalError(`PortBinding entry not understood: ${entry}`);
+        }
+        if (entry.length !== 1) {
+            throw new InternalError(`PortBinding entry with length ` +
+                `${entry.length} not supported`);
+        }
+        const hostPort = Number(entry[0].HostPort);
+        if (isNaN(hostPort)) {
+            throw new InternalError(`PortBinding HostPort '${hostPort}' is ` +
+                `not a number`);
+        }
+        actual[p] = hostPort;
+    });
 
     return isEqual(actual, expected);
 }
@@ -270,6 +318,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!labelsUpToDate(info, context, props)) return "replace";
     if (!envUpToDate(info, context, props)) return "replace";
     if (!portsUpToDate(info, context, props)) return "replace";
+    if (!portBindingsUpToDate(info, context, props)) return "replace";
 
     /*
      * Differences that can be updated on a running container.
@@ -387,6 +436,11 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         dockerHost: process.env.DOCKER_HOST
     };
 
+    dependsOn: DependsOnMethod = (_goalStatus, helpers) => {
+        if (!isHandle(this.props.image)) return undefined;
+        return helpers.dependsOn(this.props.image);
+    }
+
     /** @internal */
     async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
         const containerInfo = await fetchContainerInfo(context, this.props, this.state.info);
@@ -429,6 +483,13 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         switch (diff) {
             case "modify":
             case "create":
+                const image = getImageNameOrId(this.props);
+                if (!image) {
+                    // dependsOn should have prevented this condition
+                    throw new Error(`Container cannot be deployed because the ` +
+                        `specified image is not available`);
+                }
+
                 const status = await containerIsUpToDate(oldInfo, context, this.props);
                 if (status === "existsUnmanaged") {
                     throw new Error(`Container ${oldInfo.name} already exstis,`

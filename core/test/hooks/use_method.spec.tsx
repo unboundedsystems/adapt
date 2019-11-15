@@ -16,8 +16,19 @@
 
 import should from "should";
 import { ExpectT, IsSameT } from "type-ops";
-import Adapt, { BuiltinProps, handle, Handle, Style } from "../../src";
-import { notReplacedByStyle, useImperativeMethods, useMethod } from "../../src/hooks";
+import Adapt, {
+    BuiltinProps,
+    callFirstInstanceWithMethod,
+    callInstanceMethod,
+    callNextInstanceWithMethod,
+    Group,
+    handle,
+    Handle,
+    Style,
+    useImperativeMethods,
+    useMethod,
+} from "../../src";
+import { notReplacedByStyle } from "../../src/hooks";
 import { doBuild } from "../testlib";
 
 interface Inst1 {
@@ -227,5 +238,143 @@ describe("notReplacedByStyle", () => {
         if (el === null) throw should(el).not.be.Null();
         if (el === undefined) throw should(el).not.be.Undefined();
         should(el.instance).eql(inst);
+    });
+});
+
+describe("callInstanceMethod family", () => {
+    /*
+     * Instance methods:
+     *  all: Implemented by all components
+     *  none: Implemented by no components
+     *  only*: Implemented by only the named component
+     */
+    function ReplaceMe1() {
+        useImperativeMethods(() => ({
+            all: () => "ReplaceMe1",
+            onlyReplaceMe1: () => "ReplaceMe1",
+        }));
+        return null;
+    }
+    function ReplaceMe2() {
+        useImperativeMethods(() => ({
+            all: () => "ReplaceMe2",
+            onlyReplaceMe2: () => "ReplaceMe2",
+        }));
+        return null;
+    }
+    function Build1() {
+        useImperativeMethods(() => ({
+            all: () => "Build1",
+            onlyBuild1: () => "Build1",
+        }));
+        return <Build2 />;
+    }
+    function Build2() {
+        useImperativeMethods(() => ({
+            all: () => "Build2",
+            onlyBuild2: () => "Build2",
+        }));
+        return <Final />;
+    }
+    function Final() {
+        useImperativeMethods(() => ({
+            all: () => "Final",
+            onlyFinal: () => "Final",
+        }));
+        return null;
+    }
+    function ReplaceNull() {
+        useImperativeMethods(() => ({
+            all: () => "ReplaceNull",
+            onlyReplaceNull: () => "ReplaceNull",
+        }));
+        return null;
+    }
+
+    let hFirst: Handle;
+    let hSecond: Handle;
+    let hThird: Handle;
+
+    before(async () => {
+        hFirst = handle();
+        hSecond = handle();
+        hThird = handle();
+        const root =
+            <Group>
+                <ReplaceMe1 handle={hFirst} />
+                <ReplaceNull handle={hSecond} />
+                <Build1 handle={hThird} />
+            </Group>;
+        const style = <Style>
+            {ReplaceMe1} {Adapt.rule(() => <ReplaceMe2 />)}
+            {ReplaceMe2} {Adapt.rule(() => <Final />)}
+            {ReplaceNull} {Adapt.rule(() => null)}
+        </Style>;
+        await doBuild(root, { style, nullDomOk: true });
+        if (hFirst.mountedOrig == null) throw should(hFirst.mountedOrig).be.ok();
+        if (hSecond.mountedOrig == null) throw should(hSecond.mountedOrig).be.ok();
+        if (hThird.mountedOrig == null) throw should(hThird.mountedOrig).be.ok();
+    });
+
+    it("Should callInstanceMethod return default on unassociated handle", () => {
+        const hand = handle();
+        should(callInstanceMethod(hand, "DEFAULT", "all")).equal("DEFAULT");
+    });
+    it("Should callInstanceMethod skip elements replaced by style", () => {
+        should(callInstanceMethod(hFirst, "DEFAULT", "all")).equal("Final");
+    });
+    it("Should callInstanceMethod return default if all elements replaced by style", () => {
+        should(callInstanceMethod(hSecond, "DEFAULT", "all")).equal("DEFAULT");
+    });
+    it("Should callInstanceMethod call method on mountedOrig", () => {
+        should(callInstanceMethod(hThird, "DEFAULT", "all")).equal("Build1");
+    });
+
+    it("Should callFirstInstanceWithMethod return default on unassociated handle", () => {
+        const hand = handle();
+        should(callFirstInstanceWithMethod(hand, "DEFAULT", "all")).equal("DEFAULT");
+    });
+    it("Should callFirstInstanceWithMethod skip elements replaced by style", () => {
+        should(callFirstInstanceWithMethod(hFirst, "DEFAULT", "all")).equal("Final");
+    });
+    it("Should callFirstInstanceMethod return default if all elements replaced by style", () => {
+        should(callFirstInstanceWithMethod(hSecond, "DEFAULT", "all")).equal("DEFAULT");
+    });
+    it("Should callFirstInstanceWithMethod call method on mountedOrig", () => {
+        should(callFirstInstanceWithMethod(hThird, "DEFAULT", "all")).equal("Build1");
+    });
+    it("Should callFirstInstanceWithMethod skip elements without method", () => {
+        should(callFirstInstanceWithMethod(hThird, "DEFAULT", "onlyBuild2")).equal("Build2");
+        should(callFirstInstanceWithMethod(hThird, "DEFAULT", "onlyFinal")).equal("Final");
+    });
+    it("Should callFirstInstanceWithMethod return default if no element has method", () => {
+        should(callFirstInstanceWithMethod(hFirst, "DEFAULT", "none")).equal("DEFAULT");
+        should(callFirstInstanceWithMethod(hThird, "DEFAULT", "none")).equal("DEFAULT");
+    });
+
+    it("Should callNextInstanceWithMethod throw on unassociated handle", () => {
+        const hand = handle();
+        should(() => callNextInstanceWithMethod(hand, "DEFAULT", "all"))
+            .throwError(`Cannot find next instance when calling all: handle is not associated with any element`);
+    });
+    it("Should callNextInstanceWithMethod skip elements replaced by style", () => {
+        should(callNextInstanceWithMethod(hFirst, "DEFAULT", "all")).equal("Final");
+    });
+    it("Should callNextInstanceMethod return default if all elements replaced by style", () => {
+        should(callNextInstanceWithMethod(hSecond, "DEFAULT", "all")).equal("DEFAULT");
+    });
+    it("Should callNextInstanceWithMethod skip method on mountedOrig", () => {
+        should(callNextInstanceWithMethod(hThird, "DEFAULT", "all")).equal("Build2");
+    });
+    it("Should callNextInstanceWithMethod skip elements without method", () => {
+        should(callNextInstanceWithMethod(hThird, "DEFAULT", "onlyBuild2")).equal("Build2");
+        should(callNextInstanceWithMethod(hThird, "DEFAULT", "onlyFinal")).equal("Final");
+    });
+    it("Should callNextInstanceWithMethod return default if no element has method", () => {
+        should(callNextInstanceWithMethod(hFirst, "DEFAULT", "none")).equal("DEFAULT");
+        should(callNextInstanceWithMethod(hThird, "DEFAULT", "none")).equal("DEFAULT");
+    });
+    it("Should callNextInstanceWithMethod return default if only mountedOrig has method", () => {
+        should(callNextInstanceWithMethod(hThird, "DEFAULT", "onlyBuild1")).equal("DEFAULT");
     });
 });

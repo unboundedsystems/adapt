@@ -1,4 +1,5 @@
 import { Service, ServiceProps } from "@adpt/cloud";
+import { ServiceContainerSet } from "@adpt/cloud/docker";
 import { HttpServer, HttpServerProps, UrlRouter, UrlRouterProps } from "@adpt/cloud/http";
 import { ServiceDeployment } from "@adpt/cloud/k8s";
 import * as nginx from "@adpt/cloud/nginx";
@@ -45,8 +46,12 @@ export const k8sStyle = concatStyles(commonStyle,
  */
 export const laptopStyle = concatStyles(commonStyle,
     <Style>
-        {Postgres} {Adapt.rule(() =>
-            <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
+        {Postgres}
+        {Adapt.rule(() => <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
+
+        {Service}
+        {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
+            <ServiceContainerSet dockerHost={process.env.DOCKER_HOST} {...props} />)}
     </Style>);
 
 /*
