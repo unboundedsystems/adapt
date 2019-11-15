@@ -18,6 +18,7 @@ import Adapt, {
     Handle,
     handle,
     Sequence,
+    SFCBuildProps,
     SFCDeclProps,
     useImperativeMethods,
     useMethod,
@@ -29,13 +30,17 @@ import { DockerImageInstance } from "../docker";
 import { Environment, mergeEnvPairs } from "../env";
 import { NetworkService, NetworkServiceScope } from "../NetworkService";
 import { Service } from "../Service";
-import { LocalNodeImage } from "./LocalNodeImage";
+import { LocalNodeImage, NodeImageBuildOptions } from "./LocalNodeImage";
 
 /**
  * Props for {@link nodejs.NodeService}.
  * @public
  */
 export interface NodeServiceProps {
+    /**
+     * Image build options to pass to {@link nodejs.LocalNodeImage}.
+     */
+    buildOptions: NodeImageBuildOptions;
     /**
      * Handles for services that this component connects to.
      * @remarks
@@ -90,7 +95,11 @@ export interface NodeServiceProps {
     srcDir: string;
 }
 
+const defaultBuildOptions = {
+    runNpmScripts: "build"
+};
 const defaultProps = {
+    buildOptions: defaultBuildOptions,
     connectTo: [],
     deps: [],
     env: {},
@@ -148,7 +157,9 @@ const defaultProps = {
  * @public
  */
 export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof defaultProps>) {
-    const { connectTo, deps, env, externalPort, port: targetPort, scope, srcDir } = props as NodeServiceProps;
+    const { buildOptions, connectTo, deps, env, externalPort, port: targetPort, scope, srcDir } =
+        props as SFCBuildProps<NodeServiceProps, typeof defaultProps>;
+    const buildOpts = { ...defaultBuildOptions, ...buildOptions };
 
     const netSvc = handle();
     const nodeCtr = handle();
@@ -167,7 +178,7 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
 
     return <Sequence key={props.key} >
         {deps}
-        <LocalNodeImage key={props.key + "-img"} handle={img} srcDir={srcDir} options={{ runNpmScripts: "build" }} />
+        <LocalNodeImage key={props.key + "-img"} handle={img} srcDir={srcDir} options={buildOpts} />
         {connectTo}
         <Service key={props.key} >
             <NetworkService
