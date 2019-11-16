@@ -131,8 +131,10 @@ async function main() {
                 `title: "${title}"`,
                 `hide_title: true`,
             ];
-            const parent = parentId(id);
-            if (parent) header.push(`parent_id: api/${args.project}/${parent}`);
+            if (treeLevel(id) > 2 || !title.includes("namespace")) {
+                const parent = parentId(id);
+                if (parent) header.push(`parent_id: api/${args.project}/${parent}`);
+            }
             header.push("---");
 
             const outPath = join(outDir, sanitizeFilename(docFile));
@@ -170,6 +172,10 @@ function parentId(id) {
     parts.pop(); // Drop the portion that refers to this doc
     if (parts.length === 0) return undefined; // no parent
     return parts.slice(0, 2).join(".");
+}
+
+function treeLevel(id) {
+    return id.split(".").length;
 }
 
 main();
