@@ -251,6 +251,7 @@ export interface DockerContainerProps extends DockerGlobalOptions,
         "environment" |
         "portBindings" |
         "ports" |
+        "restartPolicy" |
         "stopSignal"
         > {
     /** image name as a string, or a handle to a DockerImage component */

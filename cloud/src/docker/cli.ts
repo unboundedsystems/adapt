@@ -25,7 +25,7 @@ import shellwords from "shellwords-ts";
 import { Readable } from "stream";
 import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
-import { Config, ContainerStatus } from "../Container";
+import { Config, ContainerStatus, RestartPolicy } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
@@ -459,7 +459,7 @@ const defaultDockerRunOptions = {
  */
 export async function dockerRun(options: DockerRunOptions) {
     const opts = { ...defaultDockerRunOptions, ...options };
-    const { background, labels, name, portBindings, ports, privileged } = opts;
+    const { background, labels, name, portBindings, ports, privileged, restartPolicy } = opts;
     const args: string[] = ["run"];
 
     if (privileged) args.push("--privileged");
@@ -492,11 +492,32 @@ export async function dockerRun(options: DockerRunOptions) {
 
     if (ports) args.push(...ports.map((p) => `--expose=${p}`));
 
+    args.push(...restartPolicyArgs(restartPolicy));
+
     args.push(opts.image);
     if (typeof opts.command === "string") args.push(...shellwords.split(opts.command));
     if (Array.isArray(opts.command)) args.push(...opts.command);
 
     return execDocker(args, opts);
+}
+
+function restartPolicyArgs(policy: RestartPolicy | undefined) {
+    if (!policy) return [];
+    switch (policy.name) {
+        case undefined:
+        case "" as RestartPolicy["name"]:
+        case "Never":
+            return [];
+        case "Always":
+            return ["--restart=always"];
+        case "UnlessStopped":
+            return ["--restart=unless-stopped"];
+        case "OnFailure":
+            const max = policy.maximumRetryCount ? ":" + policy.maximumRetryCount : "";
+            return [`--restart=on-failure${max}`];
+        default:
+            throw new Error(`Invalid RestartPolicy name '${policy.name}'`);
+    }
 }
 
 /**

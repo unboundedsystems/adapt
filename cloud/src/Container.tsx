@@ -80,6 +80,42 @@ export interface Links {
 }
 
 /**
+ * The behavior to apply when the container exits.
+ * @remarks
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
+export interface RestartPolicy {
+    /** The type of behavior to apply */
+    name: RestartPolicyName;
+    /** If `OnFailure` is used, the number of times to retry before giving up */
+    maximumRetryCount?: number;
+}
+
+/**
+ * Names for {@link RestartPolicy}
+ *
+ * @remarks
+ * - `Always` - Always restart the container.
+ * - `Never` - Do not automatically restart the container.
+ * - `OnFailure` - Restart only when the container exit code is non-zero.
+ * - `UnlessStopped` - Always restart the container, except if it has been
+ *   manually stopped by user intervention.
+ *
+ * See the
+ * {@link https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate | Docker API Reference}
+ * for more information.
+ * @public
+ */
+export type RestartPolicyName =
+    "Always" |
+    "Never" |
+    "OnFailure" |
+    "UnlessStopped";
+
+/**
  * Props for the {@link Container} component.
  *
  * @remarks
@@ -103,6 +139,15 @@ export interface ContainerProps {
     environment?: Environment;
     links?: Links;
     entrypoint?: Command;
+    /**
+     * The behavior to apply when the container exits.
+     * @remarks
+     * See {@link RestartPolicy} and {@link RestartPolicyName} for the
+     * possible values and corresponding behavior.
+     * @defaultValue The default is `{ name: "Never" }`, which does not
+     * restart the container.
+     */
+    restartPolicy?: RestartPolicy;
     workingDir?: string;
     imagePullPolicy?: "Always" | "Never" | "IfNotPresent";
 }
@@ -237,11 +282,21 @@ export interface ContainerNetwork {
 }
 
 /**
- * PortBindings for {@link ContainerStatus}
+ * HostConfig for {@link ContainerStatus}
  * @public
  */
 export interface HostConfigStatus {
     PortBindings: PortBindingsStatus;
+    RestartPolicy: RestartPolicyStatus;
+}
+
+/**
+ * Restart policy status for {@link ContainerStatus}
+ * @public
+ */
+export interface RestartPolicyStatus {
+    Name: "no" | "always" | "on-failure" | "unless-stopped";
+    MaximumRetryCount: number;
 }
 
 /**
