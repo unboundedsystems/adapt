@@ -171,6 +171,7 @@ describe("k8s Service Operation Tests", function () {
     let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
+    let deploy: MockDeploy;
 
     mochaTmpdir.all(`adapt-cloud-k8s-Service`);
 
@@ -192,6 +193,15 @@ describe("k8s Service Operation Tests", function () {
             logger,
             log: logger.info,
         };
+
+        const pluginDir = path.join(process.cwd(), "plugins");
+        await fs.remove(pluginDir);
+        deploy = new MockDeploy({
+            pluginCreates: [createActionPlugin],
+            tmpDir: pluginDir,
+            uniqueDeployID: true
+        });
+        await deploy.init();
     });
 
     afterEach(async function () {
@@ -199,7 +209,9 @@ describe("k8s Service Operation Tests", function () {
         if (client) {
             await Promise.all([
                 deleteAll("pods", { client, deployID }),
-                deleteAll("services", { client, deployID })
+                deleteAll("services", { client, deployID }),
+                deleteAll("pods", { client, deployID: deploy.deployID }),
+                deleteAll("services", { client, deployID: deploy.deployID }),
             ]);
         }
     });
@@ -249,15 +261,7 @@ describe("k8s Service Operation Tests", function () {
 
     it("Should return an external ingress IP as the LoadBalancer external hostname", async function () {
         this.timeout(30 * 1000);
-        const pluginDir = path.join(process.cwd(), "plugins");
-        await fs.remove(pluginDir);
         const svc = <Service key="test" ports={[{ port: 8080}]} type="LoadBalancer" config={clusterInfo} />;
-        const deploy = new MockDeploy({
-            pluginCreates: [createActionPlugin],
-            tmpDir: pluginDir,
-            uniqueDeployID: true
-        });
-        await deploy.init();
         const { dom, mountedOrig } = await deploy.deploy(svc);
 
         const svcs = await getAll("services", { client, deployID: deploy.deployID });
