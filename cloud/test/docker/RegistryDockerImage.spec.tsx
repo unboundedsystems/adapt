@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Adapt, { callInstanceMethod, FinalDomElement, Group, handle } from "@adpt/core";
+import Adapt, { callInstanceMethod, FinalDomElement, Group, handle, Sequence } from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
@@ -102,13 +102,15 @@ describe("RegistryDockerImage", function () {
                     dockerfile={opts.dockerfile}
                     options={buildOpts}
                 />
-                <LocalDockerRegistry portBindings={{ 5000: 5000 }} />
-                <RegistryDockerImage
-                    handle={iReg}
-                    imageSrc={iSrc}
-                    registryUrl={opts.registryUrl}
-                    {...imageOpts}
-                />
+                <Sequence>
+                    <LocalDockerRegistry portBindings={{ 5000: 5000 }} />
+                    <RegistryDockerImage
+                        handle={iReg}
+                        imageSrc={iSrc}
+                        registryUrl={opts.registryUrl}
+                        {...imageOpts}
+                    />
+                </Sequence>
                 <DockerContainer autoRemove={true} image={iReg} stopSignal="SIGKILL" />
             </Group>;
 
@@ -119,10 +121,10 @@ describe("RegistryDockerImage", function () {
         const opts = { ...defaultBasicDom(), ...options };
 
         if (dom == null) throw should(dom).not.be.Null();
-        should(dom.props.children).be.an.Array().with.length(4);
+        should(dom.props.children).be.an.Array().with.length(3);
 
         const iSrc = dom.props.children[0].props.handle;
-        const iReg = dom.props.children[2].props.handle;
+        const iReg = dom.props.children[1].props.children[1].props.handle;
 
         const srcImageEl: FinalDomElement = dom.props.children[0];
         should(srcImageEl.componentType).equal(LocalDockerImage);
@@ -130,7 +132,7 @@ describe("RegistryDockerImage", function () {
         if (srcImageInfo == null) throw should(srcImageInfo).be.ok();
 
         // Info on the running container
-        const ctrEl: FinalDomElement = dom.props.children[3];
+        const ctrEl: FinalDomElement = dom.props.children[2];
         should(ctrEl.componentType).equal(DockerContainer);
         const contName = computeContainerName(ctrEl.props.key, ctrEl.id, mockDeploy.deployID);
         should(contName).startWith("dockercontainer-");
