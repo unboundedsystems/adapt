@@ -203,7 +203,8 @@ describe("k8s ServiceDeployment tests", function () {
                 handle: dind,
                 image: dindImg,
                 environment: { DOCKER_TLS_CERTDIR: "" },
-                privileged: true
+                privileged: true,
+                restartPolicy: { name: "Always" } as const,
             };
 
             const cont = <DockerContainer {...contProps} />;
