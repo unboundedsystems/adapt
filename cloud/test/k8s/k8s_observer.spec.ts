@@ -20,6 +20,7 @@ import * as ld from "lodash";
 import should from "should";
 import { K8sObserver } from "../../src/k8s/k8s_observer";
 import { mkInstance } from "../run_minikube";
+import { k8sSystemPodNameRegex } from "./testlib";
 
 interface PodType {
     metadata?: {
@@ -36,8 +37,7 @@ function checkPods(items?: (PodType | undefined)[]) {
         if (meta === undefined) return should(meta).not.Undefined();
         const name = meta.name;
         if (name === undefined) return should(name).not.Undefined();
-        const re = /(^(?:kube-dns)|(?:kube-addon-manager)|(?:storage-provisioner)|(?:coredns))-[a-z\-0-9]+$/;
-        return should(name).match(re);
+        return should(name).match(k8sSystemPodNameRegex);
     }
     should(items.length).equal(3);
 }
