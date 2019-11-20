@@ -135,13 +135,9 @@ export async function execDocker(args: string[], options: ExecDockerOptions) {
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
     args = globalArgs.concat(args);
-    const pathEnv = { PATH: process.env.PATH || "" };
     const execaOpts: ExecaOptions = {
         input: options.stdin,
-        extendEnv: false,
-        //Note(manishv) execa (via cross-spawn) uses path from opts.env instead of the parent env, ugh.
-        //See https://github.com/sindresorhus/execa/issues/366
-        env: mergeEnvSimple(pathEnv, options.env)
+        env: mergeEnvSimple(options.env),
     };
 
     const cmdDebug =
