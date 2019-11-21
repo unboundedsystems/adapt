@@ -24,6 +24,7 @@ import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
 import { deleteAllContainers, deleteAllImages, deleteAllNetworks, deployIDFilter } from "./common";
 
+import { sleep } from "@adpt/utils";
 import { ContainerLabels, EnvSimple, PortBinding, PortDescription } from "../../src";
 import {
     adaptDockerDeployIDKey,
@@ -118,12 +119,18 @@ describe("DockerContainer", function () {
         return undefined;
     }
 
-    async function buildAndGetInfo(orig: AdaptElement) {
+    interface BuildGetOpts {
+        delaySec?: number;
+    }
+
+    async function buildAndGetInfo(orig: AdaptElement, opts: BuildGetOpts = {}) {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
         const ctrElem = childrenToArray(dom.props.children)[0];
         const contName = computeContainerName(ctrElem.props.key, ctrElem.id, mockDeploy.deployID);
+
+        if (opts.delaySec) await sleep(opts.delaySec * 1000);
         const infos = await dockerInspect([contName], { type: "container" });
         should(infos).be.Array().of.length(1);
         const info = infos[0];
@@ -434,4 +441,111 @@ describe("DockerContainer", function () {
         if (info === undefined) throw should(info).not.Undefined();
         should(info.NetworkSettings.Networks).have.keys(testNet1, testNet2);
     });
+
+    it("Should not restart container by default", async () => {
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 1 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "no", MaximumRetryCount: 0 });
+        should(info.State.Status).equal("exited");
+        should(info.State.Running).equal(false);
+        should(info.State.Restarting).equal(false);
+        should(info.RestartCount).equal(0);
+        should(info.State.ExitCode).equal(0);
+    });
+
+    it("Should not restart container with Never", async () => {
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                    restartPolicy={{ name: "Never" }}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 1 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "no", MaximumRetryCount: 0 });
+        should(info.State.Status).equal("exited");
+        should(info.State.Running).equal(false);
+        should(info.State.Restarting).equal(false);
+        should(info.RestartCount).equal(0);
+        should(info.State.ExitCode).equal(0);
+    });
+
+    it("Should restart container with Always", async function () {
+        this.slow("5s");
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                    restartPolicy={{ name: "Always" }}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 2 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "always", MaximumRetryCount: 0 });
+        should(info.State.Status).be.oneOf("running", "restarting");
+        should(info.State.Running).equal(true);
+        should(info.RestartCount).be.greaterThan(0);
+        should(info.State.ExitCode).equal(0);
+    });
+
+    it("Should restart container on failure with OnFailure", async function () {
+        this.slow("7s");
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                    command="false"
+                    restartPolicy={{ name: "OnFailure" }}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 3 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "on-failure", MaximumRetryCount: 0 });
+        should(info.State.Status).be.oneOf("running", "restarting");
+        should(info.State.Running).equal(true);
+        should(info.RestartCount).be.greaterThan(1);
+        // Docker weirdness - ExitCode gets reset to 0 on restart
+        should(info.State.ExitCode).be.oneOf(0, 1);
+    });
+
+    it("Should not restart container on success with OnFailure", async function () {
+        this.slow("5s");
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                    restartPolicy={{ name: "OnFailure" }}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 2 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "on-failure", MaximumRetryCount: 0 });
+        should(info.State.Status).equal("exited");
+        should(info.State.Running).equal(false);
+        should(info.State.Restarting).equal(false);
+        should(info.RestartCount).equal(0);
+        should(info.State.ExitCode).equal(0);
+    });
+
+    it("Should restart container max times on failure with OnFailure", async function () {
+        this.slow("7s");
+        const orig =
+            <Group>
+                <DockerContainer
+                    image={smallDockerImage}
+                    command="false"
+                    restartPolicy={{ name: "OnFailure", maximumRetryCount: 1 }}
+                />
+            </Group>;
+        const info = await buildAndGetInfo(orig, { delaySec: 3 });
+        should(info.HostConfig.RestartPolicy).eql({ Name: "on-failure", MaximumRetryCount: 1 });
+        should(info.State.Status).equal("exited");
+        should(info.State.Running).equal(false);
+        should(info.State.Restarting).equal(false);
+        should(info.RestartCount).equal(1);
+        should(info.State.ExitCode).equal(1);
+    });
+
 });

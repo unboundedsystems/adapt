@@ -71,7 +71,7 @@ async function runMinikubeContainer(
     networkName: string) {
 
     const imageName = "unboundedsystems/k3s-dind";
-    const imageTag = "v0.5.0-1";
+    const imageTag = "1.0.0";
     const image = `${imageName}:${imageTag}`;
 
     const opts: Docker.ContainerCreateOptions = {

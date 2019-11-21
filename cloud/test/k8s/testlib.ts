@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Unbounded Systems, LLC
+ * Copyright 2018-2019 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,3 +30,18 @@ export interface K8sTestStatusType {
         labels?: { [key: string]: any }
     };
 }
+
+const k8sSytemPodNames = [
+    "coredns",
+    "kube-addon-manager",
+    "kube-dns",
+    "local-path-provisioner",
+    "metrics-server",
+    "storage-provisioner",
+];
+
+export const k8sSystemPodNameRegex = RegExp(
+    "(^" +
+    k8sSytemPodNames.map((n) => `(?:${n})`).join("|") +
+    ")-[a-z\\-0-9]+$"
+);

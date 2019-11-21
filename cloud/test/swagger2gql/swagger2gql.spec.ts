@@ -32,6 +32,7 @@ import {
     Swagger2PathItem,
     Swagger2Schema
 } from "../../src/swagger2gql/swagger_types";
+import { k8sSystemPodNameRegex } from "../k8s/testlib";
 import { mkInstance } from "../run_minikube";
 
 // tslint:disable-next-line:no-var-requires
@@ -346,8 +347,7 @@ describe("Swagger to GraphQL Tests (with Kubernetes 1.8 spec)", () => {
             if (meta === undefined) return should(meta).not.Undefined();
             const name = meta.name;
             if (name === undefined) return should(name).not.Undefined();
-            const re = /(^(?:kube-dns)|(?:kube-addon-manager)|(?:storage-provisioner)|(?:coredns))-[a-z\-0-9]+$/;
-            return should(name).match(re);
+            return should(name).match(k8sSystemPodNameRegex);
         }
         should(items.length).equal(3);
     });

@@ -16,6 +16,7 @@
 
 import Adapt, {
     callInstanceMethod,
+    GoalStatus,
     handle,
     SFCBuildProps,
     SFCDeclProps,
@@ -85,7 +86,10 @@ export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps
         return `${netIP}:${hardCodedInternalPort}`;
     }
 
-    useDeployedWhen(async () => {
+    useDeployedWhen(async (goal) => {
+        // No need to check for destroy
+        if (goal !== GoalStatus.Deployed) return true;
+
         let reason: string;
         if (ipAddr) {
             try {

@@ -5,5 +5,5 @@ if ! docker network inspect k3s >& /dev/null ; then
     docker network create k3s
 fi
 
-docker run --privileged --rm -d --name k3s --hostname k3s --network k3s unboundedsystems/k3s-dind
+docker run --privileged --rm -d --name k3s --hostname k3s --network k3s unboundedsystems/k3s-dind:1.0.0
 
