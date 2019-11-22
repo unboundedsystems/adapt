@@ -16,8 +16,8 @@
 
 import { filePathToUrl, MessageClient, MessageLogger } from "@adpt/utils";
 import { flags } from "@oclif/command";
+import Listr from "@unboundedsystems/listr";
 import * as fs from "fs-extra";
-import Listr = require("listr");
 import * as path from "path";
 import { ReplaceT } from "type-ops";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";

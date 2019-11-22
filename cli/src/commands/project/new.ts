@@ -16,7 +16,7 @@
 
 import { UserError } from "@adpt/utils";
 import { flags } from "@oclif/command";
-import Listr = require("listr");
+import Listr from "@unboundedsystems/listr";
 import { isString } from "lodash";
 import path from "path";
 import { parse } from "semver";

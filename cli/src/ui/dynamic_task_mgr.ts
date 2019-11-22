@@ -15,8 +15,8 @@
  */
 
 import { badTaskEvent, InternalError, MessageClient, parseTaskInfo, TaskEvent, TaskGroupOptions, TaskState } from "@adpt/utils";
+import Listr, { ListrTask, ListrTaskWrapper } from "@unboundedsystems/listr";
 import db from "debug";
-import Listr, { ListrTask, ListrTaskWrapper } from "listr";
 import pDefer from "p-defer";
 import { CustomError } from "ts-custom-error";
 
