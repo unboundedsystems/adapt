@@ -1506,11 +1506,11 @@ describe("ExecutionPlanImpl", () => {
         should(plan.elems).have.length(4);
         should(plan.leaves).have.length(2);
 
-        should(dependencies(plan)).eql({
-            "Group": [],
-            "new0 wait": [ "One Action" ],
-            "new2 wait": [ "One Action" ],
-            "old1 wait": [ "One Action" ],
+        should(dependencies(plan, { key: "id" })).eql({
+            [newDom.id]: [],
+            [newKids[0].id]: [ "One Action" ],
+            [newKids[1].id]: [ "One Action" ],
+            [oldKids[1].id]: [ "One Action" ],
             "One Action": [],
         });
 
@@ -1656,17 +1656,17 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should deploy plan with dependencies (PlanC)", async () => {
         const goal: GoalStatus = DeployStatus.Deployed;
-        const { elems, expNodes, plan, spy } = await createPlanC(goal);
+        const { elems, expNodes, kids, plan, spy } = await createPlanC(goal);
 
-        should(dependencies(plan)).eql({
-            depsRoot: [ "depsKid0", "depsKid3" ],
-            depsKid0: [ "Action0" ],
-            depsKid1: [ "Action1" ],
-            depsKid2: [ "Action2" ],
-            depsKid3: [ "Action3" ],
-            Action0: [ "depsKid1", "depsKid2", "depsKid3" ],
-            Action1: [ "depsKid2" ],
-            Action2: [ "depsKid3" ],
+        should(dependencies(plan, { key: "id" })).eql({
+            [elems[0].id]: [ kids[0].id, kids[3].id ],
+            [kids[0].id]: [ "Action0" ],
+            [kids[1].id]: [ "Action1" ],
+            [kids[2].id]: [ "Action2" ],
+            [kids[3].id]: [ "Action3" ],
+            Action0: [ kids[1].id, kids[2].id, kids[3].id ],
+            Action1: [ kids[2].id, ],
+            Action2: [ kids[3].id ],
             Action3: [],
         });
 
@@ -1705,18 +1705,18 @@ describe("ExecutionPlanImpl", () => {
 
     it("Should destroy plan with dependencies (PlanC)", async () => {
         const goal: GoalStatus = DeployStatus.Destroyed;
-        const { elems, expNodes, plan, spy } = await createPlanC(goal);
+        const { elems, expNodes, kids, plan, spy } = await createPlanC(goal);
 
-        should(dependencies(plan)).eql({
-            depsRoot: [],
-            depsKid0: [ "Action0" ],
-            depsKid1: [ "Action1" ],
-            depsKid2: [ "Action2" ],
-            depsKid3: [ "Action3" ],
-            Action0: [ "depsRoot" ],
-            Action1: [ "depsKid0" ],
-            Action2: [ "depsKid0", "depsKid1" ],
-            Action3: [ "depsKid0", "depsKid2", "depsRoot" ],
+        should(dependencies(plan, { key: "id" })).eql({
+            [elems[0].id]: [],
+            [kids[0].id]: [ "Action0" ],
+            [kids[1].id]: [ "Action1" ],
+            [kids[2].id]: [ "Action2" ],
+            [kids[3].id]: [ "Action3" ],
+            Action0: [ elems[0].id ],
+            Action1: [ kids[0].id ],
+            Action2: [ kids[0].id, kids[1].id ],
+            Action3: [ kids[0].id, kids[2].id, elems[0].id ],
         });
 
         should(plan.leaves).have.length(1);

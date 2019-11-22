@@ -207,6 +207,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             this.addElem(c.element, changeTypeToGoalStatus(c.type));
             const elNode = this.getNode(c.element);
             elNode.waitInfo.activeAction = true;
+            elNode.waitInfo.description = action.detail;
             const leader = this.groupLeader(c.element);
             if (leader === node) return;
             if (leader) {
