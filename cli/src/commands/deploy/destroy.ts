@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ListrTaskWrapper } from "listr";
+import { ListrTaskWrapper } from "@unboundedsystems/listr";
 import { dirname } from "path";
 import { DeployOpBase } from "../../base/deploy_base";
 import { projectAdaptModule } from "../../proj";

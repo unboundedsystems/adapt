@@ -55,8 +55,5 @@
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",
         "precommit": "lint-staged --config config/lint-staged.json",
         "prepublishOnly": "make build"
-    },
-    "resolutions": {
-        "npm-package-arg/hosted-git-info": "unboundedsystems/hosted-git-info#v2.7.1-unb"
     }
 }
