@@ -2,7 +2,7 @@ FROM alpine:3.10.3
 ARG ADAPT_VERSION
 
 # Install Adapt and its prerequisites.
-RUN apk --update add --no-cache nodejs npm openssh-client
+RUN apk --update add --no-cache 'nodejs=~10.16' 'npm=~10.16' 'openssh-client=~8.1'
 RUN npm install -g yarn@~1.19 @adpt/cli@$ADAPT_VERSION
 
 # Setup volumes where users should mount the source root of their project and
