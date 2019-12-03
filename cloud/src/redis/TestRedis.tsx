@@ -90,4 +90,5 @@ export function TestRedis(props: SFCDeclProps<TestRedisProps, typeof testRedisDe
         />
     </Service>;
 }
-TestRedis.defaultProps = testRedisDefaultProps;
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
+(TestRedis as any).defaultProps = testRedisDefaultProps;

@@ -279,5 +279,6 @@ export function Container(props: ContainerProps) {
     const kProps = k8sContainerProps({ ...rest, image }, addlProps);
     return <K8sContainer {...kProps} />;
 }
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (Container as any).displayName = "k8s.Container";
 (Container as any).defaultProps = AbsContainer.defaultProps;

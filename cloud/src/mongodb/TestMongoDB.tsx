@@ -90,4 +90,5 @@ export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps, typeof testMon
         />
     </Service>;
 }
-TestMongoDB.defaultProps = testMongoDefaultProps;
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
+(TestMongoDB as any).defaultProps = testMongoDefaultProps;

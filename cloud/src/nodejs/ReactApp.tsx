@@ -146,4 +146,5 @@ export function ReactApp(props: SFCDeclProps<ReactAppProps, typeof defaultOption
         </Sequence>
     );
 }
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (ReactApp as any).defaultProps = defaultOptions;

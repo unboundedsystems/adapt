@@ -116,4 +116,5 @@ export function LocalDockerRegistry(props: SFCDeclProps<LocalDockerRegistryProps
 
     return <DockerContainer handle={ctr} image={image} portBindings={portBindings} {...buildProps} />;
 }
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (LocalDockerRegistry as any).defaultProps = defaultProps;
