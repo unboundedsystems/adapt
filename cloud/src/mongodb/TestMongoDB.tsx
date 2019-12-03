@@ -58,7 +58,7 @@ export interface TestMongoDBProps {
  *
  * @public
  */
-export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps>) {
+export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps, typeof testMongoDefaultProps>) {
     const lprops = props as SFCBuildProps<TestMongoDBProps, typeof testMongoDefaultProps>;
     const svc = handle();
     const mongo = handle();

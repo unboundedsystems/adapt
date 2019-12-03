@@ -58,7 +58,7 @@ export interface TestRedisProps {
  *
  * @public
  */
-export function TestRedis(props: SFCDeclProps<TestRedisProps>) {
+export function TestRedis(props: SFCDeclProps<TestRedisProps, typeof testRedisDefaultProps>) {
     const lprops = props as SFCBuildProps<TestRedisProps, typeof testRedisDefaultProps>;
     const svc = handle();
     const redis = handle();
