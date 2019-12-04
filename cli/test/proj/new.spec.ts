@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
+import { mochaTmpdir } from "@adpt/testutils";
 import { expect } from "chai";
+import "chai-as-promised";
+import fs from "fs-extra";
 import path from "path";
 import { parse, SemVer } from "semver";
-import { adaptVersionLabelPrefix, trySpecs, tryVersions } from "../../src/proj/new";
+import { adaptVersionLabelPrefix, StarterConfig, trySpecs, tryVersions, updateVersions } from "../../src/proj/new";
 
 function mkVer(v: string): SemVer {
     const parsed = parse(v, true);
@@ -198,5 +201,100 @@ describe("Project new utils", () => {
             `git+https://gitlab.com/adpt/starters/_hello-node`,
             `_hello-node`,
         ]);
+    });
+});
+
+const nullLogger = () => {/* */};
+
+describe("Project new updateVersions", () => {
+    mochaTmpdir.each("adapt-test-cli-updateversions");
+
+    async function writeOrig(dir: string, orig: any) {
+        await fs.mkdirp(path.resolve(dir));
+        await fs.writeJson(path.resolve(dir, "package.json"), orig);
+    }
+
+    async function updateOne(config: StarterConfig, ver: string, expected: any) {
+        const adaptDir = config.adaptDir;
+        if (!adaptDir) throw new Error(`Must specify an adaptDir`);
+        if (Array.isArray(adaptDir)) throw new Error(`updateOne doesn't handle multiple dirs`);
+
+        await updateVersions(config, nullLogger, process.cwd(), mkVer(ver));
+        const actual = await fs.readJson(path.resolve(adaptDir, "package.json"));
+        expect(actual).eqls(expected);
+    }
+
+    it("Should update dependencies", async () => {
+        const ver = "0.10.1-next.1";
+        const orig = {
+            dependencies: {
+                "@adpt/core": "CURRENT",
+                "@adpt/cloud": "CURRENT",
+                "@adpt/cli": "CURRENT",
+                "@adpt/utils": "CURRENT",
+                "@adpt/testutils": "CURRENT",
+                "foo": "1.2.3",
+            },
+            devDependencies: {
+                "@adpt/core": "CURRENT",
+                "@adpt/cloud": "CURRENT",
+                "@adpt/cli": "CURRENT",
+                "@adpt/utils": "CURRENT",
+                "@adpt/testutils": "CURRENT",
+                "bar": "1.2.3",
+            }
+        };
+        const expected = {
+            dependencies: {
+                "@adpt/core": ver,
+                "@adpt/cloud": ver,
+                "@adpt/cli": ver,
+                "@adpt/utils": ver,
+                "@adpt/testutils": "CURRENT",
+                "foo": "1.2.3",
+            },
+            devDependencies: {
+                "@adpt/core": ver,
+                "@adpt/cloud": ver,
+                "@adpt/cli": ver,
+                "@adpt/utils": ver,
+                "@adpt/testutils": "CURRENT",
+                "bar": "1.2.3",
+            }
+        };
+        await writeOrig("deploy", orig);
+        await updateOne({ adaptDir: "deploy" }, ver, expected);
+    });
+
+    it("Should handle no dependencies", async () => {
+        const ver = "0.10.1-next.1";
+        const orig = {};
+        await writeOrig("deploy", orig);
+        await updateOne({ adaptDir: "deploy" }, ver, orig);
+    });
+
+    it("Should handle no package.json", async () => {
+        // This should do nothing, including not throw an error
+        await updateVersions({ adaptDir: "deploy" }, nullLogger, process.cwd(),
+            mkVer("1.0.0"));
+    });
+
+    it("Should error on invalid package.json values", async () => {
+        const invalid = [
+            null,
+            "a string",
+            [],
+            10,
+            true,
+        ];
+
+        for (const val of invalid) {
+            await writeOrig("deploy", val);
+            expect(updateVersions({ adaptDir: "deploy" }, nullLogger,
+                process.cwd(), mkVer("1.0.0")))
+                .to.be.rejectedWith(`Invalid package.json file ` +
+                    `'${process.cwd()}/deploy/package.json': file must ` +
+                    `contain a single object`, `Failed with invalid value ${val}`);
+        }
     });
 });

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { mochaTmpdir } from "@adpt/testutils";
-import { grep } from "@adpt/utils";
+import { mochaTmpdir, repoVersions } from "@adpt/testutils";
+import { grep, repoDirs } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
@@ -26,6 +26,9 @@ const basicTestChain =
     .stdout()
     .stderr()
     .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+
+const cliVersion = repoVersions.cli;
+const testStarters = path.join(repoDirs.cli, "test_starters");
 
 function trying(stdout: string) {
     return grep(stdout, "Trying").map((l) => l.replace(/^.*Trying /, ""));
@@ -111,12 +114,12 @@ async function checkFiles(files: Files, dest: string) {
 
 const files1 = {
     "test.js": "test.js\n",
-    "deploy/package.json": "package.json\n",
+    "deploy/package.json": `{ "name": "package.json" }`,
     "deploy/README": "README\n",
 };
 
 const dirOnly = {
-    "deploy/package.json": "package.json\n",
+    "deploy/package.json": `{ "name": "package.json" }`,
 };
 
 describe("project:new files", () => {
@@ -178,6 +181,29 @@ describe("project:new files", () => {
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error if files are not present in starter");
+
+    const uvStarter = path.join(testStarters, "update_version");
+
+    basicTestChain
+    .command(["new", uvStarter, "project"])
+    .it("Should create new project and update versions using defaults", async () => {
+        const pj = await fs.readJson("./project/deploy/package.json");
+        expect(pj.dependencies["@adpt/core"]).equals(cliVersion);
+        expect(pj.dependencies["@adpt/cloud"]).equals(cliVersion);
+        expect(pj.devDependencies["@adpt/utils"]).equals(cliVersion);
+        expect(pj.devDependencies["@adpt/cli"]).equals(cliVersion);
+    });
+
+    basicTestChain
+    .command(["new", "--adaptVersion=1.2.3-foo", uvStarter, "project"])
+    .it("Should create new project and update versions using specific version", async () => {
+        const pj = await fs.readJson("./project/deploy/package.json");
+        expect(pj.dependencies["@adpt/core"]).equals("1.2.3-foo");
+        expect(pj.dependencies["@adpt/cloud"]).equals("1.2.3-foo");
+        expect(pj.devDependencies["@adpt/utils"]).equals("1.2.3-foo");
+        expect(pj.devDependencies["@adpt/cli"]).equals("1.2.3-foo");
+    });
+
 });
 
 // Name of a starter repo that exists in the gallery, but specifically set up
