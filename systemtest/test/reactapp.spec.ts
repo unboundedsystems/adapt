@@ -126,7 +126,10 @@ describeLong("reactapp system tests", function () {
     }
 
     systemTestChain
-    .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
+    .delayedenv(() => ({
+        DOCKER_HOST: dockerHost,
+        KUBECONFIG: "./kubeconfig.json",
+    }))
     .do(() => process.chdir("deploy"))
     .command(["run", "k8s"])
 
