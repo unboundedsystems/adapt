@@ -83,7 +83,7 @@ function cliHandler(func) {
 
 async function exec(argsIn, options = {}) {
     const wd = path.relative(repoRoot, options.cwd || process.cwd());
-    console.log(`\n[${wd}] ` + argsIn.join(" "));
+    console.log(chalk.bold(`\n[${wd}] ` + argsIn.join(" ")));
     const prog = argsIn[0];
     const subproc = execa(prog, argsIn.slice(1), options);
     subproc.stdout.pipe(process.stdout);
