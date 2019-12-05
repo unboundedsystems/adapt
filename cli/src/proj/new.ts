@@ -14,7 +14,15 @@
  * limitations under the License.
  */
 
-import { ensureError, InternalError, isObject, mkdtmp, UserError } from "@adpt/utils";
+import {
+    ensureError,
+    InternalError,
+    isObject,
+    MaybeArray,
+    mkdtmp,
+    toArray,
+    UserError,
+} from "@adpt/utils";
 import copy from "copy";
 import db from "debug";
 import execa from "execa";
@@ -46,18 +54,30 @@ export interface AdaptStarter {
     cleanup(): Promise<void>;
 }
 
+export type StarterValidator = (config: any, propName: string) => void;
+export interface StarterValidators {
+    [propName: string]: StarterValidator;
+}
+
 export interface StarterConfig {
-    files?: string[];
+    adaptDir?: MaybeArray<string>;
+    files?: MaybeArray<string>;
     init?: string;
     name?: string;
     version?: string;
 }
 
-const stringProps = [
-    "init",
-    "name",
-    "version",
-];
+const validators: StarterValidators = {
+    adaptDir: checkMaybeArrayString,
+    files: checkMaybeArrayString,
+    init: checkString,
+    name: checkString,
+    version: checkString,
+};
+
+export const starterConfigDefaults = {
+    adaptDir: "deploy",
+};
 
 export const starterJsonFile = "adapt_starter.json";
 
@@ -174,6 +194,7 @@ class AdaptStarterImpl {
 
             await fs.ensureDir(this.dest);
             await copyFiles(config, log, this.starterDir, this.dest);
+            await updateVersions(config, log, this.dest, this.adaptVersion);
             await runScripts(config, log, this.starterDir, this.dest, this.args);
 
         } catch (err) {
@@ -229,6 +250,21 @@ function checkString(config: any, prop: string) {
     }
 }
 
+function checkMaybeArrayString(config: any, prop: string) {
+    if (!(prop in config)) return;
+    const val = config[prop];
+    if (isString(val)) return;
+    if (!isArray(val)) {
+        throw new Error(`${starterJsonFile}: '${prop}' must be a string or ` +
+            `an array of strings`);
+    }
+    val.forEach((f, i) => {
+        if (!isString(f)) {
+            throw new Error(`${starterJsonFile}: '${prop}[${i}]' must be a string`);
+        }
+    });
+}
+
 async function validateConfig(starterDir: string): Promise<StarterConfig> {
     let config: any;
     try {
@@ -246,19 +282,10 @@ async function validateConfig(starterDir: string): Promise<StarterConfig> {
     if (!isObject(config)) {
         throw new Error(`${starterJsonFile} must contain a single object`);
     }
-    stringProps.forEach((p) => checkString(config, p));
 
-    if ("files" in config) {
-        const files = config.files;
-        if (!isArray(files)) {
-            throw new Error(`${starterJsonFile}: 'files' must be an array`);
-        }
-        files.forEach((f, i) => {
-            if (!isString(f)) {
-                throw new Error(`${starterJsonFile}: 'files[${i}]' contains non-string value`);
-            }
-        });
-    }
+    config = { ...starterConfigDefaults, ...config };
+
+    Object.keys(validators).forEach((prop) => validators[prop](config, prop));
     return config;
 }
 
@@ -293,6 +320,65 @@ async function copyFiles(config: StarterConfig, log: LogString,
             throw new Error(prefix + `'${err.path}' not found`);
         } else {
             throw new Error(prefix + err.message);
+        }
+    }
+}
+
+async function loadPackageJsonIfPresent(filename: string): Promise<any> {
+    let pj: any;
+
+    try {
+        pj = await fs.readJson(filename);
+    } catch (err) {
+        if (err.code === "ENOENT") return undefined;
+        throw err;
+    }
+    if (isArray(pj) || !isObject(pj)) {
+        throw new UserError(`Invalid package.json file '${filename}': ` +
+            `file must contain a single object`);
+    }
+    return pj;
+}
+
+const depTypes = [
+    "dependencies",
+    "devDependencies",
+];
+
+const updateableDeps = [
+    "@adpt/cli",
+    "@adpt/cloud",
+    "@adpt/core",
+    "@adpt/utils",
+];
+
+export async function updateVersions(config: StarterConfig, log: LogString,
+    dest: string, ver: SemVer) {
+
+    let logged = false;
+    const adaptDirs = toArray(config.adaptDir || "");
+    for (const d of adaptDirs) {
+        let updated = false;
+        const pkgFile = path.resolve(dest, d, "package.json");
+        const pj = await loadPackageJsonIfPresent(pkgFile);
+        if (!pj) continue;
+
+        for (const depType of depTypes) {
+            const deps = pj[depType];
+            if (!deps || !isObject(deps)) continue;
+            for (const depName of updateableDeps) {
+                if (deps[depName] === "CURRENT") {
+                    if (!logged) {
+                        log(`Updating dependency versions`);
+                        logged = true;
+                    }
+                    updated = true;
+                    deps[depName] = ver.version;
+                }
+            }
+        }
+        if (updated) {
+            await fs.writeJson(pkgFile, pj, { spaces: 4 });
         }
     }
 }

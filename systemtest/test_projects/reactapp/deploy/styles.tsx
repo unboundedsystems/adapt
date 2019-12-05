@@ -1,16 +1,11 @@
 import { Service, ServiceProps } from "@adpt/cloud";
 import { ServiceContainerSet } from "@adpt/cloud/docker";
 import { HttpServer, HttpServerProps, UrlRouter, UrlRouterProps } from "@adpt/cloud/http";
-import { ServiceDeployment } from "@adpt/cloud/k8s";
+import { makeClusterInfo, ServiceDeployment } from "@adpt/cloud/k8s";
 import * as nginx from "@adpt/cloud/nginx";
 import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
 import Adapt, { concatStyles, Style } from "@adpt/core";
 import { ProdPostgres } from "./postgres";
-
-export function kubeClusterInfo() {
-    // tslint:disable-next-line:no-var-requires
-    return { kubeconfig: require("./kubeconfig.json") };
-}
 
 // Terminate containers quickly for demos
 const demoProps = {
@@ -32,14 +27,19 @@ export const commonStyle =
 /*
  * Kubernetes testing style
  */
-export const k8sStyle = concatStyles(commonStyle,
-    <Style>
-        {Postgres} {Adapt.rule(() =>
-            <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
+export async function k8sTestStyle() {
+    const config = await makeClusterInfo({});
+    return concatStyles(commonStyle,
+        <Style>
+            {Postgres}
+            {Adapt.rule(() => <TestPostgres mockDbName="test_db" mockDataPath="./test_db.sql" />)}
 
-        {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
-            <ServiceDeployment config={kubeClusterInfo()} {...props} {...demoProps} />)}
-    </Style>);
+            {Service}
+            {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
+                <ServiceDeployment config={config} {...props} {...demoProps} />)}
+        </Style>
+    );
+}
 
 /*
  * Laptop testing style
@@ -57,11 +57,15 @@ export const laptopStyle = concatStyles(commonStyle,
 /*
  * Production style
  */
-export const prodStyle = concatStyles(commonStyle,
-    <Style>
-        {Postgres} {Adapt.rule(() =>
-            <ProdPostgres />)}
+export async function k8sProdStyle() {
+    const config = await makeClusterInfo({});
+    return concatStyles(commonStyle,
+        <Style>
+            {Postgres}
+            {Adapt.rule(() => <ProdPostgres />)}
 
-        {Service} {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
-            <ServiceDeployment config={kubeClusterInfo()} {...props} />)}
-    </Style>);
+            {Service}
+            {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
+                <ServiceDeployment config={config} {...props} />)}
+        </Style>);
+}

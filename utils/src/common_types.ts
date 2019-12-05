@@ -153,6 +153,12 @@ export type FIXME_NeedsProperType = unknown;
 export type MaybePromise<T> = T | Promise<T>;
 
 /**
+ * Type that could either be the input type or an array of that type.
+ * @public
+ */
+export type MaybeArray<T> = T | T[];
+
+/**
  * Type for an object that can have any properties.
  * @public
  */

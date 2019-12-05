@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { callInstanceMethod, ChangeType, DependsOnMethod, Handle, isHandle } from "@adpt/core";
+import { callFirstInstanceWithMethod, callInstanceMethod, ChangeType, DependsOnMethod, Handle, isHandle } from "@adpt/core";
 import { MaybePromise } from "@adpt/utils";
 import { isEqual } from "lodash";
 import { URL } from "url";
@@ -161,7 +161,9 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     /** @internal */
     shouldAct(diff: ChangeType) {
         if (diff === ChangeType.delete) return false;
-        return { act: true, detail: `Pushing image to ${this.registry.external}` };
+        let name = this.props.newTag || this.srcImageName();
+        name = name ? ` '${name}'` : "";
+        return { act: true, detail: `Pushing image${name} to ${this.registry.external}` };
     }
 
     /** @internal */
@@ -191,5 +193,9 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
 
     private currentNameTag(nameTag: NameTagString | undefined): NameTagString | undefined {
         return buildNameTag(this.registry.internal, this.props.newTag || nameTag);
+    }
+
+    private srcImageName() {
+        return callFirstInstanceWithMethod<string | undefined>(this.props.imageSrc, undefined, "displayName");
     }
 }

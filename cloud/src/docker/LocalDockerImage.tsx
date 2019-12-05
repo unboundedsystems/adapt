@@ -193,6 +193,11 @@ export class LocalDockerImage
     }
 
     /**
+     * User-facing name to display in status messages.
+     */
+    displayName() { return this.options_.imageName; }
+
+    /**
      * Implementations for Action base class
      * @internal
      */
