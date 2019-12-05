@@ -19,8 +19,15 @@ You'll need **one** of the following:
 
 | Requirement | Installation Instructions |
 | --- | --- |
-| A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/) |
-| A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/) |
+| A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/#server) |
+| A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/) |
+
+> **NOTE**
+>
+> If you're using Docker on Linux, you'll need to either run all `docker` commands as superuser (`root`) or ensure your user is part of the `docker` group.
+> For instructions and more information, see the Docker [Linux post-install instructions](https://docs.docker.com/install/linux/linux-postinstall/).
+
+Docker is correctly installed if the command `docker ps` does not show any errors.
 
 Lastly, certain commands assume you're using the `bash` shell.
 If you use a different shell, you may need to adjust some commands slightly.
@@ -46,14 +53,16 @@ npm install -g @adpt/cli
 As an alternative to installing `adapt` globally, you can use `npx` instead.
 To use Adapt via `npx`, any time you see an `adapt` CLI command in this guide, simply substitute `npx @adpt/cli` instead of `adapt`.
 For example, if this guide asks you to run this command:
+
 ```console
 adapt new blank
 ```
+
 You would instead type:
+
 ```console
 npx @adpt/cli new blank
 ```
 
 The rest of this guide will assume you have installed `adapt` globally using `npm install -g`.
 </details>
-
