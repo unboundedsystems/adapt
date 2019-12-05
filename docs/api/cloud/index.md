@@ -32,6 +32,15 @@ However, there are technology-specific Components that can be used in Style Shee
 - [HttpServer](./cloud.http.httpserver.md)
 - [UrlRouter](./cloud.http.urlrouter.md)
 
+## Action
+
+Library for creating simple Primitive Components
+
+### Components
+
+- [Action](./cloud.action.action.md)
+- [Command](./cloud.action.command.md)
+
 ## AWS
 
 ### Components
@@ -51,7 +60,9 @@ However, there are technology-specific Components that can be used in Style Shee
 - [DockerContainer](./cloud.docker.dockercontainer.md)
 - [LocalDockerImage](./cloud.docker.localdockerimage.md)
 - [LocalDockerRegistry](./cloud.docker.localdockerregistry.md)
+- [NetworkService](./cloud.docker.networkservice.md)
 - [RegistryDockerImage](./cloud.docker.registrydockerimage.md)
+- [ServiceContainerSet](./cloud.docker.servicecontainerset.md)
 
 ## Kubernetes
 
@@ -84,12 +95,14 @@ However, there are technology-specific Components that can be used in Style Shee
 
 - [LocalNodeImage](./cloud.nodejs.localnodeimage.md)
 - [NodeService](./cloud.nodejs.nodeservice.md)
+- [ReactApp](./cloud.nodejs.reactapp.md)
 
 ## Postgres
 
 ### Components
 
 - [Postgres](./cloud.postgres.postgres.md)
+- [PostgresProvider](./cloud.postgres.postgresprovider.md)
 - [TestPostgres](./cloud.postgres.testpostgres.md)
 - [PreloadedPostgresImage](./cloud.postgres.preloadedpostgresimage.md)
 
