@@ -450,6 +450,7 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
             spec={manifest.spec}
         />);
 }
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (Service as any).defaultProps = defaultProps;
 (Service as any).status = async (_props: ServiceProps & BuiltinProps,
     _observe: ObserveForStatus,

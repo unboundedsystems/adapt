@@ -58,7 +58,7 @@ export interface TestRedisProps {
  *
  * @public
  */
-export function TestRedis(props: SFCDeclProps<TestRedisProps>) {
+export function TestRedis(props: SFCDeclProps<TestRedisProps, typeof testRedisDefaultProps>) {
     const lprops = props as SFCBuildProps<TestRedisProps, typeof testRedisDefaultProps>;
     const svc = handle();
     const redis = handle();
@@ -90,4 +90,5 @@ export function TestRedis(props: SFCDeclProps<TestRedisProps>) {
         />
     </Service>;
 }
-TestRedis.defaultProps = testRedisDefaultProps;
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
+(TestRedis as any).defaultProps = testRedisDefaultProps;

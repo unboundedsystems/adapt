@@ -58,7 +58,7 @@ export interface TestMongoDBProps {
  *
  * @public
  */
-export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps>) {
+export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps, typeof testMongoDefaultProps>) {
     const lprops = props as SFCBuildProps<TestMongoDBProps, typeof testMongoDefaultProps>;
     const svc = handle();
     const mongo = handle();
@@ -90,4 +90,5 @@ export function TestMongoDB(props: SFCDeclProps<TestMongoDBProps>) {
         />
     </Service>;
 }
-TestMongoDB.defaultProps = testMongoDefaultProps;
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
+(TestMongoDB as any).defaultProps = testMongoDefaultProps;

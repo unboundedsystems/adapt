@@ -26,7 +26,9 @@ import * as fs from "fs-extra";
 import path from "path";
 import should from "should";
 import {
+    ConnectToInstance,
     Container,
+    mergeEnvSimple,
     NetworkScope,
     NetworkService,
     NetworkServiceInstance,
@@ -85,9 +87,10 @@ describe("MongoDB", function () {
         if (dom == null) throw should(dom).be.ok();
 
         if (mountedOrig == null) throw should(mountedOrig).be.ok();
-        const instance: TestRedis = mountedOrig.instance;
+        const instance = mountedOrig.instance as ConnectToInstance;
         if (instance == null) throw should(mountedOrig.instance).be.ok();
-        const env = instance.connectEnv();
+        const env = mergeEnvSimple(instance.connectEnv());
+        if (env == null) throw should(env).be.ok();
         should(env.REDIS_URI).equal("redis://redisHost:1234");
     });
 });

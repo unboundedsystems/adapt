@@ -203,5 +203,5 @@ export function NodeService(props: SFCDeclProps<NodeServiceProps, typeof default
 }
 export default NodeService;
 
-// FIXME(mark): The "as any" can be removed when we upgrade to TS > 3.2
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (NodeService as any).defaultProps = defaultProps;

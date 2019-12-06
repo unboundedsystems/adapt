@@ -189,7 +189,7 @@ export function HttpServer(propsIn: SFCDeclProps<HttpServerProps, typeof default
     return ret;
 }
 
-// FIXME(mark): The "as any" can be removed when we upgrade to TS > 3.2
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
 (HttpServer as any).defaultProps = defaultProps;
 
 export default HttpServer;

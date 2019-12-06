@@ -73,7 +73,8 @@ export function NetworkService(props: SFCDeclProps<NetworkServiceProps, typeof d
 
     return null;
 }
-NetworkService.defaultProps = defaultProps;
+// TODO: The "as any" is a workaround for an api-extractor bug. See issue #185.
+(NetworkService as any).defaultProps = defaultProps;
 
 function toPortNum(input: ServicePort): number {
     const num = Number(input);
