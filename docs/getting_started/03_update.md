@@ -5,7 +5,6 @@ title: "Add Code and Update - MovieDB App"
 
 <!-- DOCTOC SKIP -->
 
-
 ## Writing the Real Application Code
 
 As we've seen, the starter template we used with `adapt new` has created a default set of code for both our front end and back end application.
@@ -23,12 +22,15 @@ curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v2/gsg-moviedb-v2.tar.gz | ta
 ```
 
 This command should have added:
+
 * Some new React UI code in `moviedb/frontend`.
 * Some new Node.js code in `moviedb/backend`.
 * A file with some test data `moviedb/deploy/test_db.sql` that will be pre-loaded into the Postgres database when we update the deployment.
 
 ## Update!
-Now, update the deployment, which will push our newly written code and populate the database with the test data:
+
+The `adapt update` command will re-build and push the code changes we just made to our existing Docker deployment.
+It will also populate the database with the new test data.
 <!-- doctest command -->
 
 ```console
@@ -55,6 +57,5 @@ Try typing `batman` if your searches turn up empty.
 
 ## Change and Repeat
 
-You can now make any changes to the app you'd like and each time you run the `adapt update` command from above, Adapt will re-build any necessary images and automatically re-deploy the changed images to your local Kubernetes cluster.
+You can now make any changes to the app you'd like and each time you run the `adapt update` command from above, Adapt will re-build any necessary images and automatically re-deploy to your local Docker host.
 (Note: Don't forget to make your browser do a hard refresh.)
-

@@ -73,4 +73,3 @@ By simply choosing different components from the Adapt library, you can just as 
 ## Next Step
 
 First, we'll start with a quick overview of what you'll be deploying.
-

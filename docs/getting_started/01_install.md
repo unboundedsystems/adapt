@@ -11,7 +11,7 @@ To install and use Adapt, you must have **both** of the following:
 
 | Requirement | Installation Instructions |
 | --- | --- |
-| [Node.js](https://nodejs.org) verson 10 | [Installing Node with npm](../user/install/requirements.md#nodejs-10-with-npm) |
+| [Node.js](https://nodejs.org) verson 10 | [Installing Node and npm](../user/install/requirements.md#nodejs-10-with-npm) |
 | [Yarn Package Manager](https://yarnpkg.com) | [Installing yarn](../user/install/requirements.md#yarn) |
 
 Additionally, this Getting Started Guide also requires [Docker](https://docker.com).

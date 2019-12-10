@@ -11,6 +11,7 @@ In this guide, we'll be deploying a complete end-to-end app onto a Kubernetes cl
 It's a simple app with a React-based user interface that lets you search for movies.
 
 The app consists of:
+
 * A React user interface (built with [create-react-app](https://create-react-app.dev/docs/getting-started/))
 * A static web server to serve the built HTML, CSS, and other static content for the user interface
 * A Node.js REST API back end that allows searching for movies

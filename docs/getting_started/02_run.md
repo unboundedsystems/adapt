@@ -19,7 +19,8 @@ cd moviedb/deploy
 
 This command creates a complete template for a "Hello World" app in a new directory, `moviedb`, then changes into the newly created `moviedb/deploy` directory.
 
-Our new Hello World app consists of:
+Our new Hello World app contains the front end user interface, all of its back end services, and the Adapt specification that allows everything to be easily deployed into different environments.
+The app consists of:
 
 - A simple React user interface, created with [create-react-app](https://create-react-app.dev/docs/getting-started/), that displays "Hello World!".
 Source code for the UI is in the `moviedb/frontend` directory.
@@ -29,50 +30,24 @@ Source code for the API server is in the `moviedb/backend` directory.
 - A URL router that directs HTTP requests that start with `/api/` to the Node.js back end and all other requests to the static web server.
 - A Postgres database (which will be useful in a later step).
 
-## Small Detour: Set up Kubernetes
+It also contains Adapt Style Sheets that allow the app to be deployed to different environments:
 
-The Hello World project we created comes ready to deploy, but we need somewhere to deploy it.
-
-> **Tip**
->
-> Adapt can deploy your apps to many different kinds of infrastructure, whether in a public or private cloud, in your own data center, or even to your laptop.
-
-For this guide, we're going to deploy to Kubernetes, so we'll create a Kubernetes cluster on your local Docker system using [k3s](https://k3s.io), a lightweight version of Kubernetes.
-In order to keep everything self-contained and easy to clean up, we'll use a Docker-in-Docker version of k3s.
-
-To deploy the local cluster and get the credentials:
-
-<!-- doctest command -->
-
-```console
-docker run --rm --privileged -d -p10001:2375 -p8443:8443 -p8080:8080 --name k3s unboundedsystems/k3s-dind
-
-docker exec k3s get-kubeconfig.sh -json > kubeconfig.json
-```
-
-You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes three ports, making them available on the host system:
-* Port 10001: Inner Docker instance API
-* Port 8443: Kubernetes API
-* Port 8080: Our new app's web port
-
-To make sure all the rest of the steps in this guide use the new Docker-in-Docker instance we just created, we need to change your `DOCKER_HOST` environment variable.
-We'll also save the old value, so we can set it back after we're done.
-<!-- doctest command -->
-
-```bash
-ORIG_DOCKER_HOST="${DOCKER_HOST}"
-export DOCKER_HOST=localhost:10001
-```
+- The `laptop` style sheet deploys all the app components to your local Docker host--great for interactive debugging of end-to-end tests.
+It can even pre-populate the Postgres database with test data for you.
+- The `k8s-test` style sheet deploys all app components to a Kubernetes cluster for testing (without redundancy or database persistence).
+- The `k8s-prod` style sheet shows how to use an existing database along with the other app components in Kubernetes.
 
 ## Run!
-Now, let's run a new deployment of the Hello World app in your newly created local Kubernetes cluster:
+
+To run all the app components on your local Docker host:
 <!-- doctest command -->
 
 ```console
 adapt run --deployID movieapp
 ```
+
 The `deployID` option gives the newly created deployment a name that we can refer to for later commands.
-When the deployment is complete and Adapt has verified that all containers are in the ready state, you should see:
+When the deployment is complete, you should see:
 
 ```console
 Deployment created successfully. DeployID is: movieapp
@@ -85,4 +60,3 @@ The app should now be available at: [http://localhost:8080](http://localhost:808
 If you open this URL in your browser, you should see something like this:
 
 ![Hello World](assets/getting_started/helloworld.png)
-
