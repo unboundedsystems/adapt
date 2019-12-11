@@ -61,10 +61,6 @@ function kubeconfig {
     outerDocker exec $(minikubeContainer) cat /kubeconfig
 }
 
-function toJson {
-    python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin), sys.stdout, indent=4)'
-}
-
 function minikubeConnect {
     local MK
     local SELF
