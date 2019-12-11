@@ -8,7 +8,7 @@ function _killregistry {
         if [ "$(ps -o comm= ${pid})" = "node" ]; then
             kill ${pid}
             sleep 1
-            kill ${pid}
+            kill ${pid} >& /dev/null
         fi
     done
 }
