@@ -4,7 +4,6 @@ title: Describing your app
 ---
 <!-- DOCTOC SKIP -->
 
-
 ## Adapt concepts from the web
 
 Adapt uses many concepts from web browsers and web development that you're probably already familiar with.
@@ -48,7 +47,7 @@ These are the most basic building blocks in Adapt.
 They typically directly correspond to a single infrastructure resource that can be created and destroyed.
 They are the only kind of component that cannot contain other components.
 
-Examples of primitive components are an AWS `<EC2Instance>`, a `<DockerContainer>`, or a Kubernetes `<Pod>`.
+Examples of primitive components are an AWS `<EC2Instance>`, a `<DockerContainer>`, or a Kubernetes `<Resource>`.
 
 ### Function components
 
@@ -57,6 +56,7 @@ This is the most commonly used type of component in Adapt because they're simple
 The most basic thing that a function component does is to describe how you assemble some lower-level components together into a higher-level construct.
 
 This is an example of a function component that describes a search API microservice.
+
 ```tsx
 function SearchService() {
     return (
@@ -67,6 +67,7 @@ function SearchService() {
     )
 }
 ```
+
 With a function component, the return value is how you describe how to construct that component.
 
 Looking at the return value of the example component above, it says that a `<SearchService>` is constructed from a `<Group>` which contains a `<Container>` and a `<MongoDB>`.
@@ -94,14 +95,17 @@ The Adapt project directory is in `tutorial/deploy` and by convention, the name 
 You can use your favorite editor to open `index.tsx` and take a look.
 
 There is a function component in `index.tsx` that looks like this:
+
 ```tsx
 function App() {
-    return <NodeService srcDir=".." scope="external" />;
+    return <NodeService srcDir="../backend" scope="external" />;
 }
 ```
-This function component says that an `<App>` component is built from just a single `<NodeService>` component and that the `<NodeService>` component should be created with its `srcDir` prop set to `".."` and `scope` prop set to `"external"`.
 
-The `<NodeService>` component comes from the Adapt cloud library and encapsulates:
+This function component says that an `<App>` component is built from just a single `<NodeService>` component and that the `<NodeService>` component should be created with its `srcDir` prop set to `"../backend"` and `scope` prop set to `"external"`.
+
+The [`<NodeService>`](../api/cloud/cloud.nodejs.nodeservice.md) component comes from the Adapt cloud library and encapsulates:
+
 - Building a Node.js app from source code into a container image
 - Creating a container using the built container image
 - Exposing a network service on a port
@@ -116,15 +120,16 @@ We create an Adapt **stack** to tell Adapt that `<App>` is the root component th
 
 Each stack also needs a unique name that we'll be able to use to refer to it later.
 
-In our `index.tsx` file, we've defined two stacks, named `default` and `k8s`.
-The line below creates the stack named `k8s`, which says that our `<App>` component will be the root component of the stack and associates it with the `k8sStyle` style sheet:
+In the `index.tsx` file, you'll see there are three stacks defined: `default`, `laptop`, and `k8s-test`.
+
+Taking a closer look at one of those, the line below creates a stack named `laptop`, which says that our `<App>` component will be the root component of the stack and associates it with the `laptopStyle` style sheet:
+
 ```tsx
-Adapt.stack("k8s", <App />, k8sStyle);
+Adapt.stack("laptop", <App />, laptopStyle);
 ```
 
-Once we're ready to deploy our app, we'll use the name `k8s` on the command line to tell Adapt what to deploy.
+Once we're ready to deploy our app, we'll use the name `laptop` on the command line to tell Adapt what to deploy.
 
 ## Next Step
 
 Next, you'll learn how to deploy the same app description to different environments with style sheets.
-
