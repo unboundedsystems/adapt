@@ -41,18 +41,23 @@ export const maxShaLen = 32;
  * @remarks
  * The unique names are unique by probability, based on a SHA256 hash.
  * They are are made up of:
+ *
  * - The Element's key, with any invalid characters removed.
+ *
  * - A separator character (or string)
+ *
  * - A portion of the SHA256 hash of the Element's ID and the deployID.
  *
- * @param - invalidChars - A regular expression that matches all invalid
- * characters that should not be included in the resulting name. Must have
- * the global flag set. Example:
- * `/[^a-zA-Z-]/g`
- * @param - maxLen - The maximum allowed lenth of name that should be generated.
- * @param - sep - The separator string to be used between they key and the hash.
+ * @param invalidChars - A regular expression that matches all invalid
+ * characters that should NOT be included in the resulting name. Must have
+ * the global flag set. For example, if only alphabetic characters and dashes
+ * are allowed, set `invalidChars` to: `/[^a-zA-Z-]/g`
+ * @param maxLen - The maximum allowed length of name that should be generated.
+ * @param sep - The separator string to be used between they key and the hash.
+ *
+ * @public
  */
-export const makeResourceName = (invalidChars: RegExp, maxLen: number, sep = "-") => {
+export function makeResourceName(invalidChars: RegExp, maxLen: number, sep = "-") {
     if (!invalidChars.global) {
         throw new Error(`invalidChars must be a RegExp with the global flag set`);
     }
@@ -63,4 +68,4 @@ export const makeResourceName = (invalidChars: RegExp, maxLen: number, sep = "-"
         const shaLen = Math.min(maxShaLen, maxLen - baseLen - sep.length);
         return base.slice(0, baseLen) + sep + sha256hex(elemID + deployID).slice(0, shaLen);
     };
-};
+}
