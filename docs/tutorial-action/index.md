@@ -8,7 +8,7 @@ title: "Tutorial: Extending Adapt with the Action component"
 
 This is an advanced Adapt tutorial for those users who want to create their own custom primitive component to interact with a cloud provider, API, or other tool not already supported by the existing Adapt libraries.
 
-This tutorial will walk you through creating a simple primitive component, using the `Action` component from the Adapt cloud library.
+This tutorial will walk you through creating a simple primitive component, using the [`Action`](../api/cloud/cloud.action.action) component from the Adapt cloud library.
 The `Action` component is the easiest way to connect Adapt to a new API or command line tool.
 
 ## Prerequisites
@@ -31,9 +31,9 @@ We'll use the [Node.js file system API](https://nodejs.org/docs/latest-v10.x/api
 ## Setting up
 
 First, create a new directory and initialize a new blank Adapt project in that directory:
+<!-- doctest command -->
 
 ```bash
-mkdir tutorial
 adapt new blank ./tutorial
 cd tutorial/deploy
 ```
@@ -72,6 +72,7 @@ export class LocalFile extends Action<LocalFileProps> {
 ```
 
 We'll also be using the [fs-extra](https://www.npmjs.com/package/fs-extra) library to handle our file operations, so install it with the following command:
+<!-- doctest command -->
 
 ```bash
 yarn add fs-extra
@@ -82,7 +83,7 @@ And `LocalFile` is a class component that inherits from `Action`.
 
 Any component that inherits from `Action` is required to implement two methods: `shouldAct` and `action`. Both methods take the same two parameters:
 
-- `diff` (type [`ChangeType`](https://adaptjs.org/docs/api/core/core.adapt.changetype)) describes the difference between the previously deployed Element in the virtual DOM and the Element in the current DOM that we're in the process of deploying now.
+- `diff` (type [`ChangeType`](../api/core/core.adapt.changetype)) describes the difference between the previously deployed Element in the virtual DOM and the Element in the current DOM that we're in the process of deploying now.
 Note that this **only** reflects information about the previous DOM and the current DOM.
 It is up to our component to decide what changes actually need to happen.
 `diff` can have the following possible values in `shouldAct` or `action`:
@@ -91,7 +92,7 @@ It is up to our component to decide what changes actually need to happen.
   - `ChangeType.delete` - This DOM Element previously existed and is now being destroyed.
   - `ChangeType.none` - Not used in `Action` methods.
   - `ChangeType.replace` - Not used in `Action` methods.
-- `context` is an [ActionContext](https://adaptjs.org/docs/api/cloud/cloud.action.actioncontext) that contains information and objects that can be useful for a component, such as a logger for logging messages.
+- `context` is an [`ActionContext`](../api/cloud/cloud.action.actioncontext) that contains information and objects that can be useful for a component, such as a logger for logging messages.
 
 ## shouldAct method
 
@@ -153,7 +154,7 @@ Using that information, it can create a message in `detail` that describes the a
 Or, in the fall-through case, the file contents are correct, so `detail` is not set.
 
 if `detail` is not set, that means no action needs to be taken, so `shouldAct` informs the system of this by returning `false`.
-Otherwise, a [`ShouldActDetail`](https://adaptjs.org/docs/api/cloud/cloud.action.shouldactdetail) object is returned that says action is required (`act: true`) and gives `detail` as the description of the action.
+Otherwise, a [`ShouldActDetail`](../api/cloud/cloud.action.shouldactdetail) object is returned that says action is required (`act: true`) and gives `detail` as the description of the action.
 
 ## action method
 
@@ -179,9 +180,79 @@ Below is an updated `action` method that accomplishes this:
     }
 ```
 
+Replace `action` in `LocalFile.tsx` with the code above.
+
+<details>
+<summary>Expand to see the completed `LocalFile.tsx` file</summary>
+
+<!-- doctest file-replace { file: "LocalFile.tsx" } -->
+
+```tsx
+import { ChangeType } from "@adpt/core";
+import { Action, ActionContext, ShouldAct } from "@adpt/cloud/action";
+import fs from "fs-extra";
+
+export interface LocalFileProps {
+    path: string;
+    contents: string;
+}
+
+export class LocalFile extends Action<LocalFileProps> {
+
+    async shouldAct(diff: ChangeType, context: ActionContext): Promise<ShouldAct> {
+        const path = this.props.path;
+        const contents = await this.getContents(path);
+        let detail;
+
+        if (diff === ChangeType.delete) {
+            // Element is being deleted. Does the file exist on disk?
+            if (contents !== undefined)
+                detail = `Deleting file ${path}`;
+        } else {
+            // Element is being created or possibly modified.
+            if (contents === undefined)
+                detail = `Creating file ${path}`;
+            else if (contents !== this.props.contents)
+                detail = `Updating file ${path}`;
+        }
+
+        // If detail is unset, then no changes are required
+        if (!detail) return false;
+
+        // Return a ShouldAct object that says action is required and a string
+        // that describes the action
+        return { act: true, detail };
+    }
+
+    // Returns the contents of a file or undefined if the file doesn't exist
+    async getContents(path: string) {
+        try {
+            return await fs.readFile(path, 'utf8');
+        } catch (err) {
+            if (err.code === 'ENOENT') return undefined; // File doesn't exist
+            else throw err; // Any other error
+        }
+    }
+
+    async action(diff: ChangeType, context: ActionContext) {
+        const path = this.props.path;
+
+        if (diff === ChangeType.delete) {
+            // Removes the file, ignoring if the file does not exist
+            await fs.remove(path);
+        } else {
+            await fs.writeFile(path, this.props.contents);
+        }
+    }
+}
+```
+
+</details>
+
 ## Testing LocalFile
 
 To test the `LocalFile` component, create an `index.tsx` file that uses it:
+<!-- doctest file-replace { file: "index.tsx" } -->
 
 ```tsx
 import Adapt from "@adpt/core";
@@ -195,6 +266,7 @@ Adapt.stack("default", <App />);
 ```
 
 Then deploy the test app:
+<!-- doctest command -->
 
 ```bash
 adapt run --deployID test
@@ -203,7 +275,7 @@ adapt run --deployID test
 You should see output similar to the following:
 
 ```console
-Adapt by Unbounded Systems [CLI v0.0.6]
+Adapt by Unbounded Systems [CLI v0.1.0]
 
   ✔ Installing node modules
   ✔ Validating project
@@ -226,7 +298,7 @@ Experiment by changing the `contents` prop in `index.tsx` or by adding another `
 
 > **Tip**
 >
-> If you add more than one `<LocalFile>` element to `App`, you'll need to wrap them inside an [`Adapt.Group`](https://adaptjs.org/docs/api/core/core.adapt.group) element.
+> If you add more than one `<LocalFile>` element to `App`, you'll need to wrap them inside an [`Adapt.Group`](../api/core/core.adapt.group) element.
 
 ## Saving component state
 
@@ -236,9 +308,9 @@ To Adapt, changing the `path` is simply changing a prop.
 But for `LocalFile`, the `path` has a somewhat special meaning and when it changes, that means the file should no longer exist at the old `path` and should now exist at the new `path`.
 
 To fix this bug, `LocalFile` will need to remember the `path` of the file that it has created, so it can decide what to do when the `path` changes.
-To save information between runs of Adapt, the component needs to use state.
+To save information between runs of Adapt, the component needs to use **State**.
 
-Add the following type to `LocalFile.ts` and modify the class definition to include the new type as the second type parameter to `Action`:
+Add the following type to `LocalFile.tsx` and modify the class definition to include the new type as the second type parameter to `Action`:
 
 ```tsx
 export interface LocalFileState {
@@ -284,7 +356,10 @@ Notice the new check to see if `lastPath` has previously been set and whether th
 If they're not the same, we `fs.remove` the old file `lastPath` before creating the new one.
 Then, after creating the file with `fs.writeFile`, we use `this.setState` to set `lastPath` to the updated `path` value.
 
-Here is the completed `LocalFile.ts` file:
+<details>
+<summary>Expand to see the updated `LocalFile.tsx`</summary>
+
+<!-- doctest file-replace { file: "LocalFile.tsx" } -->
 
 ```tsx
 import { ChangeType } from "@adpt/core";
@@ -367,7 +442,16 @@ export class LocalFile extends Action<LocalFileProps, LocalFileState> {
 }
 ```
 
-You should be able to `adapt update test` with this new file and verify by changing the `path` prop in `index.tsx` to see whether the old file gets deleted and the new one created.
+</details>
+
+After making these changes, update the deployment:
+<!-- doctest command -->
+
+```bash
+adapt update test
+```
+
+You should now be able to change the `path` prop to the `LocalFile` element in `index.tsx` and confirm that the old file gets deleted and the new one created.
 
 ## Mapping Adapt Elements to resources
 
@@ -376,18 +460,32 @@ You must decide how to tell which Adapt Element corresponds to a particular exte
 In almost all infrastructure tools and systems, each resource has some sort of unique identifier.
 For a file system, each file has a unique path.
 In Docker, each container has a unique name and each image has a unique ID.
-In AWS, almost every resource you can create has an ID called an [ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
+In AWS, almost every resource you create has an ID called an [ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html).
 
 Each Adapt Element that corresponds to an external resource needs some way of knowing which resource it is responsible for so that it can create it if it doesn't exist and delete it when no longer needed.
 
 In `LocalFile`, we used a prop as the ID and Adapt's component state to remember what file a given component instance is responsible for.
 However, this approach has some limitations, especially when it comes to creating resources dynamically.
 
+Where possible, a preferred approach is to generate an ID for each external resource that is tied to the Adapt DeployID and the Element ID and use that as the resource unique identifier or attach that generated ID to the resource's metadata.
+For examples of this, see uses of the [`makeResourceName`](../api/cloud/cloud.makeresourcename) utility function, like the one used by [`DockerContainer`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L62)
+`DockerContainer` uses `makeResourceName` to create the unique name for each container.
+Similarly, the Adapt `k8s` library uses `makeResourceName` to create unique names for Kubernetes resources.
+
 ## Additional examples of Action components
 
-To see a more complete and complex example of an `Action` component, look at `DockerContainer` in the Adapt cloud library.
+To see a more complete and complex example of an `Action` component, look at `DockerContainer` ([source code](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L426)) in the Adapt cloud library.
 The `DockerContainer` component uses the `docker` command line interface to start containers, update them, and delete them.
-The `containerIsUpToDate` function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
+The [`containerIsUpToDate`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L308) function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
 
 The Kubernetes `Resource` component is also an `Action` component that uses the Kubernetes command line `kubectl` to interact with Kubernetes.
 It uses the command line tool `kubectl diff` (see function `kubectlDiff`) to determine what changes are needed.
+
+## Cleaning up
+
+When you're done with the deployment, remove it with the following command:
+<!-- doctest command -->
+
+```bash
+adapt destroy test
+```

@@ -26,6 +26,9 @@ export * from "./Service";
 
 import * as action from "./action";
 import * as aws from "./aws";
+import {
+    makeResourceName,
+} from "./common";
 import * as docker from "./docker";
 import * as http from "./http";
 import * as k8s from "./k8s";
@@ -40,6 +43,7 @@ export {
     docker,
     http,
     k8s,
+    makeResourceName,
     mongodb,
     nginx,
     nodejs,

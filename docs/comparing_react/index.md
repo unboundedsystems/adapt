@@ -10,8 +10,8 @@ title: "Comparing Adapt and React Concepts"
 >
 > Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
 
-
 ## Introduction: A Movie Database App
+
 Adapt is the easiest way to reliably and repeatedly deploy your apps anywhere -- to your laptop, a Kubernetes cluster, your favorite cloud, or anywhere else.
 
 Many of the concepts used in Adapt are similar to concepts used in ReactJS.
@@ -23,6 +23,7 @@ This guide will cover some key concepts in Adapt, along with their React counter
 But to illustrate most of these concepts, we'll need a sample app that has a little bit of complexity.
 
 Since you're a developer familiar with React, the sample app that we'll use is a small movie database app that consists of:
+
 - A front end user interface written in React.
 - A REST API microservice written in Node.js.
 - A database for the REST API microservice.
@@ -32,7 +33,7 @@ Since you're a developer familiar with React, the sample app that we'll use is a
 ![Movie database app diagram](assets/comparing_react/sample_app.png)
 
 Below is the Adapt description of the movie database app.
-The rest of this tutorial will explain all the parts that make up this app description.
+The rest of this tutorial will explain the parts that make up this app description.
 
 ```tsx
 function MovieApp(props: { publicPort: number }) {
@@ -79,16 +80,20 @@ Let's jump in and take a look at all the pieces that make up this description.
 >
 > To get all the code for this movie database and deploy the fully functioning app to an existing Docker instance on your local system:
 >
->     npx @adpt/cli new moviedb-react-node
->     cd moviedb-react-node
->     npx @adpt/cli deploy laptop
+> ```bash
+> npx @adpt/cli new moviedb-react-node ./moviedb
+> cd moviedb/deploy
+> npx @adpt/cli run laptop
+> ```
 
 ## Adapt Elements & JSX/TSX
+
 Adapt specifications are written in TSX or JSX[^1] and produce a virtual DOM that is made up of Elements, just like React.
 
 [^1]: JSX supported in a future release. See [issue #108](https://gitlab.com/unboundedsystems/adapt/issues/108)
 
-The following code creates a NodeService Adapt Element:
+The following code creates a [NodeService](../api/cloud/cloud.nodejs.nodeservice.md) Adapt Element:
+
 ```tsx
 <NodeService srcDir=".." />
 ```
@@ -97,6 +102,7 @@ Adapt currently uses the JSX/TSX processor from the TypeScript compiler with no 
 For a more in-depth description of JSX/TSX, see [Introducing JSX](https://reactjs.org/docs/introducing-jsx.html) from the React docs.
 
 ## Components & Props
+
 Just like React, Adapt Components let you split an application into independent, reusable pieces, and allow you to think about those Components in isolation.
 In our movie database app, `MovieApp` is a Component that describes our entire app.
 
@@ -115,13 +121,14 @@ function MovieApp(props: { publicPort: number }) {
 ```
 
 As with React, every Component can accept arbitrary inputs, called `props`.
-Here, `MovieApp` accepts a prop called `publicPort` and it passes the value of `publicPort` to the `UrlRouter` Element's `port` prop.
+Here, `MovieApp` accepts a prop called `publicPort` and it passes the value of `publicPort` to the [`UrlRouter`](../api/cloud/cloud.http.urlrouter.md) Element's `port` prop.
 
 In both React and Adapt, Components return a set of Elements.
 In React, the Elements that a Component returns describe what should be displayed in the browser.
 In Adapt, the Elements that a Component returns describe infrastructure resources that should be instantiated.
 
 The `MovieApp` Component returns the set of Elements that describe our movie app:
+
 - A `Group` Element that is simply a container that holds other Elements.
 - One Element for each of the 4 main pieces that make up the back end of our app (a URL router, a Node.js service, a PostgreSQL database, and an HTTP web server).
 
@@ -131,19 +138,22 @@ However, there are some features that are unique to each of the two types of Com
 `MovieApp` is a Function Component.
 
 ## Handles
+
 React uses the concept of a `ref` to allow a Component to reference and interact with specific Elements or browser DOM nodes.
 This is typically used for imperatively modifying an Element, such as to set focus or trigger an animation.
 
 Adapt has a similar concept, called a `Handle` which also allows you to reference and interact with Elements.
 
 Adapt Handles are used for:
+
 - Calling an imperative method on an Element instance, typically to get information like a dynamic hostname or port number that is not known until after a deployment is instantiated.
 - Creating an explicit dependency on an Element.
 
 ### Attaching Handles to Elements
+
 Our `MovieApp` component contains several uses of Handles.
-It starts by creating three new Handles and assigning them to variables `pg`, `api`, and `stat`.
-But to make a Handle actually refer to a specific Element, the Handle must be _attached_ by passing the Handle to an Element as its `handle` prop.
+It starts by creating three new Handles and assigning them to variables `api`, `pg`, and `stat`.
+But to make a Handle actually refer to a specific Element, the Handle must be **attached** by passing the Handle to an Element as its `handle` prop.
 
 Here, the `api` Handle will now refer to the `NodeService` Element, `pg` will refer to the `Postgres` Element and `stat` will refer to `HttpServer`.
 
@@ -159,6 +169,7 @@ function MovieApp(props: { publicPort: number }) {
 ```
 
 ### Calling Imperative Method Hooks
+
 Because our app can be deployed into many types of dynamic environments, there are some things we don't know in advance.
 For example, in our movie app, we don't know where the Postgres database will be deployed or how a client can connect to it once it is deployed.
 To address this, the Postgres Component has an imperative `connectEnv` method that returns a set of environment variables that follow the Postgres conventions for how to connect to a Postgres database.
@@ -177,7 +188,7 @@ When `NodeService` is deployed, it will have the resulting dynamically created e
 
 The `UrlRouter` Element also uses Handles to specify where to route different HTTP URL paths.
 The `routes` prop is given an array that describes each route, where `endpoint` is a Handle that refers to an Element that must provide imperative instance methods `hostname` and `port`.
-For each `endpoint`, UrlRouter will call the `hostname` and `port` methods to build its own configuration dynamically when it is deployed.
+For each `endpoint`, `UrlRouter` will call the `hostname` and `port` methods to build its own configuration dynamically when it is deployed.
 
 In the movie app, `UrlRouter` is configured to route URL paths that start with `/api/` to the `NodeService` REST API Element and all other URLs to the static HTTP server.
 
@@ -192,6 +203,7 @@ In the movie app, `UrlRouter` is configured to route URL paths that start with `
 ```
 
 ## Hooks
+
 [Hooks](https://reactjs.org/docs/hooks-intro.html) are a concept common to both React and Adapt.
 While Components allow you to encapsulate and reuse _structure_, hooks allow you to encapsulate and reuse _behaviors_.
 
@@ -204,7 +216,9 @@ In the movie app, the library function `useMethod` is a hook function that encap
 Just as with React, Hooks can be used to manage state in Functional Components and, by convention, always start with `use`.
 
 ## Style Sheets
+
 ### Separating Content from Style
+
 Although React doesn't directly specify how to integrate with [Cascading Style Sheets](https://developer.mozilla.org/en-US/docs/Web/CSS), CSS is critically important for any browser-based interface.
 
 One key reason why CSS is so powerful is because it enables separating the _content and structure_ of what is to be displayed (e.g. text, images) from the _style_ of how it is to be displayed (e.g. color, position, size).
@@ -219,6 +233,7 @@ For example, you can select all `<div>` elements to remove their border, make ev
 You can find out more about style sheets in the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/style).
 
 ## Element State
+
 Both React and Adapt use the concept of *state*.
 In both systems, every Element instance has its own private state storage, unique to that Element instance.
 
@@ -239,6 +254,7 @@ This section only provides a high-level comparison of both systems.
 For more precise details on how each system works, please check the respective user guides.
 
 ### React: Rendering
+
 ![React State Loop](assets/comparing_react/react_state_loop.png)
 
 In React, the Components and other related code that you write, combined with the State, go through a process that React calls *render* that creates the final virtual DOM, made up of primitive Elements.
@@ -248,6 +264,7 @@ Events from the browser and from other external sources can cause changes to the
 This process of processing external events and re-rendering the DOM is core to how React operates.
 
 ### Adapt: Building
+
 ![Adapt State Loop](assets/comparing_react/adapt_state_loop.png)
 
 In Adapt, the Components and other related code that you write are called the Adapt *Specification* and *Style Sheets*.
@@ -255,10 +272,10 @@ Those two items, combined with the State, go through a process called the DOM *b
 Adapt can then *deploy* that final Primitive DOM, which is the process that affects actual infrastructure and other resources.
 
 ### Observing the Environment
+
 Adapt also has an *observe* process, which runs as part of the overall Adapt build process, for monitoring and responding to external events and data sources.
 During the Adapt build process, Components can request to observe the external environment.
 After the Primitive DOM is built the first time, those observation requests are satisfied and have the opportunity to change the State.
 When the State changes, Adapt will run the build process again, potentially changing the final Primitive DOM.
 
 ## Footnotes
-

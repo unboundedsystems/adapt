@@ -1,7 +1,7 @@
 {
   "name": "@adpt/systemtest",
   "version": "0.1.0-next.1",
-  "description": "Unbounded Adapt System Tests",
+  "description": "AdaptJS System Tests",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
   "author": "Unbounded Systems",

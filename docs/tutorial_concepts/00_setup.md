@@ -4,7 +4,6 @@ title: Setup for this tutorial
 ---
 <!-- DOCTOC SKIP -->
 
-
 ## Requirements
 
 - What is Adapt?
@@ -31,48 +30,21 @@ title: Setup for this tutorial
 
     | Requirement | Installation Instructions |
     | --- | --- |
-    | A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/) |
-    | A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/) |
+    | A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/#server) |
+    | A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/) |
+
+    > **NOTE**
+    >
+    > If you're using Docker on Linux, you'll need to either run all `docker` commands as superuser (`root`) or ensure your user is part of the `docker` group.
+    > For instructions and more information, see the Docker [Linux post-install instructions](https://docs.docker.com/install/linux/linux-postinstall/).
+
+    Docker is correctly installed if the command `docker ps` does not show any errors.
 
 - Bash shell
 
     Certain commands assume you're using the `bash` shell.
     If you use a different shell, you may need to adjust some commands slightly.
 
-## Set up local Kubernetes
-
-> **Note**
->
-> Adapt can deploy your apps to many different kinds of infrastructure, whether in a public or private cloud, in your own data center, or even to your laptop.
-
-For this tutorial, we're going to deploy to Kubernetes, so we'll create a Kubernetes cluster on your local Docker system using [k3s](https://k3s.io), a lightweight version of Kubernetes.
-In order to keep everything self-contained and easy to clean up, we'll use a Docker-in-Docker version of k3s.
-
-To deploy the local cluster and get the credentials:
-
-<!-- doctest command -->
-
-```console
-docker run --rm --privileged -d -p10001:2375 -p8443:8443 -p8080:8080 --name k3s unboundedsystems/k3s-dind
-
-docker exec k3s get-kubeconfig.sh -json > kubeconfig.json
-```
-
-You now have a self-contained Docker-in-Docker Kubernetes cluster that exposes three ports, making them available on the host system:
-* Port 10001: Inner Docker instance API
-* Port 8443: Kubernetes API
-* Port 8080: Our new app's web port
-
-To make sure all the rest of the steps in this tutorial use the new Docker-in-Docker instance we just created, we need to change your `DOCKER_HOST` environment variable.
-We'll also save the old value, so we can set it back after we're done.
-<!-- doctest command -->
-
-```bash
-ORIG_DOCKER_HOST="${DOCKER_HOST}"
-export DOCKER_HOST=localhost:10001
-```
-
 ## Next step
 
 Next, we'll create an Adapt project.
-
