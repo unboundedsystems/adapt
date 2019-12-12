@@ -1,7 +1,7 @@
 {
   "name": "@adpt/cli",
   "version": "0.1.0-next.1",
-  "description": "Unbounded Adapt CLI",
+  "description": "AdaptJS command line interface",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
   "author": "Unbounded Systems",
@@ -23,6 +23,7 @@
   },
   "keywords": [
     "adapt",
+    "adaptjs",
     "adpt",
     "unbounded",
     "infrastructure-as-code",
