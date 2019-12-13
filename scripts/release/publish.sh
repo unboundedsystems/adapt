@@ -69,6 +69,9 @@ function versionType {
 
 LERNA_ARGS="publish"
 
+# Always publish all packages together
+LERNA_ARGS+=" --force-publish"
+
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help)
@@ -82,10 +85,6 @@ while [[ $# -gt 0 ]]; do
 
         --dev)
             PUBLISH_DEV=1
-            ;;
-
-        -f|--force)
-            LERNA_ARGS+=" --force-publish"
             ;;
 
         -*)
