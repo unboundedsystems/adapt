@@ -474,7 +474,7 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed with exit code 127 (Unknown system error -127): badcommand\n` +
+            `Command failed with exit code 127: badcommand\n` +
             `/bin/sh: 1: badcommand: not found\n`);
         expect((err as any).oclif.exit).equals(2);
     })
@@ -492,7 +492,7 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed with exit code 1 (EPERM): echo To stdout ; echo To stderr 1>&2; false\n` +
+            `Command failed with exit code 1: echo To stdout ; echo To stderr 1>&2; false\n` +
             `To stdout\n` +
             `To stderr\n`);
         expect((err as any).oclif.exit).equals(2);

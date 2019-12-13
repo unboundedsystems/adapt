@@ -400,7 +400,7 @@ async function runScripts(config: StarterConfig, log: LogString,
         const env = {
             ADAPT_STARTER_DIR: starterDir,
         };
-        const ret = await execa(cmd, { cwd: dest, env, shell: true });
+        const ret = await execa(cmd, { all: true, cwd: dest, env, shell: true });
         debugNew(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
 
     } catch (err) {

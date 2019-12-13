@@ -63,7 +63,7 @@
     "@adpt/core": "0.1.0-next.2",
     "aws-sdk": "^2.512.0",
     "debug": "^4.1.1",
-    "execa": "^2.0.4",
+    "execa": "^3.4.0",
     "fetchu": "^2.0.1",
     "graphql": "14.5.3",
     "graphql-tools": "^4.0.5",

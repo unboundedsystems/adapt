@@ -350,7 +350,7 @@ function registryOpts() {
  */
 export async function globalAdd(pkg: string) {
     const args = [ "install", ...registryOpts(), "-g", pkg ];
-    const { stdout, stderr } = await execa("npm", args);
+    const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
         const cmd = "npm install " + args.join(" ");
         // tslint:disable-next-line: no-console
@@ -361,7 +361,7 @@ export async function globalAdd(pkg: string) {
 }
 
 function globalRemove(pkg: string) {
-    return execa("npm", ["uninstall", "-g", pkg]);
+    return execa("npm", ["uninstall", "-g", pkg], { all: true });
 }
 
 /**

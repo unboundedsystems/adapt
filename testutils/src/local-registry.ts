@@ -15,7 +15,7 @@
  */
 
 // tslint:disable-next-line: no-var-requires
-const startVerdaccio = require("@unboundedsystems/verdaccio").default;
+const startVerdaccio = require("verdaccio").default;
 import * as fs from "fs-extra";
 import * as http from "http";
 
@@ -24,6 +24,7 @@ export interface Registry {
     max_fails?: number;
     timeout?: string;
     fail_timeout?: string;
+    agent_options?: http.AgentOptions;
 }
 
 export interface Package {
@@ -40,7 +41,7 @@ export interface Log {
 }
 
 export interface Config {
-    // Items from the verdacchio package
+    // Items from the verdaccio package
     auth: { [name: string]: any; };
     storage: string;
     uplinks: { [name: string]: Registry; };

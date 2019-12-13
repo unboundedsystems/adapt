@@ -39,17 +39,19 @@
     "devDependencies": {
         "@unboundedsystems/api-documenter": "7.6.1-unb1",
         "@unboundedsystems/api-extractor": "7.6.1-unb1",
-        "@types/execa": "^0.9.0",
         "commander": "^3.0.0",
         "copyright-header": "^0.4.6",
         "doctoc": "^1.4.0",
-        "execa": "^0.10.0",
+        "execa": "^3.4.0",
         "lerna": "^3.16.4",
         "lint-staged": "^9.2.1",
         "nyc": "^13.3.0",
         "semver": "^5.6.0",
         "tslint": "^5.18.0",
         "typescript": "3.4.5"
+    },
+    "resolutions": {
+        "@types/nock": "^10.0.3"
     },
     "scripts": {
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",

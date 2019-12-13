@@ -58,7 +58,7 @@ export function run(action: string, options: CommonOptions | AnyOptions, args?: 
     if (args) finalArgs = finalArgs.concat(args);
 
     try {
-        const prom = execa("npm", finalArgs, { cwd, stripFinalNewline: false });
+        const prom = execa("npm", finalArgs, { all: true, cwd, stripFinalNewline: false });
         if (pipeOutput) {
             prom.stdout.pipe(process.stdout);
             prom.stderr.pipe(process.stdout);
