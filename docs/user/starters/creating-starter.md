@@ -144,36 +144,31 @@ This functionality is only supported when the user specifies a starter using one
 - GitHub or GitLab reference
 - Name of an NPM package
 
-For git-based starters, `adapt new` will attempt to fetch a branches or tags that are a version string (or partial version string) prepended with `adapt-v`.
-For NPM-based starters, `adapt new` will attempt to fetch using the `@version` syntax where `version` may be a partial version string, subject to SemVer matching rules.
+The `adapt new` command will attempt to load multiple different versions of a starter, beginning with one that corresponds to the exact version of Adapt CLI currently running, then trying less exact version matches and finally trying to load a default version of the starter.
+The starter author controls which version of the starter corresponds to a particular Adapt version via [dist-tags](https://docs.npmjs.com/adding-dist-tags-to-packages) (sometimes just called tags) for NPM-based starters or using [tags](https://git-scm.com/book/en/v2/Git-Basics-Tagging) or [branches](https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell) for git-based starters.
 
-For those starter types, `adapt new` will attempt to fetch versions of the starter in the following order:
+In all cases, the tags or branches that `adapt new` tries to fetch start with `adapt-v`, followed by all or a portion of the Adapt CLI version string.
+
+`adapt new` will attempt to fetch tags/branches of the starter in the order shown below.
+For the examples, assume that the version of the CLI running `adapt new` is `1.2.3-next.1`.
 
 - The exact version of the Adapt CLI
 
     This includes any pre-release label.
 
-    Example (npm): `1.2.3-next.1`
-
-    Example (git): `adapt-v1.2.3-next.1`
+    Example: `adapt-v1.2.3-next.1`
 
 - Major.Minor.Patch
 
-    Example (npm): `1.2.3`
-
-    Example (git): `adapt-v1.2.3`
+    Example: `adapt-v1.2.3`
 
 - Major.Minor
 
-    Example (npm): `1.2`
-
-    Example (git): `adapt-v1.2`
+    Example: `adapt-v1.2`
 
 - Major
 
-    Example (npm): `1`
-
-    Example (git): `adapt-v1`
+    Example: `adapt-v1`
 
 - Default version
 
