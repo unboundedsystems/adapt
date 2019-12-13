@@ -123,6 +123,11 @@ else
     exit 1
 fi
 
+if [[ -n $NPM_CONFIG_REGISTRY ]] ; then
+    error "ERROR: Cannot publish to alternate registry. Unset NPM_CONFIG_REGISTRY before publishing."
+    exit 1
+fi
+
 VERSION_TYPE=$(versionType "${VERSION_ARG}") || exit 1
 LERNA_ARGS+=" ${VERSION_TYPE}"
 
