@@ -96,6 +96,12 @@ export const config: Config = {
             // Once the upstream is marked DOWN, it will stay that way
             // for this long before we try to use it again.
             fail_timeout: "0s",
+
+            agent_options: {
+                keepAlive: true,
+                keepAliveMsecs: 5000,
+                timeout: 500,
+            },
         }
     },
     packages: {
