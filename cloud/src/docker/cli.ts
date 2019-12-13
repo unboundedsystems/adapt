@@ -136,6 +136,7 @@ export async function execDocker(args: string[], options: ExecDockerOptions) {
 
     args = globalArgs.concat(args);
     const execaOpts: ExecaOptions = {
+        all: true,
         input: options.stdin,
         env: mergeEnvSimple(options.env),
     };

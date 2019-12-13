@@ -84,9 +84,9 @@ export async function kubectl(args: string[], options: KubectlOptions) {
     if (kubeconfigLoc) actualArgs.push("--kubeconfig", kubeconfigLoc);
 
     actualArgs.push(...args);
-    let execaOptions: execa.Options | undefined;
+    let execaOptions: execa.Options = { all: true };
     if (options.env !== undefined) {
-        execaOptions = { env: mergeEnvSimple(options.env) };
+        execaOptions = { ...execaOptions, env: mergeEnvSimple(options.env) };
     }
     return execa(kubectlPath, actualArgs, execaOptions);
 }
@@ -337,7 +337,7 @@ export async function kubectlProxy(options: KubectlProxyOptions): Promise<Kubect
         if (configPath) args.push("--kubeconfig", configPath);
         args.push("proxy", "--port=0");
 
-        const child = execa(kubectlPath, args);
+        const child = execa(kubectlPath, args, { all: true });
         const kill = () => child.kill();
 
         let hostPort: string;

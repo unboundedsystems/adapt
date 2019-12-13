@@ -85,7 +85,7 @@
     "@types/sinon": "^5.0.1",
     "@types/type-name": "^1.0.27",
     "@types/xmlbuilder": "0.0.32",
-    "execa": "^2.0.4",
+    "execa": "^3.4.0",
     "fs-extra": "^8.1.0",
     "mocha": "^5.1.1",
     "mocha-slow-options": "^0.0.2",

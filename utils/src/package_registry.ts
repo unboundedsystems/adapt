@@ -154,7 +154,7 @@ function packageId(pkgName: string, pkgVersion: string): PackageId {
 
 async function findFiles(rootDir: string, filename: string) {
     try {
-        const { stdout: fileList } = await execa("find", [rootDir, "-name", filename]);
+        const { stdout: fileList } = await execa("find", [rootDir, "-name", filename], { all: true });
         return fileList.split("\n");
     } catch (e) {
         if (e.all) e.message += "\n" + e.all;

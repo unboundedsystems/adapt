@@ -76,7 +76,7 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
     }
     if (args) finalArgs.push(...args);
 
-    const childProc = execa("yarn", finalArgs, { stripFinalNewline: false });
+    const childProc = execa("yarn", finalArgs, { all: true, stripFinalNewline: false });
     if (pipeOutput) {
         childProc.stdout.pipe(process.stdout);
         childProc.stderr.pipe(process.stdout);
