@@ -43,6 +43,7 @@
         "copyright-header": "^0.4.6",
         "doctoc": "^1.4.0",
         "execa": "^3.4.0",
+        "globby": "^10.0.1",
         "lerna": "^3.16.4",
         "lint-staged": "^9.2.1",
         "nyc": "^13.3.0",
