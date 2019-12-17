@@ -78,7 +78,7 @@ async function main() {
         await subproc;
 
     } catch (err) {
-        if (err.message.includes("Need to fix copyright header")) {
+        if (err.stdout.includes("Need to fix copyright header")) {
             console.log(
                 `\n************\n\n` +
                 `  To fix copyright headers in staged files, run:\n\n` +
