@@ -2,6 +2,15 @@ function error {
     echo "$*" >&2
 }
 
+function checkDryRun {
+    if [[ -n ${ARGS[dry-run]} ]]; then
+        echo "[SKIPPING]" "$@"
+    else
+        echo "$@"
+        "$@"
+    fi
+}
+
 function currentBranch {
     git symbolic-ref --short HEAD
 }
@@ -42,7 +51,7 @@ function sanitizeSemver {
     local UPDATED="${1//_/-}"
 
     # Check that the resulting version is valid
-    if [ -z "$(node_modules/.bin/semver ${UPDATED})" ]; then
+    if [ -z "$(${REPO_ROOT}/node_modules/.bin/semver ${UPDATED})" ]; then
         error "ERROR: version ${UPDATED} is not a valid semver version"
         exit 1
     fi
