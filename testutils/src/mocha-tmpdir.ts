@@ -27,7 +27,7 @@ export interface Options {
 }
 
 const defaultOptions = {
-    chmod: 0x755,
+    chmod: 0o755,
     cleanupProcessListeners: true,
     cleanupRequireCache: true,
     copy: undefined,

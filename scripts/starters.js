@@ -17,26 +17,33 @@
  */
 
 
+const utils = require("@adpt/utils");
 const chalk = require("chalk").default;
 const program = require("commander");
 const execa = require("execa");
 const fs = require("fs-extra");
+const globby = require("globby");
 const path = require("path");
 
-const starterList = [
+const starterListComplete = [
     "blank",
     "hello-node",
     "hello-react-node-postgres",
     "moviedb-react-node",
 ];
 const repoRoot = path.resolve(path.join(__dirname, ".."));
-const starterRoot = path.join(repoRoot, "starters");
-const starters = starterList
-    .map((name) => ({
-        name,
-        dir: path.join(starterRoot, name),
-        url: `git@gitlab.com:adpt/starters/${name}.git`,
-    }))
+const adaptPath = path.resolve(path.join(repoRoot, "cli", "bin", "run"));
+const starterRoot = process.env.ADAPT_UNIT_TESTS ?
+    path.resolve("./starters") : path.join(repoRoot, "starters");
+let starters;
+
+program
+    .option("-o, --only <regex>", "Only process starters that match a regular expression", "");
+
+program
+    .command("audit")
+    .description("Check starter package.json files for audit issues")
+    .action(cliHandler(commandAudit));
 
 program
     .command("run <command...>")
@@ -51,6 +58,7 @@ program
 program
     .command("tag <tag>")
     .description("Tag all starters")
+    .option('-f, --force', 'Move the tag if it already exists')
     .action(cliHandler(commandTag));
 
 program.on("command:*", () => {
@@ -58,15 +66,25 @@ program.on("command:*", () => {
     program.help(); // Exits
 });
 
-if (process.argv.length <= 2) {
-    program.help(); // Exits
+/**
+ * Runs after argument parsing, but before the commandXxx function.
+ */
+function init() {
+    const starterRegex = RegExp(program.opts().only);
+    const starterList = starterListComplete.filter(s => starterRegex.test(s));
+    starters = starterList
+        .map((name) => ({
+            name,
+            dir: path.join(starterRoot, name),
+            url: `git@gitlab.com:adpt/starters/${name}.git`,
+        }));
 }
-
-program.parse(process.argv);
 
 function cliHandler(func) {
     return (...args) => {
         try {
+            init();
+
             func(...args)
                 .then(() => {
                     process.exit(0);
@@ -82,7 +100,8 @@ function cliHandler(func) {
 }
 
 async function exec(argsIn, options = {}) {
-    const wd = path.relative(repoRoot, options.cwd || process.cwd());
+    const cwd = options.cwd || process.cwd();
+    const wd = cwd.startsWith(repoRoot) ? path.relative(repoRoot, cwd) : cwd;
     console.log(chalk.bold(`\n[${wd}] ` + argsIn.join(" ")));
     const prog = argsIn[0];
     const subproc = execa(prog, argsIn.slice(1), options);
@@ -110,12 +129,68 @@ async function gitPullFF(gitDir) {
     await exec(["git", "pull", "--ff-only"], { cwd: gitDir });
 }
 
-async function gitTag(gitDir, tag) {
-    await exec(["git", "tag", tag], { cwd: gitDir });
+async function gitTag(gitDir, tag, opts = {}) {
+    const args = ["git", "tag"];
+    if (opts.force) args.push("--force");
+    args.push(tag);
+    await exec(args, { cwd: gitDir });
 }
 
 async function gitPush(gitDir, what, remote = "origin") {
+    if (process.env.ADAPT_UNIT_TESTS) return;
     await exec(["git", "push", remote, what], { cwd: gitDir });
+}
+
+async function adapt(args, opts = {}) {
+    await exec(["node", adaptPath, ...args], opts);
+}
+
+async function yarn(args, opts = {}) {
+    await exec(["yarn", ...args], opts);
+}
+
+async function commandAudit() {
+    const origDir = process.cwd();
+
+    // Ensures starters are up to date AND have no uncommitted changes
+    await commandUpdate();
+
+    const errors = [];
+
+    await foreachStarter(async (s) => {
+        await utils.withTmpDir(async (tmp) => {
+            try {
+                process.chdir(tmp);
+                await adapt(["new", s.dir, "."]);
+                for await (const pj of globby.stream("**/package.json", { absolute: true })) {
+                    const pjDir = path.dirname(pj.toString());
+                    await yarn([], { cwd: pjDir });
+                    try {
+                        await yarn([ "audit" ], { cwd: pjDir });
+                    } catch (err) {
+                        errors.push({
+                            name: s.name,
+                            file: pj.slice(tmp.length + 1),
+                            stdout: err.stdout,
+                            summary: utils.grep(err.stdout, /vulnerabilities found/g).join("\n"),
+                        });
+                    }
+                }
+
+            } finally {
+                process.chdir(origDir);
+            }
+        });
+    });
+
+    if (errors.length) {
+        console.error("\n" + chalk.redBright("Audit failed:"));
+        for (const e of errors) {
+            console.error(chalk.bold(`${e.name}: ${e.file}`));
+            console.error(`  ${e.summary}`);
+        }
+        process.exit(1);
+    }
 }
 
 async function commandRun(args) {
@@ -144,3 +219,13 @@ async function commandTag(tag) {
         await gitPush(s.dir, tag);
     });
 }
+
+function main() {
+    if (process.argv.length <= 2) {
+        program.help(); // Exits
+    }
+
+    program.parse(process.argv);
+}
+
+main();
