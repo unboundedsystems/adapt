@@ -22,7 +22,7 @@ const fs = require("fs-extra");
 const { resolve, join } = require("path");
 const should = require("should");
 
-const { commits, git, tags } = require("./utils/git");
+const { branches, commits, git, tags } = require("./utils/git");
 const { useFixture } = require("./utils/git_fixture");
 
 const debug = db("adapt:test");
@@ -348,6 +348,11 @@ describe("Publish registry", function() {
             "Initial commit",
         ]);
 
+        // For a prerelease, no release branch should be created
+        const b = await branches();
+        should(b).not.containEql("release-0.1");
+        should(b).not.containEql("origin/release-0.1");
+
         // Check for tags in starters
         let sTags = await tags({ cwd: "./starters/blank"});
         should(sTags).containEql("adapt-v0.1.0-next.11");
@@ -394,6 +399,12 @@ describe("Publish registry", function() {
             "v0.1.0-next.11",
             "Initial commit",
         ]);
+
+        // For a minor release, a release branch should be created and
+        // pushed to origin
+        const b = await branches();
+        should(b).containEql("release-0.1");
+        should(b).containEql("origin/release-0.1");
 
         // Check for tags in starters
         let sTags = await tags({ cwd: "./starters/blank"});

@@ -54,3 +54,9 @@ async function tags(options) {
     return stdout.split("\n");
 }
 exports.tags = tags;
+
+async function branches(options) {
+    const { stdout } = await git(["branch", "-a", "--format=%(refname:short)"], options);
+    return stdout.split("\n");
+}
+exports.branches = branches;

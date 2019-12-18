@@ -147,8 +147,8 @@ function updateBranch {
         return
     fi
 
-    git fetch origin || return 1
-    git pull --ff-only || return 1
+    run git fetch origin || return 1
+    run git pull --ff-only || return 1
 }
 
 function doBuild {
@@ -218,6 +218,24 @@ function tagStarters {
     local VERSION="$1"
     run "${STARTERS_CMD}" update || return 1
     run "${STARTERS_CMD}" tag -f "adapt-v${VERSION}" || return 1
+}
+
+function createReleaseBranch {
+    local VERSION="$1"
+    if [[ ${ARGS[version]} != "major" && ${ARGS[version]} != "minor" ]]; then
+        return
+    fi
+    if [[ ${VERSION} =~ (^[0-9]+\.[0-9+]) ]]; then
+        local MAJ_MIN="${BASH_REMATCH[1]}"
+        local BRANCH="release-${MAJ_MIN}"
+        run git branch "${BRANCH}" || return 1
+        if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
+            run git push --no-verify origin "${BRANCH}"
+        fi
+    else
+        error "ERROR: Could not parse major and minor version from release version"
+        return 1
+    fi
 }
 
 function usage {
@@ -331,3 +349,6 @@ setPublishArgs yes || exit 1
 
 # Do the publish
 checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
+
+# Create new release branch for appropriate release types
+createReleaseBranch "${FINAL_VERSION}" || exit 1
