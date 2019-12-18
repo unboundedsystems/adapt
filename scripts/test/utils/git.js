@@ -38,15 +38,19 @@ exports.default = git;
 
 /**
  * Returns an array with the subject (title) of each commit.
+ * @param {execa.Options<string>} [options]
  */
-async function commits() {
-    const { stdout } = await git(["log", "--format=format:%s"]);
+async function commits(options) {
+    const { stdout } = await git(["log", "--format=format:%s"], options);
     return stdout.split("\n");
 }
 exports.commits = commits;
 
-async function tags() {
-    const { stdout } = await git(["tag"]);
+/**
+ * @param {execa.Options<string>} [options]
+ */
+async function tags(options) {
+    const { stdout } = await git(["tag"], options);
     return stdout.split("\n");
 }
 exports.tags = tags;

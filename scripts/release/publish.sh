@@ -7,6 +7,7 @@ REPO_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )
 # Globals
 declare -A ARGS
 LERNA_ARGS=()
+STARTERS_CMD="${REPO_ROOT}/scripts/starters.js"
 
 function publishType {
     if ! isReleaseBranch ; then
@@ -69,6 +70,7 @@ function checkVersionArg {
 }
 
 function setPublishArgs {
+    local ALLOW_YES="$1"
     local PREID=$(prereleaseId)
     local BRANCH=$(currentBranch)
     local DIST_TAG PUBLISH_TYPE
@@ -80,7 +82,7 @@ function setPublishArgs {
         LERNA_ARGS+=("--loglevel=debug")
     fi
 
-    if [[ -n ${ARGS[yes]} ]]; then
+    if [[ ${ALLOW_YES} = "yes" && -n ${ARGS[yes]} ]]; then
         LERNA_ARGS+=("--yes")
     fi
 
@@ -101,6 +103,27 @@ function setPublishArgs {
 
     PUBLISH_TYPE=$(publishType "${ARGS[version]}") || return 1
     LERNA_ARGS+=("${PUBLISH_TYPE}")
+}
+
+function finalVersion {
+    if [[ ${ARGS[version]} =~ ^[0-9] ]]; then
+        echo "${ARGS[version]}"
+        return
+    fi
+
+    local OUTPUT
+    setPublishArgs no || return 1
+
+    # Run lerna to see what version it will create, but don't use --yes 
+    # The version lines look like this:
+    #  - @adpt/core: 0.1.0-next.0 => 0.1.0-next.1
+    OUTPUT=$("${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" <<<"" | \
+        egrep '^ - .*: .* => ' | head -1 | sed 's/^.* => //')
+    if [[ ${OUTPUT} = "" ]]; then
+        error "ERROR: Unable to parse version information from lerna"
+        return 1
+    fi
+    echo "${OUTPUT}"
 }
 
 function checkRegistry {
@@ -176,19 +199,25 @@ function distTag {
 
 function doSpecificVersion {
     local VERSION
-    VERSION=$(sanitizeSemver "${ARGS[version]}") || exit 1
+    VERSION=$(sanitizeSemver "${ARGS[version]}") || return 1
 
     LERNA_ARGS=(version --force-publish --amend --no-git-tag-version "${VERSION}")
-    checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
+    checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || return 1
 
     if [[ -n ${ARGS[dry-run]} ]]; then
         return
     fi
 
-    git add -A || exit 1
+    git add -A || return 1
     echo "Committing the following files:"
     git status -s
-    git commit -m "${VERSION}" || exit 1
+    git commit -m "${VERSION}" || return 1
+}
+
+function tagStarters {
+    local VERSION="$1"
+    run "${STARTERS_CMD}" update || return 1
+    run "${STARTERS_CMD}" tag -f "adapt-v${VERSION}" || return 1
 }
 
 function usage {
@@ -286,12 +315,19 @@ checkRegistry || exit 1
 # Build everything
 doBuild || exit 1
 
+# Compute what version we're going to create
+FINAL_VERSION=$(finalVersion) || exit 1
+echo "Version to publish will be '${FINAL_VERSION}'"
+
+# Tag the starters
+tagStarters "${FINAL_VERSION}" || exit 1
+
 if [[ ${ARGS[version]} =~ ^[0-9] ]]; then
-    doSpecificVersion
+    doSpecificVersion || exit 1
 fi
 
 # Populate LERNA_ARGS
-setPublishArgs || exit 1
+setPublishArgs yes || exit 1
 
 # Do the publish
 checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1

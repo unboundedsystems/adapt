@@ -34,8 +34,13 @@ const publishExe = join(releaseDir, "publish.sh");
  * @param {any[] | readonly string[] | string[]} args
  * @param {execa.Options<string>} [options]
  */
-async function publish(args, options) {
-    const subproc = execa(publishExe, args, options);
+async function publish(args, options = {}) {
+    const env = {
+        ADAPT_UNIT_TESTS: "1",
+        ...(options.env || {})
+    };
+    const opts = { ...options, env };
+    const subproc = execa(publishExe, args, opts);
     if (debug.enabled) {
         subproc.stdout.pipe(process.stdout);
         subproc.stderr.pipe(process.stderr);
@@ -304,7 +309,7 @@ describe("Publish registry", function() {
     });
 
     beforeEach(async () => {
-        await useFixture("next.0");
+        await useFixture("next.10");
     });
 
     it("Should publish master prerelease as 'next.X' with tag 'next'", async () => {
@@ -318,8 +323,8 @@ describe("Publish registry", function() {
         });
         // The registry automatically adds tag 'latest' to first publish
         should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
-            latest: "0.1.0-next.1",
-            next: "0.1.0-next.1",
+            latest: "0.1.0-next.11",
+            next: "0.1.0-next.11",
         });
 
         // Do a second publish to check that latest doesn't get updated for 'next'
@@ -329,19 +334,28 @@ describe("Publish registry", function() {
             }
         });
         should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
-            latest: "0.1.0-next.1",
-            next: "0.1.0-next.2",
+            latest: "0.1.0-next.11",
+            next: "0.1.0-next.12",
         });
 
         should(await tags()).eql([
-            "v0.1.0-next.1",
-            "v0.1.0-next.2",
+            "v0.1.0-next.11",
+            "v0.1.0-next.12",
         ]);
         should(await commits()).eql([
-            "v0.1.0-next.2",
-            "v0.1.0-next.1",
+            "v0.1.0-next.12",
+            "v0.1.0-next.11",
             "Initial commit",
         ]);
+
+        // Check for tags in starters
+        let sTags = await tags({ cwd: "./starters/blank"});
+        should(sTags).containEql("adapt-v0.1.0-next.11");
+        should(sTags).containEql("adapt-v0.1.0-next.12");
+
+        sTags = await tags({ cwd: "./starters/hello-node"});
+        should(sTags).containEql("adapt-v0.1.0-next.11");
+        should(sTags).containEql("adapt-v0.1.0-next.12");
     }); 
 
     it("Should publish master minor as '0.1.0' with tag 'latest'", async () => {
@@ -355,8 +369,8 @@ describe("Publish registry", function() {
         });
         // The registry automatically adds tag 'latest' to first publish
         should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
-            latest: "0.1.0-next.1",
-            next: "0.1.0-next.1",
+            latest: "0.1.0-next.11",
+            next: "0.1.0-next.11",
         });
 
         // Now do the minor publish
@@ -367,17 +381,27 @@ describe("Publish registry", function() {
         });
         should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
             latest: "0.1.0",
-            next: "0.1.0-next.1",
+            next: "0.1.0-next.11",
         });
 
+        // Check tags and commits on the main repo
         should(await tags()).eql([
             "v0.1.0",
-            "v0.1.0-next.1",
+            "v0.1.0-next.11",
         ]);
         should(await commits()).eql([
             "v0.1.0",
-            "v0.1.0-next.1",
+            "v0.1.0-next.11",
             "Initial commit",
         ]);
+
+        // Check for tags in starters
+        let sTags = await tags({ cwd: "./starters/blank"});
+        should(sTags).containEql("adapt-v0.1.0");
+        should(sTags).containEql("adapt-v0.1.0-next.11");
+
+        sTags = await tags({ cwd: "./starters/hello-node"});
+        should(sTags).containEql("adapt-v0.1.0");
+        should(sTags).containEql("adapt-v0.1.0-next.11");
     }); 
 });

@@ -2,6 +2,11 @@ function error {
     echo "$*" >&2
 }
 
+function run {
+    echo "$@"
+    "$@"
+}
+
 function checkDryRun {
     if [[ -n ${ARGS[dry-run]} ]]; then
         echo "[SKIPPING]" "$@"
