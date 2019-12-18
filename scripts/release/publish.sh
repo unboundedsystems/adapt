@@ -8,6 +8,7 @@ REPO_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )
 declare -A ARGS
 LERNA_ARGS=()
 STARTERS_CMD="${REPO_ROOT}/scripts/starters.js"
+ADAPT_PUSH_REMOTE=${ADAPT_PUSH_REMOTE:-origin}
 
 function publishType {
     if ! isReleaseBranch ; then
@@ -77,6 +78,8 @@ function setPublishArgs {
 
     # Always publish all packages together
     LERNA_ARGS=(publish --force-publish)
+
+    LERNA_ARGS+=("--gitRemote=${ADAPT_PUSH_REMOTE}")
 
     if [[ -n ${ARGS[debug]} ]]; then
         LERNA_ARGS+=("--loglevel=debug")
@@ -201,7 +204,7 @@ function doSpecificVersion {
     local VERSION
     VERSION=$(sanitizeSemver "${ARGS[version]}") || return 1
 
-    LERNA_ARGS=(version --force-publish --amend --no-git-tag-version "${VERSION}")
+    LERNA_ARGS=(version --force-publish --amend --no-git-tag-version "--gitRemote=${ADAPT_PUSH_REMOTE}" "${VERSION}")
     checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || return 1
 
     if [[ -n ${ARGS[dry-run]} ]]; then
@@ -230,7 +233,7 @@ function createReleaseBranch {
         local BRANCH="release-${MAJ_MIN}"
         checkDryRun git branch "${BRANCH}" || return 1
         if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
-            checkDryRun git push --no-verify origin "${BRANCH}"
+            checkDryRun git push --no-verify "${ADAPT_PUSH_REMOTE}" "${BRANCH}"
         fi
     else
         error "ERROR: Could not parse major and minor version from release version"
@@ -250,7 +253,7 @@ function updateMasterNext {
 
     NEXT_VERSION=$("${REPO_ROOT}/node_modules/.bin/semver" -i preminor --preid next "${VERSION}") || exit 1
 
-    L_ARGS=(version --yes --force-publish --amend --no-git-tag-version "${NEXT_VERSION}")
+    L_ARGS=(version --yes --force-publish --amend --no-git-tag-version "--gitRemote=${ADAPT_PUSH_REMOTE}" "${NEXT_VERSION}")
     checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${L_ARGS[@]}" || return 1
 
     checkDryRun git add -A || return 1
@@ -259,7 +262,7 @@ function updateMasterNext {
     checkDryRun git commit -m "Update base version to ${NEXT_VERSION}" || return 1
 
     if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
-        checkDryRun git push --no-verify origin master
+        checkDryRun git push --no-verify "${ADAPT_PUSH_REMOTE}" master
     fi
 }
 
