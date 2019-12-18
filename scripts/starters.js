@@ -58,6 +58,7 @@ program
 program
     .command("tag <tag>")
     .description("Tag all starters")
+    .option('-f, --force', 'Move the tag if it already exists')
     .action(cliHandler(commandTag));
 
 program.on("command:*", () => {
@@ -128,8 +129,11 @@ async function gitPullFF(gitDir) {
     await exec(["git", "pull", "--ff-only"], { cwd: gitDir });
 }
 
-async function gitTag(gitDir, tag) {
-    await exec(["git", "tag", tag], { cwd: gitDir });
+async function gitTag(gitDir, tag, opts = {}) {
+    const args = ["git", "tag"];
+    if (opts.force) args.push("--force");
+    args.push(tag);
+    await exec(args, { cwd: gitDir });
 }
 
 async function gitPush(gitDir, what, remote = "origin") {
