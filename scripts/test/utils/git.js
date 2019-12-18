@@ -19,7 +19,12 @@ const execa = require("execa");
 
 const debug = db("adapt:test");
 
+/**
+ * @param {string[]} args
+ * @param {execa.Options<string>} [options]
+ */
 async function git(args, options) {
+    debug(`Running: git ${args.join(" ")}`);
     const subproc = execa("git", args, options);
     if (debug.enabled) {
         subproc.stdout.pipe(process.stdout);
@@ -30,3 +35,18 @@ async function git(args, options) {
 
 exports.git = git;
 exports.default = git;
+
+/**
+ * Returns an array with the subject (title) of each commit.
+ */
+async function commits() {
+    const { stdout } = await git(["log", "--format=format:%s"]);
+    return stdout.split("\n");
+}
+exports.commits = commits;
+
+async function tags() {
+    const { stdout } = await git(["tag"]);
+    return stdout.split("\n");
+}
+exports.tags = tags;

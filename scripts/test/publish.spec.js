@@ -15,14 +15,14 @@
  */
 
 const { grep } = require("@adpt/utils");
-const { mochaTmpdir } = require("@adpt/testutils");
+const { mochaTmpdir, mochaLocalRegistry } = require("@adpt/testutils");
 const db = require("debug");
 const execa = require("execa");
 const fs = require("fs-extra");
 const { resolve, join } = require("path");
 const should = require("should");
 
-const { git } = require("./utils/git");
+const { commits, git, tags } = require("./utils/git");
 const { useFixture } = require("./utils/git_fixture");
 
 const debug = db("adapt:test");
@@ -85,6 +85,29 @@ async function getPublishCommand(argsIn) {
     return { args, options };
 }
 
+const tagRegEx = /^info\s+(.*?):\s+(.*)$/gm;
+
+async function npmTags(pkg, options = {}) {
+    const execOpts = { all: true };
+    if (options.registry) {
+        execOpts.env = { NPM_CONFIG_REGISTRY: options.registry };
+    }
+    try {
+        const { stdout } = await execa("yarn", ["tag", "list", pkg], execOpts);
+        console.log("TAGS:", stdout)
+        const tags = {};
+        let m;
+        while ((m = tagRegEx.exec(stdout)) !== null) {
+            // tag -> version
+            tags[m[1]] = m[2]
+        }
+        return tags;
+
+    } catch (err) {
+        console.log("Failed:", err.all)
+    }
+}
+
 describe("Publish options", function() {
     this.timeout("20s");
 
@@ -111,15 +134,6 @@ describe("Publish options", function() {
         const { stdout } = await publish(["--dry-run", "--no-build", "prerelease"]);
         should(stdout).match(/SKIPPING.*make build/);
         should(stdout).not.match(/^Build success/m);
-    });
-
-    it("Should not allow invalid dist-tags", async () => {
-        await should(publishError(["--no-build", "--dry-run", "--dist-tag", "1.2.3", "prerelease"]))
-            .be.rejectedWith(/Invalid tag '1.2.3'/);
-        await should(publishError(["--no-build", "--dry-run", "--dist-tag", "-foo", "prerelease"]))
-            .be.rejectedWith(/Invalid tag '-foo'/);
-        await should(publishError(["--no-build", "--dry-run", "--dist-tag", "v1", "prerelease"]))
-            .be.rejectedWith(/Invalid tag 'v1'/);
     });
 
     const registryEnv = {
@@ -213,4 +227,157 @@ describe("Publish branching", function() {
             await fs.remove("help.txt");
         }
     });
+});
+
+describe("Publish dist-tag", function() {
+    this.timeout("20s");
+
+    mochaTmpdir.all("adapt-script-publish");
+
+    before(async () => {
+        await useFixture("simple");
+        await git(["checkout", "-b", "other-branch"]);
+    });
+
+    it("Should use dist-tag arg if provided", async () => {
+        await git(["checkout", "master"]);
+        let ret = await getPublishCommand(["--dist-tag", "foo", "minor"]);
+        should(ret.options.get("--dist-tag")).eql("foo");
+
+        ret = await getPublishCommand(["--dist-tag", "foo", "prerelease"]);
+        should(ret.options.get("--dist-tag")).eql("foo");
+    });
+
+    it("Should default to dist-tag 'latest' for major, minor, patch", async () => {
+        await git(["checkout", "master"]);
+        let ret = await getPublishCommand(["major"]);
+        should(ret.options.get("--dist-tag")).eql("latest");
+
+        ret = await getPublishCommand(["minor"]);
+        should(ret.options.get("--dist-tag")).eql("latest");
+
+        ret = await getPublishCommand(["patch"]);
+        should(ret.options.get("--dist-tag")).eql("latest");
+    });
+
+    it("Should prerelease on master use dist-tag 'next'", async () => {
+        await git(["checkout", "master"]);
+        let ret = await getPublishCommand(["prerelease"]);
+        should(ret.options.get("--dist-tag")).eql("next");
+    });
+
+    it("Should dev dist-tag starting with 'dev-'", async () => {
+        await git(["checkout", "other-branch"]);
+        let ret = await getPublishCommand(["dev"]);
+        should(ret.options.get("--dist-tag")).eql("dev-other-branch");
+    });
+
+    it("Should not allow invalid dist-tags", async () => {
+        await git(["checkout", "master"]);
+        await should(publishError(["--dry-run", "--dist-tag", "1.2.3", "prerelease"]))
+            .be.rejectedWith(/Invalid tag '1.2.3'/);
+        await should(publishError(["--dry-run", "--dist-tag", "-foo", "prerelease"]))
+            .be.rejectedWith(/Invalid tag '-foo'/);
+        await should(publishError(["--dry-run", "--dist-tag", "v1", "prerelease"]))
+            .be.rejectedWith(/Invalid tag 'v1'/);
+    });
+
+    it("Should require dist-tag arg for numbered version", async () => {
+        await git(["checkout", "master"]);
+        await should(publishError(["--dry-run", "1.2.3"]))
+            .be.rejectedWith(/--dist-tag must be specified/);
+    });
+
+    it("Should require dist-tag arg for from-package", async () => {
+        await git(["checkout", "master"]);
+        await should(publishError(["--dry-run", "from-package"]))
+            .be.rejectedWith(/--dist-tag must be specified/);
+    });
+});
+
+describe("Publish registry", function() {
+    this.timeout("20s");
+
+    mochaTmpdir.each("adapt-script-publish");
+    const localRegistry = mochaLocalRegistry.each({
+        publishList: []
+    });
+
+    beforeEach(async () => {
+        await useFixture("next.0");
+    });
+
+    it("Should publish master prerelease as 'next.X' with tag 'next'", async () => {
+        await git(["checkout", "master"]);
+
+        // Do a first publish so the registry has something in it
+        await publish(["--local", "--yes", "prerelease"], {
+            env: {
+                NPM_CONFIG_REGISTRY: localRegistry.yarnProxyOpts.registry
+            }
+        });
+        // The registry automatically adds tag 'latest' to first publish
+        should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
+            latest: "0.1.0-next.1",
+            next: "0.1.0-next.1",
+        });
+
+        // Do a second publish to check that latest doesn't get updated for 'next'
+        await publish(["--local", "--yes", "prerelease"], {
+            env: {
+                NPM_CONFIG_REGISTRY: localRegistry.yarnProxyOpts.registry
+            }
+        });
+        should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
+            latest: "0.1.0-next.1",
+            next: "0.1.0-next.2",
+        });
+
+        should(await tags()).eql([
+            "v0.1.0-next.1",
+            "v0.1.0-next.2",
+        ]);
+        should(await commits()).eql([
+            "v0.1.0-next.2",
+            "v0.1.0-next.1",
+            "Initial commit",
+        ]);
+    }); 
+
+    it("Should publish master minor as '0.1.0' with tag 'latest'", async () => {
+        await git(["checkout", "master"]);
+
+        // Do a first publish so the registry has something in it
+        await publish(["--local", "--debug", "--yes", "prerelease"], {
+            env: {
+                NPM_CONFIG_REGISTRY: localRegistry.yarnProxyOpts.registry
+            }
+        });
+        // The registry automatically adds tag 'latest' to first publish
+        should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
+            latest: "0.1.0-next.1",
+            next: "0.1.0-next.1",
+        });
+
+        // Now do the minor publish
+        await publish(["--local", "--debug", "--yes", "minor"], {
+            env: {
+                NPM_CONFIG_REGISTRY: localRegistry.yarnProxyOpts.registry
+            }
+        });
+        should(await npmTags("@adpt/one", { registry: localRegistry.yarnProxyOpts.registry })).eql({
+            latest: "0.1.0",
+            next: "0.1.0-next.1",
+        });
+
+        should(await tags()).eql([
+            "v0.1.0",
+            "v0.1.0-next.1",
+        ]);
+        should(await commits()).eql([
+            "v0.1.0",
+            "v0.1.0-next.1",
+            "Initial commit",
+        ]);
+    }); 
 });

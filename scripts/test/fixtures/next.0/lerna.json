@@ -1,0 +1,16 @@
+{
+    "command": {
+        "version": {
+            "allowBranch": "*",
+            "exact": true
+        },
+        "publish": {
+            "allowBranch": [
+                "master",
+                "release-*"
+            ]
+        }
+    },
+    "npmClient": "yarn",
+    "version": "0.1.0-next.0"
+}
