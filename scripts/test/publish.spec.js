@@ -22,7 +22,7 @@ const fs = require("fs-extra");
 const { resolve, join } = require("path");
 const should = require("should");
 
-const { branches, commits, git, tags } = require("./utils/git");
+const { branches, branchSha, commits, git, tags } = require("./utils/git");
 const { useFixture } = require("./utils/git_fixture");
 
 const debug = db("adapt:test");
@@ -395,10 +395,14 @@ describe("Publish registry", function() {
             "v0.1.0-next.11",
         ]);
         should(await commits()).eql([
+            "Update base version to 0.2.0-next.0",
             "v0.1.0",
             "v0.1.0-next.11",
             "Initial commit",
         ]);
+
+        // Check that master got pushed to origin
+        should(await branchSha("master")).equal(await branchSha("origin/master"));
 
         // For a minor release, a release branch should be created and
         // pushed to origin

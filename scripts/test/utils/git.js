@@ -60,3 +60,10 @@ async function branches(options) {
     return stdout.split("\n");
 }
 exports.branches = branches;
+
+async function branchSha(branch, options) {
+    const { stdout } =
+        await git(["branch", "-a", "--list", "--format=%(objectname)", branch], options);
+    return stdout;
+}
+exports.branchSha = branchSha;

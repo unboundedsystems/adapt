@@ -15,7 +15,7 @@
  */
 
 const { copy, ensureDir } = require("fs-extra");
-const { git } = require("./git");
+const { branchSha, git } = require("./git");
 const path = require("path");
 
 const fixtureDir = path.resolve(__dirname, "..", "fixtures");
@@ -28,6 +28,10 @@ async function newRepo(templateDir, targetDir) {
     await git(["add", "."], gitOpts);
     await git(["commit", "-m", "Initial commit"], gitOpts);
     await git(["branch", "release-1.0", "master"], gitOpts);
+    // Allow this repo to be pushed to by checking out a SHA instead
+    // of a branch (the currently checked out branch can't be pushed to)
+    const sha = await branchSha("master", gitOpts);
+    await git(["checkout", sha], gitOpts);
 }
 exports.newRepo = newRepo;
 

@@ -217,7 +217,7 @@ function doSpecificVersion {
 function tagStarters {
     local VERSION="$1"
     run "${STARTERS_CMD}" update || return 1
-    run "${STARTERS_CMD}" tag -f "adapt-v${VERSION}" || return 1
+    checkDryRun "${STARTERS_CMD}" tag -f "adapt-v${VERSION}" || return 1
 }
 
 function createReleaseBranch {
@@ -228,13 +228,38 @@ function createReleaseBranch {
     if [[ ${VERSION} =~ (^[0-9]+\.[0-9+]) ]]; then
         local MAJ_MIN="${BASH_REMATCH[1]}"
         local BRANCH="release-${MAJ_MIN}"
-        run git branch "${BRANCH}" || return 1
+        checkDryRun git branch "${BRANCH}" || return 1
         if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
-            run git push --no-verify origin "${BRANCH}"
+            checkDryRun git push --no-verify origin "${BRANCH}"
         fi
     else
         error "ERROR: Could not parse major and minor version from release version"
         return 1
+    fi
+}
+
+function updateMasterNext {
+    local VERSION="$1"
+    local NEXT_VERSION
+    if [[ ${ARGS[version]} != "major" && ${ARGS[version]} != "minor" ]]; then
+        return
+    fi
+    if [[ $(currentBranch) != "master" ]]; then
+        return
+    fi
+
+    NEXT_VERSION=$("${REPO_ROOT}/node_modules/.bin/semver" -i preminor --preid next "${VERSION}") || exit 1
+
+    L_ARGS=(version --yes --force-publish --amend --no-git-tag-version "${NEXT_VERSION}")
+    checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${L_ARGS[@]}" || return 1
+
+    checkDryRun git add -A || return 1
+    echo "Committing the following files:"
+    git status -s
+    checkDryRun git commit -m "Update base version to ${NEXT_VERSION}" || return 1
+
+    if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
+        checkDryRun git push --no-verify origin master
     fi
 }
 
@@ -352,3 +377,6 @@ checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
 
 # Create new release branch for appropriate release types
 createReleaseBranch "${FINAL_VERSION}" || exit 1
+
+# Update version to 'next.0' as needed
+updateMasterNext "${FINAL_VERSION}" || exit 1
