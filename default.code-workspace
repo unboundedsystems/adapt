@@ -20,6 +20,9 @@
 		},
 		{
 			"path": "systemtest"
+		},
+		{
+			"path": "scripts"
 		}
 	],
 	"settings": {
