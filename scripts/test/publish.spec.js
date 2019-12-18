@@ -99,7 +99,6 @@ async function npmTags(pkg, options = {}) {
     }
     try {
         const { stdout } = await execa("yarn", ["tag", "list", pkg], execOpts);
-        console.log("TAGS:", stdout)
         const tags = {};
         let m;
         while ((m = tagRegEx.exec(stdout)) !== null) {
@@ -119,7 +118,7 @@ describe("Publish options", function() {
     mochaTmpdir.all("adapt-script-publish");
 
     before(async () => {
-        await useFixture("simple");
+        await useFixture("next.10");
     });
 
     it("Should --debug enable lerna debug logging", async () => {
@@ -129,7 +128,6 @@ describe("Publish options", function() {
     });
 
     it("Should run 'make build' by default", async function() {
-        this.timeout("5m");
         const { stdout } = await publish(["--dry-run", "prerelease"]);
         should(stdout).not.match(/SKIPPING.*make build/);
         should(stdout).match(/^Build success/m);
@@ -157,27 +155,31 @@ describe("Publish options", function() {
 });
 
 describe("Publish branching", function() {
-    this.timeout("20s");
+    this.timeout("60s");
 
     mochaTmpdir.all("adapt-script-publish");
 
     before(async () => {
-        await useFixture("simple");
+        await useFixture("next.10");
         await git(["checkout", "-b", "other-branch"]);
+        await git(["push", "origin", "other-branch"]);
     });
 
     it("Should only update git on release/master", async () => {
         await git(["checkout", "master"]);
         let ret = await publish(["--dry-run", "minor"]);
-        should(ret.stdout).match(/^Already up to date/m);
+        should(ret.stdout).match(/^git fetch origin/m);
+        should(ret.stdout).match(/^git pull --ff-only/m);
 
         await git(["checkout", "release-1.0"]);
         ret = await publish(["--dry-run", "patch"]);
-        should(ret.stdout).match(/^Already up to date/m);
+        should(ret.stdout).match(/^git fetch origin/m);
+        should(ret.stdout).match(/^git pull --ff-only/m);
 
         await git(["checkout", "other-branch"]);
         ret = await publish(["--dry-run", "dev"]);
-        should(ret.stdout).not.match(/^Already up to date/m);
+        should(ret.stdout).not.match(/^git fetch origin/m);
+        should(ret.stdout).not.match(/^git pull --ff-only/m);
     });
 
     it("Should only allow dev on non-release/master", async () => {
@@ -240,8 +242,9 @@ describe("Publish dist-tag", function() {
     mochaTmpdir.all("adapt-script-publish");
 
     before(async () => {
-        await useFixture("simple");
+        await useFixture("next.10");
         await git(["checkout", "-b", "other-branch"]);
+        await git(["push", "origin", "other-branch"]);
     });
 
     it("Should use dist-tag arg if provided", async () => {
@@ -271,7 +274,7 @@ describe("Publish dist-tag", function() {
         should(ret.options.get("--dist-tag")).eql("next");
     });
 
-    it("Should dev dist-tag starting with 'dev-'", async () => {
+    it("Should dev dist-tag start with 'dev-'", async () => {
         await git(["checkout", "other-branch"]);
         let ret = await getPublishCommand(["dev"]);
         should(ret.options.get("--dist-tag")).eql("dev-other-branch");
@@ -300,8 +303,8 @@ describe("Publish dist-tag", function() {
     });
 });
 
-describe("Publish registry", function() {
-    this.timeout("20s");
+describe("Publish full workflow", function() {
+    this.timeout("60s");
 
     mochaTmpdir.each("adapt-script-publish");
     const localRegistry = mochaLocalRegistry.each({
