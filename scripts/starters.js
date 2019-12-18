@@ -33,6 +33,8 @@ const starterListComplete = [
 ];
 const repoRoot = path.resolve(path.join(__dirname, ".."));
 const adaptPath = path.resolve(path.join(repoRoot, "cli", "bin", "run"));
+const starterRoot = process.env.ADAPT_UNIT_TESTS ?
+    path.resolve("./starters") : path.join(repoRoot, "starters");
 let starters;
 
 program
@@ -131,6 +133,7 @@ async function gitTag(gitDir, tag) {
 }
 
 async function gitPush(gitDir, what, remote = "origin") {
+    if (process.env.ADAPT_UNIT_TESTS) return;
     await exec(["git", "push", remote, what], { cwd: gitDir });
 }
 
