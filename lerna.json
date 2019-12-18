@@ -10,8 +10,7 @@
     "command": {
         "version": {
             "allowBranch": "*",
-            "exact": true,
-            "gitRemote": "fork"
+            "exact": true
         },
         "publish": {
             "allowBranch": [
