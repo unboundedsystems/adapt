@@ -213,9 +213,11 @@ async function commandUpdate() {
     });
 }
 
-async function commandTag(tag) {
+async function commandTag(tag, cmd) {
+    const tagOpts = cmd.opts().force ? { force: true } : undefined;
+
     await foreachStarter(async (s) => {
-        await gitTag(s.dir, tag);
+        await gitTag(s.dir, tag, tagOpts);
         await gitPush(s.dir, tag);
     });
 }
