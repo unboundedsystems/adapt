@@ -223,21 +223,40 @@ function tagStarters {
     checkDryRun "${STARTERS_CMD}" tag -f "adapt-v${VERSION}" || return 1
 }
 
-function createReleaseBranch {
+function releaseBranchName {
     local VERSION="$1"
     if [[ ${ARGS[version]} != "major" && ${ARGS[version]} != "minor" ]]; then
         return
     fi
     if [[ ${VERSION} =~ (^[0-9]+\.[0-9+]) ]]; then
         local MAJ_MIN="${BASH_REMATCH[1]}"
-        local BRANCH="release-${MAJ_MIN}"
-        checkDryRun git branch "${BRANCH}" || return 1
-        if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
-            checkDryRun git push --no-verify "${ADAPT_PUSH_REMOTE}" "${BRANCH}"
-        fi
+        echo "release-${MAJ_MIN}"
     else
         error "ERROR: Could not parse major and minor version from release version"
         return 1
+    fi
+}
+
+function branchExists {
+    local BRANCH="$1"
+    [[ -n $(git branch --list ${BRANCH}) ]]
+}
+
+function tagExists {
+    local TAG="$1"
+    [[ -n $(git tag --list ${TAG}) ]]
+}
+
+function createReleaseBranch {
+    local BRANCH="$1"
+
+    # Release branch starting point is always from a commit on master
+    if [[ $(currentBranch) != "master" ]]; then
+        return
+    fi
+    checkDryRun git branch "${BRANCH}" || return 1
+    if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
+        checkDryRun git push --no-verify "${ADAPT_PUSH_REMOTE}" "${BRANCH}"
     fi
 }
 
@@ -358,12 +377,25 @@ checkVersionArg "${ARGS[version]}" || exit 1
 # Check if we're publishing locally
 checkRegistry || exit 1
 
-# Build everything
-doBuild || exit 1
-
 # Compute what version we're going to create
 FINAL_VERSION=$(finalVersion) || exit 1
-echo "Version to publish will be '${FINAL_VERSION}'"
+printf "\nVersion to publish will be '${FINAL_VERSION}'\n\n"
+
+# If we're going to create a release branch, confirm it does NOT exist
+RELEASE_BRANCH=$(releaseBranchName "${FINAL_VERSION}") || exit 1
+if [[ -n ${RELEASE_BRANCH} ]] && branchExists "${RELEASE_BRANCH}"; then
+    error "ERROR: release branch ${RELEASE_BRANCH} already exists"
+    exit 1
+fi
+
+# Confirm the version tag we will create does NOT exist
+if tagExists "v${FINAL_VERSION}"; then
+    error "ERROR: git tag v${FINAL_VERSION} already exists"
+    exit 1
+fi
+
+# Build everything
+doBuild || exit 1
 
 # Tag the starters
 tagStarters "${FINAL_VERSION}" || exit 1
@@ -379,7 +411,7 @@ setPublishArgs yes || exit 1
 checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
 
 # Create new release branch for appropriate release types
-createReleaseBranch "${FINAL_VERSION}" || exit 1
+createReleaseBranch "${RELEASE_BRANCH}" || exit 1
 
 # Update version to 'next.0' as needed
 updateMasterNext "${FINAL_VERSION}" || exit 1
