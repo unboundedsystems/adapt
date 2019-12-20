@@ -41,6 +41,8 @@ To install the `adapt` CLI globally:
 npm install -g @adpt/cli
 ```
 
+<!-- doctest output { matchRegex: "\\+ @adpt/cli@" } -->
+
 > **NOTE**
 >
 > Depending on how your `npm` installation is set up, you may need root or administrator privileges to install an `npm` module globally.

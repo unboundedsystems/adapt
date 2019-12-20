@@ -17,13 +17,26 @@
 const defaults = require("../dist/src/local-registry-defaults");
 const registry = require("../dist/src/local-registry");
 const utils = require("@adpt/utils");
+const program = require("commander");
 
 async function main() {
+    program
+        .option("--empty", "Don't load any packages into the registry");
+
+    program.parse(process.argv);
+
     const storage = await utils.mkdtmp("adapt-local-registry");
-    await registry.start({
+
+    const opts = {
         ...defaults.config,
         storage,
-    }, defaults.configPath);
+    };
+
+    if (program.opts().empty) {
+        opts.onStart = () => defaults.setupLocalRegistry([]);
+    }
+
+    await registry.start(opts, defaults.configPath);
 }
 
 main();

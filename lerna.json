@@ -4,6 +4,8 @@
         "cloud",
         "core",
         "dom-parser",
+        "scripts",
+        "systemtest",
         "testutils",
         "utils"
     ],

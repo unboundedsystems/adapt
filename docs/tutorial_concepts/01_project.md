@@ -27,6 +27,8 @@ Let's go ahead and create our new app:
 adapt new hello-node ./tutorial
 ```
 
+<!-- doctest output { matchRegex: "Creating new project \\[completed\\]" } -->
+
 You should now see a new directory called `tutorial`, which contains:
 
 - deploy
