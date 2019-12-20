@@ -37,6 +37,8 @@ If we hadn't specified one, Adapt would create a unique one for us.
 
 When your `adapt run` command completes, you should see:
 
+<!-- doctest output { matchRegex: "Deployment created successfully. DeployID is: myapp" } -->
+
 ```console
 Deployment created successfully. DeployID is: myapp
 ```
@@ -46,6 +48,8 @@ You now have a functioning Hello World app running on your local Docker host.
 To verify that it's working, use `curl` or a web browser to access [http://localhost:8080](http://localhost:8080)
 
 You should see:
+
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080", matchRegex: "Hello World!\\n" } -->
 
 ```console
 Hello World!
@@ -57,6 +61,8 @@ You can also get a list of all your active Adapt deployments:
 ```console
 adapt list
 ```
+
+<!-- doctest output { matchRegex: "\\nmyapp\\n" } -->
 
 You should see just one deployment listed: `myapp`
 

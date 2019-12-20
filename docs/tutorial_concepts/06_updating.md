@@ -40,7 +40,8 @@ Test your newly deployed API by using `curl` or your browser with these links:
 * [http://localhost:8080/search/batman](http://localhost:8080/search/batman)
 * [http://localhost:8080/search/lego](http://localhost:8080/search/lego)
 
-<!-- doctest command -->
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080/search/batman", matchRegex: "Batman Returns" } -->
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080/search/lego", matchRegex: "Lego Batman Movie" } -->
 
 ```console
 curl http://localhost:8080/search/lego
@@ -73,3 +74,4 @@ This will remove all the containers we created on our local Docker host:
 ```console
 adapt destroy myapp
 ```
+<!-- doctest output { matchRegex: "Deployment myapp stopped successfully." } -->
