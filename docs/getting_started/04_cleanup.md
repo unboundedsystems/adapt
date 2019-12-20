@@ -13,6 +13,8 @@ When you're done, destroy the app deployment:
 adapt destroy movieapp
 ```
 
+<!-- doctest output { matchRegex: "Deployment movieapp stopped successfully." } -->
+
 This will stop and remove all the app's Docker containers.
 
 ## Next Step

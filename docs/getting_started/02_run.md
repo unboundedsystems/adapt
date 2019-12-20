@@ -13,11 +13,10 @@ We'll base our movie database off of an Adapt starter template called `hello-rea
 
 ```console
 adapt new hello-react-node-postgres ./moviedb
-
-cd moviedb/deploy
 ```
+<!-- doctest output { matchRegex: "Creating new project \\[completed\\]" } -->
 
-This command creates a complete template for a "Hello World" app in a new directory, `moviedb`, then changes into the newly created `moviedb/deploy` directory.
+This command creates a complete template for a "Hello World" app in a new directory, `moviedb`.
 
 Our new Hello World app contains the front end user interface, all of its back end services, and the Adapt specification that allows everything to be easily deployed into different environments.
 The app consists of:
@@ -43,11 +42,15 @@ To run all the app components on your local Docker host:
 <!-- doctest command -->
 
 ```console
+cd moviedb/deploy
 adapt run --deployID movieapp
 ```
 
+This changes into the `moviedb/deploy` directory, where the Adapt deployment spec is located, and runs the deployment.
 The `deployID` option gives the newly created deployment a name that we can refer to for later commands.
 When the deployment is complete, you should see:
+
+<!-- doctest output { matchRegex: "Deployment created successfully. DeployID is: movieapp" } -->
 
 ```console
 Deployment created successfully. DeployID is: movieapp
@@ -56,6 +59,8 @@ Deployment created successfully. DeployID is: movieapp
 ## Test the Hello World App
 
 The app should now be available at: [http://localhost:8080](http://localhost:8080)
+
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080", matchRegex: "<title>React Hello World</title>" } -->
 
 If you open this URL in your browser, you should see something like this:
 

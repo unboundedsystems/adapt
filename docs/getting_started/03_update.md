@@ -37,12 +37,17 @@ It will also populate the database with the new test data.
 adapt update movieapp
 ```
 
+<!-- doctest output { matchRegex: "Deployment movieapp updated successfully." } -->
+
 ## Test Your New MovieDB App
 
 Congratulations!
 You have now deployed the complete infrastructure for your new MovieDB app.
 
 Test your newly deployed app by opening the same link in your browser again: [http://localhost:8080](http://localhost:8080)
+
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080", matchRegex: "<title>Unbounded Movie Database</title>" } -->
+<!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080/api/search/batman", matchRegex: "Lego Batman Movie" } -->
 
 > **IMPORTANT**
 >
