@@ -75,10 +75,13 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
         return {
             dockerfile: `
                     FROM node:10-stretch-slim
+                    ENV TINI_VERSION v0.18.0
+                    ADD https://github.com/krallin/tini/releases/download/\${TINI_VERSION}/tini /tini
+                    ENTRYPOINT ["/tini", "--"]
                     ${argLines(opts.buildArgs)}
                     WORKDIR /app
                     ADD . /app
-                    RUN ${opts.packageManager} install
+                    RUN ${opts.packageManager} install && chmod +x /tini
                     ${runCommands}
                     CMD ["node", "${main}"]
                 `,
