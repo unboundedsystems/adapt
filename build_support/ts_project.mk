@@ -47,6 +47,9 @@ dist/.test_success: $(JS_FILES)
 	npm run test
 	touch $@
 
+release-test:
+.PHONY: release-test
+
 coverage: build dist/.coverage_success
 .PHONY: coverage
 
