@@ -468,15 +468,15 @@ In `LocalFile`, we used a prop as the ID and Adapt's component state to remember
 However, this approach has some limitations, especially when it comes to creating resources dynamically.
 
 Where possible, a preferred approach is to generate an ID for each external resource that is tied to the Adapt DeployID and the Element ID and use that as the resource unique identifier or attach that generated ID to the resource's metadata.
-For examples of this, see uses of the [`makeResourceName`](../api/cloud/cloud.makeresourcename) utility function, like the one used by [`DockerContainer`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L62)
+For examples of this, see uses of the [`makeResourceName`](../api/cloud/cloud.makeresourcename) utility function, like the one used by [`DockerContainer`](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L62).
 `DockerContainer` uses `makeResourceName` to create the unique name for each container.
 Similarly, the Adapt `k8s` library uses `makeResourceName` to create unique names for Kubernetes resources.
 
 ## Additional examples of Action components
 
-To see a more complete and complex example of an `Action` component, look at `DockerContainer` ([source code](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L426)) in the Adapt cloud library.
+To see a more complete and complex example of an `Action` component, look at `DockerContainer` ([source code](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L426)) in the Adapt cloud library.
 The `DockerContainer` component uses the `docker` command line interface to start containers, update them, and delete them.
-The [`containerIsUpToDate`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L308) function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
+The [`containerIsUpToDate`](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L308) function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
 
 The Kubernetes `Resource` component is also an `Action` component that uses the Kubernetes command line `kubectl` to interact with Kubernetes.
 It uses the command line tool `kubectl diff` (see function `kubectlDiff`) to determine what changes are needed.
