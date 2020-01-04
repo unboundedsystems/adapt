@@ -79,7 +79,11 @@ function setPublishArgs {
     # Always publish all packages together
     LERNA_ARGS=(publish --force-publish)
 
-    LERNA_ARGS+=("--gitRemote=${ADAPT_PUSH_REMOTE}")
+    if [[ -n ${ADAPT_RELEASE_TESTS} ]]; then
+        LERNA_ARGS+=("--gitRemote=${ADAPT_PUSH_REMOTE}")
+    else
+        LERNA_ARGS+=(--no-git-tag-version --no-push)
+    fi
 
     if [[ -n ${ARGS[debug]} ]]; then
         LERNA_ARGS+=("--loglevel=debug")
@@ -120,7 +124,7 @@ function finalVersion {
     # Run lerna to see what version it will create, but don't use --yes 
     # The version lines look like this:
     #  - @adpt/core: 0.1.0-next.0 => 0.1.0-next.1
-    OUTPUT=$("${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" <<<"" | \
+    OUTPUT=$(run "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" <<<"" | \
         egrep '^ - .*: .* => ' | head -1 | sed 's/^.* => //')
     if [[ ${OUTPUT} = "" ]]; then
         error "ERROR: Unable to parse version information from lerna"
