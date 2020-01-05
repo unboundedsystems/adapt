@@ -76,8 +76,16 @@ function init() {
         .map((name) => ({
             name,
             dir: path.join(starterRoot, name),
-            url: `git@gitlab.com:adpt/starters/${name}.git`,
+            url: gitUrl(name),
         }));
+}
+
+function gitUrl(name) {
+    const token = process.env.ADAPT_WEB_TOKEN || process.env.CI_JOB_TOKEN;
+    const prefix = token ?
+        `https://gitlab-ci-token:${token}@gitlab.com/` :
+        `git@gitlab.com:`;
+    return `${prefix}adpt/starters/${name}.git`;
 }
 
 function cliHandler(func) {
