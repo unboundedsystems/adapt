@@ -84,7 +84,7 @@ function prereleaseId {
             echo next
             ;;
         *)
-            echo dev-${BRANCH}
+            sanitizeVersionString "dev-${BRANCH}"
             ;;
     esac
 }
@@ -93,10 +93,14 @@ function isTreeClean {
     [ -z "$(git status --porcelain)" ]
 }
 
-function sanitizeSemver {
-    # Translate some characters that are valid in branches, but not versions
+# Translate some characters that are valid in branches, but not versions
+function sanitizeVersionString {
     # For now, just translate "_" to "-"
-    local UPDATED="${1//_/-}"
+    echo "${1//_/-}"
+}
+
+function sanitizeSemver {
+    local UPDATED=$(sanitizeVersionString "$1")
 
     # Check that the resulting version is valid
     if [ -z "$(${REPO_ROOT}/node_modules/.bin/semver ${UPDATED})" ]; then
