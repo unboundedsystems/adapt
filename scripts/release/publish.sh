@@ -378,6 +378,9 @@ done
 # Check version type/branch
 checkVersionArg "${ARGS[version]}" || exit 1
 
+# Check for git credentials
+setupGitCreds || exit 1
+
 # Check if we're publishing locally
 checkRegistry || exit 1
 

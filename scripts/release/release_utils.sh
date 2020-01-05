@@ -109,3 +109,21 @@ function sanitizeSemver {
     fi
     echo "${UPDATED}"
 }
+
+function setupGitCreds {
+    if [[ -z $(git config --get user.name) ]]; then
+        if [[ -z ${GIT_USER_NAME} ]]; then
+            error "Cannot determine git user.name. Set via GIT_USER_NAME environment var."
+            return 1
+        fi
+        run git config --global user.name "${GIT_USER_NAME}" || return 1
+    fi
+
+    if [[ -z $(git config --get user.email) ]]; then
+        if [[ -z ${GIT_USER_EMAIL} ]]; then
+            error "Cannot determine git user.email. Set via GIT_USER_EMAIL environment var."
+            return 1
+        fi
+        run git config --global user.email "${GIT_USER_EMAIL}" || return 1
+    fi
+}
