@@ -15,6 +15,7 @@ services:
 
 stages:
   - test
+  - release
   - publish
 
 before_script:
@@ -32,18 +33,33 @@ test:
   only:
     - branches
     - web
+  script:
+    - ./bin/make build lint web-test coverage
+
+release:
+  stage: release
+  only:
+    # Only run the release job if:
+    # - the pipeline was kicked off manually
+    # - ADAPT_RELEASE_TYPE is set (during manual trigger)
+    # - there's a GitLab personal access token in the environment (token must
+    #   have write access to the adapt repo)
+    refs:
+      - web
+    variables:
+      - $ADAPT_RELEASE_TYPE
+      - $ADAPT_WEB_TOKEN
   variables:
     ADAPT_RELEASE_TESTS: 1
   script:
     - ./scripts/ci/checkout_branch.sh
-    - ./bin/make build lint web-test coverage
+    - ./bin/make release
 
 docs:
   stage: publish
   only:
     refs:
       - master@unboundedsystems/adapt
-      - web
     # Only run the publish job if there's a personal access token in the
     # environment. The token must have write access to the adapt-web repo.
     variables:
