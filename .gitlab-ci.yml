@@ -33,6 +33,7 @@ test:
     - branches
     - web
   script:
+    - ./scripts/ci/checkout_branch.sh
     - ./bin/make build lint web-test coverage
 
 docs:
