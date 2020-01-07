@@ -127,3 +127,7 @@ function setupGitCreds {
         run git config --global user.email "${GIT_USER_EMAIL}" || return 1
     fi
 }
+
+function currentVersion {
+    node -e "console.log(require('${REPO_ROOT}/lerna.json').version)"
+}
