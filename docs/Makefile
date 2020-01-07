@@ -59,8 +59,7 @@ dist/.test-success: $(addsuffix /.test-success,$(MD_TEST_DIRS))
 
 GS_FILES := $(shell find getting_started -type f -regex '.*\.md')
 getting_started/.test-success: $(GS_FILES)
-	#$(CLITEST) getting_started
-	$(CLITEST) getting_started || { cat /var/cache/adapt/npm/_logs/* ; false; }
+	$(CLITEST) getting_started
 	$(LT_TOUCH) $@
 
 CONCEPTS_FILES := $(shell find tutorial_concepts -type f -regex '.*\.md')

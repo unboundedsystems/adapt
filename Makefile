@@ -21,6 +21,7 @@ include build_support/submake.mk
 include build_support/node_modules.mk
 include build_support/ssh.mk
 include build_support/local_registry.mk
+include build_support/release.mk
 
 # Turn on parallelism by default
 ADAPT_PARALLEL_MAKE ?= -j $(shell nproc)
@@ -47,7 +48,7 @@ test: $(test_submakes)
 $(test_submakes): build
 
 release-test: $(release-test_submakes)
-$(release-test_submakes): build
+$(release-test_submakes): prerelease-registry
 
 pack: $(pack_submakes)
 $(pack_submakes): build
@@ -77,6 +78,7 @@ cli-test: ssh-setup run-local-registry
 docs-test: run-local-registry
 systemtest-test: ssh-setup run-local-registry
 docs-release-test: ssh-setup prerelease-registry
+
 
 include build_support/docs.mk
 
