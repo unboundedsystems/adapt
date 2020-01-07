@@ -44,11 +44,14 @@ release:
     # - ADAPT_RELEASE_TYPE is set (during manual trigger)
     # - there's a GitLab personal access token in the environment (token must
     #   have write access to the adapt repo)
+    # - there's an NPM token in the enviroment (token must have write
+    #   access to publish the Adapt packages)
     refs:
       - web
     variables:
       - $ADAPT_RELEASE_TYPE
       - $ADAPT_WEB_TOKEN
+      - $ADAPT_NPM_TOKEN
   variables:
     ADAPT_RELEASE_TESTS: 1
   script:
