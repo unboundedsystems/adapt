@@ -86,7 +86,7 @@ function setPublishArgs {
     fi
 
     if [[ -n ${ARGS[debug]} ]]; then
-        LERNA_ARGS+=("--loglevel=debug")
+        LERNA_ARGS+=("--loglevel=silly")
     fi
 
     if [[ ${ALLOW_YES} = "yes" && -n ${ARGS[yes]} ]]; then
