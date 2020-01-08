@@ -11,8 +11,7 @@ fi
 toplevel=$(git rev-parse --show-toplevel)
 
 docker build \
-  -f "${toplevel}/docker_hub/Dockerfile" \
   --build-arg ADAPT_VERSION="$version" \
-  -t "unboundedsystems/adapt:${version}" \
-  -t "unboundedsystems/adapt:latest" \
+  -t "adaptjs/adapt:${version}" \
+  -t "adaptjs/adapt:latest" \
   "${toplevel}/docker_hub"

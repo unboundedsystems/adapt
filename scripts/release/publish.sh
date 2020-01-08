@@ -4,6 +4,8 @@
 REPO_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )
 . "${REPO_ROOT}/scripts/release/release_utils.sh"
 
+ADAPT_DOCKER_REPO=adaptjs/adapt
+
 # Globals
 declare -A ARGS
 LERNA_ARGS=()
@@ -358,10 +360,41 @@ function updateMasterNext {
     fi
 }
 
+function dockerBuild {
+    local VER="$1"
+
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    local BUILDARGS=(
+        --build-arg ADAPT_VERSION="${VER}"
+        --tag "${ADAPT_DOCKER_REPO}:${VER}"
+        "${REPO_ROOT}/docker_hub"
+    )
+
+    checkDryRun docker build "${BUILDARGS[@]}"
+}
+
+function dockerPush {
+    local VER="$1"
+
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    local TAG_VER="${ADAPT_DOCKER_REPO}:${VER}"
+    local TAG_DIST="${ADAPT_DOCKER_REPO}:$(distTag)"
+
+    checkDryRun docker tag "${TAG_VER}" "${TAG_DIST}"
+    checkDryRun docker push "${TAG_VER}"
+    checkDryRun docker push "${TAG_DIST}"
+}
+
 function usage {
     cat <<USAGE
 
-Publishes all packages to NPM registry.
+Publishes all packages to NPM registry and publishes image to Docker Hub.
 
 Usage:
   $0 [ FLAGS ] <VERSION_TYPE>
@@ -508,3 +541,7 @@ createReleaseBranch "${RELEASE_BRANCH}" || exit 1
 
 # Update version to 'next.0' as needed
 updateMasterNext "${FINAL_VERSION}" || exit 1
+
+# Build and push to Docker Hub
+dockerBuild "${FINAL_VERSION}" || exit 1
+dockerPush "${FINAL_VERSION}" || exit 1
