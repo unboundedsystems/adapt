@@ -42,19 +42,21 @@ release:
     # Only run the release job if:
     # - the pipeline was kicked off manually
     # - ADAPT_RELEASE_TYPE is set (during manual trigger)
-    # - there's a GitLab personal access token in the environment (token must
-    #   have write access to the adapt repo)
-    # - there's an NPM token in the enviroment (token must have write
-    #   access to publish the Adapt packages)
     refs:
       - web
     variables:
       - $ADAPT_RELEASE_TYPE
-      - $ADAPT_WEB_TOKEN
-      - $ADAPT_NPM_TOKEN
   variables:
     ADAPT_RELEASE_TESTS: 1
   script:
+    # Confirm correct setup:
+    # - there's a GitLab personal access token in the environment (token must
+    #   have write access to the adapt repo)
+    # - there's an NPM token in the enviroment (token must have write
+    #   access to publish the Adapt packages)
+    - |
+      if [ -z "${ADAPT_WEB_TOKEN}" ]; then printf "\n\nERROR: ADAPT_WEB_TOKEN must be set\n\n"; exit 1; fi
+      if [ -z "${ADAPT_NPM_TOKEN}" ]; then printf "\n\nERROR: ADAPT_NPM_TOKEN must be set\n\n"; exit 1; fi
     - ./scripts/ci/checkout_branch.sh
     - ./bin/make release
 
