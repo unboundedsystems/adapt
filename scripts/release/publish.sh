@@ -302,6 +302,25 @@ function pushForce {
     echo "-f"
 }
 
+function pushToRemote {
+    local TAG="$1"
+    local FORCE=$(pushForce)
+
+    # These options mean we don't do any pushing ever
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    # If no-update is NOT set, then lerna already did the pushes, so nothing
+    # for us to do.
+    if [[ -z ${ARGS[no-update]} ]]; then
+        return
+    fi
+
+    checkDryRun git push ${FORCE} --no-verify "${ADAPT_PUSH_REMOTE}" "$(currentBranch)" || return 1
+    checkDryRun git push ${FORCE} --no-verify "${ADAPT_PUSH_REMOTE}" "${TAG}" || return 1
+}
+
 function createReleaseBranch {
     local BRANCH="$1"
     local FORCE=$(pushForce)
@@ -480,6 +499,9 @@ setPublishArgs yes || exit 1
 
 # Do the publish
 checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
+
+# Push to remote (if needed)
+pushToRemote "${FINAL_TAG}" || exit 1
 
 # Create new release branch for appropriate release types
 createReleaseBranch "${RELEASE_BRANCH}" || exit 1
