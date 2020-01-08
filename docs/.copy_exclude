@@ -1,0 +1,5 @@
+.copy_exclude
+.test-success
+./Makefile
+./dist
+./test

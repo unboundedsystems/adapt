@@ -7505,10 +7505,10 @@ map-visit@^1.0.0:
   dependencies:
     object-visit "^1.0.0"
 
-markdown-clitest@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/markdown-clitest/-/markdown-clitest-0.2.0.tgz#4fad203f8414d1c0e22d356edae07ec42e582098"
-  integrity sha512-qZ33TPaC2hzGYLklxsV/RyI4V3Ts3uhco8dbv+KWHWCm3fpH/TL8SSpDHHKACvvytjixZd+DFhziO9uZgUC+LA==
+markdown-clitest@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/markdown-clitest/-/markdown-clitest-0.4.0.tgz#f0d08c15c94ef91af852e480988e490a834014ed"
+  integrity sha512-/pDVz1El1kVDD1mZe5MOSJnGWYnC/3Q5k81f0R01Q0PGmu201vm9mmKOY3eHBs+RTTFDpgCkM6GPzA/bAe6CPw==
   dependencies:
     "@adpt/utils" "0.0.6"
     chalk "^3.0.0"

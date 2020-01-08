@@ -38,6 +38,8 @@ adapt new blank ./tutorial
 cd tutorial/deploy
 ```
 
+<!-- doctest exec { cmd: "grep '@adpt/core' package.json" } -->
+
 ## The Action component
 
 `Action` is a primitive component that is designed to be used as a base class for custom components to inherit.
@@ -274,6 +276,8 @@ adapt run --deployID test
 
 You should see output similar to the following:
 
+<!-- doctest output { matchRegex: "Creating file hello.txt.*Deployment created successfully. DeployID is: test", regexFlags: "s" } -->
+
 ```console
 Adapt by Unbounded Systems [CLI v0.1.0]
 
@@ -294,6 +298,8 @@ Deployment created successfully. DeployID is: test
 
 And you should see a new `hello.txt` file in your project directory with the contents `Hello world!`.
 
+<!-- doctest exec { cmd: "cat hello.txt", matchRegex: "^Hello world!$" } -->
+
 Experiment by changing the `contents` prop in `index.tsx` or by adding another `<LocalFile>` element in `App` and running `adapt update test` to make the changes take effect.
 
 > **Tip**
@@ -307,8 +313,8 @@ When you deploy the component, then change the `path` prop, it will create a new
 To Adapt, changing the `path` is simply changing a prop.
 But for `LocalFile`, the `path` has a somewhat special meaning and when it changes, that means the file should no longer exist at the old `path` and should now exist at the new `path`.
 
-To fix this bug, `LocalFile` will need to remember the `path` of the file that it has created, so it can decide what to do when the `path` changes.
-To save information between runs of Adapt, the component needs to use **State**.
+Although there are multiple ways to handle this case and fix the bug, for this tutorial, we'll illustrate using component **State** to remember the `path` of the file that it has created, so it can decide what to do when the `path` changes.
+Component state is simply a way to store information unique to each instance of a component that is saved between runs of Adapt.
 
 Add the following type to `LocalFile.tsx` and modify the class definition to include the new type as the second type parameter to `Action`:
 
@@ -444,14 +450,58 @@ export class LocalFile extends Action<LocalFileProps, LocalFileState> {
 
 </details>
 
-After making these changes, update the deployment:
+To keep this example as simple as possible, we won't add code to deal with a running deployment that has the older version of our `LocalFile` component, so before we can test our changes, first destroy and re-create the deployment:
+
+<!-- doctest command -->
+
+```tsx
+adapt destroy test
+adapt run --deployID test
+```
+<!-- doctest output { matchRegex: "Creating file hello.txt.*Deployment created successfully. DeployID is: test", regexFlags: "s" } -->
+
+And confirm that `hello.txt` got created again:
+
+<!-- doctest command -->
+
+```bash
+ls *.txt
+```
+<!-- doctest output { matchRegex: "^hello.txt\\n$" } -->
+
+Now, to test the changes, modify the `path` prop to `LocalFile` in `index.tsx` from `hello.txt` to `bonjour.txt`:
+
+<!-- doctest file-replace { file: "index.tsx" } -->
+
+```tsx
+import Adapt from "@adpt/core";
+import { LocalFile } from "./LocalFile";
+
+function App() {
+    return <LocalFile path="bonjour.txt" contents="Hello world!" />;
+}
+
+Adapt.stack("default", <App />);
+```
+
+Then update the deployment:
 <!-- doctest command -->
 
 ```bash
 adapt update test
 ```
+<!-- doctest output { matchRegex: "Creating file bonjour.txt and deleting file hello.txt \\[completed\\].*Deployment test updated successfully.", regexFlags: "s" } -->
 
-You should now be able to change the `path` prop to the `LocalFile` element in `index.tsx` and confirm that the old file gets deleted and the new one created.
+Now check to confirm that the file `hello.txt` was deleted and `bonjour.txt` was created:
+<!-- doctest command -->
+
+```bash
+ls *.txt
+```
+<!-- doctest output { matchRegex: "^bonjour.txt\\n$" } -->
+
+You should only see `bonjour.txt`.
+Bug fixed!
 
 ## Mapping Adapt Elements to resources
 
@@ -468,15 +518,15 @@ In `LocalFile`, we used a prop as the ID and Adapt's component state to remember
 However, this approach has some limitations, especially when it comes to creating resources dynamically.
 
 Where possible, a preferred approach is to generate an ID for each external resource that is tied to the Adapt DeployID and the Element ID and use that as the resource unique identifier or attach that generated ID to the resource's metadata.
-For examples of this, see uses of the [`makeResourceName`](../api/cloud/cloud.makeresourcename) utility function, like the one used by [`DockerContainer`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L62)
+For examples of this, see uses of the [`makeResourceName`](../api/cloud/cloud.makeresourcename) utility function, like the one used by [`DockerContainer`](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L62).
 `DockerContainer` uses `makeResourceName` to create the unique name for each container.
 Similarly, the Adapt `k8s` library uses `makeResourceName` to create unique names for Kubernetes resources.
 
 ## Additional examples of Action components
 
-To see a more complete and complex example of an `Action` component, look at `DockerContainer` ([source code](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L426)) in the Adapt cloud library.
+To see a more complete and complex example of an `Action` component, look at `DockerContainer` ([source code](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L426)) in the Adapt cloud library.
 The `DockerContainer` component uses the `docker` command line interface to start containers, update them, and delete them.
-The [`containerIsUpToDate`](https://github.com/unboundedsystems/adapt/blob/release-0.1/cloud/src/docker/DockerContainer.tsx#L308) function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
+The [`containerIsUpToDate`](https://github.com/unboundedsystems/adapt/blob/v0.1.0-next.3/cloud/src/docker/DockerContainer.tsx#L308) function is the key function that decides what actions need to take place to keep a container in sync with its Adapt Element.
 
 The Kubernetes `Resource` component is also an `Action` component that uses the Kubernetes command line `kubectl` to interact with Kubernetes.
 It uses the command line tool `kubectl diff` (see function `kubectlDiff`) to determine what changes are needed.
@@ -489,3 +539,4 @@ When you're done with the deployment, remove it with the following command:
 ```bash
 adapt destroy test
 ```
+<!-- doctest output { matchRegex: "Deployment test stopped successfully." } -->

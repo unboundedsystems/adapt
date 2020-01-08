@@ -15,6 +15,7 @@ services:
 
 stages:
   - test
+  - release
   - publish
 
 before_script:
@@ -35,12 +36,35 @@ test:
   script:
     - ./bin/make build lint web-test coverage
 
+release:
+  stage: release
+  only:
+    # Only run the release job if:
+    # - the pipeline was kicked off manually
+    # - ADAPT_RELEASE_TYPE is set (during manual trigger)
+    refs:
+      - web
+    variables:
+      - $ADAPT_RELEASE_TYPE
+  variables:
+    ADAPT_RELEASE_TESTS: 1
+  script:
+    # Confirm correct setup:
+    # - there's a GitLab personal access token in the environment (token must
+    #   have write access to the adapt repo)
+    # - there's an NPM token in the enviroment (token must have write
+    #   access to publish the Adapt packages)
+    - |
+      if [ -z "${ADAPT_WEB_TOKEN}" ]; then printf "\n\nERROR: ADAPT_WEB_TOKEN must be set\n\n"; exit 1; fi
+      if [ -z "${ADAPT_NPM_TOKEN}" ]; then printf "\n\nERROR: ADAPT_NPM_TOKEN must be set\n\n"; exit 1; fi
+    - ./scripts/ci/checkout_branch.sh
+    - ./bin/make release
+
 docs:
   stage: publish
   only:
     refs:
       - master@unboundedsystems/adapt
-      - web
     # Only run the publish job if there's a personal access token in the
     # environment. The token must have write access to the adapt-web repo.
     variables:

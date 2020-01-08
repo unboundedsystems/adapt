@@ -7,7 +7,6 @@ RUN npm install -g yarn@~1.19 @adpt/cli@$ADAPT_VERSION
 
 # Setup volumes where users should mount the source root of their project and
 # their configuration directory.
-RUN mkdir -p /src /root/.local/share/adapt /root/.ssh
 VOLUME ["/src", "/root/.local/share/adapt", "/root/.ssh"]
 
 # Default to running Adapt from the mounted source root volume.

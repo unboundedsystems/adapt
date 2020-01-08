@@ -23,14 +23,20 @@ import * as localRegistryDefaults from "./local-registry-defaults";
 
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
-export interface MochaLocalRegOptions {
+export type MochaLocalRegOptions = MochaLocalRegShared | MochaLocalRegConfig;
+
+export interface MochaLocalRegShared {
+    port: "shared";
+}
+
+export interface MochaLocalRegConfig {
     port?: number | "auto";
     publishList?: string[];
     storageDir?: "createTemp" | string;
     logLevel?: "fatal" | "error" | "warn" | "http" | "info" | "debug" | "trace";
 }
 
-const defaultOpts: Required<MochaLocalRegOptions> = {
+const defaultOpts: Required<MochaLocalRegConfig> = {
     port: "auto",
     publishList: [],
     storageDir: "createTemp",
@@ -42,15 +48,29 @@ export interface RegistryFixture {
 }
 
 class RegistryFixtureImpl implements RegistryFixture {
-    readonly opts: Required<MochaLocalRegOptions>;
+    readonly opts: Required<MochaLocalRegConfig>;
+    start_ = true;
 
     port_?: number;
     server?: localRegistry.Server;
     storage_?: string;
     tmpDir_?: string;
+    url_?: string;
 
     constructor(options: MochaLocalRegOptions = {}) {
-        this.opts = { ...defaultOpts, ...options };
+        if (options.port === "shared") {
+            this.opts = {
+                ...defaultOpts,
+                publishList: localRegistryDefaults.defaultPublishList,
+            };
+            if (process.env.ADAPT_TEST_REGISTRY) {
+                this.url_ = process.env.ADAPT_TEST_REGISTRY;
+                this.start_ = false;
+                return;
+            }
+        } else {
+            this.opts = { ...defaultOpts, ...options };
+        }
         const dir = this.opts.storageDir;
         if (dir !== "createTemp") this.storage_ = path.resolve(dir);
         if (this.opts.port !== "auto") this.port_ = this.opts.port;
@@ -102,14 +122,19 @@ class RegistryFixtureImpl implements RegistryFixture {
         if (!this.tmpDir_) throw new Error(`Registry server not started`);
         return this.tmpDir_;
     }
+    get url() {
+        if (!this.url_) this.url_ = `http://127.0.0.1:${this.port}`;
+        return this.url_;
+    }
     get yarnProxyOpts() {
         return {
-            registry: `http://127.0.0.1:${this.port}`,
+            registry: this.url,
             // NOTE(mark): Equivalent of userconfig not yet supported with yarn
         };
     }
 
     async start() {
+        if (!this.start_) return;
         this.tmpDir_ = await fs.mkdtemp(path.join(os.tmpdir(), "local_registry-"));
 
         if (this.opts.storageDir === "createTemp") {
@@ -131,6 +156,7 @@ class RegistryFixtureImpl implements RegistryFixture {
     }
 
     async stop() {
+        if (!this.start_) return;
         if (this.opts.port === "auto") this.port_ = undefined;
         if (this.opts.storageDir === "createTemp") this.storage_ = undefined;
         if (this.server) await this.server.stop();

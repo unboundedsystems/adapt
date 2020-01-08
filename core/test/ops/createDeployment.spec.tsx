@@ -16,7 +16,6 @@
 
 import {
     createMockLoggerClient,
-    localRegistryDefaults,
     mochaLocalRegistry,
     mochaTmpdir as tmpdir,
     MockLoggerClient,
@@ -274,7 +273,7 @@ describe("createDeployment Tests", async function () {
 
     tmpdir.all("adapt-createDeployment");
     const localRegistry = mochaLocalRegistry.all({
-        publishList: localRegistryDefaults.defaultPublishList
+        port: "shared",
     });
 
     before(async () => {

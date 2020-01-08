@@ -4,6 +4,8 @@
 REPO_ROOT=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../.." && pwd )
 . "${REPO_ROOT}/scripts/release/release_utils.sh"
 
+ADAPT_DOCKER_REPO=adaptjs/adapt
+
 # Globals
 declare -A ARGS
 LERNA_ARGS=()
@@ -11,12 +13,16 @@ STARTERS_CMD="${REPO_ROOT}/scripts/starters.js"
 ADAPT_PUSH_REMOTE=${ADAPT_PUSH_REMOTE:-origin}
 
 function publishType {
+    if [[ -n ${ARGS[no-update]} ]]; then
+        echo from-package
+        return
+    fi
     if ! isReleaseBranch ; then
         echo prerelease
         return
     fi
     case "$1" in
-        major|minor|patch|prerelease|from-package)
+        major|minor|patch|prerelease)
             echo $1
             ;;
 
@@ -55,7 +61,7 @@ function checkVersionArg {
             updateBranch || return 1
             ;;
 
-        from-package|patch)
+        patch)
             if ! isReleaseBranch ; then
                 error "ERROR: $1 releases must be made from a release branch"
                 return 1
@@ -77,12 +83,10 @@ function setPublishArgs {
     local DIST_TAG PUBLISH_TYPE
 
     # Always publish all packages together
-    LERNA_ARGS=(publish --force-publish)
-
-    LERNA_ARGS+=("--gitRemote=${ADAPT_PUSH_REMOTE}")
+    LERNA_ARGS=(publish --force-publish "--gitRemote=${ADAPT_PUSH_REMOTE}")
 
     if [[ -n ${ARGS[debug]} ]]; then
-        LERNA_ARGS+=("--loglevel=debug")
+        LERNA_ARGS+=("--loglevel=silly")
     fi
 
     if [[ ${ALLOW_YES} = "yes" && -n ${ARGS[yes]} ]]; then
@@ -93,7 +97,7 @@ function setPublishArgs {
         LERNA_ARGS+=("--allow-branch=${BRANCH}")
     fi
 
-    if [[ -n ${ARGS[local]} ]]; then
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
         LERNA_ARGS+=(--no-push)
     fi
 
@@ -109,6 +113,10 @@ function setPublishArgs {
 }
 
 function finalVersion {
+    if [[ -n ${ARGS[no-update]} ]]; then
+        currentVersion
+        return
+    fi
     if [[ ${ARGS[version]} =~ ^[0-9] ]]; then
         echo "${ARGS[version]}"
         return
@@ -120,7 +128,7 @@ function finalVersion {
     # Run lerna to see what version it will create, but don't use --yes 
     # The version lines look like this:
     #  - @adpt/core: 0.1.0-next.0 => 0.1.0-next.1
-    OUTPUT=$("${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" <<<"" | \
+    OUTPUT=$(run "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" <<<"" | \
         egrep '^ - .*: .* => ' | head -1 | sed 's/^.* => //')
     if [[ ${OUTPUT} = "" ]]; then
         error "ERROR: Unable to parse version information from lerna"
@@ -140,6 +148,45 @@ function checkRegistry {
     fi
 }
 
+function checkReleaseBranch {
+    local BRANCH="$1"
+
+    if [[ -n ${BRANCH} ]] && branchExists "${BRANCH}"; then
+        if [[ -n ${ARGS[redo]} ]]; then
+            printf "\n** Deleting branch '${BRANCH}' due to --redo flag **\n\n"
+            run git branch -D "${BRANCH}"
+        else
+            error "ERROR: release branch '${BRANCH}' already exists"
+            return 1
+        fi
+    fi
+}
+
+function checkTag {
+    local TAG="$1"
+
+    if [[ -n ${ARGS[no-update]} ]]; then
+        # We're doing a publish from already committed changes to versions.
+        # The tag SHOULD exist so we can push it if the publish is successful.
+        if ! tagExists "${TAG}"; then
+            error "ERROR: git tag '${TAG}' should already exist when using --no-update"
+            return 1
+        fi
+    else
+        # We will update versions, commit, and tag.
+        # Confirm the version tag we will create does NOT exist
+        if tagExists "${TAG}"; then
+            if [[ -n ${ARGS[redo]} ]]; then
+                printf "\n** Deleting tag ${TAG} due to --redo flag **\n\n"
+                run git tag -d "${TAG}"
+            else
+                error "ERROR: git tag '${TAG}' already exists"
+                return 1
+            fi
+        fi
+    fi
+}
+
 function updateBranch {
     if ! isTreeClean ; then
         error "ERROR: source tree must not have any modifications"
@@ -147,6 +194,9 @@ function updateBranch {
     fi
 
     if ! isReleaseBranch ; then
+        return
+    fi
+    if [[ -n ${ARGS[no-update]} ]]; then
         return
     fi
 
@@ -188,7 +238,7 @@ function distTag {
             return
             ;;
 
-        [-0-9v]*|from-package)
+        [-0-9v]*)
             error "ERROR: --dist-tag must be specified with version ${ARGS[version]}"
             return 1
             ;;
@@ -247,17 +297,42 @@ function tagExists {
     [[ -n $(git tag --list ${TAG}) ]]
 }
 
+function pushForce {
+    if [[ -z ${ARGS[redo]} ]]; then
+        return
+    fi
+    echo "-f"
+}
+
+function pushToRemote {
+    local TAG="$1"
+    local FORCE=$(pushForce)
+
+    # These options mean we don't do any pushing ever
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    # If no-update is NOT set, then lerna already did the pushes, so nothing
+    # for us to do.
+    if [[ -z ${ARGS[no-update]} ]]; then
+        return
+    fi
+
+    checkDryRun git push ${FORCE} --no-verify "${ADAPT_PUSH_REMOTE}" "$(currentBranch)" || return 1
+    checkDryRun git push ${FORCE} --no-verify "${ADAPT_PUSH_REMOTE}" "${TAG}" || return 1
+}
+
 function createReleaseBranch {
     local BRANCH="$1"
+    local FORCE=$(pushForce)
 
     # Release branch starting point is always from a commit on master
-    if [[ $(currentBranch) != "master" ]]; then
+    if [[ -n ${ADAPT_RELEASE_TESTS} || $(currentBranch) != "master" ]]; then
         return
     fi
     checkDryRun git branch "${BRANCH}" || return 1
-    if [[ -z ${ADAPT_RELEASE_TESTS} ]]; then
-        checkDryRun git push --no-verify "${ADAPT_PUSH_REMOTE}" "${BRANCH}"
-    fi
+    checkDryRun git push ${FORCE} --no-verify "${ADAPT_PUSH_REMOTE}" "${BRANCH}"
 }
 
 function updateMasterNext {
@@ -270,7 +345,7 @@ function updateMasterNext {
         return
     fi
 
-    NEXT_VERSION=$("${REPO_ROOT}/node_modules/.bin/semver" -i preminor --preid next "${VERSION}") || exit 1
+    NEXT_VERSION=$("${REPO_ROOT}/node_modules/.bin/semver" -i preminor --preid next "${VERSION}") || return 1
 
     L_ARGS=(version --yes --force-publish --amend --no-git-tag-version "--gitRemote=${ADAPT_PUSH_REMOTE}" "${NEXT_VERSION}")
     checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${L_ARGS[@]}" || return 1
@@ -285,18 +360,47 @@ function updateMasterNext {
     fi
 }
 
+function dockerBuild {
+    local VER="$1"
+
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    local BUILDARGS=(
+        --build-arg ADAPT_VERSION="${VER}"
+        --tag "${ADAPT_DOCKER_REPO}:${VER}"
+        "${REPO_ROOT}/docker_hub"
+    )
+
+    checkDryRun docker build "${BUILDARGS[@]}"
+}
+
+function dockerPush {
+    local VER="$1"
+
+    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
+    local TAG_VER="${ADAPT_DOCKER_REPO}:${VER}"
+    local TAG_DIST="${ADAPT_DOCKER_REPO}:$(distTag)"
+
+    checkDryRun docker tag "${TAG_VER}" "${TAG_DIST}"
+    checkDryRun docker push "${TAG_VER}"
+    checkDryRun docker push "${TAG_DIST}"
+}
+
 function usage {
     cat <<USAGE
 
-Publishes all packages to NPM registry.
+Publishes all packages to NPM registry and publishes image to Docker Hub.
 
 Usage:
   $0 [ FLAGS ] <VERSION_TYPE>
 
   VERSION_TYPE:
-      One of: major, minor, patch, prerelease, dev, or from-package
-      Use from-package to publish without making any change to the current
-      package.json versions.
+      One of: major, minor, patch, prerelease, or dev.
 
   FLAGS:
       --debug           Show additional debugging output
@@ -307,8 +411,16 @@ Usage:
       --local           Only publish packages to a local NPM registry, NOT the
                         global registry. NPM_CONFIG_REGISTRY must be set.
       --no-build        Do not run 'make build'
+      --no-update       Do not update package.json versions. Publish existing
+                        versions.
       --yes | -y        Do not prompt for confirmation
       -h | --help       Display help
+
+  USE WITH CAUTION:
+      --redo            If the tag or release branch to be created already
+                        exists, they will be DELETED before starting the
+                        publish process and will be FORCE PUSHED.
+                        NOTE: The --dry-run flag does NOT affect this flag.
 
 Example:
   $0 minor
@@ -343,6 +455,14 @@ while [[ $# -gt 0 ]]; do
             ARGS[no-build]=1
             ;;
 
+        --no-update)
+            ARGS[no-update]=1
+            ;;
+
+        --redo)
+            ARGS[redo]=1
+            ;;
+
         --yes|-y)
             ARGS[yes]=1
             ;;
@@ -371,28 +491,31 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+#
+# Main script sequence
+#
+
 # Check version type/branch
 checkVersionArg "${ARGS[version]}" || exit 1
+
+# Check for git credentials
+setupGitCreds || exit 1
 
 # Check if we're publishing locally
 checkRegistry || exit 1
 
 # Compute what version we're going to create
 FINAL_VERSION=$(finalVersion) || exit 1
+FINAL_TAG="v${FINAL_VERSION}"
 printf "\nVersion to publish will be '${FINAL_VERSION}'\n\n"
 
-# If we're going to create a release branch, confirm it does NOT exist
 RELEASE_BRANCH=$(releaseBranchName "${FINAL_VERSION}") || exit 1
-if [[ -n ${RELEASE_BRANCH} ]] && branchExists "${RELEASE_BRANCH}"; then
-    error "ERROR: release branch ${RELEASE_BRANCH} already exists"
-    exit 1
-fi
 
-# Confirm the version tag we will create does NOT exist
-if tagExists "v${FINAL_VERSION}"; then
-    error "ERROR: git tag v${FINAL_VERSION} already exists"
-    exit 1
-fi
+# If we're going to create a release branch, confirm it does NOT exist
+checkReleaseBranch "${RELEASE_BRANCH}" || exit 1
+
+# Check that the tag is in the correct state for us to start
+checkTag "${FINAL_TAG}" || exit 1
 
 # Build everything
 doBuild || exit 1
@@ -410,8 +533,15 @@ setPublishArgs yes || exit 1
 # Do the publish
 checkDryRun "${REPO_ROOT}/node_modules/.bin/lerna" "${LERNA_ARGS[@]}" || exit 1
 
+# Push to remote (if needed)
+pushToRemote "${FINAL_TAG}" || exit 1
+
 # Create new release branch for appropriate release types
 createReleaseBranch "${RELEASE_BRANCH}" || exit 1
 
 # Update version to 'next.0' as needed
 updateMasterNext "${FINAL_VERSION}" || exit 1
+
+# Build and push to Docker Hub
+dockerBuild "${FINAL_VERSION}" || exit 1
+dockerPush "${FINAL_VERSION}" || exit 1

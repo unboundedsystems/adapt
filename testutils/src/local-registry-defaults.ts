@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { repoRootDir, yarn } from "@adpt/utils";
+import { Omit, repoRootDir, yarn } from "@adpt/utils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Config } from "./local-registry";
@@ -78,9 +78,10 @@ function setupDefault(): Promise<void> {
 }
 
 export const configPath = path.join(verdaccioDir, "config.yaml");
-export const config: Config = {
+// This is a valid config except it does not have the required storage
+// property, so that must be provided whenever these defaults are used.
+export const config: Omit<Config, "storage"> = {
     // Standard verdaccio config items
-    storage: path.join(verdaccioDir, "storage"),
     auth: {
         htpasswd: {
             file: path.join(verdaccioDir, "htpasswd")
