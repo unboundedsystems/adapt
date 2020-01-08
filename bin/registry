@@ -109,8 +109,8 @@ export PATH
 adapt autocomplete bash > /dev/null
 printf "\$(adapt autocomplete:script bash)\\n" >> ~/.bashrc
 
-node /src/testutils/bin/run-local-registry.js &
-sleep 3
+export ADAPT_TEST_REGISTRY=\$(/src/testutils/bin/run-local-registry.js start --port 4873 --loglevel debug)
+export NPM_CONFIG_REGISTRY="\${ADAPT_TEST_REGISTRY}"
 
 bash <&3 &
 child=\$!
@@ -132,7 +132,5 @@ INNER_DOCKER_ARGS=(-it --rm -w "${WORK_DIR}" "-v${PWD}:/cur" "-v${PROJECT_ROOT}:
 # .npmrc log level settings can take effect if desired
 INNER_DOCKER_ARGS+=(-e NPM_CONFIG_LOGLEVEL)
 
-# Use the local registry
-INNER_DOCKER_ARGS+=(-e NPM_CONFIG_REGISTRY=http://127.0.0.1:4873)
 
 exec docker run "${INNER_DOCKER_ARGS[@]}" ${DOCKER_ARGS:-} "${IMAGE}" sh -c "${WRAPPER}"

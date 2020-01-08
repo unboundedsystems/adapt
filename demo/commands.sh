@@ -4,17 +4,12 @@ function destroyall {
 }
 
 function _killregistry {
-    for pid in $(pgrep -f local-registry); do
-        if [ "$(ps -o comm= ${pid})" = "node" ]; then
-            kill ${pid}
-            sleep 1
-            kill ${pid} >& /dev/null
-        fi
-    done
+    /src/testutils/bin/run-local-registry.js stop "${ADAPT_TEST_REGISTRY}"
 }
 
 function _startregistry {
-    node /src/testutils/bin/run-local-registry.js &
+    unset ADAPT_TEST_REGISTRY
+    export ADAPT_TEST_REGISTRY=$(/src/testutils/bin/run-local-registry.js start --port 4873 --loglevel debug)
 }
 
 function _removelockfile {
