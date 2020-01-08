@@ -16,6 +16,8 @@ release: ssh-setup prerelease-publish release-test
 	git remote set-url --push origin "https://gitlab-ci-token:$(ADAPT_WEB_TOKEN)@gitlab.com/$(CI_PROJECT_PATH).git"
 	# This should only be done in CI because it modifies the user's NPM auth settings
 	npm config set '//registry.npmjs.org/:_authToken' "$(ADAPT_NPM_TOKEN)"
+	# Set up Docker auth for CI
+	. "$(REPO_ROOT)/bin/setup-docker-auth.sh"
 
 	ADAPT_RELEASE_TESTS= $(REPO_ROOT)/scripts/release/publish.sh --yes --no-build --no-update $(ADAPT_RELEASE_TYPE)
 	@$(log_success) "$@ COMPLETE"
