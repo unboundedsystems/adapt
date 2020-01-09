@@ -327,8 +327,14 @@ function createReleaseBranch {
     local BRANCH="$1"
     local FORCE=$(pushForce)
 
+    # Not all releases cause creation of a release branch and we don't
+    # create one during release testing.
+    if [[ -z ${BRANCH} || -n ${ADAPT_RELEASE_TESTS} ]]; then
+        return
+    fi
+
     # Release branch starting point is always from a commit on master
-    if [[ -n ${ADAPT_RELEASE_TESTS} || $(currentBranch) != "master" ]]; then
+    if [[ $(currentBranch) != "master" ]]; then
         return
     fi
     checkDryRun git branch "${BRANCH}" || return 1
