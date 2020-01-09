@@ -347,7 +347,7 @@ function updateMasterNext {
     if [[ ${ARGS[version]} != "major" && ${ARGS[version]} != "minor" ]]; then
         return
     fi
-    if [[ $(currentBranch) != "master" ]]; then
+    if [[ -n ${ADAPT_RELEASE_TESTS} || $(currentBranch) != "master" ]]; then
         return
     fi
 
