@@ -196,7 +196,7 @@ function updateBranch {
     if ! isReleaseBranch ; then
         return
     fi
-    if [[ -n ${ARGS[no-update]} ]]; then
+    if [[ -n ${CI} || -n ${ARGS[no-update]} ]]; then
         return
     fi
 
