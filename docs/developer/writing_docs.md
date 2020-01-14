@@ -6,6 +6,7 @@ title: "Adapt Developer: Writing Docs"
 <!-- DOCTOC SKIP -->
 
 ## Overview
+
 Adapt documentation source content is stored alongside the Adapt source code in the [`adapt` repo](https://gitlab.com/unboundedsystems/adapt), primarily in [Markdown](https://en.wikipedia.org/wiki/Markdown) files.
 Those source Markdown files, along with automatically generated API documentation files, are pushed to the [`adapt-web` repo](https://gitlab.com/unboundedsystems/adapt-web) for publishing.
 
@@ -43,19 +44,20 @@ The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the 
     cd web
     make preview
     ```
+
     This will start a local preview server (in a Docker container) in watch mode that serves the documentation website from your repo.
     You can point your browser to [http://localhost:3000](http://localhost:3000) to see the local preview site.
     As you change the docs (see Authoring workflow below), the changes should be reflected in the local site so you can preview them.
 
 ## Authoring workflow
 
-> **Reminder**
->
-> All documentation should be authored within the `adapt` source code repo.
-> Do not edit documentation directly in the `adapt/web` directory, which is a separate repo.
->
-> API documentation is written in TSDoc format in the source code.
-> All other documentation goes in the `adapt/docs` directory.
+:::note Reminder
+All documentation should be authored within the `adapt` source code repo.
+Do not edit documentation directly in the `adapt/web` directory, which is a separate repo.
+
+API documentation is written in TSDoc format in the source code.
+All other documentation goes in the `adapt/docs` directory.
+:::
 
 1. Make changes to `.md` files in the `adapt/docs` directory or to TSDoc comments in source code files.
 
@@ -64,14 +66,15 @@ The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the 
     ```console
     make web-docs
     ```
+
     This command builds the documentation from the Adapt repo and copies it into the `adapt-web` repo, which is in the `adapt/web` directory.
 
 1. The local preview server should notice the changed files and update with the new content.
 
-    > **Tip**
-    >
-    > The docusaurus live reload local server seems to have trouble updating with certain types of changes, primarily when there are changes in the `website` directory.
-    > If you don't see the changes you expect, try killing (`Ctrl-C`) the local server and run `make preview` again in the `adapt/web` directory.
+:::tip
+The docusaurus live reload local server seems to have trouble updating with certain types of changes, primarily when there are changes in the `website` directory.
+If you don't see the changes you expect, try killing (`Ctrl-C`) the local server and run `make preview` again in the `adapt/web` directory.
+:::
 
 ## Source code comments
 
@@ -84,17 +87,40 @@ The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the 
 - All markdown docs should have a [YAML-based front matter header](https://docusaurus.io/docs/en/doc-markdown#markdown-headers) that contains at least `id` and `title`.
 
     Example:
-    ```
+
+    ```yaml
     ---
     id: mydoc
     title: My Document
     ---
+    ```
+
 - Embedded HTML is permitted, where required.
 
     Example:
-    ```
+
+    ```markdown
     ## This title has <span class="special">extra formatting</span>!
     ```
+
+- Callouts are supported through the [`remarkable-admonitions`](https://github.com/favoloso/remarkable-admonitions) Remarkable plugin
+
+    Example:
+
+    ```markdown
+    :::warning
+    This is a warning
+    :::
+    ```
+
+    Supported callout types are:
+
+  - `tip`
+  - `note`
+  - `important`
+  - `caution`
+  - `warning`
+
 - Images and other assets go in `docs/assets`
 
     To keep them organized, please place them in a subdirectory within `docs/assets` that matches the relative path to the markdown file within `docs`.

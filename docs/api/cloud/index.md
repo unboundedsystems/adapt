@@ -19,11 +19,11 @@ This section contains Components and other items not specific to any particular 
 The Components in this section are all abstract, so they cannot be deployed directly.
 However, there are technology-specific Components that can be used in Style Sheets to replace the abstract Components.
 
-> **Adapt Best Practice**
->
-> Typically, your Adapt Specification should be written using the abstract Components from this section of the library.
-> You then apply a Style Sheet that maps the abstract Component into a specific, concrete Component.
-> For more information, see the Adapt User Guide.
+:::important Adapt Best Practice
+Typically, your Adapt Specification should be written using the abstract Components from this section of the library.
+You then apply a Style Sheet that maps the abstract Component into a specific, concrete Component.
+For more information, see the Adapt User Guide.
+:::
 
 - [Compute](./cloud.compute.md)
 - [Container](./cloud.container.md)
