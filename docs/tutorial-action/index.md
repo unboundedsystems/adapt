@@ -302,9 +302,9 @@ And you should see a new `hello.txt` file in your project directory with the con
 
 Experiment by changing the `contents` prop in `index.tsx` or by adding another `<LocalFile>` element in `App` and running `adapt update test` to make the changes take effect.
 
-> **Tip**
->
-> If you add more than one `<LocalFile>` element to `App`, you'll need to wrap them inside an [`Adapt.Group`](../api/core/core.adapt.group) element.
+:::tip
+If you add more than one `<LocalFile>` element to `App`, you'll need to wrap them inside an [`Adapt.Group`](../api/core/core.adapt.group) element.
+:::
 
 ## Saving component state
 

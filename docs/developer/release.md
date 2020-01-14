@@ -5,9 +5,9 @@ title: Publishing a Release
 
 <!-- DOCTOC SKIP -->
 
-> **NOTE**
->
-> The items under [Pre-release testing](#pre-release-testing) and [Post-release activities](#post-release-activities) still need to be automated.
+:::note
+The items under [Pre-release testing](#pre-release-testing) and [Post-release activities](#post-release-activities) still need to be automated.
+:::
 
 ## Pre-release testing
 
@@ -28,10 +28,10 @@ title: Publishing a Release
 
 ## Build, test, and publish
 
-> **IMPORTANT**
->
-> Make sure you are logged into [GitLab](https://gitlab.com) before clicking any of the links below.
-> (They give 404 errors if you're not logged in.)
+:::important
+Make sure you are logged into [GitLab](https://gitlab.com) before clicking any of the links below.
+(They give 404 errors if you're not logged in.)
+:::
 
 ### `next` Release (master branch)
 
@@ -48,14 +48,14 @@ This will create a public release of the master branch and give it the NPM `dist
 
 ### Patch Release (release branch)
 
-> **IMPORTANT**
->
-> Right now, there's no way to specify that these releases do not get the `dist-tag` of `latest`.
-> So if you're publishing a patch release from an older release, you'll need to either fix that or adjust the `dist-tag`s manually afterward.
+:::warning
+Right now, there's no way to specify that these releases do not get the `dist-tag` of `latest`.
+So if you're publishing a patch release from an older release, you'll need to either fix that or adjust the `dist-tag`s manually afterward.
+:::
 
-> **NOTE**
->
-> Release branch names only contain the major and minor version numbers.
+:::note
+Release branch names only contain the major and minor version numbers.
+:::
 
 1. Go to the [Run Pipeline](https://gitlab.com/unboundedsystems/adapt/pipelines/new?ref=release-X.Y&var[ADAPT_RELEASE_TYPE]=patch) page for Adapt.
 
@@ -67,9 +67,9 @@ This will create a public release of the master branch and give it the NPM `dist
 
 ### Development Release (from any other branch)
 
-> **IMPORTANT**
->
-> Please only create a development release when absolutely necessary.
+:::important
+Please only create a development release when absolutely necessary.
+:::
 
 1. Go to the [Run Pipeline](https://gitlab.com/unboundedsystems/adapt/pipelines/new?ref=CHOOSE%20BRANCH&var[ADAPT_RELEASE_TYPE]=dev) page for Adapt.
 
@@ -98,9 +98,9 @@ For major, minor, and patch releases, you'll need to create a new version of the
 
 * Update and build both the `adapt` and `adapt-web` repos
 
-    > **NOTE**
-    >
-    > Set `REL_VER` to the version that you just built.
+    :::note
+    Set `REL_VER` to the version that you just built.
+    :::
 
     From the `adapt` repo:
 

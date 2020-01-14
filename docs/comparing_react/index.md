@@ -4,11 +4,11 @@ title: "Comparing Adapt and React Concepts"
 ---
 <!-- DOCTOC SKIP -->
 
-> **Tip**
->
-> This guide is an in-depth comparison meant for developers who are already familiar with [ReactJS](https://reactjs.org). If you're not already familiar with React, we suggest the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/index.md) instead.
->
-> Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
+:::tip
+This guide is an in-depth comparison meant for developers who are already familiar with [ReactJS](https://reactjs.org). If you're not already familiar with React, we suggest the [Intro to Adapt Concepts Tutorial](../tutorial_concepts/index.md) instead.
+
+Or, if you'd prefer to learn by doing, start with our [Getting Started Guide](../getting_started/index.md).
+:::
 
 ## Introduction: A Movie Database App
 
@@ -76,15 +76,15 @@ Adapt.stack("k8s", <MovieApp />, k8sStyle);
 If you know React, this probably looks mostly familiar, but with a few new things too.
 Let's jump in and take a look at all the pieces that make up this description.
 
-> **Tip**
->
-> To get all the code for this movie database and deploy the fully functioning app to an existing Docker instance on your local system:
->
-> ```bash
-> npx @adpt/cli new moviedb-react-node ./moviedb
-> cd moviedb/deploy
-> npx @adpt/cli run laptop
-> ```
+:::tip
+To get all the code for this movie database and deploy the fully functioning app to an existing Docker instance on your local system:
+
+```bash
+npx @adpt/cli new moviedb-react-node ./moviedb
+cd moviedb/deploy
+npx @adpt/cli run laptop
+```
+:::
 
 ## Adapt Elements & JSX/TSX
 
@@ -241,11 +241,11 @@ State is accessed similarly in both systems.
 When writing a Class Component, state can be read from the class member variable `state` and modified using the class member function `setState`.
 For a Function Component, state is accessed with the `useState` hook.
 
-> **Adapt Difference**
->
-> In React, Class Components set an initial state by assigning to `this.state` in the class constructor.
-> In Adapt, the initial state cannot be set this way.
-> Instead, all Adapt Class Components that use state **must** define an `initialState` class method that returns an object.
+:::important Adapt Difference
+In React, Class Components set an initial state by assigning to `this.state` in the class constructor.
+In Adapt, the initial state cannot be set this way.
+Instead, all Adapt Class Components that use state **must** define an `initialState` class method that returns an object.
+:::
 
 ## The Virtual DOM
 

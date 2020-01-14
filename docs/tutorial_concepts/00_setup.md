@@ -33,10 +33,10 @@ title: Setup for this tutorial
     | A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/#server) |
     | A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/) |
 
-    > **NOTE**
-    >
-    > If you're using Docker on Linux, you'll need to either run all `docker` commands as superuser (`root`) or ensure your user is part of the `docker` group.
-    > For instructions and more information, see the Docker [Linux post-install instructions](https://docs.docker.com/install/linux/linux-postinstall/).
+    :::note
+    If you're using Docker on Linux, you'll need to either run all `docker` commands as superuser (`root`) or ensure your user is part of the `docker` group.
+    For instructions and more information, see the Docker [Linux post-install instructions](https://docs.docker.com/install/linux/linux-postinstall/).
+    :::
 
     Docker is correctly installed if the command `docker ps` does not show any errors.
 
