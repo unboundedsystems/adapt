@@ -11,9 +11,9 @@ As we've seen, the starter template we used with `adapt new` has created a defau
 If we were writing our app from scratch, we'd start writing some React code in the `frontend/src` directory and some Node.js code for our API in the `backend` directory.
 But for this guide, we'll simply copy in some already-written code for our movie database app, using `curl`.
 
-> **IMPORTANT**
->
-> Make sure you're in the `moviedb/deploy` directory before you run the following command.
+:::important
+Make sure you're in the `moviedb/deploy` directory before you run the following command.
+:::
 
 <!-- doctest command -->
 
@@ -49,10 +49,10 @@ Test your newly deployed app by opening the same link in your browser again: [ht
 <!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080", matchRegex: "<title>Unbounded Movie Database</title>" } -->
 <!-- doctest exec { cmd: "$HOSTCURL http://localhost:8080/api/search/batman", matchRegex: "Lego Batman Movie" } -->
 
-> **IMPORTANT**
->
-> You will most likely need to force your browser to hard refresh the page (reload while bypassing the browser cache).
-> Instructions for most browsers can be found [here](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
+:::important
+You will most likely need to force your browser to hard refresh the page (reload while bypassing the browser cache).
+Instructions for most browsers can be found [here](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
+:::
 
 You should now see a page that says **Unbounded Movie Database**, like the one below.
 Type into the search box to get a list of matching movies.

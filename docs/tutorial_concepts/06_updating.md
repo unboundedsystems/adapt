@@ -47,10 +47,10 @@ Test your newly deployed API by using `curl` or your browser with these links:
 curl http://localhost:8080/search/lego
 ```
 
-> **IMPORTANT**
->
-> If you're using a browser, you may need to force it to hard refresh the page (reload while bypassing the browser cache).
-> Instructions for most browsers can be found [here](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
+:::important
+If you're using a browser, you may need to force it to hard refresh the page (reload while bypassing the browser cache).
+Instructions for most browsers can be found [here](https://en.wikipedia.org/wiki/Wikipedia:Bypass_your_cache#Bypassing_cache).
+:::
 
 You should see a response like this:
 

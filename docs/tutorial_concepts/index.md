@@ -12,10 +12,10 @@ At each step of building the app, we'll introduce and explain new Adapt concepts
 
 By the end of this tutorial, you should have a strong understanding of how to use Adapt to describe the infrastructure for your app and how to use Adapt to manage infrastructure across multiple types of environments.
 
-> **Tip**
->
-> If you're new to Adapt, we recommend you begin with the [Getting Started Guide](/docs/getting_started) before this tutorial.
-> The Getting Started Guide covers what Adapt is and shows you the basics of using Adapt to manage infrastructure for an app.
+:::tip
+If you're new to Adapt, we recommend you begin with the [Getting Started Guide](/docs/getting_started) before this tutorial.
+The Getting Started Guide covers what Adapt is and shows you the basics of using Adapt to manage infrastructure for an app.
+:::
 
 ## What are we going to build?
 
