@@ -15,7 +15,7 @@
  */
 
 import { mochaTmpdir, repoVersions  } from "@adpt/testutils";
-import { filePathToUrl, yarn } from "@adpt/utils";
+import { filePathToUrl, repoRootDir, yarn } from "@adpt/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
@@ -348,8 +348,8 @@ function registryOpts() {
  * NOTE: yarn cannot be used here because it ignores the --registry option
  * when used with "yarn global". See https://github.com/yarnpkg/yarn/issues/5056
  */
-export async function globalAdd(pkg: string) {
-    const args = [ "install", ...registryOpts(), "-g", pkg ];
+export async function globalAdd(pkg: string, prefixDir: string) {
+    const args = [ "install", ...registryOpts(), "-g", "-C", prefixDir, pkg ];
     const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
         const cmd = "npm install " + args.join(" ");
@@ -360,8 +360,12 @@ export async function globalAdd(pkg: string) {
     }
 }
 
-function globalRemove(pkg: string) {
-    return execa("npm", ["uninstall", "-g", pkg], { all: true });
+function pathWithoutRepo(prepend?: string) {
+    const orig = process.env.PATH;
+    if (!orig) throw new Error(`PATH is invalid (${orig})`);
+    const paths = orig.split(":").filter((p) => !p.startsWith(repoRootDir));
+    if (prepend) paths.unshift(prepend);
+    return paths.join(":");
 }
 
 /**
@@ -379,22 +383,21 @@ describe("Global CLI install", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     let tmpDir = "";
+    const env: NodeJS.ProcessEnv = {};
 
     mochaTmpdir.all("adapt-cli-test-global");
 
     before(async () => {
         tmpDir = process.cwd();
+        env.PATH = pathWithoutRepo(path.join(tmpDir, "global", "bin"));
+
         try {
-            await globalAdd("@adpt/cli@unit-tests");
+            await globalAdd("@adpt/cli@unit-tests", path.join(tmpDir, "global"));
         } catch (err) {
             // tslint:disable-next-line: no-console
             if (err.all) console.error(`${err.message}\n${err.all}`);
             throw err;
         }
-    });
-
-    after(async () => {
-        await globalRemove("@adpt/cli");
     });
 
     basicNoSrcDirChain
@@ -408,7 +411,7 @@ describe("Global CLI install", function () {
 
         process.chdir("/");
         // Call the globally installed adapt
-        const ret = await execa("adapt", ["list"]);
+        const ret = await execa("adapt", ["list"], { env });
         expect(ret.stderr).equals("");
         expect(ret.stdout).contains(`Listing Deployments [completed]\n\n${deployID}`);
         expect(ret.stdout).contains("using internal adapt module");
