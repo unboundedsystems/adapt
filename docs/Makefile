@@ -22,7 +22,7 @@ ifeq ($(LONG_TESTS),true)
 CLITEST:=NPM_CONFIG_REGISTRY=$(DOCS_REGISTRY) markdown-clitest
 LT_TOUCH:=touch
 else
-CLITEST:=@echo "Skipping test of"
+CLITEST:=echo "Skipping test of"
 LT_TOUCH:=@echo "Skipping touch"
 endif
 
@@ -58,8 +58,10 @@ dist/.test-success: $(addsuffix /.test-success,$(MD_TEST_DIRS))
 	$(LT_TOUCH) $@
 
 GS_FILES := $(shell find getting_started -type f -regex '.*\.md')
+# The GSG does a global NPM install. In order to not ACTUALLY do a global
+# install, create a temp directory and set PREFIX so npm installs there.
 getting_started/.test-success: $(GS_FILES)
-	$(CLITEST) getting_started
+	PREFIX=$$(mktemp -d adapt-doc-gsg-XXXX --tmpdir) PATH="$${PREFIX}/bin:$(PATH)" $(CLITEST) getting_started
 	$(LT_TOUCH) $@
 
 CONCEPTS_FILES := $(shell find tutorial_concepts -type f -regex '.*\.md')
