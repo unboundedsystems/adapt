@@ -75,6 +75,7 @@ async function main() {
     try {
         await execa("api-extractor", ["run", "--local"], { stdio: "inherit" });
     } catch (err) {
+        if (err.code === "ENOENT") console.error("Unable to find api-extractor. Is it in your path?")
         console.error("Error: api-extractor failed");
         process.exit(1);
     }
@@ -83,6 +84,7 @@ async function main() {
         await execa("api-documenter", ["markdown", "-i", buildDir, "-o", tmpDir],
                 { stdio: "inherit" });
     } catch (err) {
+        if (err.code === "ENOENT") console.error("Unable to find api-documenter. Is it in your path?")
         console.error("Error: api-documenter failed");
         process.exit(1);
     }
