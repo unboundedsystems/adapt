@@ -4,9 +4,8 @@
 #
 
 IN_DOCKER := $(shell if [ -f /.dockerenv ]; then echo true; else echo false; fi; )
-SCRIPT_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
-DMAKE := $(abspath $(SCRIPT_DIR)/../bin/make)
-CONTAINIT := $(SCRIPT_DIR)/../containit/containit.sh
+DMAKE := $(REPO_ROOT)/bin/make
+CONTAINIT := $(REPO_ROOT)/containit/containit.sh
 
 
 ifeq ($(IN_DOCKER),false)

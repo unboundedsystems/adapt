@@ -1,4 +1,4 @@
-include ../build_support/ts_project.mk
+include ../config/build_support/ts_project.mk
 
 COPY_FILES_SRC := src/docker/docker_swagger.yaml src/aws/cloudformation_swagger.yaml src/aws/ec2_swagger.yaml
 COPY_FILES_DIST := $(addprefix dist/, $(COPY_FILES_SRC))

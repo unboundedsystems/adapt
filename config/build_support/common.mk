@@ -1,5 +1,5 @@
-REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
-BUILD_SUPPORT := $(REPO_ROOT)/build_support
+REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
+BUILD_SUPPORT := $(REPO_ROOT)/config/build_support
 
 include $(BUILD_SUPPORT)/log.mk
 
