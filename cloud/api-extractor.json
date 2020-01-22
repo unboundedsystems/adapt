@@ -1,5 +1,5 @@
 {
-    "extends": "../api-extractor-base.json",
+    "extends": "../config/api-extractor-base.json",
     "messages": {
         "extractorMessageReporting": {
             "ae-missing-release-tag": {
