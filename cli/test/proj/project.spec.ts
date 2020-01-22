@@ -78,15 +78,15 @@ describe("Project basic tests", function () {
     it("Should get a registry package", async function () {
         this.slow(9 * 1000);
         this.timeout(20 * 1000);
-        const p = await proj.load("decamelize@2.0.0", projOpts);
+        const p = await proj.load("decamelize@3.2.0", projOpts);
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("decamelize");
-        expect(p.manifest.version).equal("2.0.0");
-        expect(p.manifest._resolved).equal("https://registry.npmjs.org/decamelize/-/decamelize-2.0.0.tgz");
-        expect(p.manifest.dependencies.xregexp).equal("4.0.0");
+        expect(p.manifest.version).equal("3.2.0");
+        expect(p.manifest._resolved).equal("https://registry.npmjs.org/decamelize/-/decamelize-3.2.0.tgz");
+        expect(p.manifest.dependencies.xregexp).equal("^4.2.4");
 
         await p.installModules();
-        expect(p.getLockedVersion("xregexp")).equal("4.0.0");
+        expect(p.getLockedVersion("xregexp")).equal("4.2.4");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
 
