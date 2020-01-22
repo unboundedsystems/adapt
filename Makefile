@@ -62,7 +62,7 @@ $(prepush_submakes): lint
 # This top-level target is purposefully different. It's NOT just making the
 # target in the submakes.
 coverage: build
-	nyc make test
+	nyc --nycrc-path config/.nycrc make test
 
 
 #
