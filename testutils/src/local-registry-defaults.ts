@@ -33,7 +33,7 @@ export const yarnLocalProxyOpts = {
 };
 
 const topLevelPackageJson = fs.readJsonSync(path.join(repoRootDir, "package.json"));
-const verdaccioDir = path.join(repoRootDir, "verdaccio");
+const configDir = path.join(repoRootDir, "config");
 
 export const defaultPublishList =
     topLevelPackageJson.workspaces.packages
@@ -77,14 +77,16 @@ function setupDefault(): Promise<void> {
     return setupLocalRegistry(defaultPublishList);
 }
 
-export const configPath = path.join(verdaccioDir, "config.yaml");
+// This file doesn't need to exist
+export const configPath = path.join(configDir, "config.yaml");
+
 // This is a valid config except it does not have the required storage
 // property, so that must be provided whenever these defaults are used.
 export const config: Omit<Config, "storage"> = {
     // Standard verdaccio config items
     auth: {
         htpasswd: {
-            file: path.join(verdaccioDir, "htpasswd")
+            file: path.join(configDir, "verdaccio.htpasswd")
         }
     },
     uplinks: {
