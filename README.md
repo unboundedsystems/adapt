@@ -76,6 +76,8 @@ This demo shows using Adapt to create and deploy a simple app called MovieDB tha
 
     This guide will walk you through setting up Adapt and then deploying an example MovieDB app.
 
+* [Deploying on Google Kubernetes Engine](https://adaptjs.org/blog/2020/01/10/simple-hosting-react-app-on-google-cloud)
+
 * [Adapt Documentation](https://adaptjs.org/docs)
 
     Adapt tutorials, API References, and more.
