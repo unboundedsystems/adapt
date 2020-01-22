@@ -7,9 +7,33 @@
 # Adapt - ReactJS for your infrastructure.
 
 AdaptJS is a system to easily, reliably, and repeatably deploy your full-stack applications.  Adapt specifications look like [React](https://reactjs.org) apps, but instead of rendering browser DOM elements like `<input>`, or `<div>`, Adapt specifications use elements like AWS `<EC2Instance>`, Kubernetes `<Pod>`, or `<MongoDB>` database.
+An Adapt description for a complete front end and back end app stack looks like this:
+
+```jsx
+import Adapt from "@adpt/core";
+import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
+import { Postgres } from "@adpt/cloud/postgres";
+
+function MyApp() {
+  const pg = Adapt.handle();
+
+  return (
+    <Adapt.Group>
+      <ReactApp srcDir="../frontend" />
+      <NodeService srcDir="../backend" connectTo={pg} />
+      <Postgres handle={pg} />
+    </Adapt.Group>
+  );
+}
+```
+
+Each of the components above renders to simpler components until they get to primitive infrastructure.
+You can also specify a style sheet to customize how components render to infrastructure (e.g., Docker vs. Kubernetes vs. AWS).
+Styles can also swap out components entirely, for example, using a test database for your test environment and a hosted database service for production.
 
 If you're already familiar with React, you'll feel right at home with Adapt.
 But if not, don't worry, knowledge of React isn't required to start using Adapt.
+You can get started with a starter, write your code and deploy, and come back to the Adapt specification when you need to change how it gets deployed.
 
 ## Getting Started
 
@@ -34,26 +58,6 @@ adapt run laptop
 
 # Or just as easily deploy everything to Kubernetes
 adapt run k8s-test
-```
-
-An Adapt description for a complete front end and back end app stack looks like this:
-
-```jsx
-import Adapt from "@adpt/core";
-import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
-import { Postgres } from "@adpt/cloud/postgres";
-
-function MyApp() {
-  const pg = Adapt.handle();
-
-  return (
-    <Adapt.Group>
-      <ReactApp srcDir="../frontend" />
-      <NodeService srcDir="../backend" connectTo={pg} />
-      <Postgres handle={pg} />
-    </Adapt.Group>
-  );
-}
 ```
 
 ## Adapt in action
