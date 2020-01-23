@@ -1,4 +1,4 @@
-include ../build_support/ts_project.mk
+include ../config/build_support/ts_project.mk
 
 GQL_SRC_FILES := $(shell find src/ -type f -regex '.*\.graphql')
 GQL_TEST_FILES := $(shell find test/ -type f -regex '.*\.graphql')

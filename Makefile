@@ -2,8 +2,8 @@
 # FIXME: Get a real build system instead of Make
 #
 
-include build_support/common.mk
-include build_support/dockerize.mk
+include config/build_support/common.mk
+include $(BUILD_SUPPORT)/dockerize.mk
 ifeq ($(IN_DOCKER),true)
 
 #
@@ -16,12 +16,12 @@ all: test
 SETUP_TARGETS :=
 CLEANS :=
 
-include build_support/git.mk
-include build_support/submake.mk
-include build_support/node_modules.mk
-include build_support/ssh.mk
-include build_support/local_registry.mk
-include build_support/release.mk
+include $(BUILD_SUPPORT)/git.mk
+include $(BUILD_SUPPORT)/submake.mk
+include $(BUILD_SUPPORT)/node_modules.mk
+include $(BUILD_SUPPORT)/ssh.mk
+include $(BUILD_SUPPORT)/local_registry.mk
+include $(BUILD_SUPPORT)/release.mk
 
 # Turn on parallelism by default
 ADAPT_PARALLEL_MAKE ?= -j $(shell nproc)
@@ -62,7 +62,7 @@ $(prepush_submakes): lint
 # This top-level target is purposefully different. It's NOT just making the
 # target in the submakes.
 coverage: build
-	nyc make test
+	nyc --nycrc-path config/.nycrc make test
 
 
 #
@@ -80,7 +80,7 @@ systemtest-test: ssh-setup run-local-registry
 docs-release-test: ssh-setup prerelease-registry
 
 
-include build_support/docs.mk
+include $(BUILD_SUPPORT)/docs.mk
 
 clean: $(clean_submakes)
 	rm -rf $(CLEANS)

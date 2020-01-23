@@ -1,4 +1,4 @@
 {
-    "extends": "../nyc.json"
+    "extends": "../config/nyc.json"
 }
 

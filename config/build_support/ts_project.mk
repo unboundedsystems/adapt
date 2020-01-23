@@ -61,7 +61,7 @@ dist/.coverage_success: $(JS_FILES)
 lint: $(NODE_INSTALL_DONE) dist/.lint_success
 .PHONY: lint
 
-dist/.lint_success: $(TS_FILES) tslint.json $(REPO_ROOT)/tslint.json
+dist/.lint_success: $(TS_FILES) tslint.json $(REPO_ROOT)/config/tslint.json
 	npm run lint
 	mkdir -p dist
 	touch $@

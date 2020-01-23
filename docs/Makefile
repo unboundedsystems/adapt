@@ -1,4 +1,4 @@
-include ../build_support/common.mk
+include ../config/build_support/common.mk
 
 # Always run inside Docker
 include $(BUILD_SUPPORT)/dockerize.mk

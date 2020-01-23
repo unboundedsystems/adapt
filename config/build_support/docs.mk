@@ -1,4 +1,4 @@
-include build_support/web.mk
+include $(BUILD_SUPPORT)/web.mk
 
 docs: $(docs_submakes) .doctoc-updated
 $(docs_submakes): $(build_submakes)
