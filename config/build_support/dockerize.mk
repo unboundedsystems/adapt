@@ -5,7 +5,7 @@
 
 IN_DOCKER := $(shell if [ -f /.dockerenv ]; then echo true; else echo false; fi; )
 DMAKE := $(REPO_ROOT)/bin/make
-CONTAINIT := $(REPO_ROOT)/containit/containit.sh
+CONTAINIT := $(REPO_ROOT)/bin/containit/containit.sh
 
 
 ifeq ($(IN_DOCKER),false)
