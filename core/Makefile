@@ -10,4 +10,5 @@ $(GQL_DIST_FILES): $(GQL_FILES)
 	tar -cf - $(GQL_FILES) | tar --touch -xvf - -C dist 
 
 build: $(GQL_DIST_FILES)
+dist/.docs_success: $(REPO_ROOT)/README.md
 
