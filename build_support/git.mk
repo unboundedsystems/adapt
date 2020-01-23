@@ -10,3 +10,8 @@ GIT_HOOKS := $(patsubst build_support/git_hooks/%,.git/hooks/%,$(GIT_HOOKS_SRC))
 	cp $< $@
 
 SETUP_TARGETS += $(GIT_HOOKS)
+
+check-uncommitted: build
+	@NL="$$(printf '\nz')" NL="$${NL%z}"\
+		UNCOMMITTED="$$(git status --porcelain)"; [ -z "$$UNCOMMITTED" ]\
+		|| ($(log_err) "There were uncommitted files after build!$$NL$$NL$$UNCOMMITTED" && false)
