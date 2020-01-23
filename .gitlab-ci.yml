@@ -34,7 +34,7 @@ test:
     - branches
     - web
   script:
-    - ./bin/make build lint web-test coverage
+    - ./bin/make build check-uncommitted lint web-test coverage
 
 release:
   stage: release
