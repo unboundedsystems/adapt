@@ -1,6 +1,7 @@
 [![Adapt logo](https://adaptjs.org/img/logo_lockup.svg)](https://adaptjs.org)
 
 [![npm](https://img.shields.io/npm/v/@adpt/cli?color=blue)](https://www.npmjs.com/package/@adpt/cli)
+![npm](https://img.shields.io/npm/dt/@adpt/core)
 [![Gitter](https://badges.gitter.im/UnboundedSystems/Adapt.svg)](https://gitter.im/UnboundedSystems/Adapt)
 [![License](https://img.shields.io/github/license/unboundedsystems/adapt)](https://opensource.org/licenses/Apache-2.0)
 

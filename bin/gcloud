@@ -13,4 +13,4 @@ fi
 
 DOCKER_ARGS+=" --mount type=volume,source=adapt-gcloud-kube,destination=/root/.kube"
 
-. "${TOP_DIR}/containit/containit.sh"
+. "${TOP_DIR}/bin/containit/containit.sh"
