@@ -246,8 +246,8 @@ export function registerObject(obj: any, name: string,
 }
 
 // tslint:disable-next-line:ban-types
-export function registerConstructor(ctor: Function) {
-    registerObject(ctor, ctor.name, findConstructorModule(ctor.name));
+export function registerConstructor(ctor: Function & { displayName?: string }) {
+    registerObject(ctor, ctor.name, findConstructorModule(ctor.name, ctor.displayName));
 }
 
 function findExportName(obj: any, defaultName: string,
@@ -280,7 +280,7 @@ function findModule(modOrCallerNum: NodeModule | number): NodeModule {
 }
 
 // Exported for testing
-export function findConstructorModule(ctorName: string): NodeModule {
+export function findConstructorModule(ctorName: string, displayName: string | undefined): NodeModule {
     const stack = callsites();
     let candidateFrame: number | undefined;
 
@@ -307,7 +307,10 @@ export function findConstructorModule(ctorName: string): NodeModule {
         if (!stack[frame].isConstructor()) break;
         lastConstructor = frame;
 
-        if (stack[frame].getFunctionName() === ctorName) {
+        // With Node v12+, the name in the backtrace is constructor.displayName if
+        // present.
+        if (stack[frame].getFunctionName() === ctorName ||
+           (displayName != null && stack[frame].getFunctionName() === displayName)) {
             if (candidateFrame !== undefined) {
                 throw new Error(`Found two candidate constructor frames`);
             }
