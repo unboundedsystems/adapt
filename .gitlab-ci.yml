@@ -5,6 +5,8 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   ADAPT_RUN_LONG_TESTS: 1
   ADAPT_TEST_HEAPDUMP: 1
+  # Be explicit about the default Node version for jobs that don't specify
+  ADAPT_TEST_NODE_VERSION: "10"
   # This is for certs to be shared between docker client and dind. Must match
   # a volume mount path in gitlab runner's config.toml.
   DOCKER_TLS_CERTDIR: "/certs"
@@ -28,13 +30,27 @@ before_script:
     fi
   - . ./bin/setup-docker-auth.sh
 
-test:
+test:10:
   stage: test
   only:
     - branches
     - web
+    - schedules
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
   script:
     - ./bin/make build check-uncommitted lint web-test coverage
+
+test:12:
+  stage: test
+  only:
+    # Only run when scheduled or manually triggered
+    - web
+    - schedules
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+  script:
+    - ./bin/make test
 
 release:
   stage: release
