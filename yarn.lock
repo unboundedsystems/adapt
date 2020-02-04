@@ -11205,10 +11205,10 @@ url@^0.11.0:
     punycode "1.3.2"
     querystring "0.2.0"
 
-urn-lib@^1.1.2:
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/urn-lib/-/urn-lib-1.1.2.tgz#3ab07321f217cb7694983d20df1702b594dc0602"
-  integrity sha512-VNvjNJvc/xOGF0dTvqBNOBMJXCbeZe7wB8iVElu794z7k/kTn9crSCWB+YVJCT2fGNWcVlc4up3y44jlPgI6/g==
+urn-lib@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/urn-lib/-/urn-lib-1.2.0.tgz#f10f7320ae7f921541d666b1fe0f449c9132da98"
+  integrity sha512-NGKLVdiaDMhV6fRGjqxM2DCtHu6EvXLz+1qWoAIC67xtF5Vh8B+9CHeyF22nnsdUofIv2S33FneGZcFK/dhYqw==
 
 use@^3.1.0:
   version "3.1.1"

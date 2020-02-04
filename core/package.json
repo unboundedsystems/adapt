@@ -125,7 +125,7 @@
     "ts-custom-error": "^3.1.1",
     "tslib": "^1.10.0",
     "type-name": "^2.0.2",
-    "urn-lib": "^1.1.2",
+    "urn-lib": "^1.2.0",
     "xmlbuilder": "^10.0.0"
   }
 }
