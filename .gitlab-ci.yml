@@ -41,6 +41,17 @@ test:10:
   script:
     - ./bin/make build check-uncommitted lint web-test coverage
 
+test:10.0.0:
+  stage: test
+  only:
+    # Only run when scheduled or manually triggered
+    - web
+    - schedules
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10.0.0"
+  script:
+    - ./bin/make test
+
 test:12:
   stage: test
   only:
