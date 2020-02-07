@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ciMaybeCreateLogger, ciReportEnabled, removeUndef, sleep } from "@adpt/utils";
+import { ciMaybeCreateLogger, ciReportEnabled, makeRetryDelay, removeUndef, sleep } from "@adpt/utils";
 import AWS = require("aws-sdk");
 import { isNumber, xor } from "lodash";
 import should from "should";
@@ -24,6 +24,12 @@ if (ciReportEnabled() && !AWS.config.logger) {
     const logger = ciMaybeCreateLogger("aws-sdk");
     if (logger) AWS.config.logger = logger;
 }
+
+const customBackoff = makeRetryDelay();
+AWS.config.update({
+    maxRetries: 20,
+    retryDelayOptions: { customBackoff },
+});
 
 interface AwsCredentials {
     awsAccessKeyId: string;

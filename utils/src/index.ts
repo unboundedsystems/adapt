@@ -34,6 +34,7 @@ export * from "./not_null";
 export * from "./object_set";
 export { createPackageRegistry, PackageRegistry } from "./package_registry";
 export * from "./paths";
+export * from "./retries";
 export * from "./sleep";
 export * from "./to_array";
 export * from "./type_check";

@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-import { ciMaybeCreateLogger, ciReportEnabled } from "@adpt/utils";
+import { ciMaybeCreateLogger, ciReportEnabled, makeRetryDelay } from "@adpt/utils";
 import AWS from "aws-sdk";
 
 if (ciReportEnabled() && !AWS.config.logger) {
     const logger = ciMaybeCreateLogger("aws-sdk");
     if (logger) AWS.config.logger = logger;
 }
+
+const customBackoff = makeRetryDelay();
+AWS.config.update({
+    maxRetries: 20,
+    retryDelayOptions: { customBackoff },
+});
 
 export default AWS;
