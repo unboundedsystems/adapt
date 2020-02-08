@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ export * from "./paths";
 export * from "./retries";
 export * from "./sleep";
 export * from "./to_array";
+export * from "./ttylog";
 export * from "./type_check";
 export * from "./user_error";
 export * from "./wait_for";
