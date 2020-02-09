@@ -1791,16 +1791,78 @@ describe("Execution plan state", () => {
         const action = (comp: ActionState) => {
             spy("action called");
             comp.setState({ current: "one" });
-            throw new InternalError(`Error in action`);
+            throw new Error(`Error in action`);
         };
         const orig = <ActionState action={action} />;
-        await should(dep.deploy(orig, { logError: false })).be.rejectedWith(/during plugin action/);
+        await should(dep.deploy(orig, { logError: false }))
+            .be.rejectedWith("Errors encountered during plugin action phase");
 
         should(dep.stateStore.elementState(["ActionState"])).eql({
             initial: "initial",
             current: "one",
         });
         should(spyArgs(spy, 0)).eql(["action called"]);
+    });
+
+    it("Should accept state changes even with InternalError", async () => {
+        const spy = sinon.spy();
+        const action = (comp: ActionState) => {
+            spy("action called");
+            comp.setState({ current: "one" });
+            throw new InternalError(`Error in action`);
+        };
+        const orig = <ActionState action={action} />;
+        await should(dep.deploy(orig, { logError: false }))
+            .be.rejectedWith("Internal Error: Error in action");
+
+        should(dep.stateStore.elementState(["ActionState"])).eql({
+            initial: "initial",
+            current: "one",
+        });
+        should(spyArgs(spy, 0)).eql(["action called"]);
+    });
+
+    it("Should fail with UserError", async () => {
+        const action = (comp: ActionState) => {
+            throw new Error(`Normal error in action`);
+        };
+        const orig = <ActionState action={action} />;
+        await should(dep.deploy(orig, { logError: false }))
+            .be.rejectedWith("Errors encountered during plugin action phase");
+    });
+
+    it("Should fail with InternalError", async () => {
+        const internal = (comp: ActionState) => {
+            throw new InternalError(`InternalError in action`);
+        };
+        const normal = (comp: ActionState) => {
+            throw new Error(`Error in action`);
+        };
+        const orig =
+            <Group>
+                <ActionState action={normal} />
+                <ActionState action={internal} />
+            </Group>;
+        await should(dep.deploy(orig, { logError: false }))
+            .be.rejectedWith("Internal Error: InternalError in action");
+    });
+
+    it("Should fail with multiple InternalErrors", async () => {
+        const internal1 = (comp: ActionState) => {
+            throw new InternalError(`InternalError1 in action`);
+        };
+        const internal2 = (comp: ActionState) => {
+            throw new InternalError(`InternalError2 in action`);
+        };
+        const orig =
+            <Group>
+                <ActionState action={internal1} />
+                <ActionState action={internal2} />
+            </Group>;
+        await should(dep.deploy(orig, { logError: false }))
+            .be.rejectedWith(`Errors:
+Internal Error: InternalError1 in action
+Internal Error: InternalError2 in action`);
     });
 });
 
