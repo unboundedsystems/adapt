@@ -15,9 +15,9 @@
  */
 
 import * as fs from "fs-extra";
-import graceful from "node-graceful";
 import * as os from "os";
 import * as path from "path";
+import { onExit } from "./exit";
 
 export interface MkdtmpPromise extends Promise<string> {
     remove(): Promise<void>;
@@ -30,7 +30,7 @@ export function mkdtmp(prefix: string, basedir = os.tmpdir()): MkdtmpPromise {
     const retP = fs.mkdtemp(path.join(basedir, prefix + "-"))
         .then((dir) => {
             newDir = dir;
-            removeOnExit = graceful.on("exit", remove, true);
+            removeOnExit = onExit(remove);
             return newDir;
         });
     // tslint:disable-next-line:prefer-object-spread

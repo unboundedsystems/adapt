@@ -2187,6 +2187,11 @@
     p-queue "^3.0.0"
     rxjs "^6.3.3"
 
+"@unboundedsystems/node-graceful@3.0.0-unb.1":
+  version "3.0.0-unb.1"
+  resolved "https://registry.yarnpkg.com/@unboundedsystems/node-graceful/-/node-graceful-3.0.0-unb.1.tgz#17b519f5451890cadc9e7516c6c24cf941e1aaaa"
+  integrity sha512-4fV+U/Eo0kDLgz4ClggxHPVNlYqz0wBOnU+R7KbVBnS9UObEkjpPgNDnpF6qSJ+gfM5MUdmrVKhcqkiAcUNAjg==
+
 "@unboundedsystems/plugin-autocomplete@0.1.0-unb2":
   version "0.1.0-unb2"
   resolved "https://registry.yarnpkg.com/@unboundedsystems/plugin-autocomplete/-/plugin-autocomplete-0.1.0-unb2.tgz#29998674b53050616b6448b35aefae1595dbeeb2"
@@ -3217,6 +3222,13 @@ camelcase@^5.0.0:
   version "5.3.1"
   resolved "https://registry.yarnpkg.com/camelcase/-/camelcase-5.3.1.tgz#e3c9b31569e106811df242f715725a1f4c494320"
   integrity sha512-L28STB170nwWS63UjtlEOE3dldQApaJXZkOI1uMFfzf3rRuPegHaHesyee+YxQ+W6SvRDQV6UrdOdRiR153wJg==
+
+capture-exit@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/capture-exit/-/capture-exit-2.0.0.tgz#fb953bfaebeb781f62898239dabb426d08a509a4"
+  integrity sha512-PiT/hQmTonHhl/HFGN+Lx3JJUznrVYJ3+AQsnthneZbvW7x+f08Tk7yLJTLEOUvBTbduLeeBkxEaYXUOUrRq6g==
+  dependencies:
+    rsvp "^4.8.4"
 
 cardinal@^2.1.1:
   version "2.1.1"
@@ -9725,6 +9737,11 @@ rimraf@~2.4.0:
   integrity sha1-7nEM5dk6j9uFb7Xqj/Di11k0sto=
   dependencies:
     glob "^6.0.1"
+
+rsvp@^4.8.4:
+  version "4.8.5"
+  resolved "https://registry.yarnpkg.com/rsvp/-/rsvp-4.8.5.tgz#c8f155311d167f68f21e168df71ec5b083113734"
+  integrity sha512-nfMOlASu9OnRJo1mbEk2cz0D56a1MBNrJ7orjRZQG10XDyuvwksKbuXNp6qa+kbn839HwjwhBzhFmdsaEAfauA==
 
 run-async@^2.2.0:
   version "2.3.0"

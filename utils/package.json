@@ -24,7 +24,9 @@
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
   "dependencies": {
+    "@unboundedsystems/node-graceful": "3.0.0-unb.1",
     "@usys/collections-ts": "^0.0.2",
+    "capture-exit": "^2.0.0",
     "decamelize": "^2.0.0",
     "deep-diff": "^1.0.2",
     "eventemitter2": "^5.0.1",
@@ -32,7 +34,6 @@
     "fs-extra": "^8.1.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.15",
-    "node-graceful": "^0.3.1",
     "ts-custom-error": "^3.1.1",
     "tslib": "^1.10.0",
     "type-ops": "^3.0.3"

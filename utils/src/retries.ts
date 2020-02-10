@@ -15,11 +15,10 @@
  */
 
 import { randomBytes } from "crypto";
-import graceful from "node-graceful";
+import { onExit } from "./exit";
 
 let exiting = false;
-
-graceful.on("exit", async () => exiting = true);
+let onExitRegistered = false;
 
 export type RetryDelay = (attempt: number) => number;
 
@@ -60,6 +59,10 @@ export function makeRetryDelay(options: Partial<RetryDelayOptions> = {}): RetryD
     }
     if (opts.maxTimeoutMs <= opts.minTimeoutMs) {
         throw new Error(`maxTimeoutMs must be greater than minTimeoutMs(min=${opts.minTimeoutMs} max=${opts.maxTimeoutMs})`);
+    }
+    if (!onExitRegistered) {
+        onExit(() => exiting = true);
+        onExitRegistered = true;
     }
     return (attempt: number) => {
         if (attempt < 0) {
