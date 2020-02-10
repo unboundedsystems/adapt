@@ -23,6 +23,9 @@
   },
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
+  "engines" : {
+    "node" : ">=10.0.0"
+  },
   "dependencies": {
     "@unboundedsystems/node-graceful": "3.0.0-unb.1",
     "@usys/collections-ts": "^0.0.2",

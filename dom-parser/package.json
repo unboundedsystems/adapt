@@ -23,6 +23,9 @@
   },
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
+  "engines" : {
+    "node" : ">=10.0.0"
+  },
   "dependencies": {
     "lodash": "^4.17.15",
     "stream-buffers": "^3.0.2",

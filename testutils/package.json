@@ -23,6 +23,9 @@
   },
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
+  "engines" : {
+    "node" : ">=10.0.0"
+  },
   "dependencies": {
     "@adpt/utils": "0.2.0-next.1",
     "aws-sdk": "^2.512.0",
