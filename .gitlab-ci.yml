@@ -87,6 +87,20 @@ test:12:
       bash -o pipefail -c './bin/make test \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
 
+test:13:
+  <<: *job_common
+  stage: test
+  only:
+    # Only run when scheduled or manually triggered
+    - web
+    - schedules
+  variables:
+    ADAPT_TEST_NODE_VERSION: "13"
+  script:
+    - |
+      bash -o pipefail -c './bin/make test \
+        |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
+
 release:
   <<: *job_common
   stage: release
