@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-import { removeUndef, sleep } from "@adpt/utils";
+import { ciMaybeCreateLogger, ciReportEnabled, removeUndef, sleep } from "@adpt/utils";
 import AWS = require("aws-sdk");
 import { isNumber, xor } from "lodash";
 import should from "should";
 import { inspect } from "util";
+
+if (ciReportEnabled() && !AWS.config.logger) {
+    const logger = ciMaybeCreateLogger("aws-sdk");
+    if (logger) AWS.config.logger = logger;
+}
 
 interface AwsCredentials {
     awsAccessKeyId: string;

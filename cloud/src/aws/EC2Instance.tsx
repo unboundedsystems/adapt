@@ -25,9 +25,9 @@ import Adapt, {
     WithChildren,
 } from "@adpt/core";
 import { removeUndef } from "@adpt/utils";
-import AWS from "aws-sdk";
 import { flatten } from "lodash";
 import { ComputeProps } from "../Compute";
+import AWS from "./aws-sdk";
 import { CFResource } from "./CFResource";
 import { withCredentials, WithCredentials } from "./credentials";
 import { AwsEc2Observer } from "./ec2_observer";
