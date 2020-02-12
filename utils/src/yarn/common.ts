@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 import decamelize from "decamelize";
 import execa, { ExecaChildProcess, ExecaError } from "execa";
+import npmRunPath from "npm-run-path";
+import { ciMaybeCreateLogger } from "../ci_report";
 
 export type LogLevel = "normal" | "silent" | "verbose";
 
@@ -47,6 +49,8 @@ export const commonDefaults = {
     noProgress: true,
 };
 
+const npmPath = npmRunPath({ cwd: __dirname });
+
 type OnRejectedFunc<T = any> = ((reason: ExecaError) => T | PromiseLike<T>);
 type OnRejected<T = any> = OnRejectedFunc<T> | null | undefined;
 
@@ -76,7 +80,15 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
     }
     if (args) finalArgs.push(...args);
 
-    const childProc = execa("yarn", finalArgs, { all: true, stripFinalNewline: false });
+    const env = { PATH: npmPath };
+
+    const childProc = execa("yarn", finalArgs, {
+        all: true,
+        env,
+        stripFinalNewline: false,
+    });
+    const logStop = logStart(childProc.pid, finalArgs);
+
     if (pipeOutput) {
         childProc.stdout.pipe(process.stdout);
         childProc.stderr.pipe(process.stdout);
@@ -91,6 +103,9 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
         return Promise.reject(err);
     };
     insertCatch(childProc, translateError);
+
+    // This "then" creates a separate chain and that's ok
+    childProc.then((child) => logStop(child.all), (err) => logStop(err.all || err.message || err));
 
     return childProc;
 }
@@ -139,4 +154,18 @@ export function parseJsonMessages(output: string, typeFilter?: string): JsonMess
     });
     if (typeFilter) objs = objs.filter((o) => o != null && o.type === typeFilter);
     return objs;
+}
+
+function logStart(pid: number, args: string[]) {
+    const logger = ciMaybeCreateLogger(`yarn-${pid}`);
+    if (!logger) return () => {/* */};
+
+    const argstr = `yarn ${args.join(" ")}`;
+    logger.log(`RUN ${argstr}`);
+    logger.logps();
+    return (output: any) => {
+        logger.log(`DONE ${argstr}`);
+        logger.log(`OUTPUT`, output);
+        logger.close();
+    };
 }

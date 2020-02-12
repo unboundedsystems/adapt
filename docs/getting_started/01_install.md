@@ -7,12 +7,11 @@ title: "Install Adapt"
 
 ## Requirements
 
-To install and use Adapt, you must have **both** of the following:
+To install and use Adapt, you must have Node.js installed:
 
 | Requirement | Installation Instructions |
 | --- | --- |
 | [Node.js](https://nodejs.org) (versions supported: 10-13) | [Installing Node and npm](../user/install/requirements.md#nodejs-with-npm) |
-| [Yarn Package Manager](https://yarnpkg.com) | [Installing yarn](../user/install/requirements.md#yarn) |
 
 Additionally, this Getting Started Guide also requires [Docker](https://docker.com).
 You'll need **one** of the following:

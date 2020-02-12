@@ -48,21 +48,3 @@ You should see output similar to:
 ```console
 v10.15.1
 ```
-
-## Yarn
-
-If you already have NodeJS and NPM installed, the easiest way to install the [yarn package manager](https://yarnpkg.com) is:
-```console
-npm install -g yarn
-```
-
-To verify:
-```console
-yarn --version
-```
-You should see output similar to:
-```console
-1.13.0
-```
-
-For more installation and upgrade options, see [the yarn installation instructions](https://yarnpkg.com/en/docs/install).

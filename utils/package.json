@@ -23,8 +23,8 @@
   },
   "main": "dist/src/index.js",
   "typings": "dist/src/index.d.ts",
-  "engines" : {
-    "node" : ">=10.0.0"
+  "engines": {
+    "node": ">=10.0.0"
   },
   "dependencies": {
     "@unboundedsystems/node-graceful": "3.0.0-unb.1",
@@ -37,9 +37,11 @@
     "fs-extra": "^8.1.0",
     "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.15",
+    "npm-run-path": "^4.0.1",
     "ts-custom-error": "^3.1.1",
     "tslib": "^1.10.0",
-    "type-ops": "^3.0.3"
+    "type-ops": "^3.0.3",
+    "yarn": "^1.22.0"
   },
   "devDependencies": {
     "@types/decamelize": "^1.2.0",
