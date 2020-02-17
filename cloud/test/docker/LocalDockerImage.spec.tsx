@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,15 +57,19 @@ describe("buildFilesImage", function () {
 
     async function doBuildFiles(files: File[], opts: DockerGlobalOptions) {
         const image = await buildFilesImage(files, opts);
-        cleanupIds.push(image.id);
+        const { nameTag } = image;
+        if (!nameTag) throw new Error(`No nameTag present for files image`);
+        cleanupIds.push(nameTag);
         return image;
     }
 
     async function buildAndRun(dockerfile: string) {
         const image = await dockerBuild("-", ".",
-            { stdin: dockerfile, imageName: "adapt-test-buildfiles"});
-        cleanupIds.push(image.id);
-        return (await execa("docker", [ "run", "--rm", image.id ])).stdout;
+            { stdin: dockerfile, imageName: "adapt-test-buildfiles", uniqueTag: true });
+        const { nameTag } = image;
+        if (!nameTag) throw new Error(`No nameTag present for test image`);
+        cleanupIds.push(nameTag);
+        return (await execa("docker", [ "run", "--rm", nameTag ])).stdout;
     }
 
     it("Should build an image", async () => {
@@ -127,6 +131,7 @@ describe("LocalDockerImage", function () {
         mockDeploy = new MockDeploy({
             pluginCreates: [ createActionPlugin ],
             tmpDir: pluginDir,
+            uniqueDeployID: true,
         });
         await mockDeploy.init();
     });

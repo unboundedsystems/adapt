@@ -1,5 +1,4 @@
 import {
-    aws,
     Compute,
     ComputeProps,
     Container,
@@ -11,13 +10,12 @@ import {
     NetworkService,
     NetworkServiceProps,
 } from "@adpt/cloud";
-import Adapt, { Group, rule, ruleNoRematch, Style } from "@adpt/core";
-const {
+import {
     CFStack,
     EC2Instance,
-    EIPAssociation,
     loadAwsCreds,
-} = aws;
+} from "@adpt/cloud/aws";
+import Adapt, { Group, rule, ruleNoRematch, Style } from "@adpt/core";
 
 /*
  * Real resources in AWS
@@ -33,9 +31,6 @@ export const sshKeyName = "DefaultKeyPair";
 // FIXME(mark): The security group can be created as part of each stack.
 export const defaultSecurityGroup = "http-https-ssh";
 
-export const eipId = "eipalloc-0658ac76971e57a6d";
-export const eipAddr = "34.208.53.205";
-
 export const awsStyle = loadAwsCreds().then((creds) => (
     <Style>
         :root:not([key*=CFStack]) {rule((_, info) => { return ruleNoRematch(info,
@@ -44,26 +39,18 @@ export const awsStyle = loadAwsCreds().then((creds) => (
             </CFStack>
         ); })}
 
-        {Compute} {rule<ComputeProps>(({ handle, ...props }) => {
-            const instHandle = Adapt.handle();
-            return (
-                <Group>
-                    <EC2Instance
-                        imageId={ubuntuAmi}
-                        instanceType="t2.micro"
-                        name="docker-host"
-                        sshKeyName={sshKeyName}
-                        securityGroups={[defaultSecurityGroup]}
-                        handle={instHandle}
-                        {...props}
-                    />
-                    <EIPAssociation
-                        AllocationId="eipalloc-7fe45618"
-                        InstanceId={instHandle}
-                    />
-                </Group>
-            );
-        })}
+        {Compute} {rule<ComputeProps>(({ handle, ...props }) => (
+            <Group>
+                <EC2Instance
+                    imageId={ubuntuAmi}
+                    instanceType="t2.micro"
+                    name="docker-host"
+                    sshKeyName={sshKeyName}
+                    securityGroups={[defaultSecurityGroup]}
+                    {...props}
+                />
+            </Group>
+        ))}
 
         {DockerHost} {rule<DockerHostProps>((props, info) => {
             if (props.dockerHost) return info.origBuild(props);

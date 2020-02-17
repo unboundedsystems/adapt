@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
+import { ensureError, FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
 import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
@@ -120,7 +120,20 @@ export async function withFilesImage<T>(files: File[] | undefined,
         return await fn(image);
     } finally {
         const { deployID, ...rmOpts } = opts;
-        await dockerRemoveImage({ nameOrId: image.id, ...rmOpts });
+        // Only remove what we built. If we tagged the image, just remove
+        // the tag and let Docker decide if the actual image is unused.
+        // If there's no tag, try delete by ID, but don't warn if that ID
+        // has been tagged by someone else.
+        const nameOrId = image.nameTag || image.id;
+        try {
+            await dockerRemoveImage({ nameOrId, ...rmOpts });
+        } catch (err) {
+            err = ensureError(err);
+            if (! /image is referenced in multiple repositories/.test(err.message)) {
+                // tslint:disable-next-line: no-console
+                console.warn(`Unable to delete temporary Docker image: `, err.message);
+            }
+        }
     }
 }
 

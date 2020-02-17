@@ -22,7 +22,6 @@ import {
     registerObserver,
     throwObserverErrors,
 } from "@adpt/core";
-import AWS from "aws-sdk";
 import fs from "fs-extra";
 import {
     execute,
@@ -34,6 +33,7 @@ import {
 import { safeLoad } from "js-yaml";
 import path from "path";
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
+import AWS from "./aws-sdk";
 import {
     computeQueryId,
     infoSym,

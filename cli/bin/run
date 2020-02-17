@@ -2,6 +2,10 @@
 
 process.env.NODE_NO_WARNINGS = '1';
 
+process.on('unhandledRejection', (reason) => {
+    console.warn("WARNING: Unhandled error:", reason);
+});
+
 require('source-map-support').install();
 
 /* We use our own version of plugin-help, but in order for it to work fully,

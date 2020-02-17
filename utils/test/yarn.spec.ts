@@ -34,7 +34,6 @@ describe("yarn run", function () {
         should(ret.exitCode).equal(0);
         should(ret.failed).equal(false);
 
-        should(ret.stdout).match(/http_parser:/);
         should(ret.stdout).match(/node:/);
         should(ret.stdout).match(/v8:/);
     });

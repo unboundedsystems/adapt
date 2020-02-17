@@ -94,6 +94,14 @@ if [ -n "${GIT_USER_EMAIL}" ]; then
     DOCKER_ARGS+=" -eGIT_USER_EMAIL"
 fi
 
+if [ -n "${ADAPT_BUILD_LOGDIR}" ]; then
+    if [[ $ADAPT_BUILD_LOGDIR =~ ^/ ]]; then
+        echo "Error: ADAPT_BUILD_LOGDIR must be a relative path (to the Adapt project root)"
+        exit 1
+    fi
+    DOCKER_ARGS+=" -eADAPT_BUILD_LOGDIR=/src/${ADAPT_BUILD_LOGDIR}"
+fi
+
 DOCKER_ARGS+=" -eNODE_NO_WARNINGS=1"
 
 # Propagate these from current environment into the docker container env
@@ -101,4 +109,5 @@ DOCKER_ARGS+=" -eADAPT_PARALLEL_MAKE -eADAPT_TEST_HEAPDUMP"
 DOCKER_ARGS+=" -eADAPT_TEST_K8S -eADAPT_RUN_LONG_TESTS"
 DOCKER_ARGS+=" -eADAPT_RELEASE_TYPE -eADAPT_RELEASE_TESTS"
 DOCKER_ARGS+=" -eADAPT_NO_FORK -eADAPT_WEB_TOKEN -eADAPT_NPM_TOKEN -eCI_JOB_TOKEN -eCI -eCI_PROJECT_PATH"
+DOCKER_ARGS+=" -eADAPT_CI_REPORT"
 DOCKER_ARGS+=" -eAWS_ACCESS_KEY_ID -eAWS_SECRET_ACCESS_KEY -eAWS_DEFAULT_REGION"

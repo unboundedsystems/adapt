@@ -23,7 +23,6 @@ const program = require("commander");
 const crypto = require("crypto");
 const execa = require("execa");
 const fs = require("fs-extra");
-const graceful = require('node-graceful').default;
 const path = require("path");
 const { format } = require("util");
 
@@ -117,7 +116,7 @@ async function childStart(portIn, publishList) {
         const pfile = pidFile(port);
         await fs.writeFile(pfile, process.pid.toString());
 
-        graceful.on("exit", async (_done, signame) => {
+        utils.onExit(async (signame) => {
             log(`Terminating on ${signame}`);
             await server.stop();
             await fs.remove(pfile);

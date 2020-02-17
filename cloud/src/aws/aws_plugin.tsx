@@ -30,8 +30,8 @@ import Adapt, {
     WidgetPlugin,
 } from "@adpt/core";
 import { isEqualUnorderedArrays } from "@adpt/utils";
-import AWS = require("aws-sdk");
 import { compact, pick } from "lodash";
+import AWS from "./aws-sdk";
 
 import {
     CFResourcePrimitive,

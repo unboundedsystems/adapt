@@ -5,9 +5,13 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   ADAPT_RUN_LONG_TESTS: 1
   ADAPT_TEST_HEAPDUMP: 1
+  # Be explicit about the default Node version for jobs that don't specify
+  ADAPT_TEST_NODE_VERSION: "10"
   # This is for certs to be shared between docker client and dind. Must match
   # a volume mount path in gitlab runner's config.toml.
   DOCKER_TLS_CERTDIR: "/certs"
+  ADAPT_BUILD_LOGDIR: build/logs
+  ADAPT_CI_REPORT: 1
 
 services:
   - name: docker:stable-dind
@@ -19,7 +23,8 @@ stages:
   - publish
 
 before_script:
-  - apk update && apk add bash git
+  - mkdir -p "$ADAPT_BUILD_LOGDIR"
+  - apk update && apk add bash git moreutils
   - ./bin/dnsmasq
   - |
     if [ "${DOCKER_AUTH_CONFIG}" = "" ]; then
@@ -27,16 +32,62 @@ before_script:
       exit 1
     fi
   - . ./bin/setup-docker-auth.sh
+  # Resource monitor logging
+  - echo "Time     CPU          Rd   Wr  Mem  eth0" > "${ADAPT_BUILD_LOGDIR}/system_resource.log"
+  - nohup nmeter "%t %c %b %[mf] %[neth0]" >> "${ADAPT_BUILD_LOGDIR}/system_resource.log" &
 
-test:
+# Job parameters common to ALL jobs
+.job_common: &job_common
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME-$CI_JOB_ID"
+    paths:
+      - "$ADAPT_BUILD_LOGDIR"
+    when: always
+    expire_in: 30 days
+
+# Primary test job
+test:10:
+  <<: *job_common
   stage: test
   only:
     - branches
     - web
+    - schedules
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
   script:
-    - ./bin/make build check-uncommitted lint web-test coverage
+    - |
+      bash -o pipefail -c './bin/make build check-uncommitted lint web-test coverage \
+        |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
+
+
+# Job definition used for testing different versions of Node
+# Must also set the ADAPT_TEST_NODE_VERSION variable to the desired Node version
+.node_version_test_job: &node_version_test_job
+  stage: test
+  only:
+    - branches
+    - web
+    - schedules
+  script:
+    - |
+      bash -o pipefail -c './bin/make test \
+        |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
+
+test:12:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+
+test:13:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "13"
 
 release:
+  <<: *job_common
   stage: release
   only:
     # Only run the release job if:
@@ -59,8 +110,11 @@ release:
       if [ -z "${ADAPT_NPM_TOKEN}" ]; then printf "\n\nERROR: ADAPT_NPM_TOKEN must be set\n\n"; exit 1; fi
     - ./scripts/ci/checkout_branch.sh
     - ./bin/make release
+  # Don't download log files from previous jobs
+  dependencies: []
 
 docs:
+  <<: *job_common
   stage: publish
   only:
     refs:
@@ -71,3 +125,5 @@ docs:
       - $ADAPT_WEB_TOKEN
   script:
     - ./bin/make web-release-master
+  # Don't download log files from previous jobs
+  dependencies: []

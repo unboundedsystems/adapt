@@ -365,8 +365,10 @@ async function stopAndRmContainer(
     try {
         await dockerRm([info.data.Id], { dockerHost: props.dockerHost });
     } catch (err) {
+        const message = err.message || "";
+        if (/already in progress/.test(message)) return;
         // If autoRemove is set, container may not exist
-        if (err.message && /No such container/.test(err.message)) return;
+        if (/No such container/.test(message)) return;
         throw err;
     }
 }

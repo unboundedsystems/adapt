@@ -69,7 +69,7 @@ const {
 
 // tslint:disable-next-line:no-var-requires
 const awsMock = require("aws-sdk-mock");
-import AWS = require("aws-sdk");
+import AWS from "../../src/aws/aws-sdk";
 
 class Extra extends PrimitiveComponent {
 }

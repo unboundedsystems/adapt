@@ -21,7 +21,7 @@ import {
     isMountedElement,
 } from "@adpt/core";
 import { sha256hex } from "@adpt/utils";
-import AWS from "aws-sdk";
+import AWS from "./aws-sdk";
 
 import { CFResourceProps, isCFResourcePrimitiveElement } from "./CFResource";
 

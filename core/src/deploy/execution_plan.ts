@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { ensureError, formatUserError, notNull, sleep, toArray, UserError } from "@adpt/utils";
+import { ensureError, formatUserError, MultiError, notNull, sleep, toArray, UserError } from "@adpt/utils";
 import AsyncLock from "async-lock";
 import db from "debug";
 import { alg, Graph } from "graphlib";
@@ -675,6 +675,7 @@ export async function executePass(opts: ExecutePassOptions) {
     const queue = new PQueue({ concurrency: opts.concurrency });
     let stopExecuting = false;
     const dwQueue = new DeployedWhenQueue(debugExecDetailId);
+    const fatalErrors: Error[] = [];
 
     // If an action is on behalf of some Elements, those nodes take on
     // the status of the action in certain cases.
@@ -698,7 +699,12 @@ export async function executePass(opts: ExecutePassOptions) {
         plan.predecessors(n).forEach(queueRun);
     };
 
-    const queueRun = (n: EPNode) => queue.add(() => run(n));
+    const fatalError = (err: any) => {
+        stopExecuting = true;
+        fatalErrors.push(ensureError(err));
+    };
+
+    const queueRun = (n: EPNode) => queue.add(() => run(n)).catch(fatalError);
 
     const run = async (n: EPNode) => {
         const id = plan.getId(n);
@@ -877,9 +883,11 @@ export async function executePass(opts: ExecutePassOptions) {
         await pIdle;
 
     } catch (err) {
-        stopExecuting = true;
-        throw err;
+        fatalError(err);
     }
+
+    if (fatalErrors.length > 1) throw new MultiError(fatalErrors);
+    else if (fatalErrors.length === 1) throw fatalErrors[0];
 }
 
 function shouldNotifyActingFor(status: DeployStatusExt) {

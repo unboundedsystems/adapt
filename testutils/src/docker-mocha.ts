@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+import { onExit } from "@adpt/utils";
 import Docker = require("dockerode");
 import { merge } from "lodash";
 import moment from "moment";
-import graceful from "node-graceful";
 import { addToNetwork, createNetwork, dockerPull } from "./dockerutils";
 
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
@@ -158,7 +158,7 @@ class DockerFixtureImpl implements DockerFixture {
 
     onStop(fn: StopFunc) {
         if (!this.removeOnStop) {
-            this.removeOnStop = graceful.on("exit", () => this.stop(), true);
+            this.removeOnStop = onExit(() => this.stop());
         }
         this.stops.push(fn);
     }

@@ -4,11 +4,12 @@ title: "Installing & Updating Requirements for Adapt"
 ---
 <!-- DOCTOC SKIP -->
 
-## NodeJS 10 with npm
+## NodeJS with npm
 
-You'll need to have [NodeJS](https://nodejs.org) version 10 or greater installed. Version 10 is the current stable (LTS) version of NodeJS. Primary testing of Adapt is currently on v10, so there may be issues with v11+. 
+You'll need to have [NodeJS](https://nodejs.org) installed.
+Adapt requires at least NodeJS version 10 and is currently tested on NodeJS versions 10 (LTS), 12 (LTS), and 13.
 
-The default version of NodeJS that is installed by your system's package manager (apt, yum, etc.) is often an older version of NodeJS.
+Note that the default version of NodeJS that is installed by your system's package manager (apt, yum, etc.) may be an older version of NodeJS.
 
 To check your currently installed version of NodeJS:
 ```console
@@ -47,21 +48,3 @@ You should see output similar to:
 ```console
 v10.15.1
 ```
-
-## Yarn
-
-If you already have NodeJS and NPM installed, the easiest way to install the [yarn package manager](https://yarnpkg.com) is:
-```console
-npm install -g yarn
-```
-
-To verify:
-```console
-yarn --version
-```
-You should see output similar to:
-```console
-1.13.0
-```
-
-For more installation and upgrade options, see [the yarn installation instructions](https://yarnpkg.com/en/docs/install).
