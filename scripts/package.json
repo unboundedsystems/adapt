@@ -1,6 +1,6 @@
 {
     "name": "@adpt/scripts",
-    "version": "0.2.0-next.1",
+    "version": "0.2.0-next.2",
     "description": "AdaptJS build and release scripts",
     "private": true,
     "license": "Apache-2.0",
@@ -23,7 +23,7 @@
         "url": "https://gitlab.com/unboundedsystems/adapt/issues"
     },
     "dependencies": {
-        "@adpt/utils": "0.2.0-next.1",
+        "@adpt/utils": "0.2.0-next.2",
         "commander": "^3.0.0",
         "copyright-header": "^0.4.6",
         "debug": "^4.1.1",
@@ -33,7 +33,7 @@
         "lerna": "^3.16.4"
     },
     "devDependencies": {
-        "@adpt/testutils": "0.2.0-next.1",
+        "@adpt/testutils": "0.2.0-next.2",
         "mocha": "^5.2.0",
         "should": "^13.2.3",
         "source-map-support": "^0.5.13"
