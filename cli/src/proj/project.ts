@@ -78,7 +78,6 @@ function yarnInstallOptions(projOpts: ProjectOptionsComplete, tmpModules?: strin
     return {
         ...yOpts,
         production: true,
-        preferOffline: true,
     };
 }
 
