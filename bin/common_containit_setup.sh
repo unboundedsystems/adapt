@@ -52,6 +52,9 @@ fi
 # Don't print annoying npm upgrade warning
 DOCKER_ARGS+=" -eNO_UPDATE_NOTIFIER=1"
 
+# Don't use ts-node when running cli
+DOCKER_ARGS+=" -eOCLIF_TS_NODE=0"
+
 DOCKER_ARGS+=" -v/var/run/docker.sock:/var/run/docker.sock"
 
 # Export Docker auth into child containers, either via env or file

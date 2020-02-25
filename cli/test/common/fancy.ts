@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -136,12 +136,60 @@ function withSshKey(options: SshKeyOpts = {}) {
     };
 }
 
-export const clitest =
+export interface XdgDirsOpts {
+    /** Use this directory as the parent of all XDG_xx_HOME directories */
+    root?: string;
+}
+
+function xdgDirs(options: XdgDirsOpts = {}) {
+    let remove: MkdtmpPromise["remove"] | undefined;
+    let envCtx: any;
+
+    return {
+        async run(_ctx: Context) {
+            let dir;
+            if (options.root) dir = options.root;
+            else {
+                const dirP = mkdtmp("adapt-cli-xdgdirs");
+                remove = dirP.remove;
+                dir = await dirP;
+            }
+
+            envCtx = fancyEnv({
+                XDG_CONFIG_HOME: path.join(dir, ".config"),
+                XDG_DATA_HOME: path.join(dir, ".data"),
+                XDG_CACHE_HOME: path.join(dir, ".cache"),
+            });
+            envCtx.run();
+        },
+
+        async finally(_ctx: Context) {
+            if (remove) await remove();
+            if (envCtx) envCtx.finally();
+        }
+    };
+}
+
+/**
+ * Fancy test chain where the XDG_xxx_HOME env variables are not set
+ */
+export const clitestBase =
     oclifTest
     .register("delayedenv", delayedenv)
     .register("delayedcommand", delayedcommand)
     .register("onerror", onerror)
-    .register("withSshKey", withSshKey);
+    .register("withSshKey", withSshKey)
+    .register("xdgdirs", xdgDirs);
+
+/**
+ * Fancy test chain with common setup:
+ * - XDG_xxx_HOME env variables set to a new unique temp dir
+ * - ADAPT_CONFIG_UPGRADECHECK set to false
+ */
+export const clitest =
+    clitestBase
+    .xdgdirs()
+    .env({ ADAPT_CONFIG_UPGRADECHECK: "false" });
 
 export {
     EnvOptions,

@@ -24,26 +24,47 @@ export interface UserAgentOptions {
 }
 
 export async function userAgent(options: UserAgentOptions) {
-    const { name, version } = options;
-    let ua = `${name}/${version} (${os.type()}/${os.release()}; ${os.arch()}) Node/${process.version}`;
-    if (options.docker) {
-        const docker = await dockerVersion();
-        if (docker) ua += ` ${docker}`;
-    }
-    return ua;
+    const items = [
+        format(options.name, options.version),
+        format(os.type(), `${os.release()}-${os.arch()}`),
+        format("Node", process.version),
+    ];
+
+    const dev = await devInfo();
+    if (dev) items.push(format("Dev", dev));
+
+    const docker = options.docker && await dockerInfo();
+    if (docker) items.push(format("Docker", docker));
+
+    return items.join(" ");
 }
 
-async function dockerVersion() {
+function format(name: string, info?: string) {
+    name = name.replace(/\//g, "-");
+    if (!info) return name;
+    info = info.replace(/ /g, "_");
+    return `${name}/${info}`;
+}
+
+async function dockerInfo() {
     try {
         const result = await execa("docker", [ "version", "-f", "{{json .}}" ],
             { reject: false });
         const versions = JSON.parse(result.stdout);
         const client = versions.Client.Version;
         const server = versions.Server && versions.Server.Version;
-        let ret = `Docker/${client}`;
-        if (server) ret += `+${server}`;
-        return ret;
-    } catch (e) {
+        if (!server) return client;
+        return `${client}+${server}`;
+    } catch (_) {
+        return "";
+    }
+}
+
+async function devInfo() {
+    try {
+        await execa("git", [ "rev-parse", "--git-dir" ], { cwd: __dirname });
+        return "true";
+    } catch (_) {
         return "";
     }
 }
