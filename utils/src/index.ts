@@ -27,6 +27,7 @@ export * from "./in_debugger";
 export * from "./internal_error";
 export * from "./is_instance";
 export * from "./is_object";
+export * from "./json5";
 export * from "./map_map";
 export * from "./message";
 export * from "./mkdtmp";
