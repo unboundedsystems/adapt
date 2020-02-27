@@ -42,6 +42,7 @@ export * from "./sleep";
 export * from "./to_array";
 export * from "./ttylog";
 export * from "./type_check";
+export * from "./user_agent";
 export * from "./user_error";
 export * from "./wait_for";
 
