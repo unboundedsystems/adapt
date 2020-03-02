@@ -24,6 +24,7 @@ export * from "./env";
 export * from "./exit";
 export * from "./grep";
 export * from "./in_debugger";
+export * from "./install_type";
 export * from "./internal_error";
 export * from "./is_instance";
 export * from "./is_object";
