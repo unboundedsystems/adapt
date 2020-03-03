@@ -17,12 +17,23 @@ endif
 
 LONG_TESTS:=$(call to_bool,$(ADAPT_RUN_LONG_TESTS))
 ifeq ($(LONG_TESTS),true)
-# For debugging, use the following command instead:
-#CLITEST:=NPM_CONFIG_REGISTRY=$(DOCS_REGISTRY) DEBUG=clitest:output,clitest:commands markdown-clitest --no-cleanup
-CLITEST:=NPM_CONFIG_REGISTRY=$(DOCS_REGISTRY) markdown-clitest
+define CLITEST
+NPM_CONFIG_REGISTRY=$(DOCS_REGISTRY) \
+ADAPT_TMPDIR=$$(mktemp -d adapt-doc-XXXX --tmpdir) \
+PREFIX=$${ADAPT_TMPDIR} \
+PATH="$${PREFIX}/bin:$(PATH)" \
+XDG_CONFIG_HOME=$${ADAPT_TMPDIR}/.config \
+XDG_DATA_DIR=$${ADAPT_TMPDIR}/.data \
+XDG_CACHE_DIR=$${ADAPT_TMPDIR}/.cache \
+markdown-clitest
+endef
+# For debugging, copy the following two lines into CLITEST above
+#DEBUG=clitest:output,clitest:commands
+#markdown-clitest --no-cleanup
+
 LT_TOUCH:=touch
 else
-CLITEST:=echo "Skipping test of"
+CLITEST:=@echo "Skipping test of"
 LT_TOUCH:=@echo "Skipping touch"
 endif
 
@@ -61,7 +72,7 @@ GS_FILES := $(shell find getting_started -type f -regex '.*\.md')
 # The GSG does a global NPM install. In order to not ACTUALLY do a global
 # install, create a temp directory and set PREFIX so npm installs there.
 getting_started/.test-success: $(GS_FILES)
-	PREFIX=$$(mktemp -d adapt-doc-gsg-XXXX --tmpdir) PATH="$${PREFIX}/bin:$(PATH)" $(CLITEST) getting_started
+	$(CLITEST) getting_started
 	$(LT_TOUCH) $@
 
 CONCEPTS_FILES := $(shell find tutorial_concepts -type f -regex '.*\.md')
