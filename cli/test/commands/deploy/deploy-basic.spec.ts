@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1039,20 +1039,20 @@ const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
 describe("deploy:update and deploy:status tests", function () {
     this.slow(5 * 1000);
-    this.timeout(10 * 1000);
+    this.timeout(20 * 1000);
     let deployID = "NOTFOUND";
 
     // These tests must all use a single temp directory where the
     // state_history can be shared and built upon
     mochaTmpdir.all("adapt-cli-test-deploy");
 
-    before(async () => {
+    before(async function () {
+        this.timeout(5 * 1000);
         const indexTsx = stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })");
         await createProject(basicPackageJson, indexTsx, "index.tsx");
     });
 
     stateIncrementTestChain
-    .timeout(20 * 1000)
     .do(async () => fs.outputFile("index.tsx",
         stateUpdateIndexTsx("{count: 1}", "(_prev, _props) => ({ count: 1 })")))
     .command(["deploy:run", "dev"])
