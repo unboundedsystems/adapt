@@ -29,6 +29,7 @@ import * as localRegistry from "./local-registry";
 import * as localRegistryDefaults from "./local-registry-defaults";
 import * as minikube from "./minikube";
 import * as minikubeMocha from "./minikube-mocha";
+import * as mochaExpress from "./mocha-express";
 import * as mochaLocalRegistry from "./mocha-local-registry";
 import * as mochaTmpdir from "./mocha-tmpdir";
 
@@ -42,6 +43,7 @@ export {
     localRegistryDefaults,
     minikube,
     minikubeMocha,
+    mochaExpress,
     mochaLocalRegistry,
     mochaTmpdir,
 };

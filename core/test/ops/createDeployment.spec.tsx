@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -269,14 +269,16 @@ describe("createDeployment Tests", async function () {
         return server_;
     }
 
-    this.timeout(20 * 1000);
+    const baseTimeout = 20 * 1000; // To do a single create
+    const opTimeout = 10 * 1000;   // Additional ops like status or update
+    this.timeout(baseTimeout);
 
     tmpdir.all("adapt-createDeployment");
     const localRegistry = mochaLocalRegistry.all({
         port: "shared",
     });
 
-    before(async () => {
+    before(async function () {
         this.timeout(30 * 1000);
         origServerTypes = mockServerTypes_();
         mockServerTypes_([LocalServer]);
@@ -290,7 +292,8 @@ describe("createDeployment Tests", async function () {
     beforeEach(() => {
         client = createMockLoggerClient();
     });
-    afterEach(async () => {
+    afterEach(async function () {
+        this.timeout(10 * 1000);
         const s = await server();
         let list = await listDeploymentIDs(s);
         for (const id of list) {
@@ -444,7 +447,8 @@ describe("createDeployment Tests", async function () {
         ], [], true);
     });
 
-    it("Should report status", async () => {
+    it("Should report status", async function () {
+        this.timeout(baseTimeout + opTimeout);
         const ds = await createSuccess("default");
 
         should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
@@ -469,7 +473,8 @@ describe("createDeployment Tests", async function () {
         should(dsStatus.mountedOrigStatus).eql({ status: "Here I am!" });
     });
 
-    it("Should deploy and update a stack with null root", async () => {
+    it("Should deploy and update a stack with null root", async function () {
+        this.timeout(baseTimeout + opTimeout);
         const ds1 = await createSuccess("null");
 
         should(ds1.summary.error).equal(0);
@@ -522,7 +527,8 @@ describe("createDeployment Tests", async function () {
 
     });
 
-    it("Should deploy and update a stack with observer", async () => {
+    it("Should deploy and update a stack with observer", async function () {
+        this.timeout(baseTimeout + opTimeout);
         const ds1 = await createSuccess("ObserverToSimple");
 
         should(ds1.summary.error).equal(0);
