@@ -139,3 +139,11 @@ export function config(): Promise<CliConfig> {
     if (!pConfig) pConfig = pDefer();
     return pConfig.promise;
 }
+
+/**
+ * Exported for testing only
+ * @internal
+ */
+export function _resetConfig() {
+    pConfig = undefined;
+}
