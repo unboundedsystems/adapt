@@ -55,6 +55,12 @@ export const userConfigSchema = {
         default: "7 days",
         asType: "duration" as const,
     },
+
+    upgradeIgnore: {
+        description: "Do not display upgrade reminders for this Adapt version",
+        default: "",
+        asType: "string" as const,
+    },
 };
 
 export type UserConfigSchema = typeof userConfigSchema;

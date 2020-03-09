@@ -44,6 +44,8 @@ export interface UpgradeCheckerConfig {
     upgradeCheckUrl: string;
     /** Interval in milliseconds */
     upgradeRemindInterval: number;
+    /** Don't remind about this version */
+    upgradeIgnore: string;
 }
 
 const checkerDefaults = {
@@ -90,9 +92,11 @@ export class UpgradeChecker {
         const summary = upgradeInfo && upgradeInfo.summary;
         const latestIsNewer = latest && semver.gt(latest, current);
         const now = remindNow(this.state.get("lastUpgradeReminder"), this.config.upgradeRemindInterval);
+        const ignoreVer = this.config.upgradeIgnore;
 
-        if (!process.stdout.isTTY || !latest || !latestIsNewer || !now) {
-            debug(`Not notifying: tty=${process.stdout.isTTY} current=${current} latest=${latest} now=${now}`);
+        if (!process.stdout.isTTY || !latest || !latestIsNewer || !now || latest === ignoreVer) {
+            debug(`Not notifying: tty=${process.stdout.isTTY} ` +
+                `current=${current} latest=${latest} now=${now} ignoreVer=${ignoreVer}`);
             return undefined;
         }
 
@@ -110,11 +114,15 @@ export class UpgradeChecker {
         }
 
         cmd += ` ${pkg}@${latest}`;
+        let ignore = "Ignore:";
+        let ignoreCmd = `adapt config:set upgradeIgnore ${latest}`;
 
         if (options.fancy) {
             current = chalk.dim(current);
             latest = chalk.greenBright(latest);
             cmd = chalk.bold.cyanBright(cmd);
+            ignore = chalk.dim(ignore);
+            ignoreCmd = chalk.cyan(ignoreCmd);
         }
 
         let output = `Upgrade available: ${current} → ${latest}\n`;
@@ -131,7 +139,9 @@ export class UpgradeChecker {
             }
         }
 
-        output += `\nTo upgrade: ${cmd}`;
+        output +=
+            `\nUpgrade: ${cmd}\n` +
+            `${ignore}  ${ignoreCmd}`;
 
         if (options.fancy) {
             output = boxen(output, {
