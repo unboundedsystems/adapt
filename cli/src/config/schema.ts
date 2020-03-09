@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { InternalError } from "@adpt/utils";
 import { CustomError } from "ts-custom-error";
 import {
     TBoolean,
@@ -25,7 +26,13 @@ import {
 // tslint:disable-next-line: no-var-requires
 const parseDuration = require("parse-duration");
 
-export class InvalidValue extends CustomError { }
+class InvalidValue extends CustomError { }
+
+export class SchemaValidationError extends CustomError {
+    constructor(public prop: string, public expectedType: string, public actualType: string) {
+        super(`Validation failed for property '${prop}'. Expected type '${expectedType}'.`);
+    }
+}
 
 function validateBoolean(val: any): ValTypeOutput<"boolean"> {
     switch (typeof val) {
@@ -72,13 +79,37 @@ function validateString(val: any): ValTypeOutput<"string"> {
     }
 }
 
+function storeInput<In = any, Out = In>(_vtEntry: ValTypeInfoEntry<In, Out, In>, orig: In): In {
+    return orig;
+}
+
+function storeOutput<In = any, Out = In>(vtEntry: ValTypeInfoEntry<In, Out, Out>, orig: In): Out {
+    return vtEntry.validator(orig);
+}
+
 /**
  * The structure for how we parse and validate a type.
  */
-export interface ValTypeInfoEntry<In = any, Out = In> {
+export interface ValTypeInfoEntry<In = any, Out = In, Store = Out> {
+    /**
+     * TypeScript types that are valid as input.
+     */
     inputType: In;
+    /**
+     * Normalized type that results from parsing, transformation, and
+     * validation.
+     */
     outputType: Out;
+    /**
+     * Parses, normalizes, transforms, and validates input, returning the
+     * correct output type. Throws InvalidType upon parse or validate error.
+     */
     validator: (val: any) => Out;
+    /**
+     * Transforms the original input value into the preferred format for
+     * storing this type. Storage type can be any type representable in JSON.
+     */
+    storeFormat: (vtEntry: ValTypeInfoEntry<In, Out, Store>, orig: In) => Store;
 }
 
 /**
@@ -89,18 +120,21 @@ export const valTypeInfo = {
         inputType: TBoolean,
         outputType: TBoolean,
         validator: validateBoolean,
+        storeFormat: storeOutput,
     },
 
     duration: {
         inputType: TDuration,
         outputType: TNumber,
         validator: validateDuration,
+        storeFormat: storeInput, // Save in whatever format was input
     },
 
     string: {
         inputType: TString,
         outputType: TString,
         validator: validateString,
+        storeFormat: storeInput,
     },
 };
 export type ValTypeInfo = typeof valTypeInfo;
@@ -127,3 +161,27 @@ export type SchemaOutputType<S extends Schema> = {
 
 export type ValTypeInput<VT extends ValType> = ValTypeInfo[VT]["inputType"];
 export type ValTypeOutput<VT extends ValType> = ValTypeInfo[VT]["outputType"];
+
+export function parseItem<S extends Schema, Prop extends keyof S>(
+    prop: Prop, val: any, schema: S) {
+
+    if (!(prop in schema)) throw new Error(`Property '${prop}' is not a valid property name`);
+    const asType = schema[prop].asType;
+    const vti = valTypeInfo[asType];
+    if (!vti) throw new InternalError(`Unhandled type '${asType}' in config schema`);
+    const { storeFormat, validator } = vti;
+
+    try {
+        const parsed = validator(val);
+        const store = storeFormat(vti, val);
+        return {
+            parsed,
+            store,
+        };
+
+    } catch (err) {
+        if (err.name !== "InvalidValue") throw err;
+
+        throw new SchemaValidationError(prop.toString(), asType, typeof val);
+    }
+}

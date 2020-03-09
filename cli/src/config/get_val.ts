@@ -15,7 +15,7 @@
  */
 
 import { AnyObject, UserError } from "@adpt/utils";
-import { Schema, valTypeInfo, ValTypeOutput } from "./schema";
+import { parseItem, Schema, SchemaValidationError, ValTypeOutput } from "./schema";
 
 export interface GetValOptions {
     /**
@@ -49,16 +49,13 @@ export function getValIfSet<S extends Schema, Prop extends keyof S>(
         val = schema[prop].default;
     }
 
-    const asType = schema[prop].asType;
-    const validator = valTypeInfo[asType].validator;
-    if (!validator) throw new Error(`Unhandled type '${asType}' in getValIfSet`);
-
     try {
-        return validator(val);
-    } catch (err) {
-        if (err.name !== "InvalidValue") throw err;
+        return parseItem(prop, val, schema).parsed;
 
-        throw new UserError(`Error in configuration: expected type ${asType} ` +
+    } catch (err) {
+        if (err.name !== SchemaValidationError.name) throw err;
+
+        throw new UserError(`Error in configuration: expected type ${err.expectedType} ` +
             `for property '${objKey}' but got '${val}' (type ${typeof val})`);
     }
 }

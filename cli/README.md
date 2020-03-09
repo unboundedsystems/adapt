@@ -95,6 +95,7 @@ If you've found a bug, you can also [file an issue](https://gitlab.com/unbounded
 ## Command Reference
 <!-- commands -->
 * [`adapt autocomplete [SHELL]`](#adapt-autocomplete-shell)
+* [`adapt config:set NAME VALUE`](#adapt-configset-name-value)
 * [`adapt deploy:destroy DEPLOYID`](#adapt-deploydestroy-deployid)
 * [`adapt deploy:list`](#adapt-deploylist)
 * [`adapt deploy:run [STACKNAME]`](#adapt-deployrun-stackname)
@@ -125,6 +126,30 @@ EXAMPLES
 ```
 
 _See code: [@unboundedsystems/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v0.1.0-unb2/src/commands/autocomplete/index.ts)_
+
+## `adapt config:set NAME VALUE`
+
+Modify Adapt configuration settings
+
+```
+USAGE
+  $ adapt config:set NAME VALUE
+
+ARGUMENTS
+  NAME   The name of the configuration item to be modified
+         (not case-sensitive)
+
+  VALUE  The value to assign to the configuration item
+
+OPTIONS
+  -q, --quiet  Suppress status output messages. Still outputs any result output.
+
+EXAMPLE
+  Change the upgrade check notification to use the "next" channel:
+       $ adapt config:set upgradeChannel next
+```
+
+_See code: [dist/src/commands/config/set.js](https://github.com/unboundedsystems/adapt/blob/v0.2.0-next.4/dist/src/commands/config/set.js)_
 
 ## `adapt deploy:destroy DEPLOYID`
 

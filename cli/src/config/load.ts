@@ -14,23 +14,36 @@
  * limitations under the License.
  */
 
-import { UserError } from "@adpt/utils";
+import {
+    AnyObject,
+    ensureError,
+    isObject,
+    JsonValue,
+    parseJson5,
+    readJson5,
+    stringifyJson5,
+    UserError,
+} from "@adpt/utils";
 import { IConfig } from "@oclif/config";
 import Conf from "conf";
 import db from "debug";
 import fs from "fs-extra";
-import json5 from "json5";
 import pDefer from "p-defer";
 import path from "path";
-import { CliConfig, CliState, cliStateDefaults, UserConfigParsed, userConfigSchema, UserConfigSchema } from "./config";
+import {
+    CliConfig,
+    CliState,
+    cliStateDefaults,
+    UserConfigParsed,
+    userConfigProps,
+    userConfigSchema,
+} from "./config";
 import { getValIfSet } from "./get_val";
 
 // tslint:disable-next-line: no-var-requires
 const pjson = require("../../../package.json");
 
 const debug = db("adapt:config");
-
-const userConfigProps = Object.keys(userConfigSchema) as (keyof UserConfigSchema)[];
 
 const envPrefix = "ADAPT_CONFIG_";
 const defaultConfigFilenames = [
@@ -40,43 +53,50 @@ const defaultConfigFilenames = [
 
 let pConfig: pDefer.DeferredPromise<CliConfig> | undefined;
 
-async function readUserConfigFile(pkgConfig: IConfig): Promise<any> {
-    let confContents: string | undefined;
-    let confFileName: string | undefined;
-
+export async function findUserConfigFile(pkgConfig: IConfig): Promise<string> {
     for (const fn of defaultConfigFilenames) {
         const filename = path.join(pkgConfig.configDir, fn);
-        confFileName = filename;
-        try {
-            confContents = (await fs.readFile(filename)).toString();
-            break;
-        } catch (err) {
-            if (err && err.code === "ENOENT") continue;
-            let msg = `Error reading config file '${confFileName}': `;
-            if (err && err.message) msg += err.message;
-            else msg += "Unknown error - " + err.toString();
-            throw new UserError(msg);
-        }
+        if (await fs.pathExists(filename)) return filename;
     }
-    if (!confContents) return {};
+    return path.join(pkgConfig.configDir, defaultConfigFilenames[0]);
+}
 
+async function readUserConfigFile(userConfigFile: string): Promise<AnyObject> {
     try {
-        return json5.parse(confContents);
-    } catch (err) {
-        let msg = `Error parsing config file '${confFileName}': `;
-        if (err && err.message) {
-            msg += err.message.replace("JSON5: ", "");
-        } else {
-            msg += "Unknown error - " + err.toString();
+        const val: JsonValue = await readJson5(userConfigFile);
+        if (val == null || !isObject(val) || Array.isArray(val)) {
+            throw new Error(`Does not contain a single object in ` +
+                `JSON/JSON5 format (actual type=${typeof val})`);
         }
-        throw new UserError(msg);
+        return val;
+
+    } catch (err) {
+        if (err && err.code === "ENOENT") return {}; // Empty config
+        return throwConfigFileError(userConfigFile, err);
     }
+}
+
+export function throwConfigFileError(userConfigFile: string, err: any, info = ""): never  {
+    err = ensureError(err);
+    if (info) info = ` ${info}`;
+    let msg = `Config file '${userConfigFile}'${info}: `;
+    switch (err.code) {
+        case "ENOENT": msg += "File not found"; break;
+        case "EACCES": msg += "Permission denied"; break;
+        default:
+            if (err.message) {
+                msg += err.message.replace(/^Error: /, "");
+            } else {
+                msg += "Unknown error - " + err.toString();
+            }
+    }
+    throw new UserError(msg);
 }
 
 const envVarPropTransform = (prop: string) => envPrefix + prop.toUpperCase();
 
-async function loadUserConfig(pkgConfig: IConfig): Promise<UserConfigParsed> {
-    const rawConf = await readUserConfigFile(pkgConfig);
+async function loadUserConfig(userConfigFile: string): Promise<UserConfigParsed> {
+    const rawConf = await readUserConfigFile(userConfigFile);
     const conf: any = {};
     const env = process.env;
 
@@ -111,8 +131,8 @@ export function createState(configDir: string, versionCheck = true): Conf<CliSta
         cwd: configDir,
         defaults: cliStateDefaults,
 
-        deserialize: json5.parse,
-        serialize: (val) => json5.stringify(val, { space: 2 }) + "\n",
+        deserialize: parseJson5,
+        serialize: (val) => stringifyJson5(val, { space: 2 }) + "\n",
     });
     if (versionCheck && state.get("version") !== pjson.version) {
         state.set({
@@ -124,7 +144,8 @@ export function createState(configDir: string, versionCheck = true): Conf<CliSta
 }
 
 export async function createConfig(pkgConfig: IConfig) {
-    const user = await loadUserConfig(pkgConfig);
+    const userConfigFile = await findUserConfigFile(pkgConfig);
+    const user = await loadUserConfig(userConfigFile);
     const state = createState(pkgConfig.configDir);
 
     if (!pConfig) pConfig = pDefer();
@@ -132,6 +153,7 @@ export async function createConfig(pkgConfig: IConfig) {
         state,
         package: pkgConfig,
         user,
+        userConfigFile,
     });
 }
 

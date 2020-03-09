@@ -17,7 +17,7 @@
 import { IConfig } from "@oclif/config";
 import Conf from "conf";
 import { VersionSummaryEntry } from "../upgrade/versions";
-import { SchemaInputType, SchemaOutputType } from "./schema";
+import { parseItem, SchemaInputType, SchemaOutputType } from "./schema";
 
 // tslint:disable-next-line: no-var-requires
 const pjson = require("../../../package.json");
@@ -60,6 +60,18 @@ export const userConfigSchema = {
 export type UserConfigSchema = typeof userConfigSchema;
 
 /**
+ * Array of the valid configuration properties (keys).
+ */
+export const userConfigProps = Object.keys(userConfigSchema) as (keyof UserConfigSchema)[];
+
+/**
+ * Map for finding the correct case-sensitive config property from the
+ * lower case version.
+ */
+const userConfigLookup = new Map<string, keyof UserConfigSchema>(
+    userConfigProps.map((prop) => [ prop.toLowerCase(), prop ]));
+
+/**
  * Defines what is accepted as input types for the user config.
  */
 export type UserConfig = SchemaInputType<UserConfigSchema>;
@@ -96,6 +108,16 @@ export const cliStateDefaults = {
 
 export interface CliConfig {
     user: UserConfigParsed;
+    userConfigFile: string;
     package: IConfig;
     state: Conf<CliState>;
+}
+
+export function lookupConfigProperty(name: string) {
+    return userConfigLookup.get(name.toLowerCase());
+}
+
+export function parseConfigItemString<P extends keyof UserConfigSchema>(
+    prop: P, val: string) {
+    return parseItem(prop, val, userConfigSchema);
 }

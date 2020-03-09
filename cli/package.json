@@ -151,6 +151,9 @@
       "@unboundedsystems/plugin-help"
     ],
     "topics": {
+      "config": {
+        "description": "Manage configuration settings for Adapt"
+      },
       "deploy": {
         "description": "Manage deployments of Adapt projects"
       },
