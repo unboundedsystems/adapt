@@ -20,7 +20,7 @@
 const { isObject } = require("@adpt/utils");
 const S3 = require('aws-sdk/clients/s3');
 const chalk = require("chalk").default;
-const program = require("commander");
+const { Command } = require("commander");
 const diff = require("diff");
 const indent = require("indent-string");
 const { cloneDeep, isEqual } = require("lodash");
@@ -32,27 +32,50 @@ const s3 = new S3({ region: 'us-west-2' });
 const defaultBucket = "adapt-public";
 const defaultKey = "upgrade-check.json";
 
+// From semver.org
+const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
+
+
+Command.prototype.globalArgs = function globalArgs() {
+    this.option("--bucket <bucket>", "Name of the bucket where the JSON file is located", defaultBucket)
+    this.option("--key <key>", "Key where the JSON file is located", defaultKey)
+    return this;
+}
+
+const program = new Command();
+
 program
     .command("add <version>")
     .description("Add a new version to upgrade-check.json")
-    .option("--bucket <bucket>", "Name of the bucket where the JSON file is located", defaultBucket)
+    .globalArgs()
     .option("--comment <comment>", "A comment to store with this update")
     .option("--current", "Set this version to be the most current version for the channel")
     .option("--desc <description>", "Description text for this version")
     .option("--init", "Initializes a new S3 object and adds the version")
-    .option("--key <key>", "Key where the JSON file is located", defaultKey)
     .option("--securityFixes", "Mark this version as containing security fixes")
     .action(cliHandler(commandAdd));
 
 program
+    .command("delete <version>")
+    .description("Delete a version from upgrade-check.json")
+    .globalArgs()
+    .option("--comment <comment>", "A comment to store with this update")
+    .action(cliHandler(commandDelete));
+
+program
+    .command("show")
+    .description("Show information from the upgrade check file")
+    .globalArgs()
+    .action(cliHandler(commandShow));
+
+program
     .command("update <version>")
     .description("Update a version in upgrade-check.json")
-    .option("--bucket <bucket>", "Name of the bucket where the JSON file is located", defaultBucket)
+    .globalArgs()
     .option("--comment <comment>", "A comment to store with this update")
     .option("--current", "Set this version to be the most current version for the channel")
     .option("--desc <description>", "Description text for this version")
     .option("--no-desc", "Remove description text for this version")
-    .option("--key <key>", "Key where the JSON file is located", defaultKey)
     .option("--securityFixes", "Mark this version as containing security fixes")
     .option("--no-securityFixes", "Remove the security fixes flag on this version")
     .action(cliHandler(commandUpdate));
@@ -60,8 +83,7 @@ program
 program
     .command("history")
     .description("Show version history")
-    .option("--bucket <bucket>", "Name of the bucket where the JSON file is located", defaultBucket)
-    .option("--key <key>", "Key where the JSON file is located", defaultKey)
+    .globalArgs()
     .action(cliHandler(commandHistory));
 
 
@@ -70,8 +92,16 @@ program.on("command:*", () => {
     program.help(); // Exits
 });
 
+function validateVersion(version) {
+    if (!semverRegex.test(version)) {
+        throw new Error(`Invalid semver version '${version}'`);
+    }
+}
+
 async function commandAdd(version, cmd) {
     const { bucket, comment, current, desc, init, key, securityFixes } = cmd.opts();
+    validateVersion(version);
+
     const channel = versionChannel(version);
     let orig;
 
@@ -105,8 +135,67 @@ async function commandAdd(version, cmd) {
     console.log("Complete");
 }
 
+async function commandDelete(version, cmd) {
+    const { bucket, comment, key } = cmd.opts();
+    validateVersion(version);
+
+    const channel = versionChannel(version);
+    let orig;
+
+    orig = await loadUpgradeCheck(bucket, key);
+
+    if (orig.channelCurrent[channel] === version) {
+        throw new Error(
+            `Cannot delete the current version for channel '${channel}'.\n` +
+            `Change the current version for the channel before deleting ` +
+            `this version`);
+    }
+
+    if (!orig.versions[version]) {
+        throw new Error(`Version ${version} not found`);
+    }
+
+    const updated = cloneDeep(orig);
+
+    delete updated.versions[version];
+
+    if (isEqual(orig, updated)) {
+        console.log(`No changes required`);
+        return;
+    }
+
+    console.log(`Deleting version:\n${diffObjects(orig, updated)}`);
+
+    await storeUpgradeCheck(bucket, key, updated, comment || `Deleted version ${version}`);
+    console.log("Complete");
+}
+
+async function commandHistory(cmd) {
+    const { bucket, key } = cmd.opts();
+    const resp = await s3.listObjectVersions({ Bucket: bucket, Prefix: key }).promise();
+
+    console.log(`#   Modified            Version ID                       Comment`);
+    let n = resp.Versions.length - 1;
+    for (const ver of resp.Versions) {
+        const { LastModified, VersionId } = ver;
+        const obj = await s3.getObject({ Bucket: bucket, Key: key, VersionId }).promise();
+        const comment = obj.Metadata["version-comment"] || "";
+        console.log(`%s %s %s %s`, n.toString().padEnd(3),
+            dateString(LastModified), VersionId, comment);
+        n--;
+    }
+}
+
+async function commandShow(cmd) {
+    const { bucket, key } = cmd.opts();
+    const current = await loadUpgradeCheck(bucket, key);
+    console.log(current);
+}
+
 async function commandUpdate(version, cmd) {
     const { bucket, comment, current, desc, key, securityFixes } = cmd.opts();
+    validateVersion(version);
+
     const channel = versionChannel(version);
     let orig;
 
@@ -144,20 +233,6 @@ function dateString(d) {
     const dateStrings = [ d.getMonth() + 1, d.getDate(), d.getHours(),
         d.getMinutes(), d.getSeconds() ].map(n => pad(n));
     return format("%d-%s-%s %s:%s:%s", d.getFullYear(), ...dateStrings);
-}
-
-async function commandHistory(cmd) {
-    const { bucket, key } = cmd.opts();
-    const resp = await s3.listObjectVersions({ Bucket: bucket, Prefix: key }).promise();
-
-    console.log(`#   Modified            Version ID                       Comment`);
-    for (let i = 0; i < resp.Versions.length; i++) {
-        const ver = resp.Versions[i];
-        const obj = await s3.getObject({ Bucket: bucket, Key: key }).promise();
-        const comment = obj.Metadata["version-comment"] || "";
-        console.log(`%s %s %s %s`, i.toString().padEnd(3),
-            dateString(ver.LastModified), ver.VersionId, comment);
-    }
 }
 
 function diffObjects(a, b) {
