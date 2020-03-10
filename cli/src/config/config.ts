@@ -66,15 +66,20 @@ export const userConfigSchema = {
 export type UserConfigSchema = typeof userConfigSchema;
 
 /**
+ * Union type of the valid configuration properties.
+ */
+export type UserConfigProps = keyof UserConfigSchema;
+
+/**
  * Array of the valid configuration properties (keys).
  */
-export const userConfigProps = Object.keys(userConfigSchema) as (keyof UserConfigSchema)[];
+export const userConfigProps = Object.keys(userConfigSchema) as UserConfigProps[];
 
 /**
  * Map for finding the correct case-sensitive config property from the
  * lower case version.
  */
-const userConfigLookup = new Map<string, keyof UserConfigSchema>(
+const userConfigLookup = new Map<string, UserConfigProps>(
     userConfigProps.map((prop) => [ prop.toLowerCase(), prop ]));
 
 /**
@@ -123,7 +128,7 @@ export function lookupConfigProperty(name: string) {
     return userConfigLookup.get(name.toLowerCase());
 }
 
-export function parseConfigItemString<P extends keyof UserConfigSchema>(
+export function parseConfigItemString<P extends UserConfigProps>(
     prop: P, val: string) {
     return parseItem(prop, val, userConfigSchema);
 }

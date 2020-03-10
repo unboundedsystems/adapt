@@ -95,6 +95,7 @@ If you've found a bug, you can also [file an issue](https://gitlab.com/unbounded
 ## Command Reference
 <!-- commands -->
 * [`adapt autocomplete [SHELL]`](#adapt-autocomplete-shell)
+* [`adapt config:list`](#adapt-configlist)
 * [`adapt config:set NAME VALUE`](#adapt-configset-name-value)
 * [`adapt deploy:destroy DEPLOYID`](#adapt-deploydestroy-deployid)
 * [`adapt deploy:list`](#adapt-deploylist)
@@ -126,6 +127,23 @@ EXAMPLES
 ```
 
 _See code: [@unboundedsystems/plugin-autocomplete](https://github.com/oclif/plugin-autocomplete/blob/v0.1.0-unb2/src/commands/autocomplete/index.ts)_
+
+## `adapt config:list`
+
+Shows Adapt configuration settings
+
+```
+USAGE
+  $ adapt config:list
+
+OPTIONS
+  -q, --quiet    Suppress status output messages. Still outputs any result output.
+  --all          Show all configuration items, including defaults
+  --no-truncate  do not truncate output to fit screen
+  --source       Show the source of each configuration item's value
+```
+
+_See code: [dist/src/commands/config/list.js](https://github.com/unboundedsystems/adapt/blob/v0.2.0-next.4/dist/src/commands/config/list.js)_
 
 ## `adapt config:set NAME VALUE`
 

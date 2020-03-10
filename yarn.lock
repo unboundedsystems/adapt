@@ -3492,10 +3492,10 @@ cli-ux@^4.4.0:
     treeify "^1.1.0"
     tslib "^1.9.3"
 
-cli-ux@^5.2.1:
-  version "5.4.0"
-  resolved "https://registry.yarnpkg.com/cli-ux/-/cli-ux-5.4.0.tgz#84f5a968c67e8cc2b6f244dc346e79cabba152dc"
-  integrity sha512-j5GmlUJEc37SHILLQAUL+4NymK1sjcM+kmwnmRSnzzCOisbFE4zotrN8BBKQhFEyOpqFxUdbuP0sdc8YEGF6VA==
+cli-ux@^5.2.1, cli-ux@^5.4.5:
+  version "5.4.5"
+  resolved "https://registry.yarnpkg.com/cli-ux/-/cli-ux-5.4.5.tgz#1b9e6648754307a1fa59a0c5a9c6be0ed899c2cd"
+  integrity sha512-5A6FuU0wPUlfCWUjtizUvNIbXElp6jN9QUJsDibs6F9cVX1kTgaMR3m6KT0R3iriEXpMrmPKV6yYS8XICNuQ6Q==
   dependencies:
     "@oclif/command" "^1.5.1"
     "@oclif/errors" "^1.2.1"
@@ -3510,7 +3510,7 @@ cli-ux@^5.2.1:
     extract-stack "^1.0.0"
     fs-extra "^7.0.1"
     hyperlinker "^1.0.0"
-    indent-string "^3.2.0"
+    indent-string "^4.0.0"
     is-wsl "^1.1.0"
     js-yaml "^3.13.1"
     lodash "^4.17.11"

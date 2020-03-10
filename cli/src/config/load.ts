@@ -36,6 +36,7 @@ import {
     cliStateDefaults,
     UserConfigParsed,
     userConfigProps,
+    UserConfigProps,
     userConfigSchema,
 } from "./config";
 import { getValIfSet } from "./get_val";
@@ -95,34 +96,93 @@ export function throwConfigFileError(userConfigFile: string, err: any, info = ""
 
 const envVarPropTransform = (prop: string) => envPrefix + prop.toUpperCase();
 
-async function loadUserConfig(userConfigFile: string): Promise<UserConfigParsed> {
+export interface UserConfigDetail {
+    /** Value after parsing and validation for use internally */
+    parsed: any;
+    sourceType: "Environment" | "File" | "Default";
+    source: string;
+    /** Value in its preferred storage form */
+    store: any;
+    valid: boolean;
+}
+
+export type UserConfigDetailsKnown = {
+    [ Prop in UserConfigProps]: UserConfigDetail;
+};
+
+export interface UserConfigDetails extends UserConfigDetailsKnown {
+    [ prop: string ]: UserConfigDetail | undefined;
+}
+
+export async function loadUserConfig(userConfigFile: string) {
     const rawConf = await readUserConfigFile(userConfigFile);
-    const conf: any = {};
-    const env = process.env;
+    const conf: UserConfigParsed = {} as any;
+    const details: UserConfigDetails = {} as any;
+    const sources = [
+        {
+            sourceType: "Environment" as const,
+            source: envVarPropTransform,
+            obj: process.env,
+            opts: { propTransform: envVarPropTransform },
+        },
+        {
+            sourceType: "File" as const,
+            source: userConfigFile,
+            obj: rawConf,
+        },
+        {
+            sourceType: "Default" as const,
+            source: "Default",
+            obj: {},
+            opts: { useDefault: true },
+        },
+    ];
 
-    for (const key of userConfigProps) {
-        const found = (val: any) => {
-            if (val == null) return false;
-            conf[key] = val;
-            return true;
-        };
-
-        if (found(getValIfSet(key, env, userConfigSchema, { propTransform: envVarPropTransform }))) continue;
-        if (found(getValIfSet(key, rawConf, userConfigSchema, { useDefault: true }))) continue;
+    function getVal(key: UserConfigProps) {
+        for (const s of sources) {
+            const val = getValIfSet(key, s.obj, userConfigSchema, s.opts);
+            if (val != null) {
+                conf[key] = val.parsed;
+                details[key] = {
+                    parsed: val.parsed,
+                    sourceType: s.sourceType,
+                    source: typeof s.source === "function" ? s.source(key) : s.source,
+                    store: val.store,
+                    valid: true,
+                };
+                return;
+            }
+        }
     }
+
+    userConfigProps.forEach(getVal);
+
+    // Find any user config keys we don't understand
+    const badKeys =
+        Object.keys(rawConf)
+        .filter((key) => !(key in userConfigSchema));
+
+    badKeys.forEach((key) => {
+        details[key] = {
+            parsed: rawConf[key],
+            sourceType: "File" as const,
+            source: userConfigFile,
+            store: rawConf[key],
+            valid: false,
+        };
+    });
 
     // Print warnings for config keys we don't understand
     // TODO: This should not be a debug, but rather a log message that doesn't
     // display with the default CLI log level.
-    if (debug.enabled) {
-        const badKeys =
-            Object.keys(rawConf)
-            .filter((key) => !(key in userConfigSchema))
-            .join(", ");
-        if (badKeys) debug(`The following configuration items are invalid: ${badKeys}`);
+    if (debug.enabled && badKeys.length) {
+        debug(`The following configuration items are invalid: ${badKeys.join(", ")}`);
     }
 
-    return conf;
+    return {
+        config: conf,
+        details,
+    };
 }
 
 export function createState(configDir: string, versionCheck = true): Conf<CliState> {
@@ -145,7 +205,7 @@ export function createState(configDir: string, versionCheck = true): Conf<CliSta
 
 export async function createConfig(pkgConfig: IConfig) {
     const userConfigFile = await findUserConfigFile(pkgConfig);
-    const user = await loadUserConfig(userConfigFile);
+    const user = (await loadUserConfig(userConfigFile)).config;
     const state = createState(pkgConfig.configDir);
 
     if (!pConfig) pConfig = pDefer();

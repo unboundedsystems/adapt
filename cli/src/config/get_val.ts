@@ -15,7 +15,7 @@
  */
 
 import { AnyObject, UserError } from "@adpt/utils";
-import { parseItem, Schema, SchemaValidationError, ValTypeOutput } from "./schema";
+import { parseItem, Schema, SchemaValidationError } from "./schema";
 
 export interface GetValOptions {
     /**
@@ -36,7 +36,7 @@ const defaultGetValOptions = {
 };
 
 export function getValIfSet<S extends Schema, Prop extends keyof S>(
-    prop: Prop, obj: AnyObject, schema: S, options: GetValOptions = {}): ValTypeOutput<S[Prop]["asType"]> | undefined {
+    prop: Prop, obj: AnyObject, schema: S, options: GetValOptions = {}) {
 
     const { useDefault, propTransform } = { ...defaultGetValOptions, ...options };
     const objKey = propTransform(prop as string);
@@ -50,7 +50,7 @@ export function getValIfSet<S extends Schema, Prop extends keyof S>(
     }
 
     try {
-        return parseItem(prop, val, schema).parsed;
+        return parseItem(prop, val, schema);
 
     } catch (err) {
         if (err.name !== SchemaValidationError.name) throw err;
