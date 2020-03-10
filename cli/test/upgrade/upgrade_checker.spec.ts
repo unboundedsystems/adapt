@@ -154,6 +154,7 @@ describe("UpgradeChecker", function () {
             upgradeCheckInterval: 0,
             upgradeCheckUrl: mockServer.url + mockUpgradePath,
             upgradeRemindInterval: ONE_HOUR,
+            upgradeIgnore: "",
         };
         state.set("version", "1.0.0");
     });
@@ -283,8 +284,19 @@ describe("UpgradeChecker", function () {
 
             1.0.1: Fixes for FooCloud
 
-            To upgrade: yarn add @adpt/cli@1.0.1
+            Upgrade: yarn add @adpt/cli@1.0.1
+            Ignore:  adapt config:set upgradeIgnore 1.0.1
             `);
+    });
+
+    ttyTestChain
+    .it("Should not create message when newer version is ignored", async () => {
+        ucConfig.upgradeIgnore = "1.0.1";
+        mockServer.app.get(mockUpgradePath, (_req, res) => res.json(latest101));
+
+        const checker = await runAndCheckSuccess("1.0.1");
+
+        expect(await checker.notifyString()).is.undefined;
     });
 
     ttyTestChain
@@ -299,7 +311,8 @@ describe("UpgradeChecker", function () {
 
             1.0.2-next.1: Some new feature work
 
-            To upgrade: yarn add @adpt/cli@1.0.2-next.1
+            Upgrade: yarn add @adpt/cli@1.0.2-next.1
+            Ignore:  adapt config:set upgradeIgnore 1.0.2-next.1
             `);
     });
 
@@ -315,7 +328,8 @@ describe("UpgradeChecker", function () {
 
             This upgrade contains security fixes
 
-            To upgrade: yarn add @adpt/cli@1.0.1-security.1
+            Upgrade: yarn add @adpt/cli@1.0.1-security.1
+            Ignore:  adapt config:set upgradeIgnore 1.0.1-security.1
             `);
     });
 
@@ -332,7 +346,8 @@ describe("UpgradeChecker", function () {
             1.0.1-both.1: Some new feature work
             This upgrade contains security fixes
 
-            To upgrade: yarn add @adpt/cli@1.0.1-both.1
+            Upgrade: yarn add @adpt/cli@1.0.1-both.1
+            Ignore:  adapt config:set upgradeIgnore 1.0.1-both.1
             `);
     });
 
@@ -367,7 +382,8 @@ describe("UpgradeChecker", function () {
 
             1.0.1: Fixes for FooCloud
 
-            To upgrade: yarn add @adpt/cli@1.0.1
+            Upgrade: yarn add @adpt/cli@1.0.1
+            Ignore:  adapt config:set upgradeIgnore 1.0.1
             `;
         expect(await checker.notifyString()).equals(msg);
 

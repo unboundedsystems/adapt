@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import {
 } from "@adpt/utils";
 import { Command, flags } from "@oclif/command";
 import * as Parser from "@oclif/parser";
-import chalk from "chalk";
 import { PassThrough } from "stream";
 import { UserError } from "../error";
 import { ApiResponse, ApiSuccess } from "../types/adapt_shared";
@@ -182,17 +181,6 @@ export abstract class AdaptBase extends Command {
         if (isUserError(err)) return this.error(err.userError);
     }
 
-    about(theFlags: StandardFlags) {
-        if (theFlags.quiet || !process.stdout.isTTY) return;
-
-        const bright = chalk.bold;
-        const company = chalk.bold.magentaBright;
-        const ver = chalk.dim;
-
-        const version = `[CLI v${this.config.version}]`;
-        this.log(`${bright("Adapt")} by ${company("Unbounded Systems")} ${ver(version)}\n`);
-    }
-
     appendOutput(text: string, outputOnError = false) {
         this.finalOutput.push({ text, outputOnError });
     }
@@ -241,7 +229,6 @@ export abstract class AdaptBase extends Command {
         this._args = ret.args;
         this._cmdArgv = ret.argv;
         this.outputSettings_ = getOutputSettings(ret.flags);
-        this.about(ret.flags);
         return ret;
     }
 }

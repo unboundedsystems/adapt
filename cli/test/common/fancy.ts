@@ -24,6 +24,7 @@ import fancyEnv from "fancy-test/lib/env";
 import { Base, Context, EnvOptions, Plugins } from "fancy-test/lib/types";
 import fs from "fs-extra";
 import path from "path";
+import { _resetConfig } from "../../src/config/load";
 
 export interface Env {
     [key: string]: string | null | undefined;
@@ -175,6 +176,7 @@ function xdgDirs(options: XdgDirsOpts = {}) {
  */
 export const clitestBase =
     oclifTest
+    .do(_resetConfig)
     .register("delayedenv", delayedenv)
     .register("delayedcommand", delayedcommand)
     .register("onerror", onerror)

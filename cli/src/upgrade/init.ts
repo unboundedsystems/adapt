@@ -37,6 +37,7 @@ const hook: Hook<"init"> = async () => {
             upgradeCheckInterval: conf.user.upgradeCheckInterval,
             upgradeCheckUrl: conf.user.upgradeCheckUrl,
             upgradeRemindInterval: conf.user.upgradeRemindInterval,
+            upgradeIgnore: conf.user.upgradeIgnore,
         }, conf.state);
 
         await checker.check();

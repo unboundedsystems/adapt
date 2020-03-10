@@ -17,7 +17,7 @@
 import { IConfig } from "@oclif/config";
 import Conf from "conf";
 import { VersionSummaryEntry } from "../upgrade/versions";
-import { SchemaInputType, SchemaOutputType } from "./schema";
+import { parseItem, SchemaInputType, SchemaOutputType } from "./schema";
 
 // tslint:disable-next-line: no-var-requires
 const pjson = require("../../../package.json");
@@ -55,9 +55,32 @@ export const userConfigSchema = {
         default: "7 days",
         asType: "duration" as const,
     },
+
+    upgradeIgnore: {
+        description: "Do not display upgrade reminders for this Adapt version",
+        default: "",
+        asType: "string" as const,
+    },
 };
 
 export type UserConfigSchema = typeof userConfigSchema;
+
+/**
+ * Union type of the valid configuration properties.
+ */
+export type UserConfigProps = keyof UserConfigSchema;
+
+/**
+ * Array of the valid configuration properties (keys).
+ */
+export const userConfigProps = Object.keys(userConfigSchema) as UserConfigProps[];
+
+/**
+ * Map for finding the correct case-sensitive config property from the
+ * lower case version.
+ */
+const userConfigLookup = new Map<string, UserConfigProps>(
+    userConfigProps.map((prop) => [ prop.toLowerCase(), prop ]));
 
 /**
  * Defines what is accepted as input types for the user config.
@@ -96,6 +119,16 @@ export const cliStateDefaults = {
 
 export interface CliConfig {
     user: UserConfigParsed;
+    userConfigFile: string;
     package: IConfig;
     state: Conf<CliState>;
+}
+
+export function lookupConfigProperty(name: string) {
+    return userConfigLookup.get(name.toLowerCase());
+}
+
+export function parseConfigItemString<P extends UserConfigProps>(
+    prop: P, val: string) {
+    return parseItem(prop, val, userConfigSchema);
 }

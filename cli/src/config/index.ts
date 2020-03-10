@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { CliConfig, CliState, UserConfig } from "./config";
-import { config } from "./load";
-
 export {
     CliConfig,
     CliState,
-    config,
+    lookupConfigProperty,
+    parseConfigItemString,
     UserConfig,
-};
+    userConfigProps,
+} from "./config";
+export { config, findUserConfigFile, throwConfigFileError } from "./load";
+export { SchemaValidationError } from "./schema";

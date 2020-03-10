@@ -61,6 +61,7 @@
     "@unboundedsystems/plugin-help": "2.1.6-unb1",
     "boxen": "^4.2.0",
     "chalk": "^2.4.2",
+    "cli-ux": "^5.4.5",
     "conf": "^6.2.1",
     "copy": "^0.3.2",
     "debug": "^4.1.1",
@@ -151,6 +152,9 @@
       "@unboundedsystems/plugin-help"
     ],
     "topics": {
+      "config": {
+        "description": "Manage configuration settings for Adapt"
+      },
       "deploy": {
         "description": "Manage deployments of Adapt projects"
       },

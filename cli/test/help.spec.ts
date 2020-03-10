@@ -44,6 +44,7 @@ USAGE
 
 COMMANDS
   autocomplete  display autocomplete installation instructions
+  config        Manage configuration settings for Adapt
   deploy        Manage deployments of Adapt projects
   destroy       Destroy an existing deployment of an Adapt project
   help          display help for adapt
