@@ -37,7 +37,7 @@ Make sure you are logged into [GitLab](https://gitlab.com) before clicking any o
 
 This will create a public release of the master branch and give it the NPM `dist-tag` of `next`.
 
-* [Create Release](https://gitlab.com/unboundedsystems/adapt/pipelines/new?ref=master&var[ADAPT_RELEASE_TYPE]=prerelease)
+* [Create `next` Release](https://gitlab.com/unboundedsystems/adapt/pipelines/new?ref=master&var[ADAPT_RELEASE_TYPE]=prerelease)
 
 ### Major or Minor Release (master branch)
 
@@ -80,6 +80,45 @@ Please only create a development release when absolutely necessary.
 4. Click `Run Pipeline`.
 
 ## Post-release activities
+
+### Add the version for upgrade check
+
+This step is manual because you first need to decide two things:
+
+1. Does this release contain any security fixes?
+If it does, add the `--securityFixes` flag to the `upgrade_json.js` command line below. If not, do not add the option.
+
+2. A short description for the content of the release.
+This should typically be a single line, less than about 50 characters.
+The description can be omitted by not using the `--desc` option to `upgrade_json.js`.
+
+:::note
+Set `REL_VER` to the version that you just built.
+:::
+
+```bash
+REL_VER=1.1.1
+```
+
+**Option 1:** Minimum required information
+
+```bash
+scripts/upgrade_json.js add --current ${REL_VER}
+```
+
+**Option 2:** With description
+
+```bash
+DESC="A short summary for this release"
+scripts/upgrade_json.js add --current --desc "${DESC}" ${REL_VER}
+```
+
+**Option 3:** With description and contains security fixes
+
+```bash
+DESC="A short summary for this release"
+scripts/upgrade_json.js add --current --desc "${DESC}" --securityFixes ${REL_VER}
+```
 
 ### Version documentation
 
