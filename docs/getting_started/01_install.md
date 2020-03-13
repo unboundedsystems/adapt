@@ -34,18 +34,29 @@ If you use a different shell, you may need to adjust some commands slightly.
 ## Installing Adapt
 
 To install the `adapt` CLI globally:
+
 <!-- doctest command -->
+<!--DOCUSAURUS_CODE_TABS-->
+<!--npm-->
 
 ```console
 npm install -g @adpt/cli
 ```
 
+<!--yarn-->
+
+```console
+yarn global add @adpt/cli
+```
+
+<!--END_DOCUSAURUS_CODE_TABS-->
+
 <!-- doctest output { matchRegex: "\\+ @adpt/cli@" } -->
 
 :::note
-Depending on how your `npm` installation is set up, you may need root or administrator privileges to install an `npm` module globally.
+Depending on how your `npm` or `yarn` installation is set up, you may need root or administrator privileges to install a module globally.
 
-If you get an `EACCES` error from `npm install`, use the `npx` instructions below or retry the command with administrator privileges (e.g. with `sudo`).
+If you get an `EACCES` error from `npm install` or see any other errors related to insufficient permissions you may need to retry the command with administrator privileges (e.g. with `sudo`).
 :::
 
 <details>
