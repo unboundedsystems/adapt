@@ -46,11 +46,6 @@ import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
 
-// FIXME(mark): Remove comment when working
-// CLI that exposes a port
-// tslint:disable-next-line:max-line-length
-// kubectl expose pod fixme-manishv-nodecellar.nodecellar-compute.nodecellar-compute0 --port 8080 --target-port 8080 --name nodecellar
-
 /** @public */
 export interface ServiceProps extends ServiceSpec {
     /** Legal configuration loaded from kubeconfig */
@@ -64,92 +59,99 @@ export interface ServiceSpec {
      * Cluster IP for a {@link k8s.Service}
      *
      * @remarks
-     * clusterIP is the IP address of the service and is usually assigned
+     * `clusterIP` is the IP address of the service and is usually assigned
      * randomly by the master. If an address is specified manually and is not
      * in use by others, it will be allocated to the service; otherwise,
      * creation of the service will fail. This field can not be changed through
      * updates. Valid values are "None", empty string (""), or a valid IP
      * address. "None" can be specified for headless services when proxying is
      * not required. Only applies to types ClusterIP, NodePort, and
-     * LoadBalancer. Ignored if type is ExternalName. More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies}
+     * LoadBalancer. Ignored if type is ExternalName.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies |
+     * Kubernetes documentation}.
      */
     clusterIP?: string;
     /**
-     * externalIPs is a list of IP addresses for which nodes in the cluster
+     * A list of IP addresses for which nodes in the cluster
      * will also accept traffic for this service.
      *
      * @remarks
      * These IPs are not managed by
      * Kubernetes. The user is responsible for ensuring that traffic arrives at
-     * a node with this IP. A common example is external load-balancers that are
+     * a node with this IP. A common example is external load balancers that are
      * not part of the Kubernetes system.
      */
     externalIPs?: string[];
     /**
-     * externalName is the external reference that kubedns or equivalent
-     * will return as a CNAME record for this service.No proxying will be
-     * involved.Must be a valid RFC - 1123 hostname
-     * ({@link https://tools.ietf.org/html/rfc1123})
+     * The external reference that kubedns or equivalent
+     * will return as a CNAME record for this service.
+     *
+     * @remarks
+     * No proxying will be involved. Must be a
+     * {@link https://tools.ietf.org/html/rfc1123 | valid RFC-1123 hostname}
      * and requires Type to be ExternalName.
      */
     externalName?: string;
     /**
-     * externalTrafficPolicy denotes if this Service desires to route
+     * Denotes if this Service desires to route
      * external traffic to node-local or cluster-wide endpoints.
      *
      * @remarks
-     * "Local" preserves the client source IP and avoids a second hop for LoadBalancer and Nodeport
-     * type services, but risks potentially imbalanced traffic spreading. "Cluster"
-     * obscures the client source IP and may cause a second hop to another node,
-     * but should have good overall load-spreading.
+     * "Local" preserves the client source IP and avoids a second hop for
+     * LoadBalancer and Nodeport type services, but risks potentially
+     * imbalanced traffic spreading. "Cluster" obscures the client source IP
+     * and may cause a second hop to another node, but should have good overall
+     * load-spreading.
      */
     externalTrafficPolicy?: string;
     /**
-     * healthCheckNodePort specifies the healthcheck nodePort for
-     * the service.
+     * Specifies the healthcheck nodePort for the service.
      *
      * @remarks
      * If not specified, HealthCheckNodePort is created by the service
      * api backend with the allocated nodePort. Will use user-specified nodePort
-     * value if specified by the client. Only effects when Type is set to
+     * value if specified by the client. Only affects when Type is set to
      * LoadBalancer and ExternalTrafficPolicy is set to Local.
      */
     healthCheckNodePort?: number;
     /**
-     * Only applies to Service Type: LoadBalancer LoadBalancer will
+     * Only applies to Service Type: LoadBalancer. LoadBalancer will
      * get created with the IP specified in this field.
      *
      * @remarks
      * This feature depends on
-     * whether the underlying cloud-provider supports specifying the loadBalancerIP
+     * whether the underlying cloud provider supports specifying the loadBalancerIP
      * when a load balancer is created. This field will be ignored if the
-     * cloud-provider does not support the feature.
+     * cloud provider does not support the feature.
      */
     loadBalancerIP?: string;
     /**
      * If specified and supported by the platform, this will
-     * restrict traffic through the cloud-provider load-balancer will be restricted
+     * restrict traffic through the cloud provider load balancer
      * to the specified client IPs.
      *
      * @remarks
-     * This field will be ignored if the cloud-provider
-     * does not support the feature." More info:
-     * {@link https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/ }
+     * This field will be ignored if the cloud provider
+     * does not support the feature.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/ |
+     * Kubernetes documentation}.
      */
     loadBalancerSourceRanges?: string[];
     /**
      * The list of ports that are exposed by this service.
      *
      * @remarks
-     * More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies}
-     * patch strategy: merge
-     * patch merge key: port
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies |
+     * Kubernetes documentation}.
      */
     ports?: ServicePort[];
     /**
-     * publishNotReadyAddresses, when set to true, indicates that
+     * When set to true, indicates that
      * DNS implementations must publish the notReadyAddresses of subsets for the
      * Endpoints associated with the Service.
      *
@@ -167,40 +169,57 @@ export interface ServiceSpec {
      * @remarks
      * If empty or not present, the service is assumed to
      * have an external process managing its endpoints, which Kubernetes will not
-     * modify.Only applies to types ClusterIP, NodePort, and LoadBalancer.
-     * Ignored if type is ExternalName.More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/}
+     * modify. Only applies to types ClusterIP, NodePort, and LoadBalancer.
+     * Ignored if type is ExternalName.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/ |
+     * Kubernetes documentation}.
      */
     selector?: object;
     /**
-     * Used to maintain session affinity
+     * Used to maintain session affinity.
      *
      * @remarks
-     * Supports "ClientIP" and "None".Used to maintain session
-     * affinity. Enable client IP based session affinity.Must be ClientIP or
-     * None.Defaults to None.More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies}
+     * Possible values are:
+     *
+     * - `"ClientIP"`: Enables client IP based session affinity.
+     *
+     * - `"None"`: Disables session affinity.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies |
+     * Kubernetes documentation}.
+     * @defaultValue `"None"`
      */
     sessionAffinity?: string;
     // sessionAffinityConfig contains the configurations of session affinity.
     //sessionAffinityConfig?: SessionAffinityConfig;
     /**
-     * type determines how the Service is exposed.
+     * Determines how the Service is exposed.
      *
      * @remarks
-     * Defaults to ClusterIP.
-     * Valid options are ExternalName, ClusterIP, NodePort, and
-     * LoadBalancer. "ExternalName" maps to the specified externalName.
-     * "ClusterIP" allocates a cluster - internal IP address for load - balancing to
-     * endpoints.Endpoints are determined by the selector or if that is not
-     * specified, by manual construction of an Endpoints object.If clusterIP is
-     * "None", no virtual IP is allocated and the endpoints are published as a
-     * set of endpoints rather than a stable IP. "NodePort" builds on ClusterIP
-     * and allocates a port on every node which routes to the clusterIP.
-     * "LoadBalancer" builds on NodePort and creates an external load - balancer
-     * (if supported in the current cloud) which routes to the clusterIP.
-     * More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services---service-types}
+     * Valid options are:
+     *
+     * - `"ExternalName"`: maps to the specified externalName.
+     *
+     * - `"ClusterIP"`: allocates a cluster-internal IP address for load
+     * balancing to endpoints. Endpoints are determined by the selector or if
+     * that is not specified, by manual construction of an Endpoints object. If
+     * clusterIP is "None", no virtual IP is allocated and the endpoints are
+     * published as a set of endpoints rather than a stable IP.
+     *
+     * - `"NodePort"`: Builds on ClusterIP and allocates a port on every node
+     * which routes to the clusterIP.
+     *
+     * - `"LoadBalancer"`: Builds on NodePort and creates an external load
+     * balancer (if supported in the current cloud) which routes to the
+     * clusterIP.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services---service-types |
+     * Kubernetes documentation}.
+     * @defaultValue `"ClusterIP"`
      */
     type?: string;
 }
@@ -222,11 +241,15 @@ export interface ServicePort {
      * type=NodePort or LoadBalancer.
      *
      * @remarks
-     * Usually assigned by the system.If
+     * Usually assigned by the system. If
      * specified, it will be allocated to the service if unused or else creation
-     * of the service will fail.Default is to auto - allocate a port if the
-     * ServiceType of this Service requires one.More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport}
+     * of the service will fail.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#type-nodeport |
+     * Kubernetes documentation}.
+     * @defaultValue Automatically allocates a port if the ServiceType of this
+     * Service requires one.
      */
     nodePort?: number;
     /** The port that will be exposed by this service. */
@@ -239,12 +262,15 @@ export interface ServicePort {
      *
      * @remarks
      * Number must be in the range 1 to 65535. Name must be an
-     * IANA_SVC_NAME.If this is a string, it will be looked up as a named port
+     * IANA_SVC_NAME. If this is a string, it will be looked up as a named port
      * in the target Pod's container ports. If this is not specified, the value
-     * of the 'port' field is used(an identity map).This field is ignored for
+     * of the 'port' field is used (an identity map). This field is ignored for
      * services with clusterIP = None, and should be omitted or set equal to the
-     * 'port' field.More info:
-     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service}
+     * 'port' field.
+     *
+     * For more information, see the
+     * {@link https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service |
+     * Kubernetes documentation}.
      */
     targetPort?: number | string;
 }
