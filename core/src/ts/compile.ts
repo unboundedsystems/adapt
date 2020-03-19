@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 import db from "debug";
-import * as fs from "fs";
-import * as mkdirp from "mkdirp";
+import * as fs from "fs-extra";
 import * as path from "path";
 import { CustomError } from "ts-custom-error";
 import { trace, tracef } from "../utils/trace";
@@ -329,7 +328,7 @@ export class Compiler {
                 try {
                     fs.statSync(outputDir);
                 } catch (err) {
-                    mkdirp.sync(outputDir);
+                    fs.mkdirpSync(outputDir);
                 }
                 fs.writeFileSync(path.join(localOutputDir, relPath), contents);
             };
