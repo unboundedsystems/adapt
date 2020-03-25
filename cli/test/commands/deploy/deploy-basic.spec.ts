@@ -352,6 +352,9 @@ export async function globalAdd(pkg: string, prefixDir: string) {
     const args = [ "install", ...registryOpts(), "-g", "-C", prefixDir, pkg ];
     const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
+        if (/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
+            return;
+        }
         const cmd = "npm install " + args.join(" ");
         // tslint:disable-next-line: no-console
         console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
