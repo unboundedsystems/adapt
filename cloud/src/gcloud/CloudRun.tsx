@@ -65,17 +65,72 @@ function isDeleting(info: Manifest | undefined): boolean {
     return (info !== undefined) && ("deletionTimestamp" in info.metadata);
 }
 
+/**
+ * Props for the {@link gcloud.CloudRun} component
+ *
+ * @public
+ */
 export interface CloudRunProps {
+    /** Environment for the container in the deployment */
     env?: Environment;
+    /** Arguments for the container entrypoint */
     args?: Environment;
+    /** Image from which to start the container */
     image: string;
+    /**
+     * Name of the service is gcloud
+     *
+     * @remarks
+     * This is the absolute name of the service to use.  If not specified
+     * Adapt will automatically generate a name for the service.
+     */
     serviceName?: string;
-    //Region should be optional, but for now we'll require it
+    /** Region in which to create the cloud run deployment */
     region: string;
+    /**
+     * Port on which the container will listen
+     *
+     * @remarks
+     * The container must listen on this port.  There is no port mapping
+     * in CloudRun.  However, this will set the `PORT` environment variable
+     * for the container, and so the container can listen on this port
+     * to get the effect of port mapping.
+     */
     port: number;
+    /**
+     * Percentage of traffic for the latest revision of the deployment
+     *
+     * @remarks
+     * CloudRun can send traffic to multiple revisions of the same
+     * service.  Every deploy to cloud run creates a new revision. After
+     * health checks pass, the latest container will receive trafficPct
+     * of the total traffic.  Set this to 100% to ensure that the
+     * latest deployment gets all the traffic once up and running.
+     */
     trafficPct: number;
+    /**
+     * CPU resources that can be consumed by this CloudRun deployment
+     *
+     * @remarks
+     * This is a Kubernetes style cpu specification string.
+     * 1 is 1 cpu, 2 is 2 cpus, 100m is 100minutes of CPU allocation, etc.
+     */
     cpu: string | number;
+    /**
+     * Memory allocated to this deployment
+     *
+     * @remarks
+     * This is a Kubernetes style string.  128Mi is 128 Mibibytes, etc.
+     */
     memory: string | number;
+    /**
+     * Allow public access to this service
+     *
+     * @remarks
+     * If set to `true`, the service will be public.  Otherwise,
+     * authentication will be required to access the service from outside
+     * the project.
+     */
     allowUnauthenticated: boolean;
 }
 
