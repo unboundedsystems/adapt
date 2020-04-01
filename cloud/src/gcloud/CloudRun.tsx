@@ -41,6 +41,10 @@ import { useLatestImageFrom } from "../Container";
 import { RegistryDockerImage } from "../docker";
 import { Environment, EnvSimple, mergeEnvSimple } from "../env";
 
+interface GCloudGlobalOpts {
+    configuration?: string;
+}
+
 interface Config {
     name: string;
     env: EnvSimple;
@@ -52,6 +56,7 @@ interface Config {
     cpu: string | number;
     memory: string | number;
     allowUnauthenticated: boolean;
+    globalOpts: GCloudGlobalOpts;
 }
 
 const debug = db("adapt:cloud:gcloud");
@@ -132,6 +137,15 @@ export interface CloudRunProps {
      * the project.
      */
     allowUnauthenticated: boolean;
+    /**
+     * Specify a gcloud configuration to use
+     *
+     * @remarks
+     * For unit test use only, functionality may change or disappear.
+     *
+     * @internal
+     */
+    configuration?: string;
 }
 
 async function cloudRunDescribe(config: Config): Promise<Manifest> {
@@ -145,7 +159,7 @@ async function cloudRunDescribe(config: Config): Promise<Manifest> {
             "--format=json",
             `--region=${config.region}`,
             config.name
-        ]);
+        ], config.globalOpts);
 
         return JSON.parse(result.stdout);
     } catch (e) {
@@ -182,7 +196,7 @@ async function cloudRunDeploy(config: Config): Promise<void> {
         `--args=${argsString}`
     ];
 
-    await execGcloud(gcargs);
+    await execGcloud(gcargs, config.globalOpts);
 }
 
 async function cloudRunUpdateTraffic(config: Config): Promise<void> {
@@ -199,7 +213,7 @@ async function cloudRunUpdateTraffic(config: Config): Promise<void> {
         `LATEST=${config.trafficPct}`
     ];
 
-    await execGcloud(gcargs);
+    await execGcloud(gcargs, config.globalOpts);
 }
 
 async function cloudRunDelete(config: Config): Promise<void> {
@@ -213,7 +227,7 @@ async function cloudRunDelete(config: Config): Promise<void> {
             "--platform=managed",
             "--format=json",
             `--region=${config.region}`
-        ]);
+        ], config.globalOpts);
     } catch (e) {
         if (isExecaError(e) && e.exitCode !== 0 && e.stderr.match(/Cannot find service/)) {
             return undefined;
@@ -350,7 +364,10 @@ export class CloudRun extends Action<CloudRunProps> {
             cpu: this.props.cpu,
             memory: this.props.memory,
             trafficPct: this.props.trafficPct,
-            allowUnauthenticated: this.props.allowUnauthenticated
+            allowUnauthenticated: this.props.allowUnauthenticated,
+            globalOpts: {
+                configuration: this.props.configuration
+            }
         };
         return this.config_;
     }
@@ -411,11 +428,19 @@ export function CloudRunAdapter(propsIn: CloudRunAdapterProps) {
     </Sequence>;
 }
 
-export async function execGcloud(args: string[], options: execa.Options = {}) {
+export async function execGcloud(
+    args: string[],
+    globalOpts: GCloudGlobalOpts,
+    options: execa.Options = {}) {
+
     const execaOpts = {
         all: true,
         ...options,
     };
+
+    if (globalOpts.configuration) {
+        args = [`--configuration=${globalOpts.configuration}`, ...args];
+    }
 
     debug(`Running: gcloud ${args.join(" ")}`);
     try {
