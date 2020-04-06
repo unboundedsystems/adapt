@@ -31,35 +31,21 @@ import Adapt, {
     waiting
 } from "@adpt/core";
 import { InternalError, Omit } from "@adpt/utils";
-import db from "debug";
-import execa, { ExecaError } from "execa";
 import * as ld from "lodash";
 
 import { Action, ActionContext, ShouldAct } from "../action";
 import { makeResourceName } from "../common";
 import { useLatestImageFrom } from "../Container";
 import { RegistryDockerImage } from "../docker";
-import { Environment, EnvSimple, mergeEnvSimple } from "../env";
+import { Environment, mergeEnvSimple } from "../env";
 
-interface GCloudGlobalOpts {
-    configuration?: string;
-}
-
-interface Config {
-    name: string;
-    env: EnvSimple;
-    args: EnvSimple;
-    image: string;
-    region: string;
-    port: number;
-    trafficPct: number;
-    cpu: string | number;
-    memory: string | number;
-    allowUnauthenticated: boolean;
-    globalOpts: GCloudGlobalOpts;
-}
-
-const debug = db("adapt:cloud:gcloud");
+import {
+    cloudRunDelete,
+    cloudRunDeploy,
+    cloudRunDescribe,
+    cloudRunUpdateTraffic,
+    Config
+} from "./commands";
 
 type Manifest = any;
 
@@ -146,94 +132,6 @@ export interface CloudRunProps {
      * @internal
      */
     configuration?: string;
-}
-
-async function cloudRunDescribe(config: Config): Promise<Manifest> {
-    try {
-        const result = await execGcloud([
-            "run",
-            "services",
-            "describe",
-            "--quiet",
-            "--platform=managed",
-            "--format=json",
-            `--region=${config.region}`,
-            config.name
-        ], config.globalOpts);
-
-        return JSON.parse(result.stdout);
-    } catch (e) {
-        if (isExecaError(e) && e.exitCode !== 0 && e.stderr.match(/Cannot find service/)) {
-            return undefined;
-        }
-        throw e;
-    }
-}
-
-async function cloudRunDeploy(config: Config): Promise<void> {
-    const env = config.env;
-    const args = config.args;
-    const envString = Object.entries(env).map(([k, v]) => `${k}=${v}`).join(",");
-    const argsString = Object.entries(args).map(([k, v]) => `${k}=${v}`).join(",");
-    const authArg = config.allowUnauthenticated
-        ? "--allow-unauthenticated"
-        : "--no-allow-unauthenticated";
-
-    const gcargs = [
-        "run",
-        "deploy",
-        config.name,
-        "--quiet",
-        "--platform=managed",
-        "--format=json",
-        authArg,
-        `--memory=${config.memory}`,
-        `--cpu=${config.cpu}`,
-        `--image=${config.image}`,
-        `--region=${config.region}`,
-        `--port=${config.port}`,
-        `--set-env-vars=${envString}`,
-        `--args=${argsString}`
-    ];
-
-    await execGcloud(gcargs, config.globalOpts);
-}
-
-async function cloudRunUpdateTraffic(config: Config): Promise<void> {
-    const gcargs = [
-        "run",
-        "services",
-        "update-traffic",
-        config.name,
-        "--quiet",
-        "--platform=managed",
-        "--format=json",
-        `--region=${config.region}`,
-        `--to-revisions`,
-        `LATEST=${config.trafficPct}`
-    ];
-
-    await execGcloud(gcargs, config.globalOpts);
-}
-
-async function cloudRunDelete(config: Config): Promise<void> {
-    try {
-        await execGcloud([
-            "run",
-            "services",
-            "delete",
-            config.name,
-            "--quiet",
-            "--platform=managed",
-            "--format=json",
-            `--region=${config.region}`
-        ], config.globalOpts);
-    } catch (e) {
-        if (isExecaError(e) && e.exitCode !== 0 && e.stderr.match(/Cannot find service/)) {
-            return undefined;
-        }
-        throw e;
-    }
 }
 
 /**
@@ -426,35 +324,4 @@ export function CloudRunAdapter(propsIn: CloudRunAdapterProps) {
             registryUrl={props.registryUrl} />
         {crElem}
     </Sequence>;
-}
-
-export async function execGcloud(
-    args: string[],
-    globalOpts: GCloudGlobalOpts,
-    options: execa.Options = {}) {
-
-    const execaOpts = {
-        all: true,
-        ...options,
-    };
-
-    if (globalOpts.configuration) {
-        args = [`--configuration=${globalOpts.configuration}`, ...args];
-    }
-
-    debug(`Running: gcloud ${args.join(" ")}`);
-    try {
-        const ret = execa("gcloud", args, execaOpts);
-        return await ret;
-    } catch (e) {
-        if (isExecaError(e) && e.all) e.message += "\n" + e.all;
-        debug(`Failed: gcloud ${args.join(" ")}: ${e.message}`);
-        throw e;
-    }
-}
-
-export function isExecaError(e: Error): e is ExecaError {
-    if (!e.message.startsWith("Command failed")) return false;
-    if (!("exitCode" in e)) return false;
-    return true;
 }
