@@ -65,7 +65,7 @@ export interface CloudRunProps {
     /** Environment for the container in the deployment */
     env?: Environment;
     /** Arguments for the container entrypoint */
-    args?: Environment;
+    args?: string[];
     /** Image from which to start the container */
     image: string;
     /**
@@ -255,7 +255,7 @@ export class CloudRun extends Action<CloudRunProps> {
         this.config_ = {
             name: this.props.serviceName || makeCloudRunName(key, elem.id, deployID),
             env: mergeEnvSimple(this.props.env) || {},
-            args: mergeEnvSimple(this.props.args) || {},
+            args: this.props.args || [],
             image: this.props.image,
             port: this.props.port,
             region: this.props.region,
@@ -291,7 +291,12 @@ function isReady(status: any) {
     return waiting(msg);
 }
 
-const makeCloudRunName = makeResourceName(/[^a-z-]/g, 63);
+/**
+ * Exported for testing only
+ *
+ * @internal
+ */
+export const makeCloudRunName = makeResourceName(/[^a-z-]/g, 63);
 
 export type CloudRunAdapterProps =
     SFCDeclProps<Omit<CloudRunProps, "image"> & {

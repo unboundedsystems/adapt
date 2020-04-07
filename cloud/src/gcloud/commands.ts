@@ -29,7 +29,7 @@ export interface GCloudGlobalOpts {
 export interface Config {
     name: string;
     env: EnvSimple;
-    args: EnvSimple;
+    args: string[];
     image: string;
     region: string;
     port: number;
@@ -66,7 +66,7 @@ export async function cloudRunDeploy(config: Config): Promise<void> {
     const env = config.env;
     const args = config.args;
     const envString = Object.entries(env).map(([k, v]) => `${k}=${v}`).join(",");
-    const argsString = Object.entries(args).map(([k, v]) => `${k}=${v}`).join(",");
+    const argsString = args.join(",");
     const authArg = config.allowUnauthenticated
         ? "--allow-unauthenticated"
         : "--no-allow-unauthenticated";
