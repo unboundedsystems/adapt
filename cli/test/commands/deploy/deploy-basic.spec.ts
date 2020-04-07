@@ -553,7 +553,6 @@ Deployment not created due to errors$`);
         expect(stdout).contains("Validating project [completed]");
         expect(stdout).contains("Deploying [started]");
         expect(stdout).contains("Applying changes to environment [started]");
-        expect(stdout).contains("Observing and analyzing environment");
         expect(stdout).contains("Applying changes to environment [failed]");
         expect(stdout).contains("Creating new project deployment [failed]");
 
