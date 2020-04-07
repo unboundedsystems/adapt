@@ -23,28 +23,30 @@ import { execGCloud, GCloudGlobalOpts } from "../../src/gcloud/commands";
 
 export function describeGCloud(
     name: string,
-    f: (globalOpts: { configuration: string } & GCloudGlobalOpts) => void) {
+    f: (this: Mocha.Suite, globalOpts: { configuration: string } & GCloudGlobalOpts) => void) {
 
-    describeLong(name, () => {
-        const svcAcctName = process.env.ADAPT_UNIT_TEST_GCLOUD_SVCACCT;
-        const svcAcctKey = process.env.ADAPT_UNIT_TEST_GCLOUD_SVCACCT_KEY;
+    describeLong(name, function () {
+        const svcAcctJson = process.env.ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON;
         const useConfig = process.env.ADAPT_UNIT_TEST_GCLOUD_USE_CONFIG;
         const confName = "adapt-cloud-gcloud-testing";
 
         before(async function () {
+            this.timeout("30s");
+
             if (useConfig) {
                 return;
             }
 
-            if (!svcAcctKey || !svcAcctName) {
+            if (!svcAcctJson) {
                 this.skip();
                 return;
             }
 
+            const svcAcct = JSON.parse(svcAcctJson);
+
             await setupGCloudConfig({
                 confName,
-                svcAcctName,
-                svcAcctKey
+                svcAcct
             });
         });
 
@@ -52,17 +54,16 @@ export function describeGCloud(
             if (!useConfig) await destroyGCloudConfig(confName);
         });
 
-        if (useConfig) return f({ configuration: useConfig });
-        else return f({ configuration: confName });
+        if (useConfig) return f.call(this, { configuration: useConfig });
+        else return f.call(this, { configuration: confName });
     });
 }
 
 async function setupGCloudConfig(options: {
     confName: string,
-    svcAcctName: string,
-    svcAcctKey: string
+    svcAcct: string
 }) {
-    const { confName, svcAcctName, svcAcctKey } = options;
+    const { confName, svcAcct } = options;
     await destroyGCloudConfig(confName);
     await execGCloud([
         "config",
@@ -87,18 +88,17 @@ async function setupGCloudConfig(options: {
     await execGCloud([
         "config",
         "set",
-        "region",
+        "compute/region",
         region
     ], opts);
 
     await withTmpDir(async (loc) => {
         const keyFile = path.join(loc, "acctKey");
-        await writeFile(keyFile, svcAcctKey);
+        await writeFile(keyFile, JSON.stringify(svcAcct));
 
         await execGCloud([
             "auth",
             "activate-service-account",
-            svcAcctName,
             "--key-file",
             keyFile
         ], opts);
