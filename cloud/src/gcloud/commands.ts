@@ -46,7 +46,6 @@ export async function cloudRunDescribe(config: Config): Promise<Manifest | undef
             "run",
             "services",
             "describe",
-            "--quiet",
             "--platform=managed",
             "--format=json",
             `--region=${config.region}`,
@@ -75,7 +74,6 @@ export async function cloudRunDeploy(config: Config): Promise<void> {
         "run",
         "deploy",
         config.name,
-        "--quiet",
         "--platform=managed",
         "--format=json",
         authArg,
@@ -97,7 +95,6 @@ export async function cloudRunUpdateTraffic(config: Config): Promise<void> {
         "services",
         "update-traffic",
         config.name,
-        "--quiet",
         "--platform=managed",
         "--format=json",
         `--region=${config.region}`,
@@ -115,7 +112,6 @@ export async function cloudRunDelete(config: Config): Promise<void> {
             "services",
             "delete",
             config.name,
-            "--quiet",
             "--platform=managed",
             "--format=json",
             `--region=${config.region}`
@@ -138,17 +134,18 @@ export async function execGCloud(
         ...options,
     };
 
+    const fullArgs = [ "--quiet", ...args ];
     if (globalOpts.configuration) {
-        args = [`--configuration=${globalOpts.configuration}`, ...args];
+        fullArgs.unshift(`--configuration=${globalOpts.configuration}`);
     }
 
-    debug(`Running: gcloud ${args.join(" ")}`);
+    debug(`Running: gcloud ${fullArgs.join(" ")}`);
     try {
-        const ret = execa("gcloud", args, execaOpts);
+        const ret = execa("gcloud", fullArgs, execaOpts);
         return await ret;
     } catch (e) {
         if (isExecaError(e) && e.all) e.message += "\n" + e.all;
-        debug(`Failed: gcloud ${args.join(" ")}: ${e.message}`);
+        debug(`Failed: gcloud ${fullArgs.join(" ")}: ${e.message}`);
         throw e;
     }
 }
