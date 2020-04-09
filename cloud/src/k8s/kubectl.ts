@@ -59,8 +59,26 @@ export async function getKubectl(): Promise<string> {
     if (kubectlBinResp.status !== 200) throw new Error(`Could not get kubectl from ${kubectlUrl}: ${kubectlBinResp.statusText}`);
     kubectlBinResp.body.pipe(kubectlBin);
     await new Promise((res, rej) => {
-        kubectlBinResp.body.on("end", () => res());
-        kubectlBinResp.body.on("error", rej);
+        let err: any;
+        kubectlBin.on("close", res);
+        kubectlBin.on("error", (e) => {
+            if (!err) {
+                rej(e);
+                err = e;
+            } else {
+                // tslint:disable-next-line: no-console
+                console.error(`Unhandled error writing kubectl:`, e);
+            }
+        });
+        kubectlBinResp.body.on("error", (e) => {
+            if (!err) {
+                rej(e);
+                err = e;
+            } else {
+                // tslint:disable-next-line: no-console
+                console.error(`Unhandled error downloading kubectl:`, e);
+            }
+        });
     });
     await chmod(loc, "755");
     kubectlLoc = loc;
