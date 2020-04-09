@@ -26,6 +26,7 @@ export function describeGCloud(
     f: (this: Mocha.Suite, globalOpts: { configuration: string } & GCloudGlobalOpts) => void) {
 
     describeLong(name, function () {
+        const project = process.env.ADAPT_UNIT_TEST_GCLOUD_PROJECT || "adapt-ci";
         const svcAcctJson = process.env.ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON;
         const useConfig = process.env.ADAPT_UNIT_TEST_GCLOUD_USE_CONFIG;
         const confName = "adapt-cloud-gcloud-testing";
@@ -45,6 +46,7 @@ export function describeGCloud(
             const svcAcct = JSON.parse(svcAcctJson);
 
             await setupGCloudConfig({
+                project,
                 confName,
                 svcAcct
             });
@@ -60,10 +62,11 @@ export function describeGCloud(
 }
 
 async function setupGCloudConfig(options: {
+    project: string,
     confName: string,
     svcAcct: string
 }) {
-    const { confName, svcAcct } = options;
+    const { confName, svcAcct, project } = options;
     await destroyGCloudConfig(confName);
     await execGCloud([
         "config",
@@ -75,7 +78,6 @@ async function setupGCloudConfig(options: {
 
     const opts = { configuration: confName };
 
-    const project = "adapt-ci";
     const region = "us-west1";
 
     await execGCloud([
