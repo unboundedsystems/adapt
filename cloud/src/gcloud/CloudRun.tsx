@@ -293,10 +293,20 @@ function isReady(status: any) {
     if (!Array.isArray(status.status.conditions)) return waiting("Waiting for CloudRun to populate conditions");
     const conditions: any[] = status.status.conditions;
 
+    // For Knative, which CloudRun is based on,
+    // if there is a condition with type Ready and it is True,
+    // all conditions are satisfied for readiness.
+    //
+    // Note(manishv)  It is unclear to me if this means all other conditions
+    // must also be true, or that there will be no new conditions added later
+    // but this check seems to suffice.
     const ready = conditions
         .find((cond: any) => (cond.status === "True" && cond.type === "Ready"));
     if (ready !== undefined) return true;
 
+    // If there is no Ready condition type, or it is not True,
+    // The status of all other false conditions gives us the best information
+    // on why the service is not ready yet.
     let msg = "CloudRun not ready";
     const notReady = conditions
         .filter((cond: any) => cond.status !== "True")
