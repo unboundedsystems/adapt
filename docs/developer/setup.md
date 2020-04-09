@@ -80,6 +80,26 @@ The private key is multiple lines of text, so if you use this approach, be certa
     -----END RSA PRIVATE KEY-----
     "
     ```
+### Google Cloud Component Tests
+
+The Google Cloud components in the cloud library require access to a Google Cloud project and a service account with the appropriate IAM roles. To do this, you'll need to create a Google Cloud account, create a project for Adapt testing, and enable billing, and any services that Adapt will use to test.  You will also need to create a service account for Adapt's test suite to use for authentication. 
+
+If you have access to the `adapt-ci` project, everything has been set up for the `ci-runner` service account.  Create a new key for the service account and use that key for running tests.
+
+At the time of this writing you must enable and allow access to the following services:
+* Cloud Run - Activate Cloud Run and make sure your service account has the Cloud Run admin role and is a user of the default compute service account.
+
+You also need to push the `hashicorp/http-echo` Docker image to `gcr.io/<your project name>/http-echo` with:
+
+```
+docker pull hashicorp/http-echo
+docker tag hashicorp/http-echo:latest gcr.io/<your project name>/http-echo:latest
+docker push gcr.io/<your project name>/http-echo
+```
+
+Once Google Cloud is set up, set the following environment variables when you run `yarn test`:
+* `ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON` - contents should be the JSON key file you downloaded when you set up your service account (or added a key to the `ci-runner` account).
+* `ADAPT_UNIT_TEST_GCLOUD_PROJECT` - if you are not using the `adapt-ci` project.
 
 ## Note on Test Performance
 

@@ -31,6 +31,11 @@ before_script:
       echo No DOCKER_AUTH_CONFIG CI variable set in Gitlab web UI
       exit 1
     fi
+  - |
+    if [ "${CI_PROJECT_NAME}" = "unboundedsystems/adapt" -a -z "$ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON"]; then
+      echo No ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON set for main unboundedsystems/adapt CI
+      exit 1
+    fi
   - . ./bin/setup-docker-auth.sh
   # Resource monitor logging
   - echo "Time     CPU          Rd   Wr  Mem  eth0" > "${ADAPT_BUILD_LOGDIR}/system_resource.log"
