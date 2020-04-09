@@ -69,7 +69,7 @@ export interface CloudRunProps {
     /** Image from which to start the container */
     image: string;
     /**
-     * Name of the service is gcloud
+     * Name of the Cloud Run service in gcloud
      *
      * @remarks
      * This is the absolute name of the service to use.  If not specified
@@ -92,11 +92,15 @@ export interface CloudRunProps {
      * Percentage of traffic for the latest revision of the deployment
      *
      * @remarks
+     *
      * CloudRun can send traffic to multiple revisions of the same
      * service.  Every deploy to cloud run creates a new revision. After
-     * health checks pass, the latest container will receive trafficPct
-     * of the total traffic.  Set this to 100% to ensure that the
-     * latest deployment gets all the traffic once up and running.
+     * health checks pass, the latest container will receive trafficPct/100
+     * of the total traffic.  Set this to 100 to ensure that the
+     * latest deployment gets all the traffic once up and running, set it to 0
+     * for the latest version to get no traffic.
+     *
+     * NOTE: This value ranges from 0 to 100, not 0.0 to 1.0
      */
     trafficPct: number;
     /**
@@ -105,6 +109,9 @@ export interface CloudRunProps {
      * @remarks
      * This is a Kubernetes style cpu specification string.
      * 1 is 1 cpu, 2 is 2 cpus, 100m is 100minutes of CPU allocation, etc.
+     *
+     * Please look at Google's Cloud Run documentation for more information and any
+     * restrictions vs. Kubernetes.
      */
     cpu: string | number;
     /**
@@ -112,6 +119,9 @@ export interface CloudRunProps {
      *
      * @remarks
      * This is a Kubernetes style string.  128Mi is 128 Mibibytes, etc.
+     *
+     * Please look at Google's Cloud Run documentation for more information
+     * and any restrictions vs. Kubernetes.
      */
     memory: string | number;
     /**
