@@ -306,6 +306,8 @@ export type CloudRunAdapterProps =
 
 /**
  * Temporary adapter to allow handle for image
+ *
+ * @alpha
  */
 export function CloudRunAdapter(propsIn: CloudRunAdapterProps) {
     const props = propsIn as SFCBuildProps<CloudRunAdapterProps>;
