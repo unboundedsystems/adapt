@@ -242,9 +242,12 @@ export class CloudRun extends Action<CloudRunProps> {
 
     deployedWhen = async (goalStatus: GoalStatus) => {
         const statObj = await cloudRunDescribe(this.config(this.deployInfo.deployID));
-        if (statObj === undefined) return true;
         if (goalStatus === DeployStatus.Destroyed) {
+            if (statObj === undefined) return true;
             return waiting(`Waiting for CloudRun deployment to be destroyed`);
+        }
+        if (statObj == null) {
+            return waiting(`Waiting for CloudRun deployment to be created`);
         }
         return isReady(statObj);
     }
@@ -282,7 +285,7 @@ export class CloudRun extends Action<CloudRunProps> {
 }
 
 function isReady(status: any) {
-    if (!status || !status.status) return waiting(`Kubernetes cluster returned invalid status for Pod`);
+    if (!status || !status.status) return waiting(`CloudRun cluster returned invalid status for Pod`);
     if (status.status.phase === "Running") return true;
     if (status.status.conditions == null) return waiting("Waiting for CloudRun conditions");
     if (!Array.isArray(status.status.conditions)) return waiting("Waiting for CloudRun to populate conditions");
