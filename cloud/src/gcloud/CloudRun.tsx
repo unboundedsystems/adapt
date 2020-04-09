@@ -191,6 +191,7 @@ export class CloudRun extends Action<CloudRunProps> {
             case ChangeType.create:
             case ChangeType.modify:
             case ChangeType.replace:
+                // See Issue #220
                 if (oldManifest === undefined || isDeleting(oldManifest)) {
                     return {
                         act: true,
@@ -228,6 +229,7 @@ export class CloudRun extends Action<CloudRunProps> {
             case ChangeType.create:
             case ChangeType.modify:
             case ChangeType.replace:
+                //See Issue #220
                 await cloudRunDeploy(config);
                 await cloudRunUpdateTraffic(config);
                 return;

@@ -64,6 +64,7 @@ export async function cloudRunDescribe(config: Config): Promise<Manifest | undef
 export async function cloudRunDeploy(config: Config): Promise<void> {
     const env = config.env;
     const args = config.args;
+    // Need better escaping here.  See Issue #221
     const envString = Object.entries(env).map(([k, v]) => `${k}=${v}`).join(",");
     const argsString = args.join(",");
     const authArg = config.allowUnauthenticated
