@@ -58,8 +58,7 @@
     },
     "renovate": {
         "extends": [
-            "config:base",
-            "schedule:weekly"
+            "config:base"
         ]
     }
 }
