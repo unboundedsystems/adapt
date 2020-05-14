@@ -24,22 +24,22 @@
     },
     "dependencies": {
         "@adpt/utils": "0.3.0-next.0",
-        "commander": "^3.0.0",
-        "copyright-header": "^0.4.6",
-        "debug": "^4.1.1",
-        "diff": "^4.0.2",
-        "execa": "^3.4.0",
-        "fs-extra": "^8.1.0",
-        "globby": "^10.0.1",
-        "indent-string": "^3.2.0",
-        "lerna": "^3.16.4",
-        "lodash": "^4.17.15"
+        "commander": "3.0.2",
+        "copyright-header": "0.4.6",
+        "debug": "4.1.1",
+        "diff": "4.0.2",
+        "execa": "3.4.0",
+        "fs-extra": "8.1.0",
+        "globby": "10.0.1",
+        "indent-string": "3.2.0",
+        "lerna": "3.19.0",
+        "lodash": "4.17.15"
     },
     "devDependencies": {
         "@adpt/testutils": "0.3.0-next.0",
-        "mocha": "^5.2.0",
-        "should": "^13.2.3",
-        "source-map-support": "^0.5.13"
+        "mocha": "5.2.0",
+        "should": "13.2.3",
+        "source-map-support": "0.5.16"
     },
     "scripts": {
         "coverage": "nyc mocha --opts mocha.opts",

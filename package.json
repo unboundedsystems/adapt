@@ -40,12 +40,12 @@
     "devDependencies": {
         "@unboundedsystems/api-documenter": "7.6.1-unb1",
         "@unboundedsystems/api-extractor": "7.6.1-unb1",
-        "doctoc": "^1.4.0",
-        "lint-staged": "^9.2.1",
-        "markdown-clitest": "^0.5.1",
-        "nyc": "^13.3.0",
-        "semver": "^5.6.0",
-        "tslint": "^5.18.0",
+        "doctoc": "1.4.0",
+        "lint-staged": "9.5.0",
+        "markdown-clitest": "0.5.1",
+        "nyc": "13.3.0",
+        "semver": "5.7.1",
+        "tslint": "5.20.1",
         "typescript": "3.4.5"
     },
     "resolutions": {
