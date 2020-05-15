@@ -46,7 +46,7 @@ describe("DockerContainer", function () {
     let testNet1: string;
     let testNet2: string;
 
-    this.timeout(60 * 1000);
+    this.timeout(2 * 60 * 1000);
     this.slow(4 * 1000);
 
     mochaTmpdir.all(`adapt-cloud-dockercontainer`);
