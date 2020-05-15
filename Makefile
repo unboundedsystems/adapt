@@ -96,6 +96,8 @@ docs-test: run-local-registry
 systemtest-test: ssh-setup run-local-registry
 docs-release-test: ssh-setup prerelease-registry
 
+# Artificial dependency to remove parallelism
+docs-test: core-test cloud-test
 
 include $(BUILD_SUPPORT)/docs.mk
 
