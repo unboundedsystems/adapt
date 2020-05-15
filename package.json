@@ -79,6 +79,12 @@
                 "minor": {
                     "enabled": false
                 }
+            },
+            {
+                "packageNames": [
+                    "moment"
+                ],
+                "enabled": false
             }
         ]
     }
