@@ -93,7 +93,7 @@ const pending = Symbol("value-pending");
 type Pending = typeof pending;
 
 describe("k8s ServiceDeployment tests", function () {
-    this.timeout(10 * 1000);
+    this.timeout(60 * 1000);
 
     let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
@@ -124,7 +124,7 @@ describe("k8s ServiceDeployment tests", function () {
     });
 
     afterEach(async function () {
-        this.timeout(20 * 1000);
+        this.timeout(40 * 1000);
         if (client) {
             const filter = deployIDFilter(mockDeploy.deployID);
             await Promise.all([

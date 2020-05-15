@@ -151,7 +151,7 @@ describe("k8s Pod Component Tests", () => {
 });
 
 describe("k8s Pod Operation Tests", function () {
-    this.timeout(10 * 1000);
+    this.timeout(60 * 1000);
 
     let plugin: ActionPlugin;
     let logger: MockLogger;
@@ -181,7 +181,7 @@ describe("k8s Pod Operation Tests", function () {
     });
 
     afterEach(async function () {
-        this.timeout(20 * 1000);
+        this.timeout(40 * 1000);
         if (client) {
             await deleteAll("pods", { client, deployID });
             await deleteAll("services", { client, deployID });
