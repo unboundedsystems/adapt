@@ -32,7 +32,7 @@ before_script:
       exit 1
     fi
   - |
-    if [ "${CI_PROJECT_PATH}" = "unboundedsystems/adapt" -a -z "$ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON"]; then
+    if [ "${CI_PROJECT_PATH}" = "unboundedsystems/adapt" -a -z "$ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON" ]; then
       echo No ADAPT_UNIT_TEST_GCLOUD_SVCACCT_JSON set for main unboundedsystems/adapt CI
       exit 1
     fi
