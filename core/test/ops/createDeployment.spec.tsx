@@ -269,8 +269,8 @@ describe("createDeployment Tests", async function () {
         return server_;
     }
 
-    const baseTimeout = 20 * 1000; // To do a single create
-    const opTimeout = 10 * 1000;   // Additional ops like status or update
+    const baseTimeout = 40 * 1000; // To do a single create
+    const opTimeout = 20 * 1000;   // Additional ops like status or update
     this.timeout(baseTimeout);
 
     tmpdir.all("adapt-createDeployment");

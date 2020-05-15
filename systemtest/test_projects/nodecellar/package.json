@@ -7,10 +7,10 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "@types/node": "^8.10.20",
+    "@types/node": "8.10.60",
     "@adpt/core": "unit-tests",
     "@adpt/cloud": "unit-tests",
-    "source-map-support": "^0.5.5",
-    "typescript": "^3.0.3"
+    "source-map-support": "0.5.19",
+    "typescript": "3.9.2"
   }
 }

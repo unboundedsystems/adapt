@@ -27,22 +27,22 @@
     "node": ">=10.0.0"
   },
   "dependencies": {
-    "lodash": "^4.17.15",
-    "stream-buffers": "^3.0.2",
-    "ts-custom-error": "^3.1.1",
-    "tslib": "^1.10.0",
-    "xml2js": "^0.4.19"
+    "lodash": "4.17.15",
+    "stream-buffers": "3.0.2",
+    "ts-custom-error": "3.1.1",
+    "tslib": "1.10.0",
+    "xml2js": "0.4.22"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.137",
-    "@types/mocha": "^5.2.0",
-    "@types/node": "^10.11.7",
-    "@types/stream-buffers": "^3.0.3",
-    "@types/xml2js": "^0.4.3",
-    "mocha": "^5.1.1",
-    "mocha-slow-options": "^0.0.2",
-    "should": "^13.2.3",
-    "source-map-support": "^0.5.13"
+    "@types/lodash": "4.14.149",
+    "@types/mocha": "5.2.7",
+    "@types/node": "10.17.9",
+    "@types/stream-buffers": "3.0.3",
+    "@types/xml2js": "0.4.5",
+    "mocha": "5.2.0",
+    "mocha-slow-options": "0.0.2",
+    "should": "13.2.3",
+    "source-map-support": "0.5.16"
   },
   "files": [
     "dist/src"
