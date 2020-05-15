@@ -72,7 +72,7 @@
     "@types/async-lock": "1.1.1",
     "@types/callsites": "2.0.0",
     "@types/debug": "4.1.5",
-    "@types/fs-extra": "8.0.1",
+    "@types/fs-extra": "8.1.1",
     "@types/graphlib": "2.1.5",
     "@types/graphql-type-json": "0.3.2",
     "@types/indent-string": "3.2.0",
