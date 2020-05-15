@@ -60,9 +60,9 @@
         "extends": [
             "config:base",
             ":prHourlyLimitNone",
-            ":pinAllExceptPeerDependencies",
-            ":prConcurrentLimit10"
+            ":pinAllExceptPeerDependencies"
         ],
+        "prConcurrentLimit": 2,
         "packageRules": [
             {
                 "packageNames": [
