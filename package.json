@@ -61,6 +61,9 @@
             "config:base",
             ":prHourlyLimitNone",
             ":pinAllExceptPeerDependencies",
+            ":automergeMinor",
+            ":automergePr",
+            ":automergeRequireAllStatusChecks",
             ":githubComToken(OEgQZs1qycnqHUwzcRTWcnc9XpL3tRoTGDrlX27enWGYZh7DIvhx0P4/GK/og74Ai9tRxKYqpQxvmjSH1BfBYJZUltrotFLnAEO+sqt38hJPd1qeAlP8EzlgdwlWHgX/jfg4GsOIkj+JnU/yDd9IPj6M3lrY0/HPDOh5d+mz/JJXfGsRUcwYBCe9YjNOefsWW9kEhePCRYsAKI1yYQjD2znsL4BI1fDqkMfw6L2ufVjzUbeZMOriYH5nAIsuH2FMyYtGqqx7Q9kHGN4QMXLQClPpKwbwSLhN0i1AxgELr5XI22jVlwgDs/cvMP00Eu+kuUqN0PZlBR7V9tCmf5ttLg==)"
         ],
         "prConcurrentLimit": 2,
