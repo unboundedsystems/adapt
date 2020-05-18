@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import { uniq } from "lodash";
 import path from "path";
 import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
+import { deleteAllImages, deployIDFilter } from "../docker/common";
 import { MockDeploy } from "../testlib";
 
 import { DockerImageInstance } from "../../src/docker";
@@ -44,10 +45,10 @@ class Final extends PrimitiveComponent<FinalProps> {
 }
 
 describe("LocalNodeImage tests", function () {
-    const cleanupIds: string[] = [];
     let imageIds: string[];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
+    const deployIDs: string[] = [];
 
     this.timeout(60 * 1000);
     this.slow(2 * 1000);
@@ -62,9 +63,9 @@ describe("LocalNodeImage tests", function () {
 
     after(async function () {
         this.timeout(20 * 1000);
-        await Promise.all(
-            uniq(cleanupIds).map((id) => execa("docker", ["rmi", "-f", id]))
-        );
+        for (const id of deployIDs) {
+            await deleteAllImages(deployIDFilter(id));
+        }
     });
 
     beforeEach(async () => {
@@ -73,8 +74,10 @@ describe("LocalNodeImage tests", function () {
         mockDeploy = new MockDeploy({
             pluginCreates: [createActionPlugin],
             tmpDir: pluginDir,
+            uniqueDeployID: true,
         });
         await mockDeploy.init();
+        deployIDs.push(mockDeploy.deployID);
     });
 
     interface TypescriptBuildProps {
@@ -85,10 +88,7 @@ describe("LocalNodeImage tests", function () {
     function TypescriptProject(props: TypescriptBuildProps) {
         const img = handle<DockerImageInstance>();
         const image = useMethod(img, "image");
-        if (image) {
-            imageIds.push(image.id);
-            cleanupIds.push(image.id);
-        }
+        if (image) imageIds.push(image.id);
 
         return (
             <Sequence>
