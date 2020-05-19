@@ -1,0 +1,16 @@
+# Cache folder is relative to where this yarnrc file is found.
+# This is used for segregating a set of yarn invocations to use a common
+# cache. This is used in some testing, particularly for CI so that parallel
+# test "threads" do not share a common cache.
+--cache-folder ./.cache/yarn
+
+# Default is to acquire the cache mutex for all yarn operations
+--mutex "file:./.yarn-mutex"
+
+# But for yarn commands that do NOT read or write to the cache, using
+# mutex "file" will protect against two of this type of yarn operation
+# happening in the same directory at the same time. That's actually not
+# quite correct, but the correct fix can only be made within yarn. And holding
+# the cache mutex for all yarn run operations serializes our testing way too
+# much.
+--run.mutex file
