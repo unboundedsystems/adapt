@@ -8204,10 +8204,10 @@ node-jose@^1.1.0:
     node-forge "^0.8.1"
     uuid "^3.3.2"
 
-node-json-db@0.9.2:
-  version "0.9.2"
-  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.9.2.tgz#b79eb61d6398476a39339a7a6d67df780f64bf15"
-  integrity sha512-vd8A6wznm3hi82IKlVKdomZvsEnASYWl0n4iwLkI7ukbIQkXTtFdJG8aZg0BNbEN+Vr/VktDFSqwWx/iSdf31Q==
+node-json-db@0.11.0:
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.11.0.tgz#b62dfb9e43619a798ef14edb82002db55c27ef4b"
+  integrity sha512-QsP8/qJmVPhC2qnxO3O4NIsAd/FDVnO/eNtQvATkWjhPZe7sKeANGcELHk2vnJt6qXHmvolLP1ylaFjSvp9hcw==
   dependencies:
     mkdirp "0.5.x"
 
