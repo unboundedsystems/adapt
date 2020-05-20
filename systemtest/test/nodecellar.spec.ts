@@ -25,6 +25,7 @@ import {
 } from "@adpt/testutils";
 import { sleep } from "@adpt/utils";
 import * as fs from "fs-extra";
+import { inspect } from "util";
 import { systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAll, getAll } = k8sutils;
@@ -55,6 +56,7 @@ describeLong("Nodecellar system tests", function () {
     let aClient: AWS.CloudFormation;
     let kDeployID: string | undefined;
     let aDeployID: string | undefined;
+    let incomplete = 0;
 
     this.timeout(6 * 60 * 1000);
 
@@ -72,6 +74,8 @@ describeLong("Nodecellar system tests", function () {
         aClient = getAwsClient(results[1]);
     });
 
+    beforeEach(() => { incomplete++; });
+
     afterEach(async function () {
         this.timeout(65 * 1000);
         if (kDeployID && kClient) {
@@ -88,6 +92,16 @@ describeLong("Nodecellar system tests", function () {
     });
 
     systemTestChain
+    .onerror(async () => {
+        if (kClient) {
+            const nodes = await kClient.api.v1.nodes.get();
+            // tslint:disable-next-line: no-console
+            console.log("K8S Nodes:", inspect(nodes.body.items, { depth: 10 }));
+            const pods = await getAll("pods", { client: kClient });
+            // tslint:disable-next-line: no-console
+            console.log("K8S Pods:", inspect(pods, { depth: 10 }));
+        }
+    })
     .command(["run", "k8s"])
 
     .it("Should deploy k8s style", async (ctx) => {
@@ -123,10 +137,16 @@ describeLong("Nodecellar system tests", function () {
         expect(pods[0].spec.containers).to.have.length(2);
 
         // TODO: Should be able to curl the web interface and get HTML
+
+        // Test success
+        incomplete--;
     });
 
     systemTestChain
 
+    .do(() => {
+        if (incomplete > 1) throw new Error("Previous test did not complete");
+    })
     .command(["run", "aws"])
     .do(async (ctx) => {
         expect(ctx.stderr).equals("");
@@ -162,5 +182,8 @@ describeLong("Nodecellar system tests", function () {
         await checkStackStatus(stacks[0], "CREATE_COMPLETE", true, aClient);
 
         // TODO: Should be able to curl the web interface and get HTML
+
+        // Test success
+        incomplete--;
     });
 });

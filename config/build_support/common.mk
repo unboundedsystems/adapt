@@ -1,5 +1,6 @@
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 BUILD_SUPPORT := $(REPO_ROOT)/config/build_support
+ADAPT_TMPDIR_BASE := /tmp/adapt-test
 
 include $(BUILD_SUPPORT)/log.mk
 

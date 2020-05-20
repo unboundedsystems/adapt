@@ -14,17 +14,18 @@ else
 DOCS_REGISTRY:=$(ADAPT_TEST_REGISTRY)
 endif
 
+ADAPT_TMPDIR := $(ADAPT_TMPDIR_BASE)/$(notdir $(CURDIR))
 
 LONG_TESTS:=$(call to_bool,$(ADAPT_RUN_LONG_TESTS))
 ifeq ($(LONG_TESTS),true)
 define CLITEST
 NPM_CONFIG_REGISTRY=$(DOCS_REGISTRY) \
-ADAPT_TMPDIR=$$(mktemp -d adapt-doc-XXXX --tmpdir) \
-PREFIX=$${ADAPT_TMPDIR} \
+PREFIX=$(ADAPT_TMPDIR) \
 PATH="$${PREFIX}/bin:$(PATH)" \
 XDG_CONFIG_HOME=$${ADAPT_TMPDIR}/.config \
 XDG_DATA_DIR=$${ADAPT_TMPDIR}/.data \
 XDG_CACHE_DIR=$${ADAPT_TMPDIR}/.cache \
+HOME=$${ADAPT_TMPDIR} \
 markdown-clitest
 endef
 # For debugging, copy the following two lines into CLITEST above
@@ -103,5 +104,9 @@ docs: dist/.docs_success
 dist/.docs_success:
 	mkdir -p dist
 	touch $@
+
+$(ADAPT_TMPDIR)/.yarnrc: $(REPO_ROOT)/config/yarnrc_test
+	mkdir -p $(ADAPT_TMPDIR)
+	cp $(REPO_ROOT)/config/yarnrc_test $(ADAPT_TMPDIR)/.yarnrc
 
 endif # IN_DOCKER
