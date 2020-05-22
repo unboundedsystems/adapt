@@ -80,7 +80,7 @@
     "randomstring": "1.1.5",
     "shellwords-ts": "2.0.4",
     "swagger-client": "3.9.6",
-    "tmp": "0.0.33",
+    "tmp": "0.2.1",
     "ts-custom-error": "3.1.1",
     "tslib": "1.10.0",
     "type-ops": "3.0.3"
@@ -100,7 +100,7 @@
     "@types/node": "10.17.9",
     "@types/node-fetch": "2.5.4",
     "@types/randomstring": "1.1.6",
-    "@types/tmp": "0.0.33",
+    "@types/tmp": "0.2.0",
     "aws-sdk-mock": "4.5.0",
     "dockerode": "2.5.8",
     "express": "4.17.1",
