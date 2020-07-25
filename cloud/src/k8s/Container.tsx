@@ -38,7 +38,7 @@ import {
 /**
  * Resource spec for a Kubernetes container.
  * See the Kubernetes
- * {@link https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#container-v1-core | API docs }
+ * {@link https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#container-v1-core | API docs }
  * for more details.
  * @public
  */
