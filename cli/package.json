@@ -65,7 +65,7 @@
     "conf": "6.2.1",
     "copy": "0.3.2",
     "debug": "4.1.1",
-    "decamelize": "2.0.0",
+    "decamelize": "4.0.0",
     "execa": "3.4.0",
     "fs-extra": "8.1.0",
     "json5": "2.1.1",

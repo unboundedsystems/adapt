@@ -7,7 +7,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "decamelize": "2.0.0"
+    "decamelize": "4.0.0"
   },
   "devDependencies": {
     "@types/node": "8.10.60"
