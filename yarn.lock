@@ -2129,11 +2129,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/xmlbuilder@0.0.32":
-  version "0.0.32"
-  resolved "https://registry.yarnpkg.com/@types/xmlbuilder/-/xmlbuilder-0.0.32.tgz#f3107c16a05311ed117af1051c061cfbd8178309"
-  integrity sha512-pYpeUBPFwOga4mkz9kpfua5dUBNUjPGiasg+O1HFYJpJy/NqQhnhm95NFMD9U1825AIrEVyWx0kvAKsV3+CZAA==
-
 "@unboundedsystems/api-documenter@7.6.1-unb1":
   version "7.6.1-unb1"
   resolved "https://registry.yarnpkg.com/@unboundedsystems/api-documenter/-/api-documenter-7.6.1-unb1.tgz#7ff8e12a3a4c38d619b2ebce7094e02a76bdf7c5"
@@ -11819,10 +11814,10 @@ xml2js@0.4.22:
     util.promisify "~1.0.0"
     xmlbuilder "~11.0.0"
 
-xmlbuilder@10.1.1:
-  version "10.1.1"
-  resolved "https://registry.yarnpkg.com/xmlbuilder/-/xmlbuilder-10.1.1.tgz#8cae6688cc9b38d850b7c8d3c0a4161dcaf475b0"
-  integrity sha512-OyzrcFLL/nb6fMGHbiRDuPup9ljBycsdCypwuyg5AAHvyWzGfChJpCXMG88AGTIMFhGZ9RccFN1e6lhg3hkwKg==
+xmlbuilder@15.1.1:
+  version "15.1.1"
+  resolved "https://registry.yarnpkg.com/xmlbuilder/-/xmlbuilder-15.1.1.tgz#9dcdce49eea66d8d10b42cae94a79c3c8d0c2ec5"
+  integrity sha512-yMqGBqtXyeN1e3TGYvgNgDVZ3j84W4cwkOXQswghol6APgZWaff9lnbvN7MHYJOiXsvGPXtjTYJEiC9J2wv9Eg==
 
 xmlbuilder@~11.0.0:
   version "11.0.1"
