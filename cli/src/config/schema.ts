@@ -58,7 +58,7 @@ function validateDuration(val: any): ValTypeOutput<"duration"> {
     switch (typeof val) {
         case "string":
             const duration = parseDuration(val);
-            if (duration === 0) throw new InvalidValue();
+            if (duration === null) throw new InvalidValue();
             return duration;
 
         case "number":
