@@ -133,9 +133,7 @@ describe("DOM Child Serialization", () => {
         const ser = Adapt.serializeDom(<Flex>{f}</Flex>);
         should(ser).equal(`<Adapt>
   <Flex>
-    <typescript>
-      <![CDATA[${f.toString()}]]>
-    </typescript>
+    <typescript><![CDATA[${f.toString()}]]></typescript>
   </Flex>
 </Adapt>
 `);

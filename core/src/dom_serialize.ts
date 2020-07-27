@@ -129,7 +129,7 @@ function collectProps(elem: AdaptElement, options: SerializeOptions) {
 }
 
 function addPropsNode(
-    node: xmlbuilder.XMLElementOrXMLNode,
+    node: xmlbuilder.XMLElement,
     props: PreparedProps,
 ): void {
     const propsNode = node.ele("__props__", {});
@@ -142,7 +142,7 @@ function addPropsNode(
 
 function serializeChildren(
     context: SerializationContext,
-    node: xmlbuilder.XMLElementOrXMLNode,
+    node: xmlbuilder.XMLElement,
     children: any[],
     options: SerializeOptions,
 ): void {
@@ -164,7 +164,7 @@ function serializeChildren(
 
 function serializeChildrenFromElem(
     context: SerializationContext,
-    node: xmlbuilder.XMLElementOrXMLNode,
+    node: xmlbuilder.XMLElement,
     elem: AdaptElement,
     options: SerializeOptions,
 ): void {
@@ -192,7 +192,7 @@ function getUrn(elem: AdaptElement) {
 
 function serializeBuildData(
     context: SerializationContext,
-    parent: xmlbuilder.XMLElementOrXMLNode,
+    parent: xmlbuilder.XMLElement,
     elem: AdaptElementImpl<AnyProps>,
     options: SerializeOptions,
 ) {
@@ -213,7 +213,7 @@ function serializeBuildData(
 
 function addLifecycleNode(
     context: SerializationContext,
-    parent: xmlbuilder.XMLElementOrXMLNode,
+    parent: xmlbuilder.XMLElement,
     elem: AdaptMountedElement,
     options: SerializeOptions,
 ): void {
@@ -229,7 +229,7 @@ function addLifecycleNode(
 
 function serializeElement(
     context: SerializationContext,
-    parent: xmlbuilder.XMLElementOrXMLNode,
+    parent: xmlbuilder.XMLElement,
     elem: AdaptElement,
     options: SerializeOptions,
 ): void {
@@ -239,7 +239,7 @@ function serializeElement(
     }
 
     const { shortProps, longProps } = collectProps(elem, options);
-    let node: xmlbuilder.XMLElementOrXMLNode;
+    let node: xmlbuilder.XMLElement;
 
     if (options.reanimateable) {
         const urn = getUrn(elem);
@@ -270,15 +270,13 @@ export function serializeDom(root: AdaptElementOrNull, options: Partial<Serializ
         serializedElements: new Set<AdaptElement>(),
         work: []
     };
-    const doc = xmlbuilder.create("Adapt");
+    const doc = xmlbuilder.create("Adapt", { headless: true });
     if (root != null) serializeElement(context, doc, root, opts);
     while (context.work.length > 0) {
         const toDo = context.work.shift();
         if (toDo) toDo();
     }
-    doc.end({
-        headless: true,
+    return doc.end({
         pretty: true
-    });
-    return doc.toString();
+    }) + "\n";
 }
