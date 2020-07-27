@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import ee2 from "eventemitter2";
+import ee2, { EventEmitter2, eventNS, Listener, ListenerFn, OnOptions } from "eventemitter2";
 import * as stream from "stream";
 import { hasValidProps, validateProps, ValidationError } from "../type_check";
 
@@ -133,18 +133,22 @@ export class LocalStore implements MessageStore {
  * To listen to all messages for a specific task:
  *   taskEmitter.on(`message:${taskId}`, callback);
  */
-export interface MessageEmitter extends ee2.EventEmitter2 {
-    on(event: string | string[], listener: MessageListener): this;
-    on(event: "close", listener: () => void): this;
+export interface MessageEmitter extends EventEmitter2 {
+    on(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    on(event: "close", listener: () => void): this | Listener;
 
-    once(event: string | string[], listener: MessageListener): this;
-    once(event: "close", listener: () => void): this;
+    once(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: true | OnOptions): this | Listener;
+    once(event: "close", listener: () => void): this | Listener;
 
-    prependListener(event: string | string[], listener: MessageListener): this;
-    prependListener(event: "close", listener: () => void): this;
+    prependListener(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    prependListener(event: "close", listener: () => void): this | Listener;
 
-    prependOnceListener(event: string | string[], listener: MessageListener): this;
-    prependOnceListener(event: "close", listener: () => void): this;
+    prependOnceListener(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    prependOnceListener(event: "close", listener: () => void): this | Listener;
 
     emit(event: string, msg: Message): boolean;
     listeners(event: string | string[]): MessageListener[];
@@ -203,18 +207,22 @@ function isTaskEvent(event: unknown): event is TaskEvent {
  * To listen to all events for all tasks:
  *   taskEmitter.on(`task:**`, callback);
  */
-export interface TaskEmitter extends ee2.EventEmitter2 {
-    on(event: string | string[], listener: TaskListener): this;
-    on(event: "close", listener: () => void): this;
+export interface TaskEmitter extends EventEmitter2 {
+    on(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    on(event: "close", listener: () => void): this | Listener;
 
-    once(event: string | string[], listener: TaskListener): this;
-    once(event: "close", listener: () => void): this;
+    once(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: true | OnOptions): this | Listener;
+    once(event: "close", listener: () => void): this | Listener;
 
-    prependListener(event: string | string[], listener: TaskListener): this;
-    prependListener(event: "close", listener: () => void): this;
+    prependListener(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    prependListener(event: "close", listener: () => void): this | Listener;
 
-    prependOnceListener(event: string | string[], listener: TaskListener): this;
-    prependOnceListener(event: "close", listener: () => void): this;
+    prependOnceListener(event: ee2.event | eventNS, listener: ListenerFn,
+        options?: boolean | OnOptions): this | Listener;
+    prependOnceListener(event: "close", listener: () => void): this | Listener;
 
     emit(event: string, msg: Message): boolean;
     listeners(event: string | string[]): TaskListener[];
