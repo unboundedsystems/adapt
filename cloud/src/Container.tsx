@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -196,7 +196,7 @@ export interface ContainerStatus {
     GraphDriver: FIXME_NeedsProperType;
     SizeRw: number;
     SizeRootFs: number;
-    Mounts: FIXME_NeedsProperType[];
+    Mounts: MountStatus[];
     Config: Config;
     NetworkSettings: ContainerNetworkSettings;
 }
@@ -288,6 +288,7 @@ export interface ContainerNetwork {
 export interface HostConfigStatus {
     PortBindings: PortBindingsStatus;
     RestartPolicy: RestartPolicyStatus;
+    Binds: string[] | null;
 }
 
 /**
@@ -314,6 +315,19 @@ export interface PortBindingsStatus {
 export interface PortBindingStatus {
     HostIp: string;
     HostPort: string;
+}
+
+/**
+ * Mount information for {@link ContainerStatus}
+ * @public
+ */
+export interface MountStatus {
+    Type: "bind" | "volume" | "tmpfs";
+    Source?: string;
+    Destination: string;
+    Mode: string;
+    RW: boolean;
+    Propagation: "shared" | "slave" | "private" | "rshared" | "rslave" | "rprivate";
 }
 
 /**

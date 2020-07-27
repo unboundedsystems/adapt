@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -269,6 +269,10 @@ export interface DockerContainerProps extends DockerGlobalOptions,
      */
     labels?: ContainerLabels;
     /**
+     * Filesystems to be mounted in the container.
+     */
+    mounts?: Mount[];
+    /**
      * Networks to connect the container to
      *
      * @remarks
@@ -285,3 +289,21 @@ export interface DockerSplitRegistryInfo {
     external: string;
     internal: string;
 }
+
+/**
+ * Describes bind mount filesystems to be mounted in a container.
+ * @public
+ */
+export interface BindMount {
+    type: "bind";
+    source: string;
+    destination: string;
+    readonly?: boolean;
+    propagation?: "shared" | "slave" | "private" | "rshared" | "rslave" | "rprivate";
+}
+
+/**
+ * Describes filesystems to be mounted in a container.
+ * @public
+ */
+export type Mount = BindMount; // | VolumeMount | TmpfsMount

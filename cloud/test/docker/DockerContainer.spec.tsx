@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,12 +25,13 @@ import { MockDeploy, smallDockerImage } from "../testlib";
 import { deleteAllContainers, deleteAllImages, deleteAllNetworks, deployIDFilter } from "./common";
 
 import { sleep } from "@adpt/utils";
-import { ContainerLabels, EnvSimple, PortBinding, PortDescription } from "../../src";
+import { ContainerLabels, EnvSimple, MountStatus, PortBinding, PortDescription } from "../../src";
 import {
     adaptDockerDeployIDKey,
     computeContainerName,
     DockerContainer,
-    LocalDockerImage
+    LocalDockerImage,
+    Mount,
 } from "../../src/docker";
 import {
     dockerImageId,
@@ -548,4 +549,131 @@ describe("DockerContainer", function () {
         should(info.State.ExitCode).equal(1);
     });
 
+    const mountCompare = (a: MountStatus, b: MountStatus) =>
+        a.Destination < b.Destination ? -1 : a.Destination > b.Destination ? 1 : 0;
+
+    it("Should apply bind mounts", async () => {
+        // tslint:disable-next-line: variable-name
+        const Test = ({ mounts }: { mounts: Mount[] }) => (
+            <Group>
+                <DockerContainer
+                    command="sleep 1000"
+                    image={smallDockerImage}
+                    mounts={mounts}
+                    stopSignal="kill"
+                />
+            </Group>
+        );
+        let info = await buildAndGetInfo(
+            <Test mounts={[
+                {
+                    type: "bind",
+                    source: "/tmp",
+                    destination: "/foo/bar",
+                },
+                {
+                    type: "bind",
+                    source: "/etc",
+                    destination: "/foo/baz",
+                },
+            ]} />
+        );
+        let lastId = info.Id;
+
+        // Check initial mounts
+        should((info.Mounts || []).sort(mountCompare)).eql([
+            {
+                Type: "bind",
+                Source: "/tmp",
+                Destination: "/foo/bar",
+                RW: true,
+                Mode: "",
+                Propagation: "rprivate",
+            },
+            {
+                Type: "bind",
+                Source: "/etc",
+                Destination: "/foo/baz",
+                RW: true,
+                Mode: "",
+                Propagation: "rprivate",
+            },
+        ]);
+
+        // Change the order
+        info = await buildAndGetInfo(
+            <Test mounts={[
+                {
+                    type: "bind",
+                    source: "/etc",
+                    destination: "/foo/baz",
+                },
+                {
+                    type: "bind",
+                    source: "/tmp",
+                    destination: "/foo/bar",
+                },
+            ]} />
+        );
+        should(info.Id).equal(lastId); // Changing order should not cause restart
+
+        // Change readonly
+        info = await buildAndGetInfo(
+            <Test mounts={[
+                {
+                    type: "bind",
+                    source: "/etc",
+                    destination: "/foo/baz",
+                    readonly: true,
+                },
+                {
+                    type: "bind",
+                    source: "/tmp",
+                    destination: "/foo/bar",
+                },
+            ]} />
+        );
+        should(info.Id).not.equal(lastId); // Changing readonly should cause restart
+        lastId = info.Id;
+        should((info.Mounts || []).sort(mountCompare)).eql([
+            {
+                Type: "bind",
+                Source: "/tmp",
+                Destination: "/foo/bar",
+                RW: true,
+                Mode: "",
+                Propagation: "rprivate",
+            },
+            {
+                Type: "bind",
+                Source: "/etc",
+                Destination: "/foo/baz",
+                RW: false,
+                Mode: "",
+                Propagation: "rprivate",
+            },
+        ]);
+
+        // Delete a mount
+        info = await buildAndGetInfo(
+            <Test mounts={[
+                {
+                    type: "bind",
+                    source: "/tmp",
+                    destination: "/foo/bar",
+                },
+            ]} />
+        );
+        should(info.Id).not.equal(lastId); // Deleting bind should cause restart
+        should((info.Mounts || []).sort(mountCompare)).eql([
+            {
+                Type: "bind",
+                Source: "/tmp",
+                Destination: "/foo/bar",
+                RW: true,
+                Mode: "",
+                Propagation: "rprivate",
+            },
+        ]);
+    });
 });

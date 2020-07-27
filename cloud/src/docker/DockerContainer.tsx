@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
 import { adaptDockerDeployIDKey } from "./labels";
 import { containerNetworks, NetworkDiff } from "./network_set";
-import { DockerContainerProps, DockerGlobalOptions, ImageIdString, ImageInfo } from "./types";
+import { DockerContainerProps, DockerGlobalOptions, ImageIdString, ImageInfo, Mount } from "./types";
 
 /** @public */
 export interface DockerContainerStatus extends ContainerStatus { }
@@ -305,6 +305,50 @@ function portBindingsUpToDate(info: ContainerInfo, _context: ActionContext, prop
     return isEqual(actual, expected);
 }
 
+const anyVal = (key: string) => (val: any): [string, any] => [key, val];
+
+const mountTransform: { [prop: string]: (val: any) => [string, any]} = {
+    Destination: anyVal("destination"),
+    Propagation: anyVal("propagation"),
+    RW: (val: any) => ["readonly", !val],
+    Source: anyVal("source"),
+    Type: anyVal("type"),
+};
+
+const mountCompare = (a: Mount, b: Mount) =>
+    a.destination < b.destination ? -1 : a.destination > b.destination ? 1 : 0;
+
+const mountDefaultProps = {
+    readonly: false,
+    propagation: "rprivate" as const,
+};
+
+function mountsUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    if (!ctr) throw new InternalError(`No container report`);
+
+    const expectedIn = props.mounts || [];
+    const expected = expectedIn.map((m) => ({ ...mountDefaultProps, ...m }));
+
+    const actualIn = ctr.Mounts || [];
+    const actual = actualIn.map((m) => {
+        // We only support bind mounts at the moment. Ignore other mounts.
+        if (m.Type !== "bind") return null;
+
+        const out: any = {};
+        Object.entries(m).forEach(([k, v]) => {
+            const xform = mountTransform[k];
+            if (xform) {
+                const [outKey, outVal] = xform(v);
+                out[outKey] = outVal;
+            }
+        });
+        return out;
+    }).filter(Boolean);
+
+    return isEqual(actual.sort(mountCompare), expected.sort(mountCompare));
+}
+
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
     Promise<"noExist" | "replace" | "update" | "existsUnmanaged" | "upToDate"> {
     if (!containerExists(info)) return "noExist";
@@ -319,6 +363,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!envUpToDate(info, context, props)) return "replace";
     if (!portsUpToDate(info, context, props)) return "replace";
     if (!portBindingsUpToDate(info, context, props)) return "replace";
+    if (!mountsUpToDate(info, context, props)) return "replace";
 
     /*
      * Differences that can be updated on a running container.
