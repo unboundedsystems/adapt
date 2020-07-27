@@ -5232,7 +5232,15 @@ find-up@^3.0.0:
   dependencies:
     locate-path "^3.0.0"
 
-flush-write-stream@1.1.1, flush-write-stream@^1.0.0:
+flush-write-stream@2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/flush-write-stream/-/flush-write-stream-2.0.0.tgz#6f58e776154f5eefacff92a6e5a681c88ac50f7c"
+  integrity sha512-uXClqPxT4xW0lcdSBheb2ObVU+kuqUk3Jk64EwieirEXZx9XUrVwp/JuBfKAWaM4T5Td/VL7QLDWPXp/MvGm/g==
+  dependencies:
+    inherits "^2.0.3"
+    readable-stream "^3.1.1"
+
+flush-write-stream@^1.0.0:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/flush-write-stream/-/flush-write-stream-1.1.1.tgz#8dd7d873a1babc207d94ead0c2e0e44276ebf2e8"
   integrity sha512-3Z4XhFZ3992uIq0XOqb9AreonueSYphE6oYbpt5+3u06JWklbsPkNv3ZKkP9Bz/r+1MWCaMoSQ28P85+1Yc77w==
