@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ import {
     ImageIdString,
     ImageInfo,
     ImageNameString,
+    Mount,
     NameTagString,
     RepoDigestString,
 } from "./types";
@@ -469,7 +470,10 @@ const defaultDockerRunOptions = {
  */
 export async function dockerRun(options: DockerRunOptions) {
     const opts = { ...defaultDockerRunOptions, ...options };
-    const { background, labels, name, portBindings, ports, privileged, restartPolicy } = opts;
+    const {
+        background, labels, mounts, name,
+        portBindings, ports, privileged, restartPolicy,
+    } = opts;
     const args: string[] = ["run"];
 
     if (privileged) args.push("--privileged");
@@ -504,6 +508,8 @@ export async function dockerRun(options: DockerRunOptions) {
 
     args.push(...restartPolicyArgs(restartPolicy));
 
+    if (mounts) args.push(...ld.flatten(mounts.map(mountArgs)));
+
     args.push(opts.image);
     if (typeof opts.command === "string") args.push(...shellwords.split(opts.command));
     if (Array.isArray(opts.command)) args.push(...opts.command);
@@ -528,6 +534,32 @@ function restartPolicyArgs(policy: RestartPolicy | undefined) {
         default:
             throw new Error(`Invalid RestartPolicy name '${policy.name}'`);
     }
+}
+
+const stringVal = (key: string) => (val: any) => `${key}=${val}`;
+
+type MountArgTransform = {
+    [K in keyof Mount]: (val: Mount[K]) => string;
+};
+const mountArgTransform: MountArgTransform = {
+    type: stringVal("type"),
+    source: stringVal("source"),
+    destination: stringVal("destination"),
+    readonly: (val) => val ? "readonly" : "",
+    propagation: stringVal("propagation"),
+};
+
+function mountArgs(mount: Mount): string[] {
+    const items: string[] = [];
+
+    for (const [k, v] of Object.entries(mount)) {
+        const xform = (mountArgTransform as any)[k];
+        if (!xform) {
+            throw new Error(`Invalid mount property '${k}'`);
+        }
+        items.push(xform(v));
+    }
+    return [ "--mount", items.join(",")];
 }
 
 /**
