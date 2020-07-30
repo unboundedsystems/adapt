@@ -25,4 +25,11 @@ const stubs = {
 
 proxyquire('@oclif/command', stubs).run()
 .then(require('@oclif/command/flush'))
-.catch(require('@oclif/errors/handle'))
+.catch((err) => {
+    // Normal successful exit in Oclif is via a specific exception with
+    // exit code 0. But their use of instanceof to detect the exception is
+    // buggy and results in extraneous output upon success sometimes. This
+    // works around that bug.
+    if (err && err.oclif && err.oclif.exit === 0) return;
+    require('@oclif/errors/handle')(err);
+});
