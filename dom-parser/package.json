@@ -27,7 +27,7 @@
     "node": ">=10.0.0"
   },
   "dependencies": {
-    "lodash": "4.17.15",
+    "lodash": "4.17.19",
     "stream-buffers": "3.0.2",
     "ts-custom-error": "3.1.1",
     "tslib": "1.10.0",
