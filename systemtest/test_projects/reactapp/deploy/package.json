@@ -14,7 +14,7 @@
     "@adpt/cloud": "unit-tests",
     "@adpt/utils": "unit-tests",
     "fs-extra":"7.0.1",
-    "lodash": "4.17.15",
+    "lodash": "4.17.19",
     "source-map-support": "0.5.19",
     "typescript": "3.9.2"
   }
