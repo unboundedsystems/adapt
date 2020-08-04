@@ -286,9 +286,10 @@ export interface ContainerNetwork {
  * @public
  */
 export interface HostConfigStatus {
-    PortBindings: PortBindingsStatus;
-    RestartPolicy: RestartPolicyStatus;
     Binds: string[] | null;
+    PortBindings: PortBindingsStatus;
+    Privileged: boolean;
+    RestartPolicy: RestartPolicyStatus;
 }
 
 /**
