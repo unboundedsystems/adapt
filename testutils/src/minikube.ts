@@ -109,7 +109,8 @@ async function runMinikubeContainer(
     const bridge = docker.getNetwork("bridge");
     await addToNetwork(container, bridge);
 
-    return container.start();
+    await container.start();
+    return container;
 }
 
 async function waitForKubeConfig(docker: Docker, container: Docker.Container,

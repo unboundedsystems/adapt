@@ -102,7 +102,7 @@
     "@types/randomstring": "1.1.6",
     "@types/tmp": "0.2.0",
     "aws-sdk-mock": "4.5.0",
-    "dockerode": "2.5.8",
+    "dockerode": "3.2.1",
     "express": "4.17.1",
     "fs-extra": "8.1.0",
     "mocha": "5.2.0",
