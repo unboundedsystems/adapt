@@ -17,7 +17,7 @@
 import * as fs from "fs-extra";
 import { padStart } from "lodash";
 import moment from "moment";
-import JsonDB from "node-json-db";
+import { JsonDB } from "node-json-db";
 import * as path from "path";
 
 import { lock } from "../utils/lockfile";
