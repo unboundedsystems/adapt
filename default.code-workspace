@@ -33,5 +33,6 @@
 			"api-extractor-base.json": "jsonc"
 		},
 		"typescript.tsdk": "./node_modules/typescript/lib",
+		"debug.javascript.usePreview": false,
 	}
 }
