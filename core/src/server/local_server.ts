@@ -16,7 +16,7 @@
 
 import { mapMap } from "@adpt/utils";
 import * as fs from "fs-extra";
-import JsonDB from "node-json-db";
+import { JsonDB } from "node-json-db";
 import * as path from "path";
 import { URL } from "url";
 
