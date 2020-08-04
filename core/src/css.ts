@@ -16,7 +16,7 @@
 
 import * as util from "util";
 
-import cssWhat = require("css-what");
+import * as cssWhat from "css-what";
 import * as ld from "lodash";
 
 import { DomPath } from "./dom";
@@ -76,7 +76,9 @@ export interface RawStyle {
     build: BuildOverride;
 }
 
-type SelFrag = cssWhat.ParsedSelectorFrag;
+type SelFrag = cssWhat.Selector;
+type ParsedSelectorBlock = SelFrag[];
+type ParsedSelector = ParsedSelectorBlock[];
 
 interface Matched {
     newPath: DomPath;
@@ -142,6 +144,9 @@ function matchNot(frag: SelFrag, path: DomPath): Matched {
     if (frag.type !== "pseudo") throw new InternalError(util.inspect(frag));
     if (frag.data == null || frag.data.length === 0 || frag.data[0].length === 0) {
         throw new Error(`CSS ":not" requires at least one selector argument in parentheses`);
+    }
+    if (typeof frag.data === "string") {
+        throw new InternalError(`CSS ":not" - unexpected string data`);
     }
 
     return { newPath: path, matched: !matchWithSelector(frag.data, path) };
@@ -214,7 +219,7 @@ function matchChild(frag: SelFrag, path: DomPath): Matched {
 }
 
 function matchDescendant(
-    selector: cssWhat.ParsedSelectorBlock,
+    selector: ParsedSelectorBlock,
     path: DomPath): boolean {
 
     if (selector.length <= 0) {
@@ -251,7 +256,7 @@ function matchFrag(
 }
 
 function matchWithSelector(
-    selector: cssWhat.ParsedSelector,
+    selector: ParsedSelector,
     path: DomPath): boolean {
 
     for (const block of selector) {
@@ -263,7 +268,7 @@ function matchWithSelector(
 }
 
 function matchWithBlock(
-    selBlock: cssWhat.ParsedSelectorBlock,
+    selBlock: ParsedSelectorBlock,
     path: DomPath): boolean {
 
     const { prefix, elem: selFrag } = last(selBlock);
@@ -283,12 +288,12 @@ function matchWithBlock(
     }
 }
 
-function validateSelector(_selector: cssWhat.ParsedSelector) {
+function validateSelector(_selector: ParsedSelector) {
     return; //FIXME(manishv) Actuall validate CSS parse tree here
 }
 
 function buildStyle(rawStyle: RawStyle): StyleRule {
-    const selector = cssWhat(rawStyle.selector, { xmlMode: true });
+    const selector = cssWhat.parse(rawStyle.selector, { xmlMode: true });
     validateSelector(selector);
     return {
         selector: rawStyle.selector,
