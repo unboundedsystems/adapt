@@ -14,4 +14,9 @@
  * limitations under the License.
  */
 
+/**
+ * Google Cloud Platform library for Adapt.
+ * @public
+ */
+
 export * from "./CloudRun";
