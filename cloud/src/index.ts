@@ -30,6 +30,7 @@ import {
     makeResourceName,
 } from "./common";
 import * as docker from "./docker";
+import * as gcloud from "./gcloud";
 import * as http from "./http";
 import * as k8s from "./k8s";
 import * as mongodb from "./mongodb";
@@ -41,6 +42,7 @@ export {
     action,
     aws,
     docker,
+    gcloud,
     http,
     k8s,
     makeResourceName,
