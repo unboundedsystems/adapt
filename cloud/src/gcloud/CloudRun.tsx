@@ -323,6 +323,11 @@ function isReady(status: any) {
  */
 export const makeCloudRunName = makeResourceName(/[^a-z-]/g, 63);
 
+/**
+ * Props for the {@link gcloud.CloudRunAdapter} component
+ *
+ * @beta
+ */
 export type CloudRunAdapterProps =
     SFCDeclProps<Omit<CloudRunProps, "image"> & {
         image: Handle,
@@ -332,7 +337,7 @@ export type CloudRunAdapterProps =
 /**
  * Temporary adapter to allow handle for image
  *
- * @alpha
+ * @beta
  */
 export function CloudRunAdapter(propsIn: CloudRunAdapterProps) {
     const props = propsIn as SFCBuildProps<CloudRunAdapterProps>;
