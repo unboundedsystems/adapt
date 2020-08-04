@@ -29,12 +29,12 @@ export async function dockerExec(container: Docker.Container, command: string[])
         Cmd: command
     });
 
-    const info = await exec.start();
+    const output = await exec.start();
     const buf = new sb.WritableStreamBuffer();
     const errBuf = new sb.WritableStreamBuffer();
-    info.modem.demuxStream(info.output, buf, errBuf);
+    exec.modem.demuxStream(output, buf, errBuf);
     return new Promise<string>((res, rej) => {
-        info.output.on("end", async () => {
+        output.on("end", async () => {
             const inspectInfo = await exec.inspect();
             if (inspectInfo.Running !== false) {
                 rej(new Error(`dockerExec: ${util.inspect(command)} stream ended with process still running?!`));
