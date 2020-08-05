@@ -455,7 +455,6 @@ export interface DockerRunOptions extends OmitT<WithPartialT<DockerContainerProp
     name?: string;
     image: ImageNameString;
     network?: string;
-    privileged?: boolean;
 }
 
 const defaultDockerRunOptions = {

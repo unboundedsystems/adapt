@@ -349,6 +349,13 @@ function mountsUpToDate(info: ContainerInfo, _context: ActionContext, props: Doc
     return isEqual(actual.sort(mountCompare), expected.sort(mountCompare));
 }
 
+function privilegedUpToDate(info: ContainerInfo, _context: ActionContext, props: DockerContainerProps) {
+    const ctr = info.data;
+    if (!ctr) throw new InternalError(`No container report`);
+
+    return props.privileged === ctr.HostConfig.Privileged;
+}
+
 async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, props: DockerContainerProps):
     Promise<"noExist" | "replace" | "update" | "existsUnmanaged" | "upToDate"> {
     if (!containerExists(info)) return "noExist";
@@ -364,6 +371,7 @@ async function containerIsUpToDate(info: ContainerInfo, context: ActionContext, 
     if (!portsUpToDate(info, context, props)) return "replace";
     if (!portBindingsUpToDate(info, context, props)) return "replace";
     if (!mountsUpToDate(info, context, props)) return "replace";
+    if (!privilegedUpToDate(info, context, props)) return "replace";
 
     /*
      * Differences that can be updated on a running container.
@@ -480,7 +488,8 @@ function networkStatus(
  */
 export class DockerContainer extends Action<DockerContainerProps, DockerContainerState> {
     static defaultProps = {
-        dockerHost: process.env.DOCKER_HOST
+        dockerHost: process.env.DOCKER_HOST,
+        privileged: false,
     };
 
     dependsOn: DependsOnMethod = (_goalStatus, helpers) => {

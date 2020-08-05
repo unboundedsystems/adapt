@@ -279,6 +279,10 @@ export interface DockerContainerProps extends DockerGlobalOptions,
      * Accepts the same strings as docker network connect
      */
     networks?: string[];
+    /**
+     * Enables the container to run in privileged mode.
+     */
+    privileged?: boolean;
 }
 
 /**

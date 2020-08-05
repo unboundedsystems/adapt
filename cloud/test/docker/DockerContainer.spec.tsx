@@ -676,4 +676,25 @@ describe("DockerContainer", function () {
             },
         ]);
     });
+
+    it("Should set privileged", async () => {
+        // tslint:disable-next-line: variable-name
+        const Test = ({ privileged = false }: { privileged?: boolean }) => (
+            <Group>
+                <DockerContainer
+                    command="sleep 1000"
+                    image={smallDockerImage}
+                    privileged={privileged}
+                    stopSignal="kill"
+                />
+            </Group>
+        );
+        let info = await buildAndGetInfo(<Test />);
+        const lastId = info.Id;
+        should(info.HostConfig.Privileged === false);
+
+        info = await buildAndGetInfo(<Test privileged />);
+        should(info.HostConfig.Privileged === true);
+        should(info.Id).not.equal(lastId); // Changing order should not cause restart
+    });
 });
