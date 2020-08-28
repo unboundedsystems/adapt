@@ -25,7 +25,7 @@ import * as ld from "lodash";
 import fetch from "node-fetch";
 import should from "should";
 import { Kubeconfig } from "../../src/k8s/common";
-import k8sSwagger = require("../../src/k8s/kubernetes-1.8-swagger.json");
+import k8sSwagger = require("../../src/k8s/kubernetes-1.16-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
     Swagger2,

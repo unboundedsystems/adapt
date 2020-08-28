@@ -96,6 +96,7 @@ function buildFieldsFromSchema(
         const ret: Fields<GraphQLInputType | GraphQLOutputType> = {};
         const required = schema.required ? schema.required : [];
         for (const propName in properties) {
+            if (propName.startsWith("x-")) continue; // Do not try to process custom extensions
             if (!Object.hasOwnProperty.call(properties, propName)) continue;
             const prop = properties[propName];
             const nonNull = required.find((val) => val === propName) !== undefined;
