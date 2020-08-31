@@ -135,6 +135,18 @@ export class Pod extends DeferredComponent<PodProps> {
     }
 }
 
+/**
+ * Tests whether x is a Pod element
+ *
+ * @param x value to test
+ * @returns `true` if x is a Pod element, false otherwise
+ */
+export function isPod(x: any): x is AdaptElement<PodProps> {
+    if (!isElement(x)) return false;
+    if (x.componentType === Pod) return true;
+    return false;
+}
+
 /*
  * Plugin info
  */
