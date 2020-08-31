@@ -27,7 +27,7 @@
     "node": ">=10.0.0"
   },
   "dependencies": {
-    "@unboundedsystems/node-graceful": "3.0.0-unb.1",
+    "@unboundedsystems/node-graceful": "3.0.0-unb.2",
     "@usys/collections-ts": "0.0.2",
     "capture-exit": "2.0.0",
     "decamelize": "4.0.0",

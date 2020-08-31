@@ -24,14 +24,12 @@ export type RemoveHandler = () => void;
 interface ExitGlobals {
     capExit: any;
     graceful: typeof GracefulType.default;
-    handlers: Map<ExitHandler, number>;
 }
 
 const exitGlobals = processGlobal<ExitGlobals>("exitGlobals", () => {
     const g = {
         capExit: require("capture-exit"),
         graceful: require("@unboundedsystems/node-graceful"),
-        handlers: new Map<ExitHandler, number>(),
     };
 
     g.capExit.captureExit();

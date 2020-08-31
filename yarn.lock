@@ -2197,10 +2197,10 @@
     p-queue "^3.0.0"
     rxjs "^6.3.3"
 
-"@unboundedsystems/node-graceful@3.0.0-unb.1":
-  version "3.0.0-unb.1"
-  resolved "https://registry.yarnpkg.com/@unboundedsystems/node-graceful/-/node-graceful-3.0.0-unb.1.tgz#17b519f5451890cadc9e7516c6c24cf941e1aaaa"
-  integrity sha512-4fV+U/Eo0kDLgz4ClggxHPVNlYqz0wBOnU+R7KbVBnS9UObEkjpPgNDnpF6qSJ+gfM5MUdmrVKhcqkiAcUNAjg==
+"@unboundedsystems/node-graceful@3.0.0-unb.2":
+  version "3.0.0-unb.2"
+  resolved "https://registry.yarnpkg.com/@unboundedsystems/node-graceful/-/node-graceful-3.0.0-unb.2.tgz#103c398104deaf7b4aa33c005f3fa3fee03c8c01"
+  integrity sha512-3riqB13DcaChIAHY1c8VgnDODAhpevMvacZEVt0GNxWV1gl5hvKWUSSAtnuPNfuoLn6dhXhREGg+TxDD5M4tAg==
 
 "@unboundedsystems/plugin-autocomplete@0.1.0-unb2":
   version "0.1.0-unb2"

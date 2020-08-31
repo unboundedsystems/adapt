@@ -15,7 +15,7 @@
  */
 
 import { mochaTmpdir, repoVersions  } from "@adpt/testutils";
-import { filePathToUrl, repoRootDir, yarn } from "@adpt/utils";
+import { filePathToUrl, repoDirs, repoRootDir, yarn } from "@adpt/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
@@ -243,6 +243,14 @@ function observerIndexTsx(id1: number, id2: number) {
     `;
 }
 
+const loopingIndexTsx = `
+    import Adapt from "@adpt/core";
+
+    const App = () => { while (true) {} };
+
+    Adapt.stack("default", <App />);
+`;
+
 // Expects only 1 active deployment
 async function findDeploymentDir(): Promise<string> {
     const deploymentList = await fs.readdir("deployments");
@@ -320,6 +328,12 @@ const basicTestChain =
     testBase
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
+    });
+
+const loopTestChain =
+    testBase
+    .do(async () => {
+        await createProject(basicPackageJson, loopingIndexTsx, "index.tsx");
     });
 
 function checkPluginStdout(stdout: string, dryRun = false) {
@@ -1173,4 +1187,46 @@ describe("deploy:run negative tests", () => {
             "Deployment 'abc123' does not exist");
     })
     .it("Should fail if deployment doesn't exist");
+});
+
+const cliExecPath = path.join(repoDirs.cli, "bin", "run");
+
+describe("signal tests", () => {
+    mochaTmpdir.each("adapt-cli-test-signal");
+
+    loopTestChain
+    .it("Should exit on TERM signal", async () => {
+        const proc = execa(cliExecPath, ["run"]);
+        setTimeout(() => proc.kill("SIGTERM"), 3 * 1000);
+
+        // Types are incorrect for rejectedWith, which incorrectly triggers
+        // await-promise lint rule.
+        // tslint:disable-next-line: await-promise
+        await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
+
+    });
+
+    loopTestChain
+    .it("Should exit on INT signal", async () => {
+        const proc = execa(cliExecPath, ["run"]);
+        setTimeout(() => proc.kill("SIGINT"), 3 * 1000);
+
+        // Types are incorrect for rejectedWith, which incorrectly triggers
+        // await-promise lint rule.
+        // tslint:disable-next-line: await-promise
+        await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
+
+    });
+
+    loopTestChain
+    .it("Should exit on HUP signal", async () => {
+        const proc = execa(cliExecPath, ["run"]);
+        setTimeout(() => proc.kill("SIGHUP"), 3 * 1000);
+
+        // Types are incorrect for rejectedWith, which incorrectly triggers
+        // await-promise lint rule.
+        // tslint:disable-next-line: await-promise
+        await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
+
+    });
 });
