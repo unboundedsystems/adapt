@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 import { BuildData, ObserveForStatus, WithChildren } from "@adpt/core";
 import { DockerSplitRegistryInfo } from "../docker";
+import { DaemonSetSpec } from "./DaemonSet";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
@@ -33,6 +34,7 @@ export interface CRSpec {
 
 /** @public */
 export type Spec =
+    DaemonSetSpec |
     PodSpec |
     ServiceSpec |
     CRSpec;
@@ -46,6 +48,7 @@ export interface Metadata {
 
 /** @public */
 export type ResourceProps = { key: string } & (
+    ResourceDaemonSet |
     ResourcePod |
     ResourceService |
     ResourceCR
@@ -102,6 +105,13 @@ export interface ResourceBase {
     apiVersion?: string;
     kind: Kind;
     metadata?: Metadata;
+}
+
+/** @public */
+export interface ResourceDaemonSet extends ResourceBase {
+    apiVersion: "apps/v1";
+    kind: "DaemonSet";
+    spec: DaemonSetSpec;
 }
 
 /** @public */
