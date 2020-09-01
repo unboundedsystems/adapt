@@ -8,6 +8,10 @@ process.on('unhandledRejection', (reason) => {
 
 require('source-map-support').install();
 
+const { onExit } = require('@adpt/utils/dist/src/exit');
+// Ensure consistent signal handling by always installing an onExit handler
+onExit(() => {/* */});
+
 /* We use our own version of plugin-help, but in order for it to work fully,
  * @oclif/command must also use it. So this little bit of ugliness is to
  * force an unmodified version of @oclif/command to load
