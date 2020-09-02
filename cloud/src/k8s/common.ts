@@ -99,6 +99,7 @@ export interface ClusterInfo {
 /** @public */
 export interface ResourceBase {
     config: ClusterInfo;
+    apiVersion?: string;
     kind: Kind;
     metadata?: Metadata;
 }

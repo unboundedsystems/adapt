@@ -26,6 +26,7 @@ import Adapt, {
     FinalDomElement,
     GoalStatus,
     gqlGetOriginalErrors,
+    isElement,
     isFinalDomElement,
     ObserveForStatus,
     waiting,
@@ -68,6 +69,10 @@ function isDeleting(info: Manifest | undefined): boolean {
  * @public
  */
 export class Resource extends Action<ResourceProps> {
+    defaultProps: {
+        apiVersion: "v1";
+    };
+
     manifest_: Manifest;
 
     constructor(props: ResourceProps) {
@@ -247,3 +252,14 @@ export class Resource extends Action<ResourceProps> {
         return this.manifest_;
     }
 }
+
+/**
+ * Tests to see if an object is a {@link k8s.Resource} element
+ * @param x - object to test
+ * @returns true if object is an AdaptElement of type {@link k8s.Resource}
+ *
+ * @public
+ */
+export function isResource(x: any): x is AdaptElement<ResourceProps> {
+    return isElement(x) && x.componentType === Resource;
+ }

@@ -54,7 +54,7 @@ export function registerResourceKind(info: ResourceInfo) {
 }
 
 export interface Manifest {
-    apiVersion: "v1" | "v1beta1" | "v1beta2";
+    apiVersion: string;
     kind: Kind;
     metadata: MetadataInRequest;
     spec: Spec;
@@ -76,7 +76,7 @@ export function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string
 
     const name = resourceElementToName(elem, deployID);
     const ret: Manifest = {
-        apiVersion: "v1",
+        apiVersion: elem.props.apiVersion || "v1",
         kind: elem.props.kind,
         metadata: {
             ...elem.props.metadata,
