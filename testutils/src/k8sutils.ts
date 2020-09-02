@@ -51,9 +51,19 @@ export function getK8sConfig(kubeConfig: KubeConfig): K8sConfig {
     return k8s.config.fromKubeconfig(kubeConfig);
 }
 
-async function clientFromOptions(options: ClientOptions): Promise<KubeClient> {
-    if (options.client) return options.client;
-    if (options.clientConfig) return getClient(options.clientConfig);
+function getClientObj(client: KubeClient, apiPrefix: string) {
+    const apiPrefixes = apiPrefix === "" ? [] : apiPrefix.split("/");
+    let ret: any = client;
+    for (const prefix of apiPrefixes) {
+        ret = ret[prefix];
+    }
+    return ret;
+}
+
+async function clientFromOptions(options: ClientOptions): Promise<any> {
+    const apiPrefix = (options.apiPrefix === undefined) ? "api/v1" : options.apiPrefix;
+    if (options.client) return getClientObj(options.client, apiPrefix);
+    if (options.clientConfig) return getClientObj(await getClient(options.clientConfig), apiPrefix);
     throw new Error(`client or clientConfig must be specified`);
 }
 
@@ -63,6 +73,7 @@ async function clientFromOptions(options: ClientOptions): Promise<KubeClient> {
 export interface ClientOptions {
     client?: KubeClient;
     clientConfig?: K8sConfig;
+    apiPrefix?: string;
 }
 
 export interface GetOptions extends ClientOptions {
@@ -95,7 +106,7 @@ export async function getAll(apiName: string, options: GetOptions) {
     const client = await clientFromOptions(opts);
 
     for (const ns of opts.namespaces) {
-        const response = await client.api.v1.namespaces(ns)[apiName].get();
+        const response = await client.namespaces(ns)[apiName].get();
         if (response.statusCode !== 200) {
             throw new Error(`k8s client returned status ${response.statusCode}`);
         }
@@ -131,12 +142,13 @@ export async function deleteAll(apiName: string, options: DeleteOptions) {
     let { waitTimeMs, ...opts } = { ...deleteDefaults, ...options };
     const client = await clientFromOptions(opts);
     opts.client = client;
+    opts.apiPrefix = "";
 
     let resources = await getAll(apiName, opts);
     if (resources.length === 0) return;
 
     for (const r of resources) {
-        await client.api.v1.namespaces(getNS(r))[apiName](r.metadata.name).delete();
+        await client.namespaces(getNS(r))[apiName](r.metadata.name).delete();
     }
 
     do {
