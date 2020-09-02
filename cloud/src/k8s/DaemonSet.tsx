@@ -38,7 +38,7 @@ import {
     ResourceProps
 } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { deployIDToLabel, registerResourceKind, resourceIdToName } from "./manifest_support";
+import { deployIDToLabel, labelKey, registerResourceKind, resourceIdToName } from "./manifest_support";
 import { PodSpec } from "./Pod";
 import { isResource, Resource } from "./Resource";
 
@@ -216,8 +216,8 @@ function makeDaemonSetManifest(props: SFCBuildProps<DaemonSetProps>, id: string,
 
     const { deployID } = helpers;
     const labels = {
-        adaptDaemonSet: resourceIdToName(props.key, id, deployID),
-        adaptDeployID: deployIDToLabel(deployID),
+        [labelKey("daemonset")]: resourceIdToName(props.key, id, deployID),
+        [labelKey("deployID")]: deployIDToLabel(deployID),
     };
     const podMetadataOrig = child.props.metadata || {};
     const podMetadata = {
@@ -228,7 +228,7 @@ function makeDaemonSetManifest(props: SFCBuildProps<DaemonSetProps>, id: string,
         },
         annotations: {
             ...podMetadataOrig.annotations || {},
-            adaptDeployID: helpers.deployID,
+            [labelKey("deployID")]: helpers.deployID,
         }
     };
     const podSpec = child.props.spec;

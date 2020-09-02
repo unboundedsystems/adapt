@@ -41,6 +41,7 @@ import {
     Resource,
     resourceElementToName,
 } from "../../src/k8s";
+import { labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -151,7 +152,7 @@ async function waitForDeployed(mountedOrig: AdaptMountedElement, dom: AdaptMount
         const status = await mountedOrig.status<K8sTestStatusType>();
         should(status.kind).equal("DaemonSet");
         should(status.metadata.name).equal(resourceElementToName(dom, deployID));
-        should(status.metadata.annotations).containEql({ adaptName: dom.id });
+        should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
         deployed = daemonSetResourceInfo.deployedWhen(status);
         if (!deployed) await sleep(1000);
     } while (deployed !== true);

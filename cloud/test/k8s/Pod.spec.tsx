@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ import {
     Pod,
     resourceElementToName
 } from "../../src/k8s";
+import { labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -221,7 +222,7 @@ describe("k8s Pod Operation Tests", function () {
         const status = await mountedOrig.status<K8sTestStatusType>();
         should(status.kind).equal("Pod");
         should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
-        should(status.metadata.annotations).containEql({ adaptName: dom.id });
+        should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
 
         await plugin.finish();
         return dom;

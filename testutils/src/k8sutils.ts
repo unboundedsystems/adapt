@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,13 +116,13 @@ export async function getAll(apiName: string, options: GetOptions) {
     if (opts.deployID !== undefined) {
         return filter(resources, (r) =>
             r.metadata.annotations &&
-            (r.metadata.annotations.adaptDeployID === opts.deployID)
+            (r.metadata.annotations["adaptjs.org/deployID"] === opts.deployID)
         );
     }
     if (opts.onlyAdapt) {
         return filter(resources, (r) =>
             r.metadata.annotations &&
-            (r.metadata.annotations.adaptName !== undefined)
+            (r.metadata.annotations["adaptjs.org/name"] !== undefined)
         );
     }
 

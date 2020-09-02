@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import {
     Kubeconfig
 } from "../../src/k8s";
 import { getKubectl, kubectlGet, kubectlOpManifest } from "../../src/k8s/kubectl";
-import { Manifest } from "../../src/k8s/manifest_support";
+import { labelKey, Manifest } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { makeDeployId } from "../testlib";
 
@@ -61,7 +61,7 @@ describe("kubectl utility function tests", function () {
         metadata: {
             name: "foo",
             annotations: {
-                adaptDeployID: deployID
+                [labelKey("deployID")]: deployID
             }
         },
         spec: {

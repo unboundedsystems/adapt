@@ -46,7 +46,7 @@ import {
 } from "../NetworkService";
 import { ClusterInfo, computeNamespaceFromMetadata, ResourceBase, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
+import { labelKey, registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
 
 /** @public */
@@ -466,7 +466,7 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
             throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
         }
         return removeUndef({
-            adaptName: resourceElementToName(ep.target, deployID)
+            [labelKey("name")]: resourceElementToName(ep.target, deployID)
         });
     });
 

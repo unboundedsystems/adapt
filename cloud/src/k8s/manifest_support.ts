@@ -72,6 +72,8 @@ export function resourceElementToName(
     return resourceIdToName(elem.props.key, elem.id, deployID);
 }
 
+export const labelKey = (id: string) => `adaptjs.org/${id}`;
+
 export function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {
     if (!isMountedElement(elem)) throw new Error("Can only create manifest for mounted elements!");
 
@@ -90,11 +92,11 @@ export function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string
     const labels = ret.metadata.labels;
     ret.metadata.labels = {
         ...(labels ? labels : {}),
-        adaptName: name,
-        adaptDeployID: deployIDToLabel(deployID),
+        [labelKey("name")]: name,
+        [labelKey("deployID")]: deployIDToLabel(deployID),
     };
-    ret.metadata.annotations.adaptName = elem.id;
-    ret.metadata.annotations.adaptDeployID = deployID;
+    ret.metadata.annotations[labelKey("name")] = elem.id;
+    ret.metadata.annotations[labelKey("deployID")] = deployID;
 
     return ret;
 }
