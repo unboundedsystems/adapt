@@ -332,7 +332,7 @@ describe("k8s DaemonSet Operation Tests", function () {
 
         await act(actions);
 
-        await sleep(6); // Sleep longer than termination grace period
+        await sleep(8); // Sleep longer than termination grace period controller delay
         const pods = await getAll("pods", { client, deployID });
         if (pods.length !== 0) {
             should(pods.length).equal(1);
