@@ -29,8 +29,9 @@ import {
     ClusterInfo,
     Kubeconfig,
     Resource,
-    resourceElementToName
+    resourceElementToName,
 } from "../../src/k8s";
+import { deployIDToLabel } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -142,7 +143,10 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
         should(status.kind).equal("Pod");
         should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
         should(status.metadata.annotations).containEql({ adaptName: dom.id });
-        should(status.metadata.labels).eql({ adaptName: resourceElementToName(dom, options.deployID) });
+        should(status.metadata.labels).eql({
+            adaptDeployID: deployIDToLabel(options.deployID),
+            adaptName: resourceElementToName(dom, options.deployID)
+        });
 
         await plugin.finish();
         return dom;
