@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { BuildData, ObserveForStatus, WithChildren } from "@adpt/core";
+import { BuildData, ObserveForStatus } from "@adpt/core";
 import { DockerSplitRegistryInfo } from "../docker";
 import { DaemonSetSpec } from "./DaemonSet";
 import { PodSpec } from "./Pod";
@@ -115,7 +115,7 @@ export interface ResourceDaemonSet extends ResourceBase {
 }
 
 /** @public */
-export interface ResourcePod extends ResourceBase, WithChildren {
+export interface ResourcePod extends ResourceBase {
     kind: "Pod";
     spec: PodSpec;
 }

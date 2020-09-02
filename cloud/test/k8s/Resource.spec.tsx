@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,8 +48,7 @@ describe("k8s Resource Component Tests", () => {
                     name: "test",
                     image: "dummy-image",
                 }]
-            }}>
-            </Resource>;
+            }} />;
 
         should(resElem).not.Undefined();
     });
@@ -105,8 +104,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                         command: ["sleep", "3s"],
                     }],
                     terminationGracePeriodSeconds: 0
-                }}>
-            </Resource>
+                }} />
         );
     }
 
@@ -170,8 +168,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                     command,
                 }],
                 terminationGracePeriodSeconds: 0
-            }}>
-        </Resource>;
+            }} />;
 
         const { dom } = await doBuild(resElem, { deployID });
 
@@ -215,8 +212,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                     command,
                 }],
                 terminationGracePeriodSeconds: 0
-            }}>
-        </Resource>;
+            }} />;
 
         const { dom } = await doBuild(resElem, { deployID });
 
