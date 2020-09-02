@@ -154,7 +154,7 @@ async function waitForDeployed(mountedOrig: AdaptMountedElement, dom: AdaptMount
         should(status.metadata.name).equal(resourceElementToName(dom, deployID));
         should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
         deployed = daemonSetResourceInfo.deployedWhen(status);
-        if (!deployed) await sleep(1000);
+        if (deployed !== true) await sleep(1000);
     } while (deployed !== true);
 }
 
