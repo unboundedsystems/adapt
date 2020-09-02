@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +29,9 @@ import {
     ClusterInfo,
     Kubeconfig,
     Resource,
-    resourceElementToName
+    resourceElementToName,
 } from "../../src/k8s";
+import { deployIDToLabel, labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -48,8 +49,7 @@ describe("k8s Resource Component Tests", () => {
                     name: "test",
                     image: "dummy-image",
                 }]
-            }}>
-            </Resource>;
+            }} />;
 
         should(resElem).not.Undefined();
     });
@@ -105,8 +105,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                         command: ["sleep", "3s"],
                     }],
                     terminationGracePeriodSeconds: 0
-                }}>
-            </Resource>
+                }} />
         );
     }
 
@@ -137,14 +136,17 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
         should(pods).length(1);
         should(pods[0].metadata.name)
             .equal(resourceElementToName(dom, options.deployID));
-        should(pods[0].metadata.annotations).containEql({ adaptName: dom.id });
+        should(pods[0].metadata.annotations).containEql({ [labelKey("name")]: dom.id });
 
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         const status = await mountedOrig.status<K8sTestStatusType>();
         should(status.kind).equal("Pod");
         should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
-        should(status.metadata.annotations).containEql({ adaptName: dom.id });
-        should(status.metadata.labels).eql({ adaptName: resourceElementToName(dom, options.deployID) });
+        should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
+        should(status.metadata.labels).eql({
+            [labelKey("deployID")]: deployIDToLabel(options.deployID),
+            [labelKey("name")]: resourceElementToName(dom, options.deployID)
+        });
 
         await plugin.finish();
         return dom;
@@ -170,8 +172,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                     command,
                 }],
                 terminationGracePeriodSeconds: 0
-            }}>
-        </Resource>;
+            }} />;
 
         const { dom } = await doBuild(resElem, { deployID });
 
@@ -215,8 +216,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
                     command,
                 }],
                 terminationGracePeriodSeconds: 0
-            }}>
-        </Resource>;
+            }} />;
 
         const { dom } = await doBuild(resElem, { deployID });
 

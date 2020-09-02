@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import Adapt, {
 } from "@adpt/core";
 import { InternalError, removeUndef } from "@adpt/utils";
 import ld from "lodash";
-import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, Metadata, ResourceProps } from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceIdToName } from "./manifest_support";
@@ -36,6 +36,7 @@ import { Resource } from "./Resource";
 /** @public */
 export interface PodProps {
     config: ClusterInfo;
+    metadata: Metadata;
     terminationGracePeriodSeconds?: number;
     children: AdaptElement | AdaptElement[];
 }
@@ -66,7 +67,8 @@ function defaultize(spec: ContainerSpec): ContainerSpec {
     return spec;
 }
 
-function makePodManifest(props: PodProps) {
+/** @internal */
+export function makePodManifest(props: PodProps) {
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isK8sContainerElement(c) ? c : null));
@@ -90,7 +92,7 @@ function makePodManifest(props: PodProps) {
 
     return {
         kind: "Pod",
-        metadata: {},
+        metadata: props.metadata,
         spec,
     };
 }
@@ -102,6 +104,7 @@ function makePodManifest(props: PodProps) {
  */
 export class Pod extends DeferredComponent<PodProps> {
     static defaultProps = {
+        metadata: {},
         terminationGracePeriodSeconds: 30,
     };
 
@@ -133,6 +136,20 @@ export class Pod extends DeferredComponent<PodProps> {
         if (!succ) return undefined;
         return succ.status();
     }
+}
+
+/**
+ * Tests whether x is a Pod element
+ *
+ * @param x - value to test
+ * @returns `true` if x is a Pod element, false otherwise
+ *
+ * @public
+ */
+export function isPod(x: any): x is AdaptElement<PodProps> {
+    if (!isElement(x)) return false;
+    if (x.componentType === Pod) return true;
+    return false;
 }
 
 /*
@@ -167,7 +184,6 @@ function deployedWhen(statusObj: unknown) {
 /** @internal */
 export const podResourceInfo = {
     kind: "Pod",
-    apiName: "pods",
     deployedWhen,
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`

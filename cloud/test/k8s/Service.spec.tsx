@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import {
     Service,
     ServicePort,
 } from "../../src/k8s";
+import { labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, MockDeploy, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -156,7 +157,7 @@ describe("k8s Service Component Tests", () => {
         const { contents: dom, messages } = await Adapt.build(root, null, { deployID });
         should(messages).eql([]);
         if (dom === null) throw should(dom).not.Null();
-        should(dom.props.children[0].props.spec.selector.adaptName)
+        should(dom.props.children[0].props.spec.selector[labelKey("name")])
             .equal(resourceElementToName(dom.props.children[1], deployID));
 
     });
@@ -247,7 +248,7 @@ describe("k8s Service Operation Tests", function () {
 
         const serviceProps = service.props;
         should(serviceProps.spec).not.Undefined();
-        should(serviceProps.spec.selector).eql({ adaptName: resourceElementToName(pod, options.deployID) });
+        should(serviceProps.spec.selector).eql({ [labelKey("name")]: resourceElementToName(pod, options.deployID) });
     });
 
     it("Should return the resource name as the hostname", async () => {
@@ -311,7 +312,7 @@ describe("k8s Service Operation Tests", function () {
         const status = await mountedOrig.status<K8sTestStatusType>();
         should(status.kind).equal("Service");
         should(status.metadata.name).equal(resourceElementToName(dom, options.deployID));
-        should(status.metadata.annotations).containEql({ adaptName: dom.id });
+        should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
 
         await plugin.finish();
         return dom;

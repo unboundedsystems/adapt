@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import Adapt, {
     AdaptElement,
     AdaptMountedElement,
     BuildData,
+    BuiltinProps,
     ChangeType,
     childrenToArray,
     DeployHelpers,
@@ -26,14 +27,15 @@ import Adapt, {
     FinalDomElement,
     GoalStatus,
     gqlGetOriginalErrors,
+    isElement,
     isFinalDomElement,
     ObserveForStatus,
     waiting,
 } from "@adpt/core";
 import * as ld from "lodash";
 
-import { InternalError } from "@adpt/utils";
 import { Action, ActionContext, ShouldAct } from "../action";
+import { mountedElement } from "../common";
 import { ResourceProps } from "./common";
 import { kubectlDiff, kubectlGet, kubectlOpManifest } from "./kubectl";
 import {
@@ -68,6 +70,10 @@ function isDeleting(info: Manifest | undefined): boolean {
  * @public
  */
 export class Resource extends Action<ResourceProps> {
+    defaultProps: {
+        apiVersion: "v1";
+    };
+
     manifest_: Manifest;
 
     constructor(props: ResourceProps) {
@@ -233,11 +239,7 @@ export class Resource extends Action<ResourceProps> {
     }
 
     private mountedElement(): AdaptMountedElement<ResourceProps> {
-        const handle = this.props.handle;
-        if (handle === undefined) throw new InternalError("element requested but props.handle undefined");
-        const elem = handle.mountedOrig;
-        if (elem == null) throw new InternalError(`element requested but handle.mountedOrig is ${elem}`);
-        return elem as AdaptMountedElement<ResourceProps>;
+        return mountedElement(this.props as Required<BuiltinProps>);
     }
 
     private manifest(deployID: string): Manifest {
@@ -247,3 +249,14 @@ export class Resource extends Action<ResourceProps> {
         return this.manifest_;
     }
 }
+
+/**
+ * Tests to see if an object is a {@link k8s.Resource} element
+ * @param x - object to test
+ * @returns true if object is an AdaptElement of type {@link k8s.Resource}
+ *
+ * @public
+ */
+export function isResource(x: any): x is AdaptElement<ResourceProps> {
+    return isElement(x) && x.componentType === Resource;
+ }

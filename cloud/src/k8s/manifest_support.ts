@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ interface MetadataInRequest extends Metadata {
 
 export interface ResourceInfo {
     kind: Kind;
-    apiName: string;
     deployedWhen: (statusObj: unknown, goalStatus: GoalStatus) => WaitStatus;
     statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => any | Promise<any>;
 }
@@ -54,13 +53,15 @@ export function registerResourceKind(info: ResourceInfo) {
 }
 
 export interface Manifest {
-    apiVersion: "v1" | "v1beta1" | "v1beta2";
+    apiVersion: "v1" | "apps/v1" | string;
     kind: Kind;
     metadata: MetadataInRequest;
     spec: Spec;
 }
 
 export const resourceIdToName = makeResourceName(/[^a-z-]/g, 63);
+const deployIDToLabelInner = makeResourceName(/[^a-z0-9-]/g, 63);
+export const deployIDToLabel = (id: string) => deployIDToLabelInner(id, "", id);
 
 export function resourceElementToName(
     elem: AdaptElement<AnyProps>,
@@ -71,12 +72,14 @@ export function resourceElementToName(
     return resourceIdToName(elem.props.key, elem.id, deployID);
 }
 
+export const labelKey = (id: string) => `adaptjs.org/${id}`;
+
 export function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string): Manifest {
     if (!isMountedElement(elem)) throw new Error("Can only create manifest for mounted elements!");
 
     const name = resourceElementToName(elem, deployID);
     const ret: Manifest = {
-        apiVersion: "v1",
+        apiVersion: elem.props.apiVersion || "v1",
         kind: elem.props.kind,
         metadata: {
             ...elem.props.metadata,
@@ -87,9 +90,13 @@ export function makeManifest(elem: AdaptElement<ResourceProps>, deployID: string
 
     if (ret.metadata.annotations === undefined) ret.metadata.annotations = {};
     const labels = ret.metadata.labels;
-    ret.metadata.labels = { ...(labels ? labels : {}), adaptName: name };
-    ret.metadata.annotations.adaptName = elem.id;
-    ret.metadata.annotations.adaptDeployID = deployID;
+    ret.metadata.labels = {
+        ...(labels ? labels : {}),
+        [labelKey("name")]: name,
+        [labelKey("deployID")]: deployIDToLabel(deployID),
+    };
+    ret.metadata.annotations[labelKey("name")] = elem.id;
+    ret.metadata.annotations[labelKey("deployID")] = deployID;
 
     return ret;
 }
