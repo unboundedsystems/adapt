@@ -28,6 +28,7 @@ import Adapt, {
     WithChildren} from "@adpt/core";
 import { minBy } from "lodash";
 import { isArray } from "util";
+import { mountedElement } from "../common";
 import {
     ClusterInfo,
     computeNamespaceFromMetadata,
@@ -37,7 +38,7 @@ import {
     ResourceProps
 } from "./common";
 import { K8sObserver } from "./k8s_observer";
-import { registerResourceKind, resourceIdToName } from "./manifest_support";
+import { deployIDToLabel, registerResourceKind, resourceIdToName } from "./manifest_support";
 import { PodSpec } from "./Pod";
 import { isResource, Resource } from "./Resource";
 
@@ -169,11 +170,16 @@ interface DaemonSetProps extends WithChildren {
     revisionHistoryLimit: number;
 
     /**
-     * A label query over pods that are managed by the daemon set. Must match in order
-     * to be controlled. It must match the pod template's labels.
-     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors}
+     * A label query over pods that are managed by the daemon set.
+     * Must match in order to be controlled. It must match the pod template's labels.
+     * More Info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors}
+     *
+     * @remarks
+     *
+     * With Adapt, this is optional.  If not specified, adapt will pick a selector that will work with the pods
+     * it creates as part of this {@link k8s.DaemonSet}
      */
-    selector: LabelSelector;
+    selector?: LabelSelector;
 
     /**
      * An update stratgey to replace existing DaemonSet pods with new pods
@@ -198,25 +204,35 @@ function checkChildren(children: any) {
     return child;
 }
 
-function makeDaemonSetManifest(props: SFCBuildProps<DaemonSetProps>, helpers: BuildHelpers) {
+function makeDaemonSetManifest(props: SFCBuildProps<DaemonSetProps>, id: string, helpers: BuildHelpers) {
     const {
         metadata,
         minReadySeconds,
         revisionHistoryLimit,
-        selector,
+        selector: userSelector,
         updateStrategy,
         children } = props;
     const child = checkChildren(children);
 
+    const { deployID } = helpers;
+    const labels = {
+        adaptDaemonSet: resourceIdToName(props.key, id, deployID),
+        adaptDeployID: deployIDToLabel(deployID),
+    };
     const podMetadataOrig = child.props.metadata || {};
     const podMetadata = {
         ...podMetadataOrig,
+        labels: {
+            ...podMetadataOrig.labels,
+            ...labels,
+        },
         annotations: {
             ...podMetadataOrig.annotations || {},
             adaptDeployID: helpers.deployID,
         }
     };
     const podSpec = child.props.spec;
+    const selector = userSelector ? userSelector : { matchLabels: labels };
     const spec = {
         minReadySeconds,
         revisionHistoryLimit,
@@ -258,7 +274,7 @@ export class DaemonSet extends DeferredComponent<DaemonSetProps> {
         const props = this.props as DaemonSetProps & Required<BuiltinProps>;
         const { key, config } = props;
 
-        const manifest = makeDaemonSetManifest(props, helpers);
+        const manifest = makeDaemonSetManifest(props, mountedElement(props).id, helpers);
         return <Resource
             key={key}
             config={config}

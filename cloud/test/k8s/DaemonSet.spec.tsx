@@ -54,17 +54,8 @@ class DummyComponent extends PrimitiveComponent {}
 describe("k8s DaemonSet Component Tests", () => {
     it("Should Instantiate and build DaemonSet", async () => {
         const ds =
-            <DaemonSet
-                key="test"
-                config={dummyConfig}
-                selector={{ matchLabels: { test: "testDaemonSet" }}} >
-                <Pod
-                    config={dummyConfig}
-                    metadata={{
-                        labels: {
-                            test: "testDaemonSet"
-                        }
-                    }}>
+            <DaemonSet key="test" config={dummyConfig}>
+                <Pod config={dummyConfig}>
                     <K8sContainer name="onlyContainer" image="node:latest" />
                 </Pod>
             </DaemonSet>;
@@ -78,6 +69,31 @@ describe("k8s DaemonSet Component Tests", () => {
         }
 
         should(dom.componentType).equal(Resource);
+        should(dom.props.spec.selector).not.Undefined();
+        should(dom.props.spec.template).not.Undefined();
+        should(dom.props.spec.template.metadata).not.Undefined();
+        should(dom.props.spec.template.metadata.labels).not.Undefined();
+    });
+
+    it("Should respect user-set selector", async () => {
+        const selector = { matchLabels: { foo: "bar" }};
+        const ds =
+            <DaemonSet key="test" config={dummyConfig} selector={selector}>
+                <Pod config={dummyConfig}>
+                    <K8sContainer name="onlyContainer" image="node:latest" />
+                </Pod>
+            </DaemonSet>;
+
+        should(ds).not.Undefined();
+
+        const result = await Adapt.build(ds, null);
+        const dom = result.contents;
+        if (dom == null) {
+            throw should(dom).not.Null();
+        }
+
+        should(dom.componentType).equal(Resource);
+        should(dom.props.spec.selector).eql(selector);
     });
 
     it("Should enforce single child Pod", async () => {
@@ -181,10 +197,9 @@ describe("k8s DaemonSet Operation Tests", function () {
 
     async function createDS(name: string): Promise<AdaptMountedPrimitiveElement | null> {
         const ds =
-        <DaemonSet key={name} config={kubeClusterInfo} selector = {{ matchLabels: { test: deployID! }}}>
+        <DaemonSet key={name} config={kubeClusterInfo}>
             <Pod
                 config={kubeClusterInfo}
-                metadata={{ labels: { test: deployID! } }}
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>
@@ -235,10 +250,9 @@ describe("k8s DaemonSet Operation Tests", function () {
         //5s sleep diff to cause modify vs. 3s sleep in createPod
         const command = ["sleep", "5s"];
         const pod =
-        <DaemonSet key="test" config={kubeClusterInfo} selector = {{ matchLabels: { test: deployID! }}}>
+        <DaemonSet key="test" config={kubeClusterInfo}>
             <Pod
                 config={kubeClusterInfo}
-                metadata={{ labels: { test: deployID! } }}
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>
@@ -281,10 +295,9 @@ describe("k8s DaemonSet Operation Tests", function () {
         //No diff
         const command = ["sleep", "3s"];
         const pod =
-        <DaemonSet key="test" config={kubeClusterInfo} selector = {{ matchLabels: { test: deployID! }}}>
+        <DaemonSet key="test" config={kubeClusterInfo}>
             <Pod
                 config={kubeClusterInfo}
-                metadata={{ labels: { test: deployID! } }}
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>
