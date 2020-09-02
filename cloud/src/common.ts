@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { sha256hex } from "@adpt/utils";
+import { AdaptMountedElement, BuiltinProps } from "@adpt/core";
+import { InternalError, sha256hex } from "@adpt/utils";
 import { ExecaError } from "execa";
 
 export function isExecaError(e: Error): e is ExecaError {
@@ -68,4 +69,20 @@ export function makeResourceName(invalidChars: RegExp, maxLen: number, sep = "-"
         const shaLen = Math.min(maxShaLen, maxLen - baseLen - sep.length);
         return base.slice(0, baseLen) + sep + sha256hex(elemID + deployID).slice(0, shaLen);
     };
+}
+
+/**
+ * Retrives the AdaptMountedelement from a components props.  Only valid if the element is mounted.
+ *
+ * @param props - the props of the component whose mounted element we want to retreive
+ * @returns An AdaptMountedElement corresponding to the components element
+ *
+ * @public
+ */
+export function mountedElement(props: Required<BuiltinProps>): AdaptMountedElement<any> {
+    const handle = props.handle;
+    if (handle === undefined) throw new InternalError("element requested but props.handle undefined");
+    const elem = handle.mountedOrig;
+    if (elem == null) throw new InternalError(`element requested but handle.mountedOrig is ${elem}`);
+    return elem;
 }
