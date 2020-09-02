@@ -184,7 +184,6 @@ function deployedWhen(statusObj: unknown) {
 /** @internal */
 export const podResourceInfo = {
     kind: "Pod",
-    apiName: "pods",
     deployedWhen,
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`

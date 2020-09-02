@@ -57,7 +57,6 @@ export type ResourceProps = { key: string } & (
 /** @public */
 export interface ResourceInfo {
     kind: Kind;
-    apiName: string;
     statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => unknown | Promise<unknown>;
     specsEqual(actual: Spec, element: Spec): boolean;
 }

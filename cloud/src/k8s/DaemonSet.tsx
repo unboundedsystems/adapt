@@ -323,7 +323,6 @@ function deployedWhen(statusObj: unknown) {
 /** @internal */
 export const daemonSetResourceInfo = {
     kind: "DaemonSet",
-    apiName: "app/daemonsets",
     deployedWhen,
     statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`

@@ -34,7 +34,6 @@ interface MetadataInRequest extends Metadata {
 
 export interface ResourceInfo {
     kind: Kind;
-    apiName: string;
     deployedWhen: (statusObj: unknown, goalStatus: GoalStatus) => WaitStatus;
     statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => any | Promise<any>;
 }
