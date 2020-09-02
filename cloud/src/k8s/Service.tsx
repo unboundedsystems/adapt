@@ -35,7 +35,7 @@ import Adapt, {
     waiting,
     Waiting
 } from "@adpt/core";
-import { removeUndef } from "@adpt/utils";
+import { Omit, removeUndef } from "@adpt/utils";
 import { isObject } from "lodash";
 import {
     NetworkScope,
@@ -44,7 +44,7 @@ import {
     NetworkServiceScope,
     targetPort
 } from "../NetworkService";
-import { ClusterInfo, computeNamespaceFromMetadata, ResourceProps, ResourceService } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, ResourceBase, ResourceProps, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
@@ -53,7 +53,7 @@ import { Resource } from "./Resource";
 export interface ServiceProps extends ServiceSpec {
     /** Legal configuration loaded from kubeconfig */
     config: ClusterInfo;
-    selector?: Handle | object;
+    selector?: Handle | EndpointSelector;
 }
 
 /** @public */
@@ -179,7 +179,7 @@ export interface ServiceSpec {
      * {@link https://kubernetes.io/docs/concepts/services-networking/service/ |
      * Kubernetes documentation}.
      */
-    selector?: object;
+    selector?: EndpointSelector | object; //FIXME(manishv) object allows ServiceProps to expand type, need a better fix
     /**
      * Used to maintain session affinity.
      *
@@ -293,13 +293,13 @@ function toServiceType(scope: NetworkServiceScope | undefined) {
 }
 
 /**
- * Convert {@link NetworkService} props to {@link k8s.Service} spec
+ * Convert {@link NetworkService} props to {@link k8s.Service} props
  * @param abstractProps - props to convert
  * @returns Kubernetes spec corresponding to `abstractProps`
  *
  * @internal
  */
-export function k8sServiceProps(abstractProps: NetworkServiceProps & BuiltinProps): ServiceSpec {
+export function k8sServiceProps(abstractProps: NetworkServiceProps & BuiltinProps): Omit<ServiceProps, keyof ResourceBase> {
     if (typeof abstractProps.port !== "number") throw new Error(`Service: Port string not yet implemented`);
     if (abstractProps.ip != null) throw new Error(`Service: IP not yet implemented`);
     if (abstractProps.name != null) throw new Error(`Service: name not yet implemented`);
@@ -310,7 +310,7 @@ export function k8sServiceProps(abstractProps: NetworkServiceProps & BuiltinProp
     };
     if (abstractProps.protocol != null) port.protocol = abstractProps.protocol;
 
-    const ret: ServiceSpec & Partial<BuiltinProps> = {
+    const ret: Omit<ServiceProps, keyof ResourceBase> & Partial<BuiltinProps> = {
         key: abstractProps.key,
         ports: [port],
         selector: abstractProps.endpoint,
@@ -454,7 +454,7 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
 
     updateSelector(async () => {
         const { selector: ep } = props;
-        if (!isHandle(ep)) return {};
+        if (!isHandle(ep)) return removeUndef(ep || {});
         if (!ep.target) return {};
         if (!isMountedElement(ep.target)) return {};
 
