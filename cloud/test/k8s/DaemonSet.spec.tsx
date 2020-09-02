@@ -39,7 +39,7 @@ import {
     Kubeconfig,
     Pod,
     Resource,
-    resourceElementToName
+    resourceElementToName,
 } from "../../src/k8s";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
@@ -178,7 +178,7 @@ describe("k8s DaemonSet Operation Tests", function () {
     beforeEach(async () => {
         plugin = createActionPlugin();
         logger = createMockLogger();
-        deployID = randomName("cloud-pod-op");
+        deployID = randomName("cloud-daemonset-op");
         options = {
             dataDir: "/fake/datadir",
             deployID,
@@ -332,12 +332,14 @@ describe("k8s DaemonSet Operation Tests", function () {
 
         await act(actions);
 
-        await sleep(8); // Sleep longer than termination grace period controller delay
-        const pods = await getAll("pods", { client, deployID });
-        if (pods.length !== 0) {
-            should(pods.length).equal(1);
-            should(pods[0].metadata.deletionGracePeriod).not.Undefined();
-        }
+        let pods: any[];
+        do {
+            await sleep(1); //Give pods time to terminate
+            pods = await getAll("pods", { client, deployID });
+            if (pods.length !== 0) {
+                should(pods.length).equal(1);
+            }
+        } while (pods.length !== 0);
 
         await plugin.finish();
     });
