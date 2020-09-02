@@ -53,7 +53,7 @@ export function registerResourceKind(info: ResourceInfo) {
 }
 
 export interface Manifest {
-    apiVersion: string;
+    apiVersion: "v1" | "apps/v1" | string;
     kind: Kind;
     metadata: MetadataInRequest;
     spec: Spec;
