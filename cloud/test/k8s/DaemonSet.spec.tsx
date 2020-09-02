@@ -334,7 +334,7 @@ describe("k8s DaemonSet Operation Tests", function () {
 
         let pods: any[];
         do {
-            await sleep(1); //Give pods time to terminate
+            await sleep(1000); //Give pods time to terminate
             pods = await getAll("pods", { client, deployID });
             if (pods.length !== 0) {
                 should(pods.length).equal(1);
