@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import * as ld from "lodash";
 import fetch from "node-fetch";
 import should from "should";
 import { Kubeconfig } from "../../src/k8s/common";
-import k8sSwagger = require("../../src/k8s/kubernetes-1.16-swagger.json");
+import k8sSwagger = require("../../src/k8s/kubernetes-1.18-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import {
     Swagger2,

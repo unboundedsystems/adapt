@@ -2017,10 +2017,12 @@
   resolved "https://registry.yarnpkg.com/@types/parse-json/-/parse-json-4.0.0.tgz#2f8bb441434d163b35fb8ffdccd7138927ffb8c0"
   integrity sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==
 
-"@types/proper-lockfile@3.0.1":
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/@types/proper-lockfile/-/proper-lockfile-3.0.1.tgz#dd770a2abce3adbcce3bd1ed892ce2f5f17fbc86"
-  integrity sha512-ODOjqxmaNs0Zkij+BJovsNJRSX7BJrr681o8ZnNTNIcTermvVFzLpz/XFtfg3vNrlPVTJY1l4e9h2LvHoxC1lg==
+"@types/proper-lockfile@4.1.1":
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/@types/proper-lockfile/-/proper-lockfile-4.1.1.tgz#99f026cbfdbe6305bdd454ffd5fefc1bd064beb1"
+  integrity sha512-HAjVfDa73pFgivViHyDu8HHHcds+W4MgOuZZAdyFJrHS8ngtCXmhl4hc2YXqSOwO6Bsa+iF2Sgxb2+gv874VOQ==
+  dependencies:
+    "@types/retry" "*"
 
 "@types/proxyquire@1.3.28":
   version "1.3.28"
@@ -2043,6 +2045,11 @@
   integrity sha512-rMD+eDN93H/f6UGe6HJjJ08L+Vro+LN0bfCdYxsSb3Np13s75Lv+E/XBgw14kjz83Pfi82fb5z3/jtw1S3DvgA==
   dependencies:
     "@types/normalize-package-data" "*"
+
+"@types/retry@*":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@types/retry/-/retry-0.12.0.tgz#2b35eccfcee7d38cd72ad99232fbd58bffb3c84d"
+  integrity sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==
 
 "@types/semver@5.5.0":
   version "5.5.0"
@@ -9174,10 +9181,10 @@ propagate@^2.0.0:
   resolved "https://registry.yarnpkg.com/propagate/-/propagate-2.0.1.tgz#40cdedab18085c792334e64f0ac17256d38f9a45"
   integrity sha512-vGrhOavPSTz4QVNuBNdcNXePNdNMaO1xj9yBeH1ScQPjk/rhg9sSlCXPhMkFuaNNW/syTvYqsnbIJxMBfRbbag==
 
-proper-lockfile@3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/proper-lockfile/-/proper-lockfile-3.2.0.tgz#89ca420eea1d55d38ca552578851460067bcda66"
-  integrity sha512-iMghHHXv2bsxl6NchhEaFck8tvX3F9cknEEh1SUpguUOBjN7PAAW9BLzmbc1g/mCD1gY3EE2EABBHPJfFdHFmA==
+proper-lockfile@4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/proper-lockfile/-/proper-lockfile-4.1.1.tgz#284cf9db9e30a90e647afad69deb7cb06881262c"
+  integrity sha512-1w6rxXodisVpn7QYvLk706mzprPTAPCYAqxMvctmPN3ekuRk/kuGkGc82pangZiAt4R3lwSuUzheTTn0/Yb7Zg==
   dependencies:
     graceful-fs "^4.1.11"
     retry "^0.12.0"

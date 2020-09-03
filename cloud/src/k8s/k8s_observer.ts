@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import GraphQLJSON from "graphql-type-json";
 import jsonStableStringify = require("json-stable-stringify");
 import fetch, { Response } from "node-fetch";
 import { CustomError } from "ts-custom-error";
-import k8sSwagger = require("../../src/k8s/kubernetes-1.16-swagger.json");
+import k8sSwagger = require("../../src/k8s/kubernetes-1.18-swagger.json");
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
 import { Kubeconfig } from "./common";
 import { kubectlProxy, KubectlProxyInfo } from "./kubectl";
