@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ const knownSwaggerSpecs = [
     "3f9280af09efeaf35940feb34b7449de", // AwsCfObserver
     "7cf922b28a4f6562069fe68c716bb6d7", // AwsEc2Observer
     "1cf94afa6c91f4c71cb4c37182ecee6e", // DockerObserver
-    "9a91776ce65a2a0108611a15c21fee8f", // K8sObserver
+    "3205ac6c60d8f1d0028c5eee36e19135", // K8sObserver
 ];
 
 let validator: Validator;
