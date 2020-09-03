@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { UserError } from "@adpt/utils";
 import * as fs from "fs-extra";
 import { padStart } from "lodash";
 import moment from "moment";
@@ -170,11 +171,10 @@ class LocalHistoryStore implements HistoryStore {
         // dataDir must exist in order to lock it.
         await fs.ensureDir(this.dataDir);
         try {
-            this.dataDirRelease = await lock(this.dataDir);
+            this.dataDirRelease = await lock(this.dataDir, "Adapt server history lock");
         } catch (e) {
-            throw new Error(`Unable to get exclusive access to deployment ` +
-                `directory '${this.dataDir}'. Please retry in a moment. ` +
-                `[${e.message}]`);
+            throw new UserError(`Unable to get exclusive access to deployment ` +
+                `directory. Please retry in a moment. [${e.message}]`);
         }
 
         // Ensure we start from the last committed state

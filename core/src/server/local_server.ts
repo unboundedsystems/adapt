@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ export class FileLocker implements Locker<FileLock> {
 
     async lock(): Promise<FileLock> {
         return {
-            release: await lock(this.filename),
+            release: await lock(this.filename, "Adapt server lock"),
             [$serverLock]: true,
         };
     }

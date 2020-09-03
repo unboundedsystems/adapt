@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { UserError } from "@adpt/utils";
 import AsyncLock from "async-lock";
 import pDefer from "p-defer";
 import { InternalError } from "../error";
@@ -98,7 +99,12 @@ export abstract class ServerBase<L extends ServerLock = ServerLock> {
             }
             this.currentProcessLock = pLock;
 
-            this.currentWorldLock = await this.worldLocker.lock();
+            try {
+                this.currentWorldLock = await this.worldLocker.lock();
+            } catch (e) {
+                throw new UserError(`Unable to get exclusive access to Adapt server. ` +
+                    `Please retry in a moment. [${e.message}]`);
+            }
             return pLock;
 
         } catch (err) {
