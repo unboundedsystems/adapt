@@ -155,7 +155,8 @@ async function waitForDeployed(mountedOrig: AdaptMountedElement, dom: AdaptMount
         should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
         deployed = daemonSetResourceInfo.deployedWhen(status);
         if (deployed !== true) await sleep(1000);
-    } while (deployed !== true);
+        else return status;
+    } while (1);
 }
 
 describe("k8s DaemonSet Operation Tests", function () {
@@ -230,10 +231,14 @@ describe("k8s DaemonSet Operation Tests", function () {
 
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
 
-        await waitForDeployed(mountedOrig, dom, deployID);
+        const lastStatus = await waitForDeployed(mountedOrig, dom, deployID);
 
         const pods = await getAll("pods", { client, deployID });
-        should(pods).length(1);
+        if (pods.length !== 1) {
+            // tslint:disable-next-line: no-console
+            console.error("Daemonset created, but no pods: ", JSON.stringify(lastStatus));
+            should(pods).length(1);
+        }
         should(pods[0].metadata.name)
             .startWith(resourceElementToName(dom, deployID));
 
@@ -278,9 +283,14 @@ describe("k8s DaemonSet Operation Tests", function () {
         await act(actions);
 
         if (mountedOrig == null) should(mountedOrig).not.Null();
-        await waitForDeployed(mountedOrig, dom, deployID);
+        const lastStatus = await waitForDeployed(mountedOrig, dom, deployID);
 
         const pods = await getAll("pods", { client, deployID });
+        if (pods.length !== 1) {
+            // tslint:disable-next-line: no-console
+            console.error("Daemonset modified, but no pods: ", JSON.stringify(lastStatus));
+            should(pods).length(1);
+        }
         should(pods).length(1);
         should(pods[0].metadata.name)
             .startWith(resourceElementToName(dom, deployID));
