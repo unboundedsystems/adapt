@@ -85,11 +85,11 @@ test:12:
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
 
-test:13:
+test:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
-    ADAPT_TEST_NODE_VERSION: "13"
+    ADAPT_TEST_NODE_VERSION: "14"
 
 release:
   <<: *job_common
