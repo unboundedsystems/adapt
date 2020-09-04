@@ -2,15 +2,19 @@
 
 process.env.NODE_NO_WARNINGS = '1';
 
-process.on('unhandledRejection', (reason) => {
-    console.warn("WARNING: Unhandled error:", reason);
-});
-
 require('source-map-support').install();
 
 const { onExit } = require('@adpt/utils/dist/src/exit');
-// Ensure consistent signal handling by always installing an onExit handler
-onExit(() => {/* */});
+
+// Notify user of unhandled rejections. This also serves to ensure there is
+// always an onExit handler installed so signals are always processed consistently.
+onExit((signal, details) => {
+    if (signal === 'unhandledRejection') {
+        const { formatUserError } = require('@adpt/utils/dist/src/user_error');
+        console.log("\n\nExiting on unhandled promise rejection");
+        console.log(formatUserError(details));
+    }
+});
 
 /* We use our own version of plugin-help, but in order for it to work fully,
  * @oclif/command must also use it. So this little bit of ugliness is to

@@ -2244,10 +2244,10 @@
   dependencies:
     collections "^5.1.5"
 
-"@usys/fork-require@1.0.9-unb1":
-  version "1.0.9-unb1"
-  resolved "https://registry.yarnpkg.com/@usys/fork-require/-/fork-require-1.0.9-unb1.tgz#79864dfd19c21ff2284f04c5c202f02d6abe4ef8"
-  integrity sha512-+OtNKk0nlDzBEWh9o4hrxAtkJqutKBsBf7c3CgNMCGDGZ5q2qUm+346Ot5hXVLrcQBO+eCOj6CKrS2B1myOr5Q==
+"@usys/fork-require@1.0.9-unb3":
+  version "1.0.9-unb3"
+  resolved "https://registry.yarnpkg.com/@usys/fork-require/-/fork-require-1.0.9-unb3.tgz#af78d76c7aa943fac923e2665ae7eb5f02a814a6"
+  integrity sha512-BOkGcTmMiLMpdumFLO3+koncUH8vGDiY/xlEc2Xe97EZcrXLPqWmhHUwgl2C7shYN//tlwMuH1xF3vsrtu+qqw==
 
 "@verdaccio/commons-api@8.3.0":
   version "8.3.0"
