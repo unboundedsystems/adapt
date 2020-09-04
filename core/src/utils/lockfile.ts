@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { inDebugger } from "@adpt/utils";
+import { inDebugger, UserError } from "@adpt/utils";
 import plf from "proper-lockfile";
 
 export const lockDefaults = {
@@ -23,6 +23,21 @@ export const lockDefaults = {
     stale: inDebugger() ? 24 * 60 * 60 * 1000 : 10 * 1000,
 };
 
-export function lock(filename: string, options: plf.LockOptions = {}) {
-    return plf.lock(filename, { ...lockDefaults, ...options });
+export async function lock(filename: string, lockDescr: string, options: plf.LockOptions = {}) {
+    try {
+        return await plf.lock(filename, {
+            ...lockDefaults,
+            onCompromised: (err) => {
+                // This function executes during a timer event, so stack and
+                // other error info is not useful. Just display the error
+                // message to the user.
+                throw new UserError(`${lockDescr} error: ${err.message} (${filename})`);
+            },
+            ...options,
+        });
+    } catch (err) {
+        // Call stack has the chance to catch and react to this error
+        err.message = `${err.message} (${filename})`;
+        throw err;
+    }
 }
