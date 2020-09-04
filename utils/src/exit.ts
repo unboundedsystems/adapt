@@ -27,12 +27,13 @@ interface ExitGlobals {
 }
 
 const exitGlobals = processGlobal<ExitGlobals>("exitGlobals", () => {
-    const g = {
+    const g: ExitGlobals = {
         capExit: require("capture-exit"),
         graceful: require("@unboundedsystems/node-graceful"),
     };
 
     g.capExit.captureExit();
+    g.graceful.captureRejections = true;
 
     return g;
 });
