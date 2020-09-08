@@ -306,8 +306,7 @@ function deployedWhen(statusObj: unknown) {
         { val: numberAvailable, field: "available" },
         { val: numberReady, field: "ready" },
         { val: updatedNumberScheduled, field: "updated"},
-        { val: currentNumberScheduled, field: "scheduled" }], (val) => val.val)!;
-
+        { val: currentNumberScheduled, field: "scheduled" }], (val) => val.val == null ? 0 : val.val)!;
     if (ready.val >= desiredNumberScheduled) return true;
 
     // FIXME(manishv) we should really also query the status of all the pods related to
