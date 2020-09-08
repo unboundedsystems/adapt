@@ -245,7 +245,9 @@ export class Resource extends Action<ResourceProps> {
     private manifest(deployID: string): Manifest {
         if (this.manifest_) return this.manifest_;
         const elem = this.mountedElement();
-        this.manifest_ = makeManifest(elem, deployID);
+        const manifest = makeManifest(elem, deployID);
+        const info = getResourceInfo(this.props.kind);
+        this.manifest_ = info.makeManifest ? info.makeManifest(manifest, elem, deployID) : manifest;
         return this.manifest_;
     }
 }

@@ -288,7 +288,7 @@ describe("k8s DaemonSet Operation Tests", function () {
         const pods = await getAll("pods", { client, deployID });
         if (pods.length !== 1) {
             // tslint:disable-next-line: no-console
-            console.error("Daemonset modified, but no pods: ", JSON.stringify(lastStatus));
+            console.error("Daemonset modified, but no pods: ", JSON.stringify(lastStatus, undefined, 2));
             should(pods).length(1);
         }
         should(pods).length(1);

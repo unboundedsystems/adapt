@@ -51,6 +51,7 @@ export type ResourceProps = { key: string } & (
     ResourceDaemonSet |
     ResourcePod |
     ResourceService |
+    ResourceConfigMap |
     ResourceCR
 );
 
@@ -125,6 +126,14 @@ export interface ResourceService extends ResourceBase {
     spec: ServiceSpec;
 }
 
+/** @public */
+export interface ResourceConfigMap extends ResourceBase {
+    kind: "ConfigMap";
+    binaryData?: { [key: string]: string };
+    data?: { [key: string]: string };
+    /** @beta */
+    immutable?: boolean;
+}
 /** @public */
 export interface ResourceCR extends ResourceBase {
     kind: string;
