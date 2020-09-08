@@ -28,7 +28,8 @@ import { makeResourceName } from "../common";
 import { Kind, Metadata, ResourceProps, Spec } from "./common";
 import { isResourceFinalElement } from "./Resource";
 
-interface MetadataInRequest extends Metadata {
+/** @internal */
+export interface MetadataInRequest extends Metadata {
     name: string;
 }
 
@@ -36,6 +37,7 @@ export interface ResourceInfo {
     kind: Kind;
     deployedWhen: (statusObj: unknown, goalStatus: GoalStatus) => WaitStatus;
     statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => any | Promise<any>;
+    makeManifest?: (manfiest: Manifest, elem: AdaptElement<ResourceProps>, deployID: string) => Manifest;
 }
 
 const resourceInfo = new Map<string, ResourceInfo>();
@@ -56,7 +58,7 @@ export interface Manifest {
     apiVersion: "v1" | "apps/v1" | string;
     kind: Kind;
     metadata: MetadataInRequest;
-    spec: Spec;
+    spec?: Spec;
 }
 
 export const resourceIdToName = makeResourceName(/[^a-z-]/g, 63);
