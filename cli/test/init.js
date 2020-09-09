@@ -14,7 +14,18 @@
  * limitations under the License.
  */
 
+const { onExit } = require("@adpt/utils/dist/src/exit");
 const chai = require("chai");
 const chaiAsPromised = require("chai-as-promised");
 
 chai.use(chaiAsPromised);
+
+// Capture stderr and its write function before they can get monkey patched
+const writeErr = process.stderr.write.bind(process.stderr);
+
+onExit((signal, details) => {
+    if (signal === 'unhandledRejection') {
+        const err = typeof details === "number" ? details : details.stack;
+        writeErr("\n\nExiting on unhandled promise rejection: " + err);
+    }
+});
