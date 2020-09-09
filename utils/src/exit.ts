@@ -18,7 +18,7 @@ import * as GracefulType from "@unboundedsystems/node-graceful";
 import { MaybePromise } from "./common_types";
 import { processGlobal } from "./process_global";
 
-export type ExitHandler = (signal: string, details?: object | number) => MaybePromise<void | any>;
+export type ExitHandler = (signal: string, details?: Error | number) => MaybePromise<void | any>;
 export type RemoveHandler = () => void;
 
 interface ExitGlobals {
@@ -50,7 +50,7 @@ export function onExit(handler: ExitHandler): RemoveHandler {
     const capHandler = (code: number) => handler("exit", code);
     capExit.onExit(capHandler);
 
-    const graceHandler = (sig: string, details: object | undefined) => {
+    const graceHandler = (sig: string, details: Error | undefined) => {
         capExit.offExit(capHandler);
         return handler(sig, details);
     };
