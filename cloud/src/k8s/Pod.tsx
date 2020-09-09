@@ -17,12 +17,16 @@
 import Adapt, {
     AdaptElement,
     BuildData,
+    BuildHelpers,
     BuildNotImplemented,
     BuiltinProps,
     childrenToArray,
     DeferredComponent,
     gql,
+    Handle,
     isElement,
+    isHandle,
+    isMountedElement,
     ObserveForStatus,
     waiting,
     WithChildren
@@ -32,8 +36,8 @@ import ld from "lodash";
 import { ClusterInfo, computeNamespaceFromMetadata, LabelSelector, LocalObjectReference, Metadata, ResourceProps } from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
-import { registerResourceKind, resourceIdToName } from "./manifest_support";
-import { Resource } from "./Resource";
+import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
+import { isResource, Resource } from "./Resource";
 
 /** @public */
 export interface NodeSelectorRequirement {
@@ -464,6 +468,153 @@ export interface TopologySpreadConstraint {
     whenUnsatisfiable: string;
 }
 
+/** @public */
+export interface KeyToPath {
+    /** The key to project. */
+    key: string;
+    /**
+     * mode bits to use on this file,
+     * Must be a value between 0 and 0777.
+     * If not specified, the volume defaultMode will be used.
+     * This might be in conflict with other options that affect the file mode, like fsGroup,
+     * and the result can be other mode bits set.
+     */
+    mode?: number;
+    /**
+     * The relative path of the file to map the key to.
+     *
+     * May not be an absolute path. May not contain the path element '..'. May not start with the string '..'.
+     */
+    path: string;
+}
+
+/** @public */
+export interface ConfigMapVolumeSource {
+    /**
+     * mode bits to use on created files by default.
+     *
+     * Must be a value between 0 and 0777. Defaults to 0644.
+     * Directories within the path are not affected by this setting.
+     * This might be in conflict with other options that affect the file mode,
+     * like fsGroup, and the result can be other mode bits set.
+     */
+    defaultMode?: number;
+
+    //tslint:disable max-line-length
+    /**
+     * If unspecified, each key-value pair in the Data field of the referenced ConfigMap will be projected into the volume as a file whose name is the key and content is the value.
+     *
+     * If specified, the listed keys will be projected into the specified paths, and unlisted keys will not be present.
+     * If a key is specified which is not present in the ConfigMap, the volume setup will error unless it is marked optional.
+     * Paths must be relative and may not contain the '..' path or start with '..'.
+     */
+    //tslint:enable max-line-length
+    items?: KeyToPath[];
+
+    /**
+     * Name of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names}
+     */
+    name: string | Handle;
+
+    /** Specify whether the ConfigMap or its keys must be defined */
+    optional?: boolean;
+}
+
+/** @public */
+export interface SecretVolumeSource {
+    /**
+     * mode bits to use on created files by default.
+     *
+     * Must be a value between 0 and 0777. Defaults to 0644.
+     * Directories within the path are not affected by this setting.
+     * This might be in conflict with other options that affect the file mode,
+     * like fsGroup, and the result can be other mode bits set.
+     */
+    defaultMode?: number;
+
+    //tslint:disable max-line-length
+    /**
+     * If unspecified, each key-value pair in the Data field of the referenced Secret will be projected into the volume as a file whose name is the key and content is the value.
+     *
+     * If specified, the listed keys will be projected into the specified paths,
+     * and unlisted keys will not be present. If a key is specified which is not
+     * present in the Secret, the volume setup will error unless it is marked optional.
+     *
+     * Paths must be relative and may not contain the '..' path or start with '..'.
+     */
+    //tslint:enable max-line-length
+    items?: KeyToPath[];
+
+    /** Specify whether the Secret or its keys must be defined */
+    optional?: boolean;
+
+    /**
+     * Name of the secret in the pod's namespace to use.
+     *
+     *  More info: {@link https://kubernetes.io/docs/concepts/storage/volumes#secret}
+     */
+    secretName: string | Handle;
+}
+
+/** @public */
+export interface EmptyDirVolumeSource {
+    /**
+     * What type of storage medium should back this directory.
+     *
+     * The default is "" which means to use the node's default medium.
+     * Must be an empty string (default) or Memory.
+     * More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
+     */
+    medium: string;
+    /**
+     * Total amount of local storage required for this EmptyDir volume.
+     *
+     * The size limit is also applicable for memory medium.
+     * The maximum usage on memory medium EmptyDir would be the minimum
+     * value between the SizeLimit specified here and the sum of memory limits of all containers in a pod.
+     * The default is nil which means that the limit is undefined.
+     * More info: {@link http://kubernetes.io/docs/user-guide/volumes#emptydir}
+     */
+    sizeLimit: string;
+}
+
+/**
+ * Volumes for {@link k8s.PodProps}
+ *
+ * @public
+ */
+export interface Volume {
+    /**
+     * Volume's name.
+     *
+     * Must be a DNS_LABEL and unique within the pod.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names}
+     */
+    name: string;
+    /**
+     * Represents a configMap that should populate this volume
+     */
+    configMap?: ConfigMapVolumeSource;
+    /**
+     * EmptyDir represents a temporary directory that shares a pod's lifetime.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/storage/volumes#emptydir}
+     *
+     */
+    emptyDir?: EmptyDirVolumeSource;
+    /**
+     * Represents a secret that should populate this volume.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/storage/volumes#secret}
+     */
+    secret?: SecretVolumeSource;
+    /** Other k8s volume kinds not typed yet for \@adpt/cloud */
+    [key: string]: any;
+}
+
 /**
  * Props for the {@link k8s.Pod} component
  *
@@ -734,7 +885,7 @@ export interface PodProps extends WithChildren {
      *
      * More info: {@link https://kubernetes.io/docs/concepts/storage/volumes}
      */
-    // volumes?: Volume[];
+    volumes?: Volume[];
 }
 
 function isContainerArray(children: any[]): children is AdaptElement<K8sContainerProps>[] {
@@ -764,8 +915,8 @@ function defaultize(spec: ContainerSpec): ContainerSpec {
 }
 
 /** @internal */
-export function makePodManifest(props: PodProps & BuiltinProps) {
-    const { key, handle, metadata, config, children, ...propsLL } = props;
+export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[] | undefined) {
+    const { key, handle, metadata, config, children, volumes: origVolumes, ...propsLL } = props;
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isK8sContainerElement(c) ? c : null));
@@ -785,6 +936,7 @@ export function makePodManifest(props: PodProps & BuiltinProps) {
         }))
             .map(defaultize)
             .map(removeUndef),
+        volumes
     };
 
     return {
@@ -794,12 +946,80 @@ export function makePodManifest(props: PodProps & BuiltinProps) {
     };
 }
 
+interface ResolvedVolumes {
+    volumes?: Volume[];
+}
+
+function resolveMappedVolumeHandle(vol: Volume, deployID: string, toResolve: { [key: string]: { field: string } }) {
+    for (const key in toResolve) {
+        if (!Object.hasOwnProperty.call(toResolve, key)) continue;
+        if (vol[key] === undefined) continue;
+        const field = toResolve[key].field;
+        const h = vol[key][field];
+        if (!isHandle(h)) return vol;
+
+        const target = h.target;
+        if (!isMountedElement(target) && target !== null) {
+            return {
+                ...vol,
+                [key]: {
+                    ...vol[key],
+                    [field]: `adapt-unresolved-${key}`,
+                    // Make sure we force k8s to wait for the handle to resolve
+                    optional: false,
+                }
+            };
+        }
+
+        if (target === null) {
+            return {
+                ...vol,
+                [key]: {
+                    [field]: `adapt-null-${key}`,
+                    // Make the volume optional so k8s skips it
+                    optional: true,
+                }
+            };
+        }
+
+        if (!isResource(target)) {
+            throw new Error(`Cannot have a non-resource handle target for a ${key} volume ${field}`);
+        }
+
+        const props = (target as AdaptElement<ResourceProps>).props;
+        if (key.toLowerCase() !== props.kind.toLowerCase()) {
+            throw new Error(`Cannot use handle to ${props.kind} as reference in ${key}`);
+        }
+
+        return {
+            ...vol,
+            [key]: {
+                ...vol[key],
+                [field]: resourceElementToName(target, deployID),
+            }
+        };
+    }
+    return vol;
+}
+
+function resolveVolumeHandles(volumes: Volume[] | undefined, deployID: string) {
+    if (volumes === undefined) return {};
+    return {
+        volumes: volumes.map((vol)  => resolveMappedVolumeHandle(
+            vol,
+            deployID,
+            { configMap: { field: "name" },
+              secret: { field: "secretName" }
+            }))
+    };
+}
+
 /**
  * Component for Kubernetes Pods
  *
  * @public
  */
-export class Pod extends DeferredComponent<PodProps> {
+export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
     static defaultProps = {
         metadata: {},
         dnsPolicy: "ClusterFirst",
@@ -812,7 +1032,10 @@ export class Pod extends DeferredComponent<PodProps> {
         terminationGracePeriodSeconds: 30,
     };
 
-    build() {
+    initialState() { return {}; }
+
+    build(helpers: BuildHelpers) {
+        this.setState(() => resolveVolumeHandles(this.props.volumes, helpers.deployID));
         const { key } = this.props;
         if (!key) throw new InternalError("key is null");
         const children = childrenToArray(this.props.children);
@@ -826,7 +1049,7 @@ export class Pod extends DeferredComponent<PodProps> {
             throw new BuildNotImplemented(`Duplicate names within a pod: ${dupNames.join(", ")}`);
         }
 
-        const manifest = makePodManifest(this.props as PodProps & BuiltinProps);
+        const manifest = makePodManifest(this.props as PodProps & BuiltinProps, this.state.volumes);
         return (<Resource
             key={key}
             config={this.props.config}
