@@ -52,6 +52,7 @@ export type ResourceProps = { key: string } & (
     ResourcePod |
     ResourceService |
     ResourceConfigMap |
+    ResourceSecret |
     ResourceCR
 );
 
@@ -134,6 +135,15 @@ export interface ResourceConfigMap extends ResourceBase {
     /** @beta */
     immutable?: boolean;
 }
+
+/** @public */
+export interface ResourceSecret extends ResourceBase {
+    kind: "Secret";
+    data?: { [key: string]: string };
+    stringData?: { [key: string]: string };
+    type?: string;
+}
+
 /** @public */
 export interface ResourceCR extends ResourceBase {
     kind: string;
