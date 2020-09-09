@@ -145,7 +145,7 @@ export async function execGCloud(
         const ret = execa("gcloud", fullArgs, execaOpts);
         return await ret;
     } catch (e) {
-        if (isExecaError(e) && e.all) e.message += "\n" + e.all;
+        if (isExecaError(e) && e.all) e.message = `${e.shortMessage}\n${e.all}`;
         debug(`Failed: gcloud ${fullArgs.join(" ")}: ${e.message}`);
         throw e;
     }
