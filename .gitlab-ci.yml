@@ -18,6 +18,7 @@ services:
     command: [ "dockerd", "--host=unix:///var/run/docker.sock", "--host=tcp://0.0.0.0:2376", "--host=tcp://0.0.0.0:2375", "--storage-driver=overlay2" ]
 
 stages:
+  - build
   - test
   - release
   - publish
@@ -50,10 +51,10 @@ before_script:
     when: always
     expire_in: 30 days
 
-# Primary test job
-test:10:
+# Job to test build and do checks
+build:10:
   <<: *job_common
-  stage: test
+  stage: build
   only:
     - branches
     - web
@@ -62,7 +63,7 @@ test:10:
     ADAPT_TEST_NODE_VERSION: "10"
   script:
     - |
-      bash -o pipefail -c './bin/make build check-uncommitted lint web-test coverage \
+      bash -o pipefail -c './bin/make build check-uncommitted lint web-test \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
 
 
@@ -76,20 +77,115 @@ test:10:
     - schedules
   script:
     - |
-      bash -o pipefail -c './bin/make test \
+      bash -o pipefail -c './bin/make ${MAKE_TARGETS} \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
+  # Don't download log files from previous jobs
+  dependencies: []
 
-test:12:
+test-cli:10:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
+    MAKE_TARGETS: "cli-coverage"
+
+test-cloud:10:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
+    MAKE_TARGETS: "cloud-coverage"
+
+test-core:10:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
+    MAKE_TARGETS: "core-coverage"
+
+test-systemtest:10:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
+    MAKE_TARGETS: "systemtest-coverage"
+
+test-other:10:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "10"
+    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
+
+test-cli:12:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
+    MAKE_TARGETS: "cli-coverage"
 
-test:14:
+test-cloud:12:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+    MAKE_TARGETS: "cloud-coverage"
+
+test-core:12:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+    MAKE_TARGETS: "core-coverage"
+
+test-systemtest:12:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+    MAKE_TARGETS: "systemtest-coverage"
+
+test-other:12:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "12"
+    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
+
+test-cli:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
+    MAKE_TARGETS: "cli-coverage"
+
+test-cloud:14:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "14"
+    MAKE_TARGETS: "cloud-coverage"
+
+test-core:14:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "14"
+    MAKE_TARGETS: "core-coverage"
+
+test-systemtest:14:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "14"
+    MAKE_TARGETS: "systemtest-coverage"
+
+test-other:14:
+  <<: *job_common
+  <<: *node_version_test_job
+  variables:
+    ADAPT_TEST_NODE_VERSION: "14"
+    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
 
 release:
   <<: *job_common
