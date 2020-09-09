@@ -80,7 +80,7 @@ $(prepush_submakes): lint
 # target in the submakes.
 coverage: build
 	nyc --nycrc-path config/.nycrc make test
-
+$(coverage_submakes): build
 
 #
 # Build dependencies between directories
@@ -90,10 +90,10 @@ cli-build: core-build cloud-build utils-build testutils-build
 cloud-build: core-build utils-build testutils-build
 testutils-build: utils-build
 systemtest-build: core-build cloud-build utils-build testutils-build cli-build
-core-test: run-local-registry
-cli-test: ssh-setup run-local-registry
-docs-test: run-local-registry
-systemtest-test: ssh-setup run-local-registry
+core-test core-coverage: run-local-registry
+cli-test cli-coverage: ssh-setup run-local-registry
+docs-test docs-coverage: run-local-registry
+systemtest-test systemtest-coverage: ssh-setup run-local-registry
 docs-release-test: ssh-setup prerelease-registry
 
 include $(BUILD_SUPPORT)/docs.mk
