@@ -128,6 +128,14 @@ describe("k8s Pod Component Tests", () => {
       <prop name="key">"Compute-Pod"</prop>
       <prop name="metadata">{}</prop>
       <prop name="spec">{
+  "dnsPolicy": "ClusterFirst",
+  "enableServiceLinks": true,
+  "hostIPC": false,
+  "hostPID": false,
+  "restartPolicy": "Always",
+  "securityContext": {},
+  "shareProcessNamespace": false,
+  "terminationGracePeriodSeconds": 30,
   "containers": [
     {
       "image": "alpine",
@@ -139,8 +147,7 @@ describe("k8s Pod Component Tests", () => {
       "imagePullPolicy": "IfNotPresent",
       "name": "two"
     }
-  ],
-  "terminationGracePeriodSeconds": 30
+  ]
 }</prop>
     </__props__>
   </Resource>

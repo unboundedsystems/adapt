@@ -18,32 +18,695 @@ import Adapt, {
     AdaptElement,
     BuildData,
     BuildNotImplemented,
+    BuiltinProps,
     childrenToArray,
     DeferredComponent,
     gql,
     isElement,
     ObserveForStatus,
-    waiting
+    waiting,
+    WithChildren
 } from "@adpt/core";
-import { InternalError, removeUndef } from "@adpt/utils";
+import { InternalError, Omit, removeUndef } from "@adpt/utils";
 import ld from "lodash";
-import { ClusterInfo, computeNamespaceFromMetadata, Metadata, ResourceProps } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, LabelSelector, LocalObjectReference, Metadata, ResourceProps } from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
+
+/** @public */
+export interface NodeSelectorRequirement {
+    /** The label key that the selector applies to. */
+    key: string;
+    /**
+     * Represents a key's relationship to a set of values.
+     *
+     * Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+     */
+    operator: "In" | "NotIn" | "Exists" | "DoesNotExist" | "Gt" | "Lt";
+    /**
+     * Values for operator
+     *
+     * If the operator is In or NotIn, the values array must be non-empty.
+     * If the operator is Exists or DoesNotExist, the values array must be empty.
+     * If the operator is Gt or Lt, the values array must have a single element,
+     * which will be interpreted as an integer.
+     * This array is replaced during a strategic merge patch.
+     */
+    values: string[];
+
+}
+
+/** @public */
+export interface NodeSelectorTerm {
+    /** A list of node selector requirements by node's labels. */
+    matchExpressions?: NodeSelectorRequirement[];
+    /** A list of node selector requirements by node's fields. */
+    matchFields?: NodeSelectorRequirement [];
+}
+
+/** @public */
+export interface PreferredSchedulingTerm {
+    /**
+     * A node selector term, associated with the corresponding weight.
+     */
+    preference: NodeSelectorTerm;
+    /** Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100. */
+    weight: number;
+}
+
+/** @public */
+export interface NodeSelector {
+    /** A list of node selector terms. The terms are ORed */
+    nodeSelectorTerms: NodeSelectorTerm[];
+}
+
+/** @public */
+export interface NodeAffinity {
+    // tslint:disable-next-line: max-line-length
+    /** The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding "weight" to the sum if the node matches the corresponding matchExpressions; the node(s) with the highest sum are the most preferred. */
+    preferredDuringSchedulingIgnoredDuringExecution?: PreferredSchedulingTerm[];
+    // tslint:disable-next-line: max-line-length
+    /** If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to an update), the system may or may not try to eventually evict the pod from its node. */
+    requiredDuringSchedulingIgnoredDuringExecution?: NodeSelector;
+}
+
+/** @public */
+export interface PodAffinityTerm {
+    /**
+     * Label query over a set of resources, in this case pods.
+     */
+    labelSelector: LabelSelector;
+    // tslint:disable-next-line: max-line-length
+    /** Specifies which namespaces the labelSelector applies to (matches against); null or empty list means "this pod's namespace" */
+    namespaces?: string[];
+    // tslint:disable-next-line: max-line-length
+    /** This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed. */
+    topologyKey: string;
+}
+
+/** @public */
+export interface WeightedPodAffinityTerm {
+    /** A pod affinity term, associated with the corresponding weight. */
+    podAffinityTerm: PodAffinityTerm;
+    /**
+     * weight associated with matching the corresponding podAffinityTerm, in the range 1-100.
+     */
+    weight: number;
+}
+
+/** @public */
+export interface PodAffinity {
+    // tslint:disable max-line-length
+    /**
+     * The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions.
+     *
+     * The node that is most preferred is the one with the greatest sum of weights,
+     * i.e. for each node that meets all of the scheduling requirements (resource request,
+     * requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating
+     * through the elements of this field and adding "weight" to the sum if the node has pods
+     * which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.
+     */
+    // tslint:enable max-line-length
+    preferredDuringSchedulingIgnoredDuringExecution: WeightedPodAffinityTerm[];
+    // tslint:disable max-line-length
+    /**
+     * If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node.
+     *
+     * If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.
+     */
+    // tslint:enable max-line-length
+    requiredDuringSchedulingIgnoredDuringExecution: PodAffinityTerm[];
+}
+
+/** @public */
+export interface PodAntiAffinity {
+    // tslint:disable-next-line: max-line-length
+    /** The scheduler will prefer to schedule pods to nodes that satisfy the anti-affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling anti-affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding "weight" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred. */
+    preferredDuringSchedulingIgnoredDuringExecution: WeightedPodAffinityTerm[];
+    // tslint:disable-next-line: max-line-length
+    /** If the anti-affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the anti-affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied. */
+    requiredDuringSchedulingIgnoredDuringExecution: PodAffinity;
+}
+
+/** @public */
+export interface Affinity {
+    /** Describes node affinity scheduling rules for the pod. */
+    nodeAffinity: NodeAffinity;
+    // tslint:disable-next-line: max-line-length
+    /** Describes pod affinity scheduling rules (e.g. co-locate this pod in the same node, zone, etc. as some other pod(s)). */
+    podAffinity: PodAffinity;
+    // tslint:disable-next-line: max-line-length
+    /** PodAntiAffinity	Describes pod anti-affinity scheduling rules (e.g. avoid putting this pod in the same node, zone, etc. as some other pod(s)). */
+    podAntiAffinity: PodAntiAffinity;
+}
+
+/** @public */
+export interface PodDNSConfigOption {
+    name: string;
+    value?: string;
+}
+
+/** @public */
+export interface PodDNSConfig {
+    /**
+     * A list of DNS name server IP addresses.
+     *
+     * This will be appended to the base nameservers generated from DNSPolicy. Duplicated nameservers will be removed.
+     */
+    nameservers: string[];
+    /**
+     * A list of DNS resolver options.
+     *
+     * This will be merged with the base options generated from DNSPolicy.
+     * Duplicated entries will be removed.
+     * Resolution options given in Options will override those that appear in the base DNSPolicy.
+     */
+    options: PodDNSConfigOption[];
+    /**
+     * A list of DNS search domains for host-name lookup.
+     *
+     * This will be appended to the base search paths generated from DNSPolicy. Duplicated search paths will be removed.
+     */
+    searches: string[];
+}
+
+/** @public */
+interface HostAlias {
+    /**
+     * Hostnames for the above IP address.
+     */
+    hostnames: string[];
+    /**
+     * IP address of the host file entry.
+     */
+    ip: string;
+}
+
+/** @public */
+export interface PodReadinessGate {
+    /** Refers to a condition in the pod's condition list with matching type. */
+    conditionType: string;
+}
+
+/** @public */
+export interface SELinuxOptions {
+    /** SELinux level label that applies to the container. */
+    level: string;
+    /** SELinux role label that applies to the container. */
+    role: string;
+    /** SELinux type label that applies to the container. */
+    type: string;
+    /** SELinux user label that applies to the container */
+    user: string;
+}
+
+/** @public */
+export interface SeccompProfile {
+    /**
+     * Indicates a profile defined in a file on the node should be used.
+     *
+     * The profile must be preconfigured on the node to work.
+     * Must be a descending path, relative to the kubelet's configured seccomp profile location.
+     * Must only be set if type is "Localhost".
+     */
+    localhostProfile?: string;
+
+    /**
+     * Indicates which kind of seccomp profile will be applied.
+     *
+     * Valid options are:
+     * * Localhost - a profile defined in a file on the node should be used.
+     * * RuntimeDefault - the container runtime default profile should be used.
+     * * Unconfined - no profile should be applied.
+     */
+    type: "Localhost" | "RuntimeDefault" | "Unconfined";
+}
+
+/** @public */
+export interface Sysctl {
+    name: string;
+    value: string;
+}
+
+/** @public */
+export interface WindowsSecurityContextOptions {
+    // tslint:disable max-line-length
+    /**
+     * The GMSA admission webhook ({@link https://github.com/kubernetes-sigs/windows-gmsa}) inlines the contents of the GMSA credential spec named by the GMSACredentialSpecName field.
+     */
+    // tslint:enable max-line-length
+     gmsaCredentialSpec?: string;
+    /**
+     * GMSACredentialSpecName is the name of the GMSA credential spec to use.
+     */
+     gmsaCredentialSpecName?: string;
+
+    /**
+     * The UserName in Windows to run the entrypoint of the container process.
+     *
+     * Defaults to the user specified in image metadata if unspecified. May also be set in PodSecurityContext.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+     */
+     runAsUserName?: string;
+}
+
+/** @public */
+export interface PodSecurityContext {
+    /**
+     * A special supplemental group that applies to all containers in a pod.
+     *
+     * Some volume types allow the Kubelet to change the ownership of that volume to be owned by the pod:
+     *
+     * 1. The owning GID will be the FSGroup
+     * 2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
+     * 3. The permission bits are OR'd with rw-rw----
+     *
+     * If unset, the Kubelet will not modify the ownership and permissions of any volume.
+     */
+    fsGroup?: number;
+    /**
+     * Defines behavior of changing ownership and permission of the volume before being exposed inside Pod.
+     *
+     * This field will only apply to volume types which support fsGroup based ownership(and permissions).
+     * It will have no effect on ephemeral volume types such as: secret, configmaps and emptydir.
+     * Valid values are "OnRootMismatch" and "Always". If not specified defaults to "Always".
+     *
+     * @defaultValue Always
+     */
+    fsGroupChangePolicy?: "OnRootMismatch" | "Always";
+
+    /**
+     * The GID to run the entrypoint of the container process.
+     *
+     * Uses runtime default if unset. May also be set in SecurityContext.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in
+     * SecurityContext takes precedence for that container.
+     */
+    runAsGroup?: number;
+
+    /**
+     * Indicates that the container must run as a non-root user.
+     *
+     * If true, the Kubelet will validate the image at runtime to ensure that it does not run as UID 0 (root) and
+     * fail to start the container if it does. If unset or false, no such validation will be performed.
+     * May also be set in SecurityContext.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+     */
+    runAsNonRoot?: boolean;
+    /**
+     * The UID to run the entrypoint of the container process.
+     *
+     * Defaults to user specified in image metadata if unspecified.
+     * May also be set in SecurityContext.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in
+     * SecurityContext takes precedence for that container.
+     */
+    runAsUser?: number;
+
+    /**
+     * The SELinux context to be applied to all containers.
+     *
+     * If unspecified, the container runtime will allocate a random SELinux context for each container.
+     * May also be set in SecurityContext.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in
+     * SecurityContext takes precedence for that container.
+     */
+    seLinuxOptions?: SELinuxOptions;
+
+    /**
+     * The seccomp options to use by the containers in this pod.
+     */
+    seccompProfile?: SeccompProfile;
+    /**
+     * 	A list of groups applied to the first process run in each container, in addition to the container's primary GID.
+     *
+     *  If unspecified, no groups will be added to any container.
+     */
+    supplementalGroups?: number[];
+
+    /**
+     * Sysctls hold a list of namespaced sysctls used for the pod.
+     *
+     * Pods with unsupported sysctls (by the container runtime) might fail to launch.
+     */
+    sysctls?: Sysctl[];
+
+    /**
+     * The Windows specific settings applied to all containers.
+     *
+     * If unspecified, the options within a container's SecurityContext will be used.
+     * If set in both SecurityContext and PodSecurityContext, the value specified in SecurityContext takes precedence.
+     */
+    windowsOptions: WindowsSecurityContextOptions;
+}
+
+/** @public */
+export interface Toleration {
+    /**
+     * Indicates the taint effect to match.
+     *
+     * Empty means match all taint effects.
+     * When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+     */
+    effect?: "NoSchedule" | "PreferNoSchedule" | "NoExecute";
+    /**
+     * The taint key that the toleration applies to.
+     *
+     * Empty means match all taint keys.
+     * If the key is empty, operator must be Exists;
+     * this combination means to match all values and all keys.
+     */
+    key?: string;
+    /**
+     * Represents a key's relationship to the value.
+     *
+     * Valid operators are Exists and Equal.
+     * Defaults to Equal.
+     * Exists is equivalent to wildcard for value, so that a pod can tolerate all taints of a particular category.
+     *
+     * @defaultValue Equal
+     */
+    operator?: "Exists" | "Equal";
+    // tslint:disable max-line-length
+    /**
+     * Represents the period of time the toleration (which must be of effect NoExecute, otherwise this field is ignored) tolerates the taint.
+     *
+     * By default, it is not set, which means tolerate the taint forever (do not evict).
+     * Zero and negative values will be treated as 0 (evict immediately) by the system.
+     */
+    // tslint:enable max-line-length
+    tolerationSeconds?: number;
+    /**
+     * Value is the taint value the toleration matches to.
+     *
+     * If the operator is Exists, the value should be empty, otherwise just a regular string.
+     */
+    value?: string;
+}
+
+/** @public */
+export interface TopologySpreadConstraint {
+    /**
+     * Used to find matching pods.
+     *
+     * Pods that match this label selector are counted to determine the
+     * number of pods in their corresponding topology domain.
+     */
+    labelSelector: LabelSelector;
+    /**
+     * Describes the degree to which pods may be unevenly distributed.
+     *
+     * When `whenUnsatisfiable=DoNotSchedule`, it is the maximum permitted
+     * difference between the number of matching pods in the target topology
+     * and the global minimum.
+     * For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with
+     * the same labelSelector spread as 1/1/0: | zone1 | zone2 | zone3 | | P | P | |
+     * - if MaxSkew is 1, incoming pod can only be scheduled to zone3 to become 1/1/1;
+     *   scheduling it onto zone1(zone2) would make the ActualSkew(2-0) on zone1(zone2) violate MaxSkew(1).
+     * - if MaxSkew is 2, incoming pod can be scheduled onto any zone.
+     * When `whenUnsatisfiable=ScheduleAnyway`, it is used to give higher precedence to topologies that satisfy it.
+     * It's a required field. Default value is 1 and 0 is not allowed.
+     *
+     * @example
+     *
+     * @defaultValue 1
+     */
+    maxSkew: number;
+    /**
+     * The key of node labels.
+     *
+     * Nodes that have a label with this key and identical values are considered to be in the same topology.
+     * We consider each \<key, value\> as a "bucket", and try to put balanced number of pods into each bucket.
+     * It's a required field.
+     */
+    topologyKey: string;
+
+    /**
+     * Indicates how to deal with a pod if it doesn't satisfy the spread constraint.
+     *
+     * - DoNotSchedule (default) tells the scheduler not to schedule it.
+     * - ScheduleAnyway tells the scheduler to schedule the pod in any location,
+     *   but giving higher precedence to topologies that would help reduce the skew.
+     *
+     * A constraint is considered "Unsatisfiable" for an incoming pod if and only if every possible
+     * node assigment for that pod would violate "MaxSkew" on some topology.
+     * For example, in a 3-zone cluster, MaxSkew is set to 1, and pods with the same labelSelector
+     * spread as 3/1/1: | zone1 | zone2 | zone3 | | P P P | P | P | If WhenUnsatisfiable is set to DoNotSchedule,
+     * incoming pod can only be scheduled to zone2(zone3) to become 3/2/1(3/1/2)
+     * as ActualSkew(2-1) on zone2(zone3) satisfies MaxSkew(1).
+     * In other words, the cluster can still be imbalanced, but scheduler won't make it
+     * *more* imbalanced.
+     *
+     * It's a required field.
+     */
+    whenUnsatisfiable: string;
+}
 
 /**
  * Props for the {@link k8s.Pod} component
  *
  * @public
  */
-export interface PodProps {
+export interface PodProps extends WithChildren {
     /** Information about the k8s cluster (ip address, auth info, etc.) */
     config: ClusterInfo;
 
     /** k8s metadata */
     metadata: Metadata;
+
+    // tslint:disable max-line-length
+    /**
+     * Optional duration in seconds the pod may be active on the node relative to StartTime before the system will actively try to mark it failed and kill associated containers.
+     *
+     * Value must be a positive integer.
+     */
+    // tslint:enable max-line-length
+    activeDeadlineSeconds?: number;
+
+    /** If specified, the pod's scheduling constraints */
+    affinity?: Affinity;
+
+    /** AutomountServiceAccountToken indicates whether a service account token should be automatically mounted. */
+    automountServiceAccountToken?: boolean;
+
+    /**
+     *  Specifies the DNS parameters of a pod.
+     *
+     *  Parameters specified here will be merged to the generated DNS configuration based on DNSPolicy.
+     */
+    dnsConfig?: PodDNSConfig;
+
+    /**
+     * Set DNS policy for the pod.
+     *
+     * Valid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'.
+     * DNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy.
+     * To have DNS options set along with hostNetwork, you have to specify DNS policy explicitly
+     * to 'ClusterFirstWithHostNet'.
+     *
+     * @defaultValue ClusterFirst
+     */
+    dnsPolicy: "ClusterFirstWithHostNet" | "ClusterFirst" | "Default" | "None";
+
+    //tslint:disable max-line-length
+    /**
+     * Indicates whether information about services should be injected into pod's environment variables matching the syntax of Docker links.
+     *
+     * @defaultValue true
+     */
+    //tslint:enable max-line-length
+    enableServiceLinks: boolean;
+
+    /**
+     * An optional list of hosts and IPs that will be injected into the pod's hosts file if specified.
+     *
+     * This is only valid for non-hostNetwork pods.
+     */
+    hostAliases?: HostAlias[];
+
+    /**
+     * Use the host's ipc namespace.
+     * @defaultValue false
+     */
+    hostIPC: boolean;
+
+    /**
+     * Host networking requested for this pod.
+     *
+     * Use the host's network namespace.
+     * If this option is set, the ports that will be used must be specified. Default to false.
+     */
+    hostNetwork?: boolean;
+
+    /**
+     * Use the host's pid namespace.
+     * @defaultValue false
+     */
+    hostPID: boolean;
+
+    /**
+     * Specifies the hostname of the Pod.
+     *
+     * If not specified, the pod's hostname will be set to a system-defined value.
+     */
+    hostname?: string;
+
+    /**
+     * List of references to secrets in the same namespace to use for pulling any of the images used by this PodSpec.
+     *
+     * If specified, these secrets will be passed to individual puller implementations for them to use.
+     * For example, in the case of docker, only DockerConfig type secrets are honored.
+     * More info: {@link https://kubernetes.io/docs/concepts/containers/images#specifying-imagepullsecrets-on-a-pod}
+     */
+    imagePullSecrets?: LocalObjectReference[];
+
+    /**
+     * A request to schedule this pod onto a specific node.
+     *
+     * If it is non-empty, the scheduler simply schedules this pod onto that node,
+     * assuming that it fits resource requirements.
+     */
+    nodeName?: string;
+
+    /**
+     * A selector which must be true for the pod to fit on a node.
+     *
+     * Selector which must match a node's labels for the pod to be scheduled on that node.
+     * More info: {@link https://kubernetes.io/docs/concepts/configuration/assign-pod-node/}
+     */
+    nodeSelector?: NodeSelector;
+
+    /**
+     * Overhead represents the resource overhead associated with running a pod for a given RuntimeClass.
+     *
+     * This field will be autopopulated at admission time by the RuntimeClass admission controller.
+     * If the RuntimeClass admission controller is enabled, overhead must not be set in Pod create requests.
+     * The RuntimeClass admission controller will reject Pod create requests which have the overhead already set.
+     * If RuntimeClass is configured and selected in the PodSpec, Overhead will be set to the value defined in
+     * the corresponding RuntimeClass, otherwise it will remain unset and treated as zero.
+     *
+     * More info: {@link https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md}
+     *
+     * This field is alpha-level as of Kubernetes v1.16, and is only honored by servers that enable
+     * the PodOverhead feature.
+     * @alpha
+     */
+    overhead?: unknown;
+
+    /**
+     * PreemptionPolicy is the Policy for preempting pods with lower priority.
+     *
+     * This field is beta-level, gated by the NonPreemptingPriority feature-gate.
+     *
+     * @defaultValue PreemptLowerPriority
+     * @beta
+     */
+    preemptionPolicy?: "Never" | "PreemptLowerPriority";
+
+    /**
+     * The priority various system components use this field to find the priority of the pod.
+     *
+     * When Priority Admission Controller is enabled, it prevents users from setting this field.
+     * The admission controller populates this field from PriorityClassName.
+     * The higher the value, the higher the priority.
+     */
+    priority?: number;
+
+    /**
+     * If specified, indicates the pod's priority.
+     *
+     * "system-node-critical" and "system-cluster-critical" are two special keywords which indicate the highest
+     * priorities with the former being the highest priority. Any other name must be defined by creating a PriorityClass
+     * object with that name. If not specified, the pod priority will be default or zero if there is no default.
+     */
+    priorityClassName?: string;
+
+    /**
+     *  If specified, all readiness gates will be evaluated for pod readiness.
+     *
+     *  A pod is ready when all its containers are ready AND all conditions specified
+     *  in the readiness gates have status equal to "True"
+     *
+     *  More info: {@link https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md}
+     */
+    readinessGates?: PodReadinessGate[];
+
+    /**
+     * Restart policy for all containers within the pod.
+     *
+     * One of Always, OnFailure, Never. Default to Always.
+     * More info: {@link https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy}
+     *
+     * @defaultValue Always
+     */
+    restartPolicy: "Always" | "OnFailure" | "Never";
+
+    // tslint:disable max-line-length
+    /**
+     * Refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.
+     *
+     * If no RuntimeClass resource matches the named class, the pod will not be run.
+     * If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit
+     * class with an empty definition that uses the default runtime handler.
+     *
+     * More info: {@link https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md}
+     *
+     * This is a beta feature as of Kubernetes v1.14.
+     */
+    runtimeClassName?: string;
+    // tslint:enable max-line-length
+
+    /**
+     *  If specified, the pod will be dispatched by specified scheduler.
+     *  If not specified, the pod will be dispatched by default scheduler.
+     */
+    schedulerName?: string;
+
+    /**
+     * SecurityContext holds pod-level security attributes and common container settings.
+     * See type description for default values of each field.
+     *
+     * @defaultValue \{\}
+     */
+    securityContext: PodSecurityContext;
+
+    /**
+     * ServiceAccountName is the name of the ServiceAccount to use to run this pod.
+     * More info: {@link https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/}
+     */
+    serviceAccountName?: string;
+
+    /**
+     * If true the pod's hostname will be configured as the pod's FQDN, rather than the leaf name (the default).
+     * In Linux containers, this means setting the FQDN in the hostname field of the kernel
+     * (the nodename field of struct utsname).
+     * In Windows containers, this means setting the registry value of hostname for the registry key
+     * HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters to FQDN.
+     * If a pod does not have FQDN, this has no effect.
+     *
+     * @defaultValue false
+     */
+    setHostnameAsFQDN?: boolean;
+
+    /**
+     * Share a single process namespace between all of the containers in a pod.
+     * When this is set containers will be able to view and signal processes from other containers in the same pod,
+     * and the first process in each container will not be assigned PID 1.
+     * HostPID and ShareProcessNamespace cannot both be set.
+     *
+     * @defaultValue false
+     */
+    shareProcessNamespace: boolean;
+
+    // tslint:disable max-line-length
+    /**
+     *  If specified, the fully qualified Pod hostname will be "\<hostname\>.\<subdomain\>.\<pod namespace\>.svc.\<cluster domain\>".
+     *  If not specified, the pod will not have a domainname at all.
+     */
+    subdomain?: string;
+    // tslint:enable max-line-length
 
     /**
      * Optional duration in seconds the pod needs to terminate gracefully.
@@ -56,7 +719,22 @@ export interface PodProps {
      * than the expected cleanup time for your process. Defaults to 30 seconds.
      */
     terminationGracePeriodSeconds?: number;
-    children: AdaptElement | AdaptElement[];
+
+    /** If specified, the pod's tolerations. */
+    tolerations?: Toleration[];
+    /**
+     *  TopologySpreadConstraints describes how a group of pods ought to spread across topology domains.
+     *
+     *  Scheduler will schedule pods in a way which abides by the constraints. All topologySpreadConstraints are ANDed.
+     */
+    topologySpreadConstraints?: TopologySpreadConstraint[];
+
+    /**
+     * List of volumes that can be mounted by containers belonging to the pod.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/storage/volumes}
+     */
+    // volumes?: Volume[];
 }
 
 function isContainerArray(children: any[]): children is AdaptElement<K8sContainerProps>[] {
@@ -86,12 +764,14 @@ function defaultize(spec: ContainerSpec): ContainerSpec {
 }
 
 /** @internal */
-export function makePodManifest(props: PodProps) {
+export function makePodManifest(props: PodProps & BuiltinProps) {
+    const { key, handle, metadata, config, children, ...propsLL } = props;
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isK8sContainerElement(c) ? c : null));
 
     const spec: PodSpec = {
+        ...propsLL,
         containers: containers.map((c) => ({
             args: c.props.args,
             command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
@@ -105,7 +785,6 @@ export function makePodManifest(props: PodProps) {
         }))
             .map(defaultize)
             .map(removeUndef),
-        terminationGracePeriodSeconds: props.terminationGracePeriodSeconds
     };
 
     return {
@@ -123,6 +802,13 @@ export function makePodManifest(props: PodProps) {
 export class Pod extends DeferredComponent<PodProps> {
     static defaultProps = {
         metadata: {},
+        dnsPolicy: "ClusterFirst",
+        enableServiceLinks: true,
+        hostIPC: false,
+        hostPID: false,
+        restartPolicy: "Always",
+        securityContext: {},
+        shareProcessNamespace: false,
         terminationGracePeriodSeconds: 30,
     };
 
@@ -140,7 +826,7 @@ export class Pod extends DeferredComponent<PodProps> {
             throw new BuildNotImplemented(`Duplicate names within a pod: ${dupNames.join(", ")}`);
         }
 
-        const manifest = makePodManifest(this.props);
+        const manifest = makePodManifest(this.props as PodProps & BuiltinProps);
         return (<Resource
             key={key}
             config={this.props.config}
@@ -179,7 +865,7 @@ export function isPod(x: any): x is AdaptElement<PodProps> {
  *
  * @public
  */
-export interface PodSpec {
+export interface PodSpec extends Omit<PodProps, "config" | "metadata"> {
     containers: ContainerSpec[];
     terminationGracePeriodSeconds?: number;
 }
