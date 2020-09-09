@@ -122,70 +122,70 @@ test-cli:12:
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
-    MAKE_TARGETS: "cli-coverage"
+    MAKE_TARGETS: "cli-test"
 
 test-cloud:12:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
-    MAKE_TARGETS: "cloud-coverage"
+    MAKE_TARGETS: "cloud-test"
 
 test-core:12:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
-    MAKE_TARGETS: "core-coverage"
+    MAKE_TARGETS: "core-test"
 
 test-systemtest:12:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
-    MAKE_TARGETS: "systemtest-coverage"
+    MAKE_TARGETS: "systemtest-test"
 
 test-other:12:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "12"
-    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
+    MAKE_TARGETS: "dom-parser-test testutils-test utils-test"
 
 test-cli:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
-    MAKE_TARGETS: "cli-coverage"
+    MAKE_TARGETS: "cli-test"
 
 test-cloud:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
-    MAKE_TARGETS: "cloud-coverage"
+    MAKE_TARGETS: "cloud-test"
 
 test-core:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
-    MAKE_TARGETS: "core-coverage"
+    MAKE_TARGETS: "core-test"
 
 test-systemtest:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
-    MAKE_TARGETS: "systemtest-coverage"
+    MAKE_TARGETS: "systemtest-test"
 
 test-other:14:
   <<: *job_common
   <<: *node_version_test_job
   variables:
     ADAPT_TEST_NODE_VERSION: "14"
-    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
+    MAKE_TARGETS: "dom-parser-test testutils-test utils-test"
 
 release:
   <<: *job_common
