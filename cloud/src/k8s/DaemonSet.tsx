@@ -32,6 +32,7 @@ import { mountedElement } from "../common";
 import {
     ClusterInfo,
     computeNamespaceFromMetadata,
+    LabelSelector,
     Metadata,
     ResourceBase,
     ResourcePod,
@@ -41,47 +42,6 @@ import { K8sObserver } from "./k8s_observer";
 import { deployIDToLabel, labelKey, registerResourceKind, resourceIdToName } from "./manifest_support";
 import { PodSpec } from "./Pod";
 import { isResource, Resource } from "./Resource";
-
-/**
- * LabelSelectorRequirement used in {@link k8s.LabelSelector}
- *
- * @public
- */
-interface LabelSelectorRequirement {
-    /**
-     * key is the label key that the selector applies to.
-     *
-     * patch strategy: merge
-     * patch merge key: key
-     */
-    key: string;
-
-    /**
-     * operator represents a key's relationship to a set of values.
-     * Valid operators are In, NotIn, Exists and DoesNotExist.
-     */
-    operator: string;
-    /**
-     * values is an array of string values.
-     * If the operator is In or NotIn, the values array must be non-empty.
-     * If the operator is Exists or DoesNotExist, the values array must be empty.
-     * This array is replaced during a strategic merge patch.
-     */
-    values: string[];
-}
-
-interface LabelSelector {
-    /**
-     * matchExpressions is a list of label selector requirements. The requirements are ANDed.
-     */
-    matchExpressions?: LabelSelectorRequirement[];
-    /**
-     * matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map
-     * is equivalent to an element of matchExpressions, whose key field is "key", the operator
-     * is "In", and the values array contains only "value". The requirements are ANDed.
-     */
-    matchLabels?: { [key: string]: string };
-}
 
 interface DaemonSetUpdateStrategyOnDelete {
     type: "OnDelete";

@@ -16,10 +16,12 @@
 
 import Adapt, {
     AdaptMountedPrimitiveElement,
+    BuiltinProps,
     ChangeType,
     childrenToArray,
     DomError,
     Group,
+    handle,
     isElement,
     PluginOptions,
     rule,
@@ -37,11 +39,14 @@ import {
 } from "../../src/action";
 import {
     ClusterInfo,
+    ConfigMap,
     Container,
     K8sContainer,
     Kubeconfig,
     Pod,
-    resourceElementToName
+    resourceElementToName,
+    ResourcePod,
+    Secret
 } from "../../src/k8s";
 import { labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
@@ -102,7 +107,7 @@ describe("k8s Pod Component Tests", () => {
             </abs.Compute>;
         const style =
             <Style>
-                {abs.Container} {rule<abs.ContainerProps>(({ handle, ...props }) => (
+                {abs.Container} {rule<abs.ContainerProps>(({ handle: hand, ...props }) => (
                     <Container {...props} />
                 ))}
                 {abs.Compute} {rule<abs.ComputeProps>((props) => (
@@ -128,6 +133,14 @@ describe("k8s Pod Component Tests", () => {
       <prop name="key">"Compute-Pod"</prop>
       <prop name="metadata">{}</prop>
       <prop name="spec">{
+  "dnsPolicy": "ClusterFirst",
+  "enableServiceLinks": true,
+  "hostIPC": false,
+  "hostPID": false,
+  "restartPolicy": "Always",
+  "securityContext": {},
+  "shareProcessNamespace": false,
+  "terminationGracePeriodSeconds": 30,
   "containers": [
     {
       "image": "alpine",
@@ -139,14 +152,121 @@ describe("k8s Pod Component Tests", () => {
       "imagePullPolicy": "IfNotPresent",
       "name": "two"
     }
-  ],
-  "terminationGracePeriodSeconds": 30
+  ]
 }</prop>
     </__props__>
   </Resource>
 </Adapt>
 `;
         should(domXml).eql(expected);
+    });
+
+    it("Should translate volumes correctly", async () => {
+        const secHandle = handle();
+        const mapHandle = handle();
+        const podHandle = handle();
+        const items = [ { key: "foo", path: "foo"} ];
+        const orig = <Group>
+            <Secret handle={secHandle} config={dummyConfig} stringData={{ foo: "bar" }} />
+            <ConfigMap handle={mapHandle} config={dummyConfig} data={{ foo: "bar" }} />
+            <Pod
+              key="test"
+              handle={podHandle}
+              config={dummyConfig}
+              volumes={[
+                  { name: "s0", secret: { secretName: "foo", items} },
+                  { name: "c1", configMap: { name: "foo", items } },
+                  { name: "s2", secret: { secretName: secHandle, items }},
+                  { name: "c3", configMap: { name: mapHandle, items }}
+              ]}
+            >
+                <K8sContainer name="container" image="node:latest" />
+            </Pod>
+        </Group>;
+
+        should(orig).not.Undefined();
+        const deployID = "foo";
+        const { contents: dom } = await Adapt.build(orig, null, { deployID });
+        if (dom == null) throw should(dom).not.Null();
+
+        const podTarget = podHandle.target;
+        const secTarget = secHandle.target;
+        const mapTarget = mapHandle.target;
+        if (podTarget == undefined) throw should(podTarget).not.Undefined();
+        if (secTarget == undefined) throw should(secTarget).not.Undefined();
+        if (mapTarget == undefined) throw should(mapTarget).not.Undefined();
+
+        const props = podTarget.props as ResourcePod & BuiltinProps;
+        should(props.kind).equal("Pod");
+        const podSpec = props.spec;
+        should(podSpec).not.Undefined();
+
+        const volumes = podSpec.volumes;
+        if (volumes === undefined) throw should(volumes).not.Undefined();
+        should(volumes).length(4);
+        should(volumes.map((v) => v.name)).eql(["s0", "c1", "s2", "c3"]);
+
+        const v0secret = volumes[0].secret;
+        if (v0secret === undefined) throw should(v0secret).not.Undefined();
+        should(v0secret.secretName).equal("foo");
+        should(v0secret.items).eql(items);
+
+        const v1map = volumes[1].configMap;
+        if (v1map === undefined) throw should(v1map).not.Undefined();
+        should(v1map.name).equal("foo");
+        should(v1map.items).eql(items);
+
+        const v2secret = volumes[2].secret;
+        if (v2secret === undefined) throw should(v2secret).not.Undefined();
+        should(v2secret.secretName).equal(resourceElementToName(secTarget, deployID));
+        should(v2secret.items).eql(items);
+
+        const v3map = volumes[3].configMap;
+        if (v3map === undefined) throw should(v3map).not.Undefined();
+        should(v3map.name).equal(resourceElementToName(mapTarget, deployID));
+        should(v3map.items).eql(items);
+    });
+
+    it("Should translate volumeMounts correctly", async () => {
+        const podHandle = handle();
+        const orig = <Pod
+              key="test"
+              handle={podHandle}
+              config={dummyConfig}
+              volumes={[
+                  { name: "s0", secret: { secretName: "foo" } },
+              ]}
+            >
+                <K8sContainer
+                    name="container"
+                    image="node:latest"
+                    volumeMounts={[
+                        { name: "s0", mountPath: "/secret0" }
+                    ]}
+                />
+            </Pod>;
+
+        should(orig).not.Undefined();
+        const deployID = "foo";
+        const { contents: dom } = await Adapt.build(orig, null, { deployID });
+        if (dom == null) throw should(dom).not.Null();
+
+        const podTarget = podHandle.target;
+        if (podTarget == undefined) throw should(podTarget).not.Undefined();
+
+        const props = podTarget.props as ResourcePod & BuiltinProps;
+        should(props.kind).equal("Pod");
+        const podSpec = props.spec;
+        should(podSpec).not.Undefined();
+
+        const containers = podSpec.containers;
+        should(containers).length(1);
+
+        const volumeMounts = containers[0].volumeMounts;
+        if (volumeMounts === undefined) throw should(volumeMounts).not.Undefined();
+        should(volumeMounts).length(1);
+        should(volumeMounts[0].name).equal("s0");
+        should(volumeMounts[0].mountPath).equal("/secret0");
     });
 
 });
