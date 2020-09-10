@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,53 @@ import {
     mergeEnvPairs
 } from "../env";
 
+/** @public */
+export interface VolumeMount {
+    /**
+     * Path within the container at which the volume should be mounted.
+     *
+     * Must not contain ':'.
+     */
+    mountPath: string;
+    /**
+     * mountPropagation determines how mounts are propagated from the host to container and the other way around.
+     *
+     * When not set, MountPropagationNone is used. This field is beta in 1.10.
+     *
+     * @defaultValue MountPropagationNone
+     */
+    mountPropagation?: string;
+    /** This must match the Name of a Volume. */
+    name: string;
+    /**
+     * Mounted read-only if true, read-write otherwise (false or unspecified).
+     *
+     * @defaultValue false
+     */
+    readOnly?: boolean;
+    /**
+     * Path within the volume from which the container's volume should be mounted.
+     *
+     * Defaults to "" (volume's root).
+     *
+     * @defaultValue ""
+     */
+    subPath?: string;
+    /**
+     * Expanded path within the volume from which the container's volume should be mounted.
+     *
+     * Behaves similarly to SubPath but environment variable references $(VAR_NAME)
+     * are expanded using the container's environment.
+     *
+     * Defaults to "" (volume's root).
+     *
+     * SubPathExpr and SubPath are mutually exclusive.
+     *
+     * @defaultValue ""
+     */
+    subPathExpr?: string;
+}
+
 /**
  * Resource spec for a Kubernetes container.
  * See the Kubernetes
@@ -53,6 +100,7 @@ export interface ContainerSpec {
     tty?: boolean;
     ports?: ContainerPort[];
     workingDir?: string;
+    volumeMounts?: VolumeMount[];
 }
 
 /**

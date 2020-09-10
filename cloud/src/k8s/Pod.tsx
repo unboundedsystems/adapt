@@ -932,6 +932,7 @@ export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[
             name: c.props.name,
             ports: c.props.ports,
             tty: c.props.tty,
+            volumeMounts: c.props.volumeMounts,
             workingDir: c.props.workingDir,
         }))
             .map(defaultize)

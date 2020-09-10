@@ -227,6 +227,48 @@ describe("k8s Pod Component Tests", () => {
         should(v3map.items).eql(items);
     });
 
+    it("Should translate volumeMounts correctly", async () => {
+        const podHandle = handle();
+        const orig = <Pod
+              key="test"
+              handle={podHandle}
+              config={dummyConfig}
+              volumes={[
+                  { name: "s0", secret: { secretName: "foo" } },
+              ]}
+            >
+                <K8sContainer
+                    name="container"
+                    image="node:latest"
+                    volumeMounts={[
+                        { name: "s0", mountPath: "/secret0" }
+                    ]}
+                />
+            </Pod>;
+
+        should(orig).not.Undefined();
+        const deployID = "foo";
+        const { contents: dom } = await Adapt.build(orig, null, { deployID });
+        if (dom == null) throw should(dom).not.Null();
+
+        const podTarget = podHandle.target;
+        if (podTarget == undefined) throw should(podTarget).not.Undefined();
+
+        const props = podTarget.props as ResourcePod & BuiltinProps;
+        should(props.kind).equal("Pod");
+        const podSpec = props.spec;
+        should(podSpec).not.Undefined();
+
+        const containers = podSpec.containers;
+        should(containers).length(1);
+
+        const volumeMounts = containers[0].volumeMounts;
+        if (volumeMounts === undefined) throw should(volumeMounts).not.Undefined();
+        should(volumeMounts).length(1);
+        should(volumeMounts[0].name).equal("s0");
+        should(volumeMounts[0].mountPath).equal("/secret0");
+    });
+
 });
 
 describe("k8s Pod Operation Tests", function () {
