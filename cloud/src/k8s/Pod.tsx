@@ -33,6 +33,7 @@ import Adapt, {
 } from "@adpt/core";
 import { InternalError, Omit, removeUndef } from "@adpt/utils";
 import ld from "lodash";
+import { isArray } from "util";
 import {
     ClusterInfo,
     computeNamespaceFromMetadata,
@@ -1111,10 +1112,19 @@ export interface PodSpec extends Omit<PodProps, "config" | "metadata" | "isTempl
     terminationGracePeriodSeconds?: number;
 }
 
+function isReady(status: any) {
+    if (status.phase !== "Running") return false;
+    const conditions = status.conditions;
+    if (!conditions) return false;
+    if (!isArray(conditions)) return false;
+    if (conditions.filter((c: any) => (c.type === "Ready") && (c.status === "True")).length !== 0) return true;
+    return false;
+}
+
 function deployedWhen(statusObj: unknown) {
     const status: any = statusObj;
     if (!status || !status.status) return waiting(`Kubernetes cluster returned invalid status for Pod`);
-    if (status.status.phase === "Running") return true;
+    if (isReady(status.status)) return true;
     let msg = `Pod state ${status.status.phase}`;
     if (Array.isArray(status.status.conditions)) {
         const failing = status.status.conditions
