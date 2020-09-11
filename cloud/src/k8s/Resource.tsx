@@ -94,7 +94,7 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldAct> {
-        if (!isNonTemplateResource(this.props)) return false;
+        if (!isResourcePropsWithConfig(this.props)) return false;
 
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
@@ -144,7 +144,7 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async action(op: ChangeType, ctx: ActionContext): Promise<void> {
-        if (!isNonTemplateResource(this.props)) return;
+        if (!isResourcePropsWithConfig(this.props)) return;
 
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
@@ -210,7 +210,7 @@ export class Resource extends Action<ResourceProps> {
     }
 
     deployedWhen = async (goalStatus: GoalStatus, helpers: DeployHelpers) => {
-        if (!isNonTemplateResource(this.props)) return true;
+        if (!isResourcePropsWithConfig(this.props)) return true;
 
         const kind = this.props.kind;
         const info = getResourceInfo(kind);
@@ -233,11 +233,11 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData) {
-        if (!isNonTemplateResource(this.props)) return { noStatus: "no status for template resources" };
+        if (!isResourcePropsWithConfig(this.props)) return { noStatus: "no status for template resources" };
         const info = getResourceInfo(this.props.kind);
         const statusQuery = info && info.statusQuery;
         if (!statusQuery) return { noStatus: "no status query defined for this kind" };
-        if (!isNonTemplateResource(this.props)) throw new InternalError("Resource config is undefined");
+        if (!isResourcePropsWithConfig(this.props)) throw new InternalError("Resource config is undefined");
         try {
             return await statusQuery(this.props, observe, buildData);
         } catch (err) {
@@ -270,7 +270,7 @@ export class Resource extends Action<ResourceProps> {
  *
  * @public
  */
-export function isNonTemplateResource(x: ResourceProps & Partial<BuiltinProps>):
+export function isResourcePropsWithConfig(x: ResourceProps & Partial<BuiltinProps>):
     x is ResourcePropsWithConfig & Partial<BuiltinProps> {
     return (!x.isTemplate) && (x.config !== undefined);
 }
