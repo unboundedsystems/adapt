@@ -929,6 +929,11 @@ function defaultize(spec: ContainerSpec): ContainerSpec {
     return spec;
 }
 
+function containerSpecProps(props: K8sContainerProps & BuiltinProps) {
+    const { key, handle, ...rest } = props;
+    return rest;
+}
+
 /** @internal */
 export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[] | undefined) {
     const { key, handle, isTemplate, metadata, config, children, volumes: origVolumes, ...propsLL } = props;
@@ -939,16 +944,7 @@ export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[
     const spec: PodSpec = {
         ...propsLL,
         containers: containers.map((c) => ({
-            args: c.props.args,
-            command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
-            env: c.props.env,
-            image: c.props.image,
-            imagePullPolicy: c.props.imagePullPolicy,
-            name: c.props.name,
-            ports: c.props.ports,
-            tty: c.props.tty,
-            volumeMounts: c.props.volumeMounts,
-            workingDir: c.props.workingDir,
+            ...containerSpecProps(c.props)
         }))
             .map(defaultize)
             .map(removeUndef),

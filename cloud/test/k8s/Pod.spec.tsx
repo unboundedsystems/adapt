@@ -147,14 +147,14 @@ describe("k8s Pod Component Tests", () => {
   "terminationGracePeriodSeconds": 30,
   "containers": [
     {
-      "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
-      "name": "one"
+      "name": "one",
+      "image": "alpine"
     },
     {
-      "image": "alpine",
       "imagePullPolicy": "IfNotPresent",
-      "name": "two"
+      "name": "two",
+      "image": "alpine"
     }
   ]
 }</prop>
