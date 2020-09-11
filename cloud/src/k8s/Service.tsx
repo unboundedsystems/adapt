@@ -44,7 +44,7 @@ import {
     NetworkServiceScope,
     targetPort
 } from "../NetworkService";
-import { ClusterInfo, computeNamespaceFromMetadata, ResourceBase, ResourceProps, ResourceService } from "./common";
+import { ClusterInfo, computeNamespaceFromMetadata, ResourceBase, ResourceProps, ResourcePropsWithConfig, ResourceService } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { labelKey, registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
@@ -530,7 +530,7 @@ function deployedWhen(statusObj: unknown) {
 export const serviceResourceInfo = {
     kind: "Service",
     deployedWhen,
-    statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
+    statusQuery: async (props: ResourcePropsWithConfig, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
                 withKubeconfig(kubeconfig: $kubeconfig) {

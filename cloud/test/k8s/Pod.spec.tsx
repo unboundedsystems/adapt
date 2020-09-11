@@ -130,6 +130,7 @@ describe("k8s Pod Component Tests", () => {
   <Resource kind="Pod">
     <__props__>
       <prop name="config">{}</prop>
+      <prop name="isTemplate">false</prop>
       <prop name="key">"Compute-Pod"</prop>
       <prop name="metadata">{}</prop>
       <prop name="spec">{

@@ -17,6 +17,7 @@
 import { BuildData, ObserveForStatus } from "@adpt/core";
 import { DockerSplitRegistryInfo } from "../docker";
 import { DaemonSetSpec } from "./DaemonSet";
+import { DeploymentSpec } from "./Deployment";
 import { PodSpec } from "./Pod";
 import { ServiceSpec } from "./Service";
 
@@ -35,6 +36,7 @@ export interface CRSpec {
 /** @public */
 export type Spec =
     DaemonSetSpec |
+    DeploymentSpec |
     PodSpec |
     ServiceSpec |
     CRSpec;
@@ -55,6 +57,9 @@ export type ResourceProps = { key: string } & (
     ResourceSecret |
     ResourceCR
 );
+
+/** @public */
+export type ResourcePropsWithConfig = ResourceProps & { config: ClusterInfo };
 
 /** @public */
 export interface ResourceInfo {
@@ -102,7 +107,16 @@ export interface ClusterInfo {
 
 /** @public */
 export interface ResourceBase {
-    config: ClusterInfo;
+    /**
+     * config to connect to the k8s cluster
+     *
+     * required if isTemplate is false
+     */
+    config?: ClusterInfo;
+    /**
+     * Specifies whether this resource is just a template for use in a controller
+     */
+    isTemplate?: boolean;
     apiVersion?: string;
     kind: Kind;
     metadata?: Metadata;
@@ -238,4 +252,24 @@ export interface LocalObjectReference {
      * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names}
      */
     name: string;
+}
+
+/**
+ * PodTemplateSpec from k8s API
+ *
+ * @public
+ */
+export interface PodTemplateSpec {
+    /**
+     * Standard object's metadata.
+     * More Info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata}
+     */
+    metadata: Metadata;
+    // tslint:disable: max-line-length
+    /**
+     * Specification of the desired behavior of the pod.
+     * More Info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status}
+     */
+    // tslint:enable: max-line-length
+    spec: PodSpec;
 }

@@ -34,9 +34,10 @@ import Adapt, {
 } from "@adpt/core";
 import * as ld from "lodash";
 
+import { InternalError } from "@adpt/utils";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { mountedElement } from "../common";
-import { ResourceProps } from "./common";
+import { ResourceProps, ResourcePropsWithConfig } from "./common";
 import { kubectlDiff, kubectlGet, kubectlOpManifest } from "./kubectl";
 import {
     getResourceInfo,
@@ -72,6 +73,7 @@ function isDeleting(info: Manifest | undefined): boolean {
 export class Resource extends Action<ResourceProps> {
     defaultProps: {
         apiVersion: "v1";
+        con: false;
     };
 
     manifest_: Manifest;
@@ -84,11 +86,16 @@ export class Resource extends Action<ResourceProps> {
         const children = childrenToArray((this.props as any).children);
 
         if (!ld.isEmpty(children)) return "Resource elements cannot have children";
+        if (!this.props.isTemplate && this.props.config === undefined) {
+            throw new Error("Non-template Resource elements must have a config prop");
+        }
 
         //Do other validations of Specs here
     }
 
     async shouldAct(op: ChangeType, ctx: ActionContext): Promise<ShouldAct> {
+        if (!isNonTemplateResource(this.props)) return false;
+
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
@@ -137,6 +144,8 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async action(op: ChangeType, ctx: ActionContext): Promise<void> {
+        if (!isNonTemplateResource(this.props)) return;
+
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
@@ -201,6 +210,8 @@ export class Resource extends Action<ResourceProps> {
     }
 
     deployedWhen = async (goalStatus: GoalStatus, helpers: DeployHelpers) => {
+        if (!isNonTemplateResource(this.props)) return true;
+
         const kind = this.props.kind;
         const info = getResourceInfo(kind);
         const hand = this.props.handle;
@@ -222,9 +233,11 @@ export class Resource extends Action<ResourceProps> {
     }
 
     async status(observe: ObserveForStatus, buildData: BuildData) {
+        if (!isNonTemplateResource(this.props)) return { noStatus: "no status for template resources" };
         const info = getResourceInfo(this.props.kind);
         const statusQuery = info && info.statusQuery;
         if (!statusQuery) return { noStatus: "no status query defined for this kind" };
+        if (!isNonTemplateResource(this.props)) throw new InternalError("Resource config is undefined");
         try {
             return await statusQuery(this.props, observe, buildData);
         } catch (err) {
@@ -250,6 +263,16 @@ export class Resource extends Action<ResourceProps> {
         this.manifest_ = info.makeManifest ? info.makeManifest(manifest, elem, deployID) : manifest;
         return this.manifest_;
     }
+}
+
+/**
+ * Tests whether a ResourceProps is for a template object
+ *
+ * @public
+ */
+export function isNonTemplateResource(x: ResourceProps & Partial<BuiltinProps>):
+    x is ResourcePropsWithConfig & Partial<BuiltinProps> {
+    return (!x.isTemplate) && (x.config !== undefined);
 }
 
 /**
