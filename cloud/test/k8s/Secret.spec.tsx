@@ -144,7 +144,7 @@ describe("k8s Secret operation tests", function () {
         }
     });
 
-    it("Should create simple config map", async () => {
+    it("Should create simple secret", async () => {
         const data = { foo: "foo", bar: "bar" };
         const orig = <Secret
             key="test"
@@ -156,9 +156,9 @@ describe("k8s Secret operation tests", function () {
         });
         should(dom).not.Null();
 
-        const maps = await getAll("secrets", { client, deployID: mockDeploy.deployID });
-        should(maps).length(1);
-        const cm = maps[0];
+        const secrets = await getAll("secrets", { client, deployID: mockDeploy.deployID });
+        should(secrets).length(1);
+        const cm = secrets[0];
         should(cm.data).eql(mapValues(data, (v) => Buffer.from(v).toString("base64")));
     });
 
@@ -174,9 +174,9 @@ describe("k8s Secret operation tests", function () {
         });
         should(dom).not.Null();
 
-        const maps = await getAll("secrets", { client, deployID: mockDeploy.deployID });
-        should(maps).length(1);
-        const cm = maps[0];
+        const secrets = await getAll("secrets", { client, deployID: mockDeploy.deployID });
+        should(secrets).length(1);
+        const cm = secrets[0];
         should(cm.data).eql(mapValues(data, (v) => isBuffer(v) ? v.toString("base64") : v));
     });
 });
