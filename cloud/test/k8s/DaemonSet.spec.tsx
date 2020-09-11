@@ -134,7 +134,7 @@ describe("k8s DaemonSet Component Tests", () => {
 
         const result = await Adapt.build(ds, null);
         should(result.messages).have.length(1);
-        should(result.messages[0].content).match(/not a Pod/);
+        should(result.messages[0].content).match(/must be a Pod/);
     });
 
     it("Should require a Pod", async () => {

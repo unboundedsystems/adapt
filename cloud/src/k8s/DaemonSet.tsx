@@ -131,7 +131,7 @@ function checkChildren(children: any) {
     }
 
     const child = isArray(children) ? children[0] : children;
-    if (!isResourcePodTemplate(child)) throw new Error(`DaemonSet child is not a Pod Template`);
+    if (!isResourcePodTemplate(child)) throw new Error(`DaemonSet child must be a Pod with the isTemplate prop`);
     return child;
 }
 

@@ -174,7 +174,7 @@ function checkChildren(children: any) {
     }
 
     const child = isArray(children) ? children[0] : children;
-    if (!isResourcePodTemplate(child)) throw new Error(`Deployment child is not a Pod Template`);
+    if (!isResourcePodTemplate(child)) throw new Error(`Deployment child must be a Pod with the isTemplate prop set`);
     return child;
 }
 
