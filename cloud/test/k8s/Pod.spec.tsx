@@ -15,6 +15,7 @@
  */
 
 import Adapt, {
+    AdaptMountedElement,
     AdaptMountedPrimitiveElement,
     BuiltinProps,
     ChangeType,
@@ -26,6 +27,7 @@ import Adapt, {
     PluginOptions,
     rule,
     Style,
+    Waiting,
 } from "@adpt/core";
 import * as ld from "lodash";
 import should from "should";
@@ -44,6 +46,7 @@ import {
     K8sContainer,
     Kubeconfig,
     Pod,
+    podResourceInfo,
     resourceElementToName,
     ResourcePod,
     Secret
@@ -272,6 +275,19 @@ describe("k8s Pod Component Tests", () => {
 
 });
 
+async function waitForDeployed(mountedOrig: AdaptMountedElement, dom: AdaptMountedElement, deployID: string) {
+    let deployed: boolean | Waiting = false;
+    do {
+        const status = await mountedOrig.status<K8sTestStatusType>();
+        should(status.kind).equal("Pod");
+        should(status.metadata.name).equal(resourceElementToName(dom, deployID));
+        should(status.metadata.annotations).containEql({ [labelKey("name")]: dom.id });
+        deployed = podResourceInfo.deployedWhen(status);
+        if (deployed !== true) await sleep(1000);
+        else return status;
+    } while (1);
+}
+
 describe("k8s Pod Operation Tests", function () {
     this.timeout(60 * 1000);
 
@@ -333,6 +349,7 @@ describe("k8s Pod Operation Tests", function () {
         if (!deployID) throw new Error(`Missing deployID?`);
 
         await act(actions);
+        await waitForDeployed(mountedOrig, dom, deployID);
 
         const pods = await getAll("pods", { client, deployID });
         should(pods).length(1);
