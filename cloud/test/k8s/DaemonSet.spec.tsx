@@ -56,7 +56,7 @@ describe("k8s DaemonSet Component Tests", () => {
     it("Should Instantiate and build DaemonSet", async () => {
         const ds =
             <DaemonSet key="test" config={dummyConfig}>
-                <Pod config={dummyConfig}>
+                <Pod isTemplate>
                     <K8sContainer name="onlyContainer" image="node:latest" />
                 </Pod>
             </DaemonSet>;
@@ -80,7 +80,7 @@ describe("k8s DaemonSet Component Tests", () => {
         const selector = { matchLabels: { foo: "bar" }};
         const ds =
             <DaemonSet key="test" config={dummyConfig} selector={selector}>
-                <Pod config={dummyConfig}>
+                <Pod isTemplate>
                     <K8sContainer name="onlyContainer" image="node:latest" />
                 </Pod>
             </DaemonSet>;
@@ -104,7 +104,7 @@ describe("k8s DaemonSet Component Tests", () => {
                 config={dummyConfig}
                 selector={{ matchLabels: { test: "testDaemonSet" }}} >
                 <Pod
-                    config={dummyConfig}
+                    isTemplate
                     metadata={{
                         labels: {
                             test: "testDaemonSet"
@@ -112,7 +112,7 @@ describe("k8s DaemonSet Component Tests", () => {
                     }}>
                     <K8sContainer name="onlyContainer" image="node:latest" />
                 </Pod>
-                <Pod config={dummyConfig}>
+                <Pod isTemplate>
                     <K8sContainer name="onlyContainer" image="node:latest" />
                 </Pod>
             </DaemonSet>;
@@ -134,7 +134,7 @@ describe("k8s DaemonSet Component Tests", () => {
 
         const result = await Adapt.build(ds, null);
         should(result.messages).have.length(1);
-        should(result.messages[0].content).match(/not a Pod/);
+        should(result.messages[0].content).match(/must be a Pod/);
     });
 
     it("Should require a Pod", async () => {
@@ -201,7 +201,7 @@ describe("k8s DaemonSet Operation Tests", function () {
         const ds =
         <DaemonSet key={name} config={kubeClusterInfo}>
             <Pod
-                config={kubeClusterInfo}
+                isTemplate
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={["sleep", "3s"]} />
             </Pod>
@@ -258,7 +258,7 @@ describe("k8s DaemonSet Operation Tests", function () {
         const pod =
         <DaemonSet key="test" config={kubeClusterInfo}>
             <Pod
-                config={kubeClusterInfo}
+                isTemplate
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>
@@ -308,7 +308,7 @@ describe("k8s DaemonSet Operation Tests", function () {
         const pod =
         <DaemonSet key="test" config={kubeClusterInfo}>
             <Pod
-                config={kubeClusterInfo}
+                isTemplate
                 terminationGracePeriodSeconds={0}>
                 <K8sContainer name="container" image="alpine:3.8" command={command} />
             </Pod>

@@ -15,13 +15,11 @@
  */
 
 import Adapt, {
-    AdaptElement,
     BuildData,
     BuildHelpers,
     BuiltinProps,
     DeferredComponent,
     gql,
-    isElement,
     ObserveForStatus,
     SFCBuildProps,
     waiting,
@@ -34,14 +32,14 @@ import {
     computeNamespaceFromMetadata,
     LabelSelector,
     Metadata,
+    PodTemplateSpec,
     ResourceBase,
-    ResourcePod,
-    ResourceProps
+    ResourcePropsWithConfig
 } from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { deployIDToLabel, labelKey, registerResourceKind, resourceIdToName } from "./manifest_support";
-import { PodSpec } from "./Pod";
-import { isResource, Resource } from "./Resource";
+import { Resource } from "./Resource";
+import { isResourcePodTemplate } from "./utils";
 
 interface DaemonSetUpdateStrategyOnDelete {
     type: "OnDelete";
@@ -77,26 +75,6 @@ interface DaemonSetUpdateStrategyRollingUpdate {
  * @public
  */
 type DaemonSetUpdateStrategy = DaemonSetUpdateStrategyRollingUpdate | DaemonSetUpdateStrategyOnDelete;
-
-/**
- * PodTemplateSpec from k8s API
- *
- * @public
- */
-interface PodTemplateSpec {
-    /**
-     * Standard object's metadata.
-     * More Info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata}
-     */
-    metadata: Metadata;
-    // tslint:disable: max-line-length
-    /**
-     * Specification of the desired behavior of the pod.
-     * More Info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status}
-     */
-    // tslint:enable: max-line-length
-    spec: PodSpec;
-}
 
 /**
  * Spec for {@link k8s.DaemonSet} for use in {@link k8s.Resource}
@@ -147,20 +125,13 @@ interface DaemonSetProps extends WithChildren {
     updateStrategy: DaemonSetUpdateStrategy;
 }
 
-function isResourcePod(x: any): x is AdaptElement<ResourcePod> {
-    if (!isElement(x)) return false;
-    if (!isResource(x)) return false;
-    if (x.props.apiVersion !== "v1" && x.props.kind === "Pod") return true;
-    return false;
-}
-
 function checkChildren(children: any) {
     if ((isArray(children) && children.length !== 1) || children == null) {
         throw new Error(`DaemonSet must only have a single Pod as a child, found ${children == null ? 0 : children.length}`);
     }
 
     const child = isArray(children) ? children[0] : children;
-    if (!isResourcePod(child)) throw new Error(`DaemonSet child is not a Pod`);
+    if (!isResourcePodTemplate(child)) throw new Error(`DaemonSet child must be a Pod with the isTemplate prop`);
     return child;
 }
 
@@ -283,7 +254,7 @@ function deployedWhen(statusObj: unknown) {
 export const daemonSetResourceInfo = {
     kind: "DaemonSet",
     deployedWhen,
-    statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
+    statusQuery: async (props: ResourcePropsWithConfig, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
                 withKubeconfig(kubeconfig: $kubeconfig) {

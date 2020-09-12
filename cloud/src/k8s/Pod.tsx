@@ -33,7 +33,16 @@ import Adapt, {
 } from "@adpt/core";
 import { InternalError, Omit, removeUndef } from "@adpt/utils";
 import ld from "lodash";
-import { ClusterInfo, computeNamespaceFromMetadata, LabelSelector, LocalObjectReference, Metadata, ResourceProps } from "./common";
+import { isArray } from "util";
+import {
+    ClusterInfo,
+    computeNamespaceFromMetadata,
+    LabelSelector,
+    LocalObjectReference,
+    Metadata,
+    ResourceProps,
+    ResourcePropsWithConfig
+} from "./common";
 import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps } from "./Container";
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
@@ -621,8 +630,14 @@ export interface Volume {
  * @public
  */
 export interface PodProps extends WithChildren {
+    /**
+     *  True is this is a template for use in a controller, false otherwise
+     *  @defaultValue false
+     */
+    isTemplate: boolean;
+
     /** Information about the k8s cluster (ip address, auth info, etc.) */
-    config: ClusterInfo;
+    config?: ClusterInfo;
 
     /** k8s metadata */
     metadata: Metadata;
@@ -914,9 +929,14 @@ function defaultize(spec: ContainerSpec): ContainerSpec {
     return spec;
 }
 
+function containerSpecProps(props: K8sContainerProps & BuiltinProps) {
+    const { key, handle, ...rest } = props;
+    return rest;
+}
+
 /** @internal */
 export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[] | undefined) {
-    const { key, handle, metadata, config, children, volumes: origVolumes, ...propsLL } = props;
+    const { key, handle, isTemplate, metadata, config, children, volumes: origVolumes, ...propsLL } = props;
     const containers = ld.compact(
         childrenToArray(props.children)
             .map((c) => isK8sContainerElement(c) ? c : null));
@@ -924,16 +944,7 @@ export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[
     const spec: PodSpec = {
         ...propsLL,
         containers: containers.map((c) => ({
-            args: c.props.args,
-            command: c.props.command, //FIXME(manishv)  What if we just have args and no command?
-            env: c.props.env,
-            image: c.props.image,
-            imagePullPolicy: c.props.imagePullPolicy,
-            name: c.props.name,
-            ports: c.props.ports,
-            tty: c.props.tty,
-            volumeMounts: c.props.volumeMounts,
-            workingDir: c.props.workingDir,
+            ...containerSpecProps(c.props)
         }))
             .map(defaultize)
             .map(removeUndef),
@@ -1022,6 +1033,7 @@ function resolveVolumeHandles(volumes: Volume[] | undefined, deployID: string) {
  */
 export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
     static defaultProps = {
+        isTemplate: false,
         metadata: {},
         dnsPolicy: "ClusterFirst",
         enableServiceLinks: true,
@@ -1053,8 +1065,10 @@ export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
         const manifest = makePodManifest(this.props as PodProps & BuiltinProps, this.state.volumes);
         return (<Resource
             key={key}
+            // tslint:disable-next-line: no-object-literal-type-assertion
             config={this.props.config}
             kind="Pod"
+            isTemplate = {this.props.isTemplate}
             metadata={manifest.metadata}
             spec={manifest.spec} />);
     }
@@ -1089,15 +1103,24 @@ export function isPod(x: any): x is AdaptElement<PodProps> {
  *
  * @public
  */
-export interface PodSpec extends Omit<PodProps, "config" | "metadata"> {
+export interface PodSpec extends Omit<PodProps, "config" | "metadata" | "isTemplate"> {
     containers: ContainerSpec[];
     terminationGracePeriodSeconds?: number;
+}
+
+function isReady(status: any) {
+    if (status.phase !== "Running") return false;
+    const conditions = status.conditions;
+    if (!conditions) return false;
+    if (!isArray(conditions)) return false;
+    if (conditions.filter((c: any) => (c.type === "Ready") && (c.status === "True")).length !== 0) return true;
+    return false;
 }
 
 function deployedWhen(statusObj: unknown) {
     const status: any = statusObj;
     if (!status || !status.status) return waiting(`Kubernetes cluster returned invalid status for Pod`);
-    if (status.status.phase === "Running") return true;
+    if (isReady(status.status)) return true;
     let msg = `Pod state ${status.status.phase}`;
     if (Array.isArray(status.status.conditions)) {
         const failing = status.status.conditions
@@ -1113,7 +1136,7 @@ function deployedWhen(statusObj: unknown) {
 export const podResourceInfo = {
     kind: "Pod",
     deployedWhen,
-    statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
+    statusQuery: async (props: ResourcePropsWithConfig, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
                 withKubeconfig(kubeconfig: $kubeconfig) {

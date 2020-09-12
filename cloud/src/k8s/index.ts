@@ -22,6 +22,7 @@
 export * from "./ConfigMap";
 export * from "./Container";
 export * from "./DaemonSet";
+export * from "./Deployment";
 export * from "./Resource"; //This must be before Pod and Service, but why?
 export * from "./Pod";
 export * from "./Secret";

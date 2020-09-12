@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { AdaptElement, isElement } from "@adpt/core";
 import * as yaml from "js-yaml";
 import ld from "lodash";
 import * as util from "util";
@@ -21,9 +22,11 @@ import { DockerSplitRegistryInfo } from "../docker";
 import { EnvSimple, mergeEnvSimple } from "../env";
 import {
     ClusterInfo,
-    Kubeconfig
+    Kubeconfig,
+    ResourcePod
 } from "./common";
 import { kubectl } from "./kubectl";
+import { isResource } from "./Resource";
 
 /**
  * Options for {@link k8s.makeClusterInfo}
@@ -133,4 +136,12 @@ export async function makeClusterInfo(options: MakeClusterInfoOptions): Promise<
         return { kubeconfig: options.kubeconfig, registryUrl };
     }
     throw new Error(`Illegal kubeconfig option in ${util.inspect(options)}`);
+}
+
+/** @internal */
+export function isResourcePodTemplate(x: any): x is AdaptElement<ResourcePod> {
+    if (!isElement(x)) return false;
+    if (!isResource(x)) return false;
+    if (x.props.apiVersion !== "v1" && x.props.kind === "Pod" && x.props.isTemplate === true) return true;
+    return false;
 }

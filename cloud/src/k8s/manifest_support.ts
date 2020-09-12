@@ -25,7 +25,7 @@ import {
 } from "@adpt/core";
 
 import { makeResourceName } from "../common";
-import { Kind, Metadata, ResourceProps, Spec } from "./common";
+import { Kind, Metadata, ResourceProps, ResourcePropsWithConfig, Spec } from "./common";
 import { isResourceFinalElement } from "./Resource";
 
 /** @internal */
@@ -36,7 +36,10 @@ export interface MetadataInRequest extends Metadata {
 export interface ResourceInfo {
     kind: Kind;
     deployedWhen: (statusObj: unknown, goalStatus: GoalStatus) => WaitStatus;
-    statusQuery?: (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => any | Promise<any>;
+    statusQuery?: (
+        props: ResourcePropsWithConfig,
+        observe: ObserveForStatus,
+        buildData: BuildData) => any | Promise<any>;
     makeManifest?: (manfiest: Manifest, elem: AdaptElement<ResourceProps>, deployID: string) => Manifest;
 }
 

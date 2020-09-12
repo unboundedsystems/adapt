@@ -17,7 +17,14 @@
 import Adapt, { AdaptElement, BuildData, gql, ObserveForStatus, SFCBuildProps, SFCDeclProps } from "@adpt/core";
 import { mapValues } from "lodash";
 import { isBuffer } from "util";
-import { ClusterInfo, computeNamespaceFromMetadata, Metadata, ResourceProps, ResourceSecret } from "./common";
+import {
+    ClusterInfo,
+    computeNamespaceFromMetadata,
+    Metadata,
+    ResourceProps,
+    ResourcePropsWithConfig,
+    ResourceSecret
+} from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { Manifest, registerResourceKind, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
@@ -103,7 +110,7 @@ export function Secret(propsIn: SFCDeclProps<SecretProps, typeof defaultProps>) 
 export const secretResourceInfo = {
     kind: "Secret",
     deployedWhen: () => true as const,
-    statusQuery: async (props: ResourceProps, observe: ObserveForStatus, buildData: BuildData) => {
+    statusQuery: async (props: ResourcePropsWithConfig, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
             query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
                 withKubeconfig(kubeconfig: $kubeconfig) {
