@@ -75,7 +75,7 @@
     "json-stable-stringify": "1.0.1",
     "jsonschema": "1.2.5",
     "lodash": "4.17.19",
-    "node-fetch": "2.6.0",
+    "node-fetch": "2.6.1",
     "randomstring": "1.1.5",
     "shellwords-ts": "2.0.4",
     "swagger-client": "3.9.6",

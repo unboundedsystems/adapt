@@ -70,7 +70,7 @@
     "fs-extra": "8.1.0",
     "json5": "2.1.1",
     "lodash": "4.17.19",
-    "node-fetch": "2.6.0",
+    "node-fetch": "2.6.1",
     "npm-package-arg": "7.0.0",
     "p-defer": "3.0.0",
     "pacote": "9.5.11",
