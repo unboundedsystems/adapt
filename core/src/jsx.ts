@@ -922,6 +922,19 @@ export type PrimitiveChildType<T> =
     T extends (infer W)[] ? W :
     T;
 
+/**
+ * See if props.children refers to any children
+ *
+ * @param propsChildren - The value of props.children to be checked
+ *
+ * @returns true if there are children, false otherwise
+ *
+ * @public
+ */
+export function childrenIsEmpty<T>(propsChildren: T | undefined): boolean {
+    return childrenToArray(propsChildren).length !== 0;
+}
+
 export function childrenToArray<T>(propsChildren: T | undefined): PrimitiveChildType<T>[] {
     const ret = simplifyChildren(propsChildren);
     if (ret == null) return [];

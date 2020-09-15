@@ -37,6 +37,7 @@ export {
 } from "./hooks";
 export * from "./jsx_namespace";
 export {
+    childrenIsEmpty,
     childrenToArray,
     cloneElement,
     createElement,
