@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,8 +128,7 @@ describe("k8s ServiceDeployment tests", function () {
         if (client) {
             const filter = deployIDFilter(mockDeploy.deployID);
             await Promise.all([
-                deleteAll("pods", { client, deployID: mockDeploy.deployID }),
-                deleteAll("services", { client, deployID: mockDeploy.deployID }),
+                deleteAll("deployments", { client, deployID: mockDeploy.deployID, apiPrefix: "apis/apps/v1" }),
                 deleteAllContainers(filter),
             ]);
             await deleteAllImages(filter);

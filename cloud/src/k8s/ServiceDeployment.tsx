@@ -18,9 +18,11 @@ import Adapt, {
     AdaptElement,
     BuildHelpers,
     childrenToArray,
+    ComponentType,
     DeferredComponent,
     Group,
     handle,
+    WithChildren,
 } from "@adpt/core";
 import ld from "lodash";
 import { OmitT } from "type-ops";
@@ -30,31 +32,45 @@ import { isNetworkServiceElement, NetworkServiceProps } from "../NetworkService"
 import { ServiceProps as AbsServiceProps } from "../Service";
 import { ClusterInfo } from "./common";
 import { Container, K8sContainerProps } from "./Container";
+import { Deployment, DeploymentProps } from "./Deployment";
 import { Pod, PodProps } from "./Pod";
 import { k8sServiceProps, Service, ServiceProps } from "./Service";
+
+interface AllowableComponentProps extends WithChildren {
+    config: ClusterInfo;
+}
 
 /**
  * Props for {@link k8s.ServiceDeployment}
  *
  * @public
  */
-export interface ServiceDeploymentProps extends AbsServiceProps {
+export interface ServiceDeploymentProps<T extends AllowableComponentProps = DeploymentProps> extends AbsServiceProps {
     config: ClusterInfo;
     serviceProps?: Partial<ServiceProps>;
+    component: ComponentType<T>;
+    componentProps: T;
     podProps?: Partial<PodProps>;
     containerProps?: Partial<OmitT<K8sContainerProps, "image">>;
 }
 
-function mapChild(kid: ServiceDeploymentProps["children"],
-    props: ServiceDeploymentProps, helpers: BuildHelpers) {
+function mapChild<T extends AllowableComponentProps>(kid: ServiceDeploymentProps["children"],
+    props: ServiceDeploymentProps<T>, helpers: BuildHelpers) {
     if (isContainerElement(kid)) return mapContainer(kid, props, helpers);
     if (isNetworkServiceElement(kid)) return mapNetworkService(kid, props, helpers);
     return kid;
 }
 
-function mapContainer(absEl: AdaptElement<AbsContainerProps>,
-    props: ServiceDeploymentProps, helpers: BuildHelpers) {
-    const { config, containerProps: rawContainerProps = {}, podProps = {} } = props;
+function mapContainer<T extends AllowableComponentProps>(absEl: AdaptElement<AbsContainerProps>,
+    props: ServiceDeploymentProps<T>, helpers: BuildHelpers) {
+    const {
+        config,
+        containerProps: rawContainerProps = {},
+        podProps = {},
+        // tslint:disable-next-line: variable-name
+        component: MyComponent,
+        componentProps
+    } = props;
     //just in case image is there anyway, remove it since Container will use it if present
     const { image: _i, ...containerProps } = rawContainerProps as K8sContainerProps;
     const { handle: _h, ...absProps } = absEl.props;
@@ -71,18 +87,20 @@ function mapContainer(absEl: AdaptElement<AbsContainerProps>,
         }
     }
 
-    const pod =
-        <Pod config={config} key={absEl.props.key} {...podProps} >
+    const elem = <MyComponent {...{ config, ...componentProps}}>
+        <Pod isTemplate key={absEl.props.key} {...podProps}>
             <Container {...absProps} image={image} k8sContainerProps={containerProps} />
-        </Pod>;
+        </Pod>
+    </MyComponent>;
 
-    absEl.props.handle.replaceTarget(pod, helpers);
-    if (registryImage) return [registryImage, pod];
-    return pod;
+    absEl.props.handle.replaceTarget(elem, helpers);
+    if (registryImage) return [registryImage, elem];
+    return elem;
 }
 
-function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
-    props: ServiceDeploymentProps, helpers: BuildHelpers) {
+function mapNetworkService<T extends AllowableComponentProps>(
+    absEl: AdaptElement<NetworkServiceProps>,
+    props: ServiceDeploymentProps<T>, helpers: BuildHelpers) {
     const { config, serviceProps = {} } = props;
     const hand = handle();
     const svc =
@@ -120,12 +138,16 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  * ```tsx
  * <Group>
  *   <docker.RegistryDockerImage ... /> //If props.config specifies a registry
- *   <k8s.Pod ... >
- *     <k8s.K8sContainer ... />
- *   </k8s.Pod>
+ *   <k8s.Deployment ... >
+ *     <Pod isTemplate>
+ *       <k8s.K8sContainer ... />
+ *     </Pod>
+ *   </k8s.Deployment>
  *   <docker.RegistryDockerImage ... /> //If props.config specifies a registry
- *   <k8s.Pod ... >
- *     <k8s.K8sContainer ... />
+ *   <k8s.Deployment ... >
+ *     <Pod isTemplate>
+ *       <k8s.K8sContainer ... />
+ *     </Pod>
  *   </k8s.Pod>
  *   <k8s.Service ... />
  * </Group>
@@ -143,7 +165,12 @@ function mapNetworkService(absEl: AdaptElement<NetworkServiceProps>,
  *
  * @public
  */
-export class ServiceDeployment extends DeferredComponent<ServiceDeploymentProps> {
+export class ServiceDeployment<T extends AllowableComponentProps> extends DeferredComponent<ServiceDeploymentProps<T>> {
+    static defaultProps = {
+        component: Deployment,
+        componentProps: { replicas: 1 }
+    };
+
     build(helpers: BuildHelpers) {
         const mappedChildren = ld.flatten(childrenToArray(this.props.children).map((c) =>
             mapChild(c, this.props, helpers)));
