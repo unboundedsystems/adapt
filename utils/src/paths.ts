@@ -16,7 +16,6 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { URL } from "url";
 
 /**
  * Given a directory path in the execution directory (i.e. "dist"), return
@@ -84,14 +83,3 @@ export const repoDirs = {
     "testutils": path.join(repoRootDir, "testutils"),
     "utils": path.join(repoRootDir, "utils"),
 };
-
-/**
- * Given a local file path, convert it to a file:// URL.
- * @param pathString Local filesystem path. If not absolute, path.resolve
- *     will be used to convert it to absolute first.
- */
-export function filePathToUrl(pathString: string) {
-    pathString = path.resolve(pathString);
-    const localUrl = new URL(`file:///${pathString}`);
-    return localUrl.href;
-}

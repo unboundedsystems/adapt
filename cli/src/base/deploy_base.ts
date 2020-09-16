@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { filePathToUrl, MessageClient, MessageLogger } from "@adpt/utils";
+import { MessageClient, MessageLogger } from "@adpt/utils";
 import { flags } from "@oclif/command";
 import Listr from "@unboundedsystems/listr";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ReplaceT } from "type-ops";
+import { pathToFileURL } from "url";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
 import { taskObservable } from "../ui";
 import { AdaptBase, createLoggerPair, HandleResponseOptions } from "./adapt_base";
@@ -91,7 +92,7 @@ export abstract class DeployBase extends AdaptBase {
             adaptUrl = f.serverUrl;
         } else {
             const dbFile = path.join(this.config.dataDir, "local_deploy");
-            adaptUrl = filePathToUrl(dbFile);
+            adaptUrl = pathToFileURL(dbFile).href;
         }
 
         const pair = createLoggerPair("deploy", this.outputSettings.logging);
