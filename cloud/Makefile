@@ -5,7 +5,8 @@ COPY_FILES_DIST := $(addprefix dist/, $(COPY_FILES_SRC))
 
 $(COPY_FILES_DIST): $(COPY_FILES_SRC)
 	mkdir -p dist
-	tar -cf - $(COPY_FILES_SRC) | tar --touch -xvf - -C dist
+	tar -cf - $(COPY_FILES_SRC) | tar -xvf - -C dist
+	touch $(COPY_FILES_DIST)
 
 build: $(COPY_FILES_DIST)
 

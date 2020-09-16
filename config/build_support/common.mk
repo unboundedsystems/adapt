@@ -2,6 +2,19 @@ REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 BUILD_SUPPORT := $(REPO_ROOT)/config/build_support
 ADAPT_TMPDIR_BASE := /tmp/adapt-test
 
+IS_MINGW:=$(shell uname -s | grep MINGW >/dev/null && echo true || echo false)
+ifeq ($(IS_MINGW),true)
+    IS_WINDOWS:=true
+else
+    IS_WINDOWS:=false
+endif
+
+ifeq ($(IS_WINDOWS),true)
+    # Set up a few things that are normally taken care of by our common
+	# container setup, which we don't use on Windows
+	PATH:=$(REPO_ROOT)/node_modules/.bin:$(PATH)
+endif
+
 include $(BUILD_SUPPORT)/log.mk
 
 # Exclude these dirs from PROJ_DIRS

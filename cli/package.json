@@ -168,7 +168,7 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
-    "docs": "../scripts/cli_docs.sh",
+    "docs": "cross-env ../scripts/cli_docs.sh",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "postpack": "rm -f oclif.manifest.json",

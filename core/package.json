@@ -54,7 +54,7 @@
   "scripts": {
     "clean": "rm -rf build dist generated temp",
     "coverage": "nyc mocha --opts mocha.opts",
-    "docs": "../scripts/make_docs.js core && cp ../README.md .",
+    "docs": "cross-env ../scripts/make_docs.js core && cp ../README.md .",
     "pretest": "make build",
     "gql-gen": "graphql-codegen",
     "tsc": "tsc -p tsconfig.json",
