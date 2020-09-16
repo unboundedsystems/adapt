@@ -122,7 +122,7 @@ export async function loadDeployment(server: AdaptServer, deployID: string):
         await server.get(dpath(deployID));
     } catch (err) {
         if (!isPathNotFound(err)) throw err;
-        throw new Error(`Deployment '${deployID}' does not exist`);
+        throw new UserError(`Deployment '${deployID}' does not exist`);
     }
 
     const deployment = new DeploymentImpl(deployID, server);
