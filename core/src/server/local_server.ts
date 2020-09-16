@@ -18,7 +18,7 @@ import { mapMap } from "@adpt/utils";
 import * as fs from "fs-extra";
 import { JsonDB } from "node-json-db";
 import * as path from "path";
-import { URL } from "url";
+import { fileURLToPath, URL } from "url";
 
 import { lock } from "../utils/lockfile";
 import { HistoryStore } from "./history";
@@ -78,7 +78,8 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
     private historyStores: Map<string, HistoryStore>;
 
     constructor(url: URL, options: Partial<LocalServerOptions>) {
-        const rootDir = path.resolve(url.pathname);
+        const pathname = fileURLToPath(url);
+        const rootDir = path.resolve(pathname);
         const filename = path.join(rootDir, dbFilename);
 
         super(new FileLocker(filename));
