@@ -56,7 +56,7 @@ const k8sStyle =
         {LocalDockerImage} {rule(() => <MockDockerImage />)}
     </Style>;
 
-const getPods = <Style>{Resource}[kind=Pod] {Adapt.rule()}</Style>;
+const getDeployments = <Style>{Resource}[kind=Deployment] {Adapt.rule()}</Style>;
 
 function sortEnv(env: EnvPair[]) {
     return env.sort((a, b) => a.name === b.name ? 0 : a.name < b.name ? -1 : 1);
@@ -81,10 +81,14 @@ describe("NodeService", () => {
             </Group>;
 
         const { dom } = await doBuild(orig, { style: k8sStyle });
-        const els = findElementsInDom(getPods, dom);
+        const els = findElementsInDom(getDeployments, dom);
         should(els).have.length(1);
         const spec = els[0].props.spec;
-        const env = sortEnv(spec.containers[0].env);
+        should(spec).not.Undefined;
+        should(spec.template).not.Undefined();
+        should(spec.template.spec).not.Undefined();
+        should(spec.template.spec.containers).length(1);
+        const env = sortEnv(spec.template.spec.containers[0].env);
         should(env).eql([
             { name: "A", value: "1" },
             { name: "B", value: "2" },
