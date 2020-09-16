@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,16 +32,6 @@ import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
 const { deleteAllContainers, deleteAllImages, deleteAllNetworks } = dockerutils;
 const { deleteAll, getAll } = k8sutils;
-
-function isPodReady(pod: any) {
-    expect(pod && pod.status).to.be.an("object").and.not.null;
-
-    // containerStatuses can take a moment to populate
-    if (!pod.status.containerStatuses) return false;
-    expect(pod.status.containerStatuses).to.be.an("array").with.length(1);
-    return ((pod.status.phase === "Running") &&
-        pod.status.containerStatuses[0].ready);
-}
 
 function jsonEql(json: string, ref: any) {
     let obj: any;
@@ -88,8 +78,7 @@ describeLong("reactapp system tests", function () {
         this.timeout(65 * 1000);
         if (kDeployID && kClient) {
             await Promise.all([
-                deleteAll("pods", { client: kClient, deployID: kDeployID }),
-                deleteAll("services", { client: kClient, deployID: kDeployID }),
+                deleteAll("deployments", { client: kClient, deployID: kDeployID, apiPrefix: "apis/apps/v1" }),
             ]);
             kDeployID = undefined;
         }
@@ -142,11 +131,8 @@ describeLong("reactapp system tests", function () {
 
         const pods = await getAll("pods", { client: kClient, deployID: kDeployID });
         const names = pods.map((p) => p.spec.containers[0].name);
-        expect(names).to.have.members([
+        expect(names).to.include.members([
             "nginx-url-router", "nginx-static", "db", "node-service"]);
-        pods.forEach((p: any) => {
-            if (!isPodReady(p)) throw new Error(`Pods not ready`);
-        });
 
         await checkApi();
         await checkRoot();

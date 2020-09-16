@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -921,6 +921,19 @@ export type PrimitiveChildType<T> =
     T extends (infer V)[][] ? V :
     T extends (infer W)[] ? W :
     T;
+
+/**
+ * See if props.children refers to any children
+ *
+ * @param propsChildren - The value of props.children to be checked
+ *
+ * @returns true if there are children, false otherwise
+ *
+ * @public
+ */
+export function childrenIsEmpty<T>(propsChildren: T | undefined): boolean {
+    return childrenToArray(propsChildren).length === 0;
+}
 
 export function childrenToArray<T>(propsChildren: T | undefined): PrimitiveChildType<T>[] {
     const ret = simplifyChildren(propsChildren);

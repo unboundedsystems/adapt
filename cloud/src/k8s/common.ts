@@ -229,6 +229,11 @@ interface LabelSelectorRequirement {
      */
     values: string[];
 }
+/** @public */
+
+export function isLabelSelector(x: any): x is LabelSelector {
+    return x.matchLabels != null || x.matchExpressions != null;
+}
 
 /** @public */
 export interface LabelSelector {

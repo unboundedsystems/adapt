@@ -128,14 +128,6 @@ describe("k8s Deployment Component Tests", () => {
         should(result.messages).have.length(1);
         should(result.messages[0].content).match(/must be a Pod/);
     });
-
-    it("Should require a Pod", async () => {
-        const dep = <Deployment config={dummyConfig} selector={{}} />;
-        const result = await Adapt.build(dep, null);
-        should(result.messages).have.length(1);
-        should(result.messages[0].content).match(/single Pod as a child/);
-        should(result.messages[0].content).match(/found 0/);
-    });
 });
 
 describe("k8s Deployment operation tests", function () {

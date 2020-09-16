@@ -18,6 +18,7 @@ import Adapt, {
     BuildData,
     BuildHelpers,
     BuiltinProps,
+    childrenIsEmpty,
     DeferredComponent,
     gql,
     ObserveForStatus,
@@ -105,7 +106,7 @@ export type DeploymentSpec = Exclude<DeploymentProps, ResourceBase> & { template
  *
  * @public
  */
-interface DeploymentProps extends WithChildren {
+export interface DeploymentProps extends WithChildren {
     /** Information about the k8s cluster (ip address, auth info, etc.) */
     config: ClusterInfo;
 
@@ -249,14 +250,15 @@ export class Deployment extends DeferredComponent<DeploymentProps> {
     };
 
     constructor(props: DeploymentProps) {
-        checkChildren(props.children);
         super(props);
+        if (!childrenIsEmpty(props.children)) checkChildren(props.children);
     }
 
     build(helpers: BuildHelpers) {
         const props = this.props as DeploymentProps & Required<BuiltinProps>;
         const { key, config } = props;
 
+        if (childrenIsEmpty(props.children)) return null;
         const manifest = makeDeploymentManifest(props, mountedElement(props).id, helpers);
         return <Resource
             key={key}
@@ -266,6 +268,13 @@ export class Deployment extends DeferredComponent<DeploymentProps> {
             metadata={manifest.metadata}
             spec={manifest.spec}
         />;
+    }
+
+    deployedWhen = () => {
+        if (childrenIsEmpty(this.props.children)) {
+            return waiting("No pods specified, or waiting for Pod elements to not build to null");
+        }
+        return true;
     }
 
     async status(_observe: ObserveForStatus, buildData: BuildData) {

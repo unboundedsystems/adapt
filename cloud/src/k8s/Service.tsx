@@ -44,7 +44,16 @@ import {
     NetworkServiceScope,
     targetPort
 } from "../NetworkService";
-import { ClusterInfo, computeNamespaceFromMetadata, ResourceBase, ResourceProps, ResourcePropsWithConfig, ResourceService } from "./common";
+import {
+    ClusterInfo,
+    computeNamespaceFromMetadata,
+    isLabelSelector,
+    LabelSelector,
+    ResourceBase,
+    ResourceProps,
+    ResourcePropsWithConfig,
+    ResourceService
+} from "./common";
 import { K8sObserver } from "./k8s_observer";
 import { labelKey, registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
@@ -462,12 +471,23 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
             throw new Error(`Cannot handle k8s.Service endpoint of type ${ep.target.componentType.name}`);
         }
         const epProps: ResourceProps = ep.target.props as AnyProps as ResourceProps;
-        if (epProps.kind !== "Pod") {
-            throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}`);
+        if (epProps.kind === "Pod") {
+            return removeUndef({
+                [labelKey("name")]: resourceElementToName(ep.target, deployID)
+            });
         }
-        return removeUndef({
-            [labelKey("name")]: resourceElementToName(ep.target, deployID)
-        });
+        if (hasSelector(epProps)) {
+            const sel = epProps.spec.selector;
+            if (isLabelSelector(sel)) {
+                if  (sel.matchExpressions !== undefined) {
+                    throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind} with a matchExpressions selector`);
+                }
+                return sel.matchLabels;
+            } else {
+                return sel;
+            }
+        }
+        throw new Error(`Cannot have k8s.Service endpoint of kind ${epProps.kind}, is not Pod and does not have a selector prop.`);
     });
 
     return (
@@ -488,6 +508,10 @@ export function Service(propsIn: SFCDeclProps<ServiceProps, typeof defaultProps>
     if (!succ) return undefined;
     return succ.status();
 };
+
+function hasSelector(props: ResourceProps): props is ResourceProps & { spec: { selector: LabelSelector | EndpointSelector }} {
+    return (props as any).spec.selector != undefined;
+}
 
 interface MakeManifestOptions {
     endpointSelector?: EndpointSelector;

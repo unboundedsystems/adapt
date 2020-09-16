@@ -342,6 +342,34 @@ describe("DOM Basic Build Tests", () => {
         should(deepFilterElemsToPublic(dom.props.children)).eql(ref);
     });
 
+    it("Should build nested deferred components", async () => {
+        let outerOrigChild: AdaptElement[] = [];
+        let origChild: AdaptElement[] = [];
+        const orig = <Adapt.Group>
+            <DeferredFlex key="outer" recordChildren={(children) => { outerOrigChild = childrenToArray(children); }}>
+                <DeferredFlex key="1" recordChildren={(children) => { origChild = childrenToArray(children); }}>
+                    <MakeEmpty key="a" id={1} />
+                </DeferredFlex>
+            </DeferredFlex>
+        </Adapt.Group>;
+
+        const { contents: dom, buildErr, partialBuild } =
+            await Adapt.buildOnce(orig, null);
+        should(buildErr).be.False();
+        should(partialBuild).be.False();
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Flex);
+        const child = <Empty key="a-Empty" id={1} />;
+        const outerChild = <Flex key="1-Flex">
+            {child}
+        </Flex>;
+        should(deepFilterElemsToPublic(outerOrigChild)).eql(deepFilterElemsToPublic([outerChild]));
+        should(deepFilterElemsToPublic(origChild)).eql(deepFilterElemsToPublic([child]));
+    });
+
     it("Should build non-deferred component before children", async () => {
         let recordedChild: AdaptElement[] = [];
         const child = <MakeEmpty key="a" id={1} />;
