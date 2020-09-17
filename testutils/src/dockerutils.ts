@@ -58,16 +58,20 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
     // tslint:disable:no-console
     function printStatus(data: unknown) {
         if (!(data instanceof Buffer)) throw new Error(`Unknown status: ${data}`);
-        const msg = JSON.parse(data.toString());
-        let s = msg.status;
-        if (!s) {
-            console.log(`${indent}Docker pull status:`, msg);
-            return;
+        // data is JSONL, so can contain multiple messages
+        const msgs = data.toString().split("\n").filter((m) => m.trim() !== "");
+        for (const mString of msgs) {
+            const msg = JSON.parse(mString);
+            let s = msg.status;
+            if (!s) {
+                console.log(`${indent}Docker pull status:`, msg);
+                continue;
+            }
+            if (msg.id) s += ` id=${msg.id}`;
+            const prog = msg.progressDetail;
+            if (prog && prog.current != null) s += ` Progress: ${prog.current}/${prog.total}`;
+            console.log(`${indent}  ${s}`);
         }
-        if (msg.id) s += ` id=${msg.id}`;
-        const prog = msg.progressDetail;
-        if (prog && prog.current != null) s += ` Progress: ${prog.current}/${prog.total}`;
-        console.log(`${indent}  ${s}`);
     }
 
     if (!imageName.includes(":")) {
@@ -77,8 +81,11 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
     console.log(`${indent}Pulling docker image ${imageName}`);
 
     return new Promise<void>((res, rej) => {
+        let errored = false;
 
         function mkErr(e: any) {
+            if (errored) return;
+            errored = true;
             const msg = `Error pulling image: ${e}`;
             console.log(`${indent}${msg}`);
             rej(new Error(msg));
@@ -102,6 +109,7 @@ export async function dockerPull(docker: Docker, imageName: string, indent = "")
                 }
             });
             stream.on("end", () => {
+                if (errored) return;
                 console.log(`${indent}Pull complete`);
                 res();
             });
