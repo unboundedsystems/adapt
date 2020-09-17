@@ -18,6 +18,7 @@ import Docker = require("dockerode");
 import execa from "execa";
 import * as fs from "fs";
 import ld from "lodash";
+import os from "os";
 import * as sb from "stream-buffers";
 import * as util from "util";
 
@@ -165,7 +166,9 @@ export async function removeFromNetwork(container: Docker.Container, network: Do
     }
 }
 
-export async function getSelfContainer(docker: Docker): Promise<Docker.Container> {
+export async function getSelfContainer(docker: Docker): Promise<Docker.Container | null> {
+    if (os.platform() === "win32") return null;
+
     const entries = fs.readFileSync("/proc/self/cgroup").toString().split(/\r?\n/);
     if (entries.length === 0) throw new Error("Cannot get own container id!");
     const entry = entries[0];

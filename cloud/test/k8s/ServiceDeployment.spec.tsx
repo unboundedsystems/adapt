@@ -140,7 +140,8 @@ describe("k8s ServiceDeployment tests", function () {
         const timeout = 300 * 1000;
         this.timeout(timeout);
 
-        const dockerNetworkId = (await mkInstance.info).network.id;
+        const dockerNetwork = (await mkInstance.info).network;
+        const dockerNetworkId = dockerNetwork && dockerNetwork.id;
 
         interface LocalDindContainerProps
             extends OmitT<WithPartialT<DockerContainerProps, "dockerHost">, "image"> {
@@ -239,12 +240,15 @@ describe("k8s ServiceDeployment tests", function () {
                 }
             }, undefined);
 
+            const networks = ["bridge"];
+            if (dockerNetworkId) networks.push(dockerNetworkId);
+
             const dindIP = useMethod(dind, "dockerIP");
             return <Sequence>
-                <LocalDockerRegistry handle={reg} port={unusedRegistryPort} networks={["bridge", dockerNetworkId]} />
+                <LocalDockerRegistry handle={reg} port={unusedRegistryPort} networks={networks} />
                 <LocalDindContainer handle={dind}
                     daemonConfig={daemonConfig}
-                    networks={["bridge", dockerNetworkId]} />
+                    networks={networks} />
                 <LocalDockerImage handle={testImg} dockerfile={`
                     FROM alpine:3.8
                     CMD ["sleep", "3600"]
