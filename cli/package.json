@@ -122,9 +122,9 @@
     "ts-node": "8.5.4"
   },
   "files": [
-    "/bin",
-    "/dist/src",
-    "/oclif.manifest.json"
+    "bin",
+    "dist/src",
+    "oclif.manifest.json"
   ],
   "oclif": {
     "bin": "adapt",

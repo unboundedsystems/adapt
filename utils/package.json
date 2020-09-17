@@ -68,7 +68,7 @@
     "stream-buffers": "3.0.2"
   },
   "files": [
-    "/dist/src"
+    "dist/src"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
