@@ -3,6 +3,7 @@ export ADAPT_TEST_REGISTRY:=http://127.0.0.1:$(ADAPT_TEST_REGISTRY_PORT)
 
 run-local-registry: build
 	@$(log) "$@ START (port $(ADAPT_TEST_REGISTRY_PORT))"
+	$(REPO_ROOT)/testutils/bin/run-local-registry.js stop $(ADAPT_TEST_REGISTRY_PORT) || true
 	ADAPT_TEST_REGISTRY= $(REPO_ROOT)/testutils/bin/run-local-registry.js start --loglevel debug --port $(ADAPT_TEST_REGISTRY_PORT)
 	@$(log_success) "$@ COMPLETE"
 .PHONY: run-local-registry
