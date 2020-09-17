@@ -12,7 +12,9 @@ endif
 ifeq ($(IS_WINDOWS),true)
     # Set up a few things that are normally taken care of by our common
 	# container setup, which we don't use on Windows
-	PATH:=$(REPO_ROOT)/node_modules/.bin:$(PATH)
+	export PATH:=$(REPO_ROOT)/node_modules/.bin:$(PATH)
+	export YARN_AUTH_TOKEN:=faketoken
+	export DOCKER_HOST?=tcp://localhost:2375
 endif
 
 include $(BUILD_SUPPORT)/log.mk
