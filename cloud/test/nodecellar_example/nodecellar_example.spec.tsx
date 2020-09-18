@@ -31,7 +31,7 @@ import Adapt, {
 import localStyle from "./localStyle";
 import Nodecellar from "./Nodecellar";
 
-const outputDir = `${__dirname}/results`.replace(/\/dist/, "");
+const outputDir = `${__dirname}/results`.replace(/[/\\]dist/, "");
 
 function checkDom(dom: AdaptElement | null, xmlFilename: string) {
     should(dom).not.be.Null();
