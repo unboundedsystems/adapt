@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,8 @@ const dockerObserveResolverFactory: ResolverFactory = {
             const url = URL.parse(dockerHost);
 
             const queryId = computeQueryId(obj[infoSym].dockerHost, fieldName, args);
-            const ret = (url.protocol === "file:" || url.protocol === "unix:") ?
+            const isSocket = url.protocol === "file:" || url.protocol === "unix:" || url.protocol === "npipe:";
+            const ret = isSocket ?
                 await fetchu({ socketPath: url.pathname, path: req.url, ...req }) :
                 await fetchu(dockerHost + req.url, req);
 

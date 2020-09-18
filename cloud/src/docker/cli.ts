@@ -19,6 +19,7 @@ import db from "debug";
 import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
+import os from "os";
 import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
@@ -55,6 +56,9 @@ function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
 
 export const pickGlobals = (opts: DockerGlobalOptions): DockerGlobalOptions =>
     ld.pick(opts, "dockerHost");
+
+export const defaultDockerHost = process.env.DOCKER_HOST ||
+    os.platform() === "win32" ? "npipe:////./pipe/docker_engine" : "unix:///var/run/docker.sock";
 
 /**
  * Common version of busybox to use internally.
