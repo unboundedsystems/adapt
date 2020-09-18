@@ -37,6 +37,7 @@ const stripAnsi = require("strip-ansi");
 export interface MinikubeInfo {
     docker: Docker;
     dockerHost: string;
+    dockerIP: string;
     container: Docker.Container;
     hostname: string;
     network: Docker.Network | null;
@@ -208,6 +209,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         let hostname: string;
         let apiPort = 8443;
         let dockerPort = 2375;
+        let info: Docker.ContainerInspectInfo | undefined;
 
         if (process.env.ADAPT_TEST_K8S) {
             hostname = process.env.ADAPT_TEST_K8S;
@@ -230,7 +232,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
             const hostAlias = self ? undefined : "localhost";
 
             if (!self) {
-                const info = await container.inspect();
+                info = await container.inspect();
                 apiPort = getHostPort(info, apiPort);
                 dockerPort = getHostPort(info, dockerPort);
             }
@@ -259,6 +261,9 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
             });
         }
 
+        if (!info) info = await container.inspect();
+        const dockerIP = info.NetworkSettings.IPAddress;
+
         const dockerHost = `tcp://${hostname}:${dockerPort}`;
 
         const exec = (command: string[]) => dockerExec(container, command);
@@ -266,6 +271,7 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
             container,
             docker,
             dockerHost,
+            dockerIP,
             exec,
             hostname,
             kubeconfig,

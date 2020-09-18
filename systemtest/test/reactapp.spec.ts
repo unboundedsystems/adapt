@@ -43,11 +43,27 @@ function jsonEql(json: string, ref: any) {
     expect(obj).eql(ref);
 }
 
+const origDockerHost = process.env.DOCKER_HOST;
+
+async function dockerCurl(url: string) {
+    const { stdout: resp } = await execa("docker", [
+        "run", "--rm", "curlimages/curl",
+        ...curlOptions,
+        url,
+    ], {
+        all: true,
+        env: { DOCKER_HOST: origDockerHost },
+    });
+    if (!resp) throw new Error(`curl returned no data`);
+    return resp;
+}
+
 describeLong("reactapp system tests", function () {
     let kClient: k8sutils.KubeClient;
     let kDeployID: string | undefined;
     let lDeployID: string | undefined;
     let dockerHost: string;
+    let dockerIP: string;
 
     this.timeout(6 * 60 * 1000);
 
@@ -64,14 +80,8 @@ describeLong("reactapp system tests", function () {
         ]);
 
         kClient = results[0];
-        const ctrInfo = await results[1].container.inspect();
-        dockerHost = ctrInfo.Name;
-        if (dockerHost.startsWith("/")) dockerHost = dockerHost.slice(1);
-        if (!dockerHost) {
-            // tslint:disable-next-line:no-console
-            console.log(`Minikube ctrInfo`, ctrInfo);
-            throw new Error(`Error getting minikube endpoint`);
-        }
+        dockerHost = results[1].dockerHost;
+        dockerIP = results[1].dockerIP;
     });
 
     afterEach(async function () {
@@ -93,10 +103,8 @@ describeLong("reactapp system tests", function () {
 
     async function checkApi() {
         await waitForNoThrow(5, 2, async () => {
-            const { stdout: resp } = await execa("curl", [
-                ...curlOptions,
-                `http://${dockerHost}:8080/api/search/The%20Incredibles`
-            ]);
+            const resp = await dockerCurl(
+                `http://${dockerIP}:8080/api/search/The%20Incredibles`);
             jsonEql(resp, [{
                 title: "The Incredibles",
                 released: "Fri Nov 05 2004"
@@ -106,10 +114,7 @@ describeLong("reactapp system tests", function () {
 
     async function checkRoot() {
         await waitForNoThrow(5, 2, async () => {
-            const { stdout: resp } = await execa("curl", [
-                ...curlOptions,
-                `http://${dockerHost}:8080/`
-            ]);
+            const resp = await dockerCurl(`http://${dockerIP}:8080/`);
             expect(resp).contains(`Unbounded Movie Database`);
         });
     }
