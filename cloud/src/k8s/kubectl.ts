@@ -180,6 +180,10 @@ export interface KubectlDiffReturns {
     clientFallback: boolean;
 }
 
+const diffEnv: Environment = os.platform() === "win32" ? {
+    KUBECTL_EXTERNAL_DIFF: path.join(__dirname, "diff.cmd")
+} : {};
+
 /** @internal */
 export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlDiffReturns> {
     const opts = { ...diffDefaults, ...options };
@@ -192,7 +196,10 @@ export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlD
 
         const args = ["diff", "-f", manifestLoc];
         let result: execa.ExecaError | execa.ExecaReturnValue<string> =
-            await doExeca(() => kubectl(args, { kubeconfig: configPath }));
+            await doExeca(() => kubectl(args, {
+                env: diffEnv,
+                kubeconfig: configPath,
+            }));
 
         const serverInternalErrorRegex = new RegExp("^Error from server \\(InternalError\\)");
         if ((result.exitCode !== 0) && serverInternalErrorRegex.test(result.stderr)) {
