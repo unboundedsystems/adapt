@@ -86,8 +86,10 @@ const dockerObserveResolverFactory: ResolverFactory = {
                 responseContentType: "application/json"
             });
 
-            const dockerHost = obj[infoSym].dockerHost;
+            let dockerHost = obj[infoSym].dockerHost;
             if (dockerHost == null) throw new Error(`Internal error: dockerHost is null`);
+            // Allow Docker's tcp: syntax as synonym for http:
+            dockerHost = dockerHost.replace(/^tcp:/, "http:");
             const url = URL.parse(dockerHost);
 
             const queryId = computeQueryId(obj[infoSym].dockerHost, fieldName, args);
