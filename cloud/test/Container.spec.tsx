@@ -83,7 +83,6 @@ describe("Container component", () => {
             <Group>
                 <Container
                     name="unused"
-                    dockerHost="unix:///var/run/docker.sock"
                     image={smallDockerImage}
                     command="sleep 100000"
                     autoRemove={true}
