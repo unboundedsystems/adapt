@@ -149,7 +149,8 @@ class RegistryFixtureImpl implements RegistryFixture {
                 this.server = await localRegistry.start(config, config.self_path!);
                 return;
             } catch (err) {
-                if (!(err && err.code === "EADDRINUSE")) throw err;
+                const code = err && err.code;
+                if (code !== "EADDRINUSE" && code !== "EACCES") throw err;
             }
         }
         throw new Error(`Unable to start local registry server: port conflicts`);
