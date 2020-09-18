@@ -73,7 +73,7 @@ const specDefaults: ContainerSpec = {
 type StopFunc = () => (void | Promise<void>);
 
 class DockerFixtureImpl implements DockerFixture {
-    dockerClient = new Docker({ socketPath: "/var/run/docker.sock" });
+    dockerClient = new Docker();
     container_?: Docker.Container;
     stops: StopFunc[] = [];
     options: Required<Options>;
