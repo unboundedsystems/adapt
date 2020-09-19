@@ -67,8 +67,8 @@ describe("Package registry", () => {
         should(pathList).be.an.Array();
         should(pathList).have.length(2);
         should(pathList).containDeep([
-            `${absPath}/node_modules/body-parser/node_modules/debug`,
-            `${absPath}/node_modules/debug`,
+            path.normalize(`${absPath}/node_modules/body-parser/node_modules/debug`),
+            path.normalize(`${absPath}/node_modules/debug`),
         ]);
     });
 
@@ -77,10 +77,10 @@ describe("Package registry", () => {
         const absPath = path.resolve(".");
 
         let pkgPath = await reg.findPath("debug", "4.1.0");
-        should(pkgPath).equal(`${absPath}/node_modules/debug`);
+        should(pkgPath).equal(path.normalize(`${absPath}/node_modules/debug`));
 
         pkgPath = await reg.findPath("debug", "2.6.9");
-        should(pkgPath).equal(`${absPath}/node_modules/body-parser/node_modules/debug`);
+        should(pkgPath).equal(path.normalize(`${absPath}/node_modules/body-parser/node_modules/debug`));
 
         pkgPath = await reg.findPath("debug", "3.2.1");
         should(pkgPath).be.Undefined();
