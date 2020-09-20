@@ -87,6 +87,8 @@ export class LazyPackageRegistry {
         return packages;
 
         function addPackage(pkgName: string, pkgPath: string) {
+            // Ensure package names use forward slashes
+            pkgName = pkgName.replace(/\\/g, "/");
             let paths = packages.get(pkgName);
             if (!paths) {
                 paths = [];
