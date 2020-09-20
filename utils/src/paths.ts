@@ -83,3 +83,8 @@ export const repoDirs = {
     "testutils": path.join(repoRootDir, "testutils"),
     "utils": path.join(repoRootDir, "utils"),
 };
+
+export function normalizeWithDrive(p: string, cwd = process.cwd()) {
+    const root = path.parse(cwd).root;
+    return path.normalize(path.join(root, p));
+}
