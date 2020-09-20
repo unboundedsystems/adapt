@@ -104,6 +104,10 @@ describe("Exec basic tests", function () {
 
 });
 
+function doubleBackslash(p: string) {
+    return p.replace(/\\/g, "\\\\");
+}
+
 describe("Exec module tests", function () {
     this.timeout(10000);
     const copyDir = path.resolve(projectsRoot, "import_module");
@@ -140,7 +144,7 @@ describe("Exec module tests", function () {
 
         const source = `
             declare var require: any;
-            const ctxObj = require("${projDir}/stuff.json");
+            const ctxObj = require("${doubleBackslash(projDir)}/stuff.json");
             ctxObj;
         `;
 
