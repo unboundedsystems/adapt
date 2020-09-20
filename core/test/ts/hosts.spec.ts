@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { normalizeWithDrive } from "@adpt/utils";
 import should from "should";
 import * as sinon from "sinon";
 
@@ -38,7 +39,7 @@ describe("Hosts basic tests", () => {
         );
 
         chain.fileExists("bar.txt");
-        fake.lastCall.args[0].should.equal("/foo/bar.txt");
+        fake.lastCall.args[0].should.equal(normalizeWithDrive("/foo/bar.txt"));
     });
 
     it("Should pass through unimplemented methods", () => {
