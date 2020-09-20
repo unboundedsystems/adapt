@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,7 @@ import expect from "should";
 
 import * as paths from "../src/paths";
 
-// FIXME(mark): This assumes these tests always run in our containit
-// container. May need to be generalized later.
-const actualRepoRoot = "/src";
+const actualRepoRoot = path.dirname(process.cwd());
 
 describe("Paths tests", () => {
     it("Should have correct repo root", () => {
