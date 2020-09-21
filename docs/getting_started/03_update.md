@@ -18,7 +18,7 @@ Make sure you're in the `moviedb/deploy` directory before you run the following 
 <!-- doctest command -->
 
 ```console
-curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v2/gsg-moviedb-v2.tar.gz | tar -zxv --strip=1 -C ..
+curl https://gitlab.com/adpt/gsg-moviedb/-/archive/v2/gsg-moviedb-v2.tar.gz | tar -zxvf - --strip=1 -C ..
 ```
 
 This command should have added:
