@@ -306,7 +306,7 @@ function deployedWhen(statusObj: unknown) {
         ? "\n" + conditions.map((c) => c.message).filter((c) => c.status !== "True").join("\n")
         : "";
     return waiting(
-          `Waiting for enough pods (${ready.val} (${ready.field})/${replicasDesired} (desired)`
+          `Waiting for enough pods (${ready.val != null ? ready.val : 0} (${ready.field})/${replicasDesired} (desired)`
         +  conditionText);
 }
 
