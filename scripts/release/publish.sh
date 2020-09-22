@@ -366,24 +366,6 @@ function updateMasterNext {
     fi
 }
 
-function waitForRegistry {
-    local VER="$1"
-
-    if [[ -n ${ARGS[local]} || -n ${ADAPT_RELEASE_TESTS} || -n ${ARGS[dry-run]} ]]; then
-        return
-    fi
-
-    for i in {0..5}; do
-        echo "Checking registry for new version"
-        if [[ -n $(npm view @adpt/cli@${VER} version) ]]; then
-            return
-        fi
-        sleep 1
-    done
-    echo "Version ${VER} not found on npm registry"
-    return 1
-}
-
 function dockerBuild {
     local VER="$1"
 
@@ -566,9 +548,6 @@ createReleaseBranch "${RELEASE_BRANCH}" || exit 1
 # Update version to 'next.0' as needed
 updateMasterNext "${FINAL_VERSION}" || exit 1
 
-# Ensure the newly published package shows in the registry
-waitForRegistry "${FINAL_VERSION}" || exit 1
-
 # Build and push to Docker Hub
-dockerBuild "${FINAL_VERSION}" || exit 1
+retry 10 60 dockerBuild "${FINAL_VERSION}" || exit 1
 dockerPush "${FINAL_VERSION}" || exit 1

@@ -22,6 +22,20 @@ function checkDryRun {
     fi
 }
 
+# Retry a command until it returns success or maximum retries is reached
+#   retry <retries> <sleep secs> <command> [<args>...]
+function retry {
+    local TRIES="$1"; shift
+    local SLEEP_SECS="$1"; shift
+
+    while ! "$@"; do
+        if [[ $(( --TRIES )) -le 0 ]]; then
+            return 1
+        fi
+        sleep "${SLEEP_SECS}"
+    done
+}
+
 function currentBranch {
     if [[ -n ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} ]]; then
         echo "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}"
