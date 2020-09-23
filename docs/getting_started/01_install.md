@@ -33,20 +33,35 @@ If you use a different shell, you may need to adjust some commands slightly.
 
 ## Installing Adapt
 
-To install the `adapt` CLI globally:
+Adapt publishes two types of releases: `stable` and `next`.
+The `next` releases are published more frequently and contain all recently-developed functionality, but may be less stable than the `stable` releases.
+
+To install the `adapt` CLI globally, choose a package manager and release type:
 
 <!-- doctest command -->
 <!--DOCUSAURUS_CODE_TABS-->
-<!--npm-->
+<!--npm - stable-->
 
 ```console
 npm install -g @adpt/cli
 ```
 
-<!--yarn-->
+<!--yarn - stable-->
 
 ```console
 yarn global add @adpt/cli
+```
+
+<!--npm - next-->
+
+```console
+npm install -g @adpt/cli@next
+```
+
+<!--yarn - next-->
+
+```console
+yarn global add @adpt/cli@next
 ```
 
 <!--END_DOCUSAURUS_CODE_TABS-->

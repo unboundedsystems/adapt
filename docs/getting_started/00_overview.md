@@ -7,7 +7,7 @@ title: "MovieDB App Overview"
 
 ## A Complete MovieDB App Deployment
 
-In this guide, we'll be deploying a complete end-to-end app onto a Kubernetes cluster on your local system.
+In this guide, we'll be deploying a complete end-to-end app as containers on your local system.
 It's a simple app with a React-based user interface that lets you search for movies.
 
 The app consists of:
