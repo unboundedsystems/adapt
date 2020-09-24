@@ -290,7 +290,9 @@ describe("Project new updateVersions", () => {
 
         for (const val of invalid) {
             await writeOrig("deploy", val);
-            expect(updateVersions({ adaptDir: "deploy" }, nullLogger,
+            // Types are incorrect for rejectedWith. It is a promise.
+            // tslint:disable-next-line: await-promise
+            await expect(updateVersions({ adaptDir: "deploy" }, nullLogger,
                 process.cwd(), mkVer("1.0.0")))
                 .to.be.rejectedWith(`Invalid package.json file ` +
                     `'${process.cwd()}/deploy/package.json': file must ` +

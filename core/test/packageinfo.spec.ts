@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+import { normalizeWithDrive } from "@adpt/utils";
 import should from "should";
 import { findNodeModulesParent } from "../src/packageinfo";
 
 describe("findNodeModulesParent", () => {
     it("Should return parent", () => {
-        should(findNodeModulesParent("/a/b/node_modules/")).equal("/a/b");
+        should(findNodeModulesParent("/a/b/node_modules/")).equal(normalizeWithDrive("/a/b"));
     });
 
     it("Should return undefined for root", () => {
@@ -27,11 +28,13 @@ describe("findNodeModulesParent", () => {
     });
 
     it("Should return highest parent", () => {
-        should(findNodeModulesParent("/a/node_modules/b/node_modules/c/d/node_modules/e/f")).equal("/a");
+        should(findNodeModulesParent("/a/node_modules/b/node_modules/c/d/node_modules/e/f"))
+            .equal(normalizeWithDrive("/a"));
     });
 
     it("Should return highest parent if root", () => {
-        should(findNodeModulesParent("/node_modules/b/node_modules/c/d/node_modules/e/f")).equal("/");
+        should(findNodeModulesParent("/node_modules/b/node_modules/c/d/node_modules/e/f"))
+            .equal(normalizeWithDrive("/"));
     });
 
     it("Should return undefined if node_modules not present", () => {

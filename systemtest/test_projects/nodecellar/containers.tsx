@@ -67,7 +67,7 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
         webStatusCtrPort: 28017,
         mongoPort: 27017,
         webStatusPort: 28017,
-        image: "mongo:3.1",
+        image: "mongo:3.6",
     };
 
     build() {
@@ -82,7 +82,7 @@ export class MongoContainer extends Adapt.Component<MongoProps, {}> {
                 ports={[props.mongoCtrPort, props.webStatusCtrPort]}
                 stdinOpen={true}
                 tty={true}
-                command={["mongod", "--rest", "--httpinterface", "--smallfiles"]}
+                command={["mongod", "--smallfiles"]}
                 portBindings={{
                     // ctr port : host port
                     [props.mongoCtrPort]: props.mongoPort,

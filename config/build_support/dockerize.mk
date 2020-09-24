@@ -3,7 +3,12 @@
 # Always runs make inside the Docker container, using bin/make
 #
 
-IN_DOCKER := $(shell if [ -f /.dockerenv ]; then echo true; else echo false; fi; )
+ifeq ($(IS_WINDOWS),true)
+    # Don't use Docker for make on Windows
+    IN_DOCKER := true
+else
+    IN_DOCKER := $(shell if [ -f /.dockerenv ]; then echo true; else echo false; fi; )
+endif
 DMAKE := $(REPO_ROOT)/bin/make
 CONTAINIT := $(REPO_ROOT)/bin/containit/containit.sh
 

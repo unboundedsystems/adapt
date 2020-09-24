@@ -65,7 +65,7 @@
     "source-map-support": "0.5.16"
   },
   "files": [
-    "/dist/src"
+    "dist/src"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

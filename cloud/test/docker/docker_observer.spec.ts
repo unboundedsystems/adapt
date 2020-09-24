@@ -15,9 +15,12 @@
  */
 
 import { ExecutedQuery, gql, ObserverResponse } from "@adpt/core";
+import { dockerMocha } from "@adpt/testutils";
 import { execute } from "graphql";
 import should from "should";
+import { defaultDockerHost } from "../../src/docker/cli";
 import { DockerObserver } from "../../src/docker/docker_observer";
+import { smallDockerImage } from "../testlib";
 
 function checkObservations(observations: ObserverResponse) {
     should(observations).not.Undefined();
@@ -28,7 +31,7 @@ function checkObservations(observations: ObserverResponse) {
     should(Object.keys(context)).length(1);
     const containers = context[Object.keys(context)[0]];
     should(containers).not.Undefined();
-    should(containers.length).greaterThan(0); // The current container should at least be running
+    should(containers.length).greaterThan(0);
     const ctr = containers[0];
     should(ctr.Id).be.a.String();
     should(ctr.State).be.a.String();
@@ -38,6 +41,13 @@ function checkObservations(observations: ObserverResponse) {
 describe("Docker observer tests", () => {
     let observer: DockerObserver;
     let queries: ExecutedQuery[];
+
+    // Ensure a container is running
+    dockerMocha.all({
+        Image: smallDockerImage,
+        Cmd: ["sleep", "1000"],
+        StopSignal: "SIGKILL",
+    });
 
     before("Construct schema", function () {
         this.timeout(40 * 1000);
@@ -58,7 +68,7 @@ describe("Docker observer tests", () => {
                         }
                     }
                 }`,
-                variables: { dockerHost: "file:///var/run/docker.sock"}
+                variables: { dockerHost: defaultDockerHost }
             },
         ];
     });

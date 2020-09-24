@@ -7,11 +7,12 @@ title: "Install Adapt"
 
 ## Requirements
 
-To install and use Adapt, you must have Node.js installed:
+To install and use Adapt, you must have Node.js and git installed:
 
 | Requirement | Installation Instructions |
 | --- | --- |
-| [Node.js](https://nodejs.org) (versions supported: 10-13) | [Installing Node and npm](../user/install/requirements.md#nodejs-with-npm) |
+| [Node.js](https://nodejs.org) (versions supported: 10, 12, 14) | [Installing Node and npm](../user/install/requirements.md#nodejs-with-npm) |
+| [Git](https://git-scm.com) | [Installing Git](../user/install/requirements.md#git) |
 
 Additionally, this Getting Started Guide also requires [Docker](https://docker.com).
 You'll need **one** of the following:
@@ -20,10 +21,16 @@ You'll need **one** of the following:
 | --- | --- |
 | A Linux system with Docker | [Installing Docker on Linux](https://docs.docker.com/install/#server) |
 | A MacOS system with Docker Desktop for Mac | [Installing Docker Desktop for Mac](https://docs.docker.com/docker-for-mac/install/) |
+| *(beta)* A Windows system with Docker Desktop for Windows | [Installing Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/) |
 
 :::note
 If you're using Docker on Linux, you'll need to either run all `docker` commands as superuser (`root`) or ensure your user is part of the `docker` group.
 For instructions and more information, see the Docker [Linux post-install instructions](https://docs.docker.com/install/linux/linux-postinstall/).
+:::
+
+:::important
+For Windows users, if you recently installed Docker, Node.js, or Git, ensure the corresponding CLI commands are available in a `cmd.exe` shell before continuing.
+You may need to log out or reboot for all changes to fully take effect.
 :::
 
 Docker is correctly installed if the command `docker ps` does not show any errors.

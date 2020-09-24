@@ -61,7 +61,7 @@ function dockerOpts(name: string): Docker.ContainerCreateOptions {
 
 describe("dockerutils networking", () => {
     const undo: (() => any)[] = [];
-    const docker = new Docker({ socketPath: "/var/run/docker.sock" });
+    const docker = new Docker();
     let name: string;
     let network: Docker.Network;
     let container: Docker.Container;

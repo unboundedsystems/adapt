@@ -17,6 +17,7 @@
 import { createPackageRegistry, ensureError, PackageRegistry } from "@adpt/utils";
 import callsites = require("callsites");
 import stringify from "json-stable-stringify";
+import os from "os";
 import * as path from "path";
 import URN = require("urn-lib");
 import { inspect } from "util";
@@ -205,7 +206,7 @@ function enbalm(obj: any, name: string, namespace: string, module: NodeModule): 
         namespace,
         pkgName: pkgInfo.name,
         pkgVersion: pkgInfo.version,
-        relFilePath: path.relative(path.dirname(pkgInfo.main), module.filename),
+        relFilePath: posixPath(path.relative(path.dirname(pkgInfo.main), module.filename)),
     };
     trace(debugReanimate, "mainFile:", pkgInfo.main, "\nmummy:", m);
     const s = stringify(m);
@@ -361,6 +362,11 @@ export function reanimate(mummy: MummyJson): Promise<any> {
 
 export function findMummy(obj: any): MummyJson {
     return registry.findMummy(obj);
+}
+
+function posixPath(p: string) {
+    if (os.platform() !== "win32") return p;
+    return path.posix.join(...p.split(path.sep));
 }
 
 // Exported for testing

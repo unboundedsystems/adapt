@@ -126,7 +126,7 @@ export type RestartPolicyName =
  */
 export interface ContainerProps {
     name: string;
-    dockerHost: string;
+    dockerHost?: string;
     image: ImageId;
 
     autoRemove?: boolean;
@@ -337,7 +337,6 @@ export interface MountStatus {
  */
 export abstract class Container extends PrimitiveComponent<ContainerProps> {
     static defaultProps = {
-        dockerHost: "unix:///var/run/docker.sock",
         autoRemove: true,
         ports: [],
         stdinOpen: false,

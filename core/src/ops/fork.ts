@@ -42,7 +42,9 @@ function forkWithLogger<Ret, F extends FuncWithLogger<Ret>>(
 
         const forked = forkRequire(filename, {
             env: { ...process.env, ADAPT_OP_FORKED: true },
-            stdio: [ "inherit", "pipe", "pipe", "ipc" ]
+            stdio: [ "inherit", "pipe", "pipe", "ipc" ],
+            // Don't pass the debugger flags to the child
+            execArgv: process.execArgv.filter((a) => !a.startsWith("--inspect")),
         });
 
         try {

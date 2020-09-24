@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import execa from "execa";
 import fs from "fs-extra";
 import { isObject, isString, last } from "lodash";
 import path from "path";
@@ -79,7 +78,7 @@ export class LazyPackageRegistry {
         // Trim off the root node_modules dir
         const trimLeft = this.nodeModulesDir.length + 1;
         const stripped = dirs.map((f) => f.slice(trimLeft));
-        const names = stripped.map((s) => last(s.split("/node_modules/")));
+        const names = stripped.map((s) => last(s.split(`${path.sep}node_modules${path.sep}`)));
 
         const packages = new Map<PackageName, PackagePath[]>();
         names.map((name, idx) => name && addPackage(name, dirs[idx]));
@@ -88,6 +87,8 @@ export class LazyPackageRegistry {
         return packages;
 
         function addPackage(pkgName: string, pkgPath: string) {
+            // Ensure package names use forward slashes
+            pkgName = pkgName.replace(/\\/g, "/");
             let paths = packages.get(pkgName);
             if (!paths) {
                 paths = [];
@@ -152,12 +153,19 @@ function packageId(pkgName: string, pkgVersion: string): PackageId {
     return `${pkgName}@${pkgVersion}`;
 }
 
-async function findFiles(rootDir: string, filename: string) {
-    try {
-        const { stdout: fileList } = await execa("find", [rootDir, "-name", filename], { all: true });
-        return fileList.split("\n");
-    } catch (e) {
-        if (e.all) e.message += "\n" + e.all;
-        throw e;
+async function findFiles(rootDir: string, filename: string, list: string[] = []) {
+    const dirList = await fs.readdir(rootDir);
+
+    for (const f of dirList) {
+        const full = path.join(rootDir, f);
+        const stat = await fs.stat(full);
+
+        if (stat.isDirectory()) {
+            await findFiles(full, filename, list);
+        } else {
+            if (f === filename) list.push(full);
+        }
     }
+
+    return list;
 }

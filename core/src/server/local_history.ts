@@ -221,7 +221,8 @@ class LocalHistoryStore implements HistoryStore {
             }
         }
         const seqStr = padStart(nextSeq.toString(10), 5, "0");
-        const timestamp = moment().format();
+        // Colons are invalid in paths on Windows
+        const timestamp = moment().format().replace(/:/g, ".");
 
         return `${seqStr}-${status}-${timestamp}`;
     }

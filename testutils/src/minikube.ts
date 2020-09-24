@@ -19,6 +19,7 @@ import Docker = require("dockerode");
 import * as jsYaml from "js-yaml";
 import * as ld from "lodash";
 import moment from "moment";
+import { URL } from "url";
 import * as util from "util";
 import {
     addToNetwork,
@@ -35,16 +36,21 @@ const stripAnsi = require("strip-ansi");
 
 export interface MinikubeInfo {
     docker: Docker;
+    dockerHost: string;
+    dockerIP: string;
     container: Docker.Container;
     hostname: string;
-    network: Docker.Network;
+    network: Docker.Network | null;
     kubeconfig: object;
     stop: () => Promise<void>;
     exec: (command: string[]) => Promise<string>;
 }
 
 async function getKubeconfig(_docker: Docker, container: Docker.Container,
-    containerAlias: string): Promise<object> {
+    hostname: string, containerAlias?: string | undefined,
+    portAlias?: number): Promise<object> {
+
+    if (!containerAlias) containerAlias = hostname;
     const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
@@ -52,14 +58,12 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container,
         throw new Error(`Invalid kubeconfig\n ${configYAML}\n\n${util.inspect(kubeconfig)}`);
     }
     for (const cluster of kubeconfig.clusters) {
-        const server = (cluster.cluster.server as string);
-        // If minikube decides to listen on localhost, translate that to
-        // the DNS name/alias that the container is known as. This no longer
-        // tends to happen in our own tests after upgrading to minikube
-        // 0.25.0 (mk listens on a docker-created IP instead), but this
-        // catches the case if/when it does.
-        cluster.cluster.server = server.replace("localhost", containerAlias);
-        cluster.cluster.server = server.replace("127.0.0.1", containerAlias);
+        // Ensure kubeconfig's servers use the preferred alias/port, regardless
+        // of which of these names it originally used in the config.
+        const url = new URL(cluster.cluster.server);
+        url.host = containerAlias;
+        if (portAlias) url.port = portAlias.toString();
+        cluster.cluster.server = url.href;
     }
 
     return kubeconfig;
@@ -68,7 +72,7 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container,
 async function runMinikubeContainer(
     docker: Docker,
     containerName: string,
-    networkName: string) {
+    networkName: string | null) {
 
     const imageName = "unboundedsystems/k3s-dind";
     const imageTag = "1.18.4-k3s1";
@@ -85,43 +89,52 @@ async function runMinikubeContainer(
         StdinOnce: false,
         HostConfig: {
             AutoRemove: true,
-            NetworkMode: networkName,
             Privileged: true
-        },
-        NetworkingConfig: {
-            EndpointsConfig: {
-                [networkName]: { }
-            }
         },
         Env: [],
         Image: image,
         Volumes: {},
     };
 
+    if (networkName) {
+        opts.HostConfig!.NetworkMode = networkName;
+        opts.NetworkingConfig = {
+            EndpointsConfig: {
+                [networkName]: { }
+            }
+        };
+    } else {
+        opts.HostConfig!.PublishAllPorts = true;
+    }
+
     await dockerPull(docker, image, "      ");
     const container = await docker.createContainer(opts);
 
-    // Attach to the outside world so minikube can check for image updates.
+    // If we attached to a non-bridge network, also
+    // attach to the outside world so minikube can check for image updates.
     // minikube 0.25.0 fails to start if it can't check.
     // NOTE(mark): Should be able to attach to bridge in the create opts
     // above, I think, but I get errors when I do it that way. Someone
     // just needs to find the right incantation...
-    const bridge = docker.getNetwork("bridge");
-    await addToNetwork(container, bridge);
+    if (networkName) {
+        const bridge = docker.getNetwork("bridge");
+        await addToNetwork(container, bridge);
+    }
 
     await container.start();
     return container;
 }
 
 async function waitForKubeConfig(docker: Docker, container: Docker.Container,
-    containerAlias: string): Promise<object | undefined> {
+    hostname: string, containerAlias: string | undefined,
+    portAlias: number | undefined): Promise<object | undefined> {
     let config: object | undefined;
     await waitFor(100, 1, "Timed out waiting for kubeconfig", async () => {
         try {
             // When this command stops returning an error, /kubeconfig is
             // fully written.
             await dockerExec(container, ["cat", "/minikube_startup_complete"]);
-            config = await getKubeconfig(docker, container, containerAlias);
+            config = await getKubeconfig(docker, container, hostname, containerAlias, portAlias);
             return true;
         } catch (err) {
             if (/exited with error/.test(err.message) ||
@@ -164,6 +177,16 @@ function secondsSince(start: number): number {
     return (Date.now() - start) / 1000;
 }
 
+function getHostPort(info: Docker.ContainerInspectInfo, p: number) {
+    const list = info.NetworkSettings.Ports[`${p}/tcp`];
+    if (!list || list.length === 0) throw new Error(`Port ${p} is not bound`);
+
+    const hp = parseInt(list[0].HostPort, 10);
+    if (isNaN(hp)) throw new Error(`HostPort is not an integer`);
+
+    return hp;
+}
+
 export async function startTestMinikube(): Promise<MinikubeInfo> {
     const stops: (() => Promise<void>)[] = [];
     async function stop() {
@@ -176,29 +199,46 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
     let kubeconfig: object | undefined;
 
     try {
-        const docker = new Docker({ socketPath: "/var/run/docker.sock" });
+        // Connects to DOCKER_HOST or the default UNIX socket or Windows pipe
+        // if DOCKER_HOST is not set.
+        const docker = new Docker();
+        // If this code is not running in a container, self === null
         const self = await getSelfContainer(docker);
         let container: Docker.Container;
-        let network: Docker.Network;
+        let network: Docker.Network | null = null;
         let hostname: string;
+        let apiPort = 8443;
+        let dockerPort = 2375;
+        let info: Docker.ContainerInspectInfo | undefined;
 
         if (process.env.ADAPT_TEST_K8S) {
             hostname = process.env.ADAPT_TEST_K8S;
             container = docker.getContainer(hostname);
             network = await getNetwork(docker, container);
-            kubeconfig = await getKubeconfig(docker, container, "kubernetes");
+            kubeconfig = await getKubeconfig(docker, container, hostname);
         } else {
             // tslint:disable-next-line:no-console
             console.log(`    Starting Minikube`);
             const tstamp = moment().format("MMDD-HHmm-ss-SSSSSS");
             hostname = `test-k8s-${process.pid}-${tstamp}`;
-            network = await createNetwork(docker, hostname);
-            stops.unshift(async () => network.remove());
-            if (network.id === undefined) throw new Error("Network id was undefined!");
-            container = await runMinikubeContainer(docker, hostname, network.id);
+            if (self) {
+                network = await createNetwork(docker, hostname);
+                if (network.id === undefined) throw new Error("Network id was undefined!");
+                stops.unshift(async () => network && network.remove());
+            }
+            container = await runMinikubeContainer(docker, hostname, network && network.id);
             stops.unshift(async () => container.stop());
 
-            kubeconfig = await waitForKubeConfig(docker, container, hostname);
+            const hostAlias = self ? undefined : "localhost";
+
+            if (!self) {
+                info = await container.inspect();
+                apiPort = getHostPort(info, apiPort);
+                dockerPort = getHostPort(info, dockerPort);
+            }
+
+            kubeconfig = await waitForKubeConfig(docker, container, hostname, hostAlias, apiPort);
+            if (hostAlias) hostname = hostAlias;
             const configTime = secondsSince(startTime);
             // tslint:disable-next-line:no-console
             console.log(`    Got kubeconfig (${configTime} seconds)`);
@@ -211,16 +251,33 @@ export async function startTestMinikube(): Promise<MinikubeInfo> {
         // tslint:disable-next-line:no-console
         console.log(`\n    Minikube ready in ${totalTime} seconds`);
 
-        await addToNetwork(self, network);
+        if (self && network) await addToNetwork(self, network);
 
         // If it's a shared minikube, we don't have an in-use count, so just
         // leave self connected.
         if (!process.env.ADAPT_TEST_K8S) {
-            stops.unshift(async () => removeFromNetwork(self, network));
+            stops.unshift(async () => {
+                if (self && network) await removeFromNetwork(self, network);
+            });
         }
 
+        if (!info) info = await container.inspect();
+        const dockerIP = info.NetworkSettings.IPAddress;
+
+        const dockerHost = `tcp://${hostname}:${dockerPort}`;
+
         const exec = (command: string[]) => dockerExec(container, command);
-        return { docker, container, hostname, network, kubeconfig, stop, exec };
+        return {
+            container,
+            docker,
+            dockerHost,
+            dockerIP,
+            exec,
+            hostname,
+            kubeconfig,
+            network,
+            stop,
+        };
     } catch (e) {
         await stop();
         throw e;

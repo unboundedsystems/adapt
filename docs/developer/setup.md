@@ -5,6 +5,21 @@ title: Adapt Developer Setup - Building, Testing, and CI
 
 <!-- DOCTOC SKIP -->
 
+## Prerequisites
+
+* Linux
+
+    Development and testing of Adapt is done on Linux.
+    Work is ongoing to better support Windows environments, but at this time using Windows for Adapt dev is not recommended.
+    See [Windows Setup - Experimental](#Windows-Setup---Experimental) below for more info.
+    
+    Contributions in this area are definitely welcome!
+
+* Docker
+
+    You must have Docker Engine installed on your local development system.
+    All building and testing of Adapt runs inside containers to ensure a consistent environment and set of dev tools.
+
 ## First: Docker Hub Credentials
 
 **You'll need to sign up to have your own login on
@@ -275,3 +290,87 @@ docker run -ti --name gcloud-config google/cloud-sdk gcloud init
 ```
 
 And follow the prompts.  More detailed instructions on how to do this can be found in [this article](https://adilsoncarvalho.com/using-gcloud-in-a-docker-container-dd5f9eea5bbc).
+
+## Windows Development Setup - Experimental
+
+Support for running the Adapt dev environment on Windows is in the very early stages.
+Many things may not work as expected.
+
+### Prerequisites
+
+* Only Windows 10 has been tested
+
+* Install [Windows Terminal](https://www.microsoft.com/en-us/p/windows-terminal/9n0dx20hk701)
+
+* Install native Windows [NodeJS](https://nodejs.org).
+Only version 12 has been tested.
+
+* From a Windows command shell, install yarn:
+    ```console
+    npm install -g yarn
+    ```
+
+* Install [Docker Desktop for Windows](https://docs.docker.com/docker-for-windows/install/).
+Only Docker running in WSL2 mode on relatively recent Windows 10 has been tested.
+
+* In Docker Desktop's settings, enable `Expose daemon on tcp://loalhost:2375`.
+**NOTE:** There is currently an issue with our `dockerutils.dockerExec` that prevents our tests from working with Docker's default Windows named pipe.
+
+* Install [MSYS2](https://www.msys2.org/) on your system.
+
+* The installer will give you the option to `Run MSYS2 now`. Check that option.
+
+* In the MSYS2 command shell window, update the system packages and install the required packages:
+    ```console
+    pacman -Syuu
+    pacman -S make git
+    ```
+* Close the MSYS2 shell window
+
+* Run Windows Terminal from the start menu
+
+* Click on the down arrow menu in Windows Terminal's title bar and click `Settings`.
+A text editor should open with the `settings.json` file from Windows Terminal.
+
+* Add a new profile into the `profiles.list` array:
+
+```json
+{
+    "guid": "{dbe702d8-0c46-4201-82da-ce0e1409d4c8}",
+    "hidden": false,
+    "name": "MSYS2 MinGW bash",
+    "commandline": "cmd.exe /c \"set MSYSTEM=MINGW64&& set MSYS=winsymlinks:nativestrict&& set MSYS2_PATH_TYPE=inherit&& C:/msys64/usr/bin/bash.exe --login\"",
+    "icon": "C:\\msys64\\msys2.ico"
+}
+```
+
+* Save and exit the text editor.
+
+* You may want to use your Windows home directory as your MSYS2 home directory.
+To do this, open `C:\msys64\etc\nsswitch.conf` in a text editor and replace this line:
+
+    ```
+    db_home: cygwin desc
+    ```
+
+    with this:
+
+    ```
+    db_home: windows
+    ```
+
+### Building and testing
+
+To start a bash shell to use for building and testing Adapt, start Windows Terminal from the Start menu, then click the down arrow menu in the title bar and choose "MSYS2 MinGW bash".
+
+:::important
+All building and testing of Adapt should be done from an MSYS2 MinGW64 bash shell, as described here.
+:::
+
+To confirm that your `PATH` and required tools are set up correctly, check that the following commands complete successfully from your MinGW bash shell:
+```console
+node --version
+docker info
+yarn --version
+make --version
+```

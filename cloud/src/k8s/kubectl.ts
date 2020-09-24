@@ -50,10 +50,11 @@ function kubectlPlatform(platform: string) {
  */
 export async function getKubectl(): Promise<string> {
     if (kubectlLoc !== undefined) return kubectlLoc;
-    const loc = path.join(await mkdtmp("kubectl"), "kubectl");
     const kubeRelease = "v1.15.3";
     const platform = kubectlPlatform(os.platform());
-    const kubectlUrl = `https://storage.googleapis.com/kubernetes-release/release/${kubeRelease}/bin/${platform}/amd64/kubectl`;
+    const extension = platform === "windows" ? ".exe" : "";
+    const loc = path.join(await mkdtmp("kubectl"), `kubectl${extension}`);
+    const kubectlUrl = `https://storage.googleapis.com/kubernetes-release/release/${kubeRelease}/bin/${platform}/amd64/kubectl${extension}`;
     const kubectlBinResp = await fetch(kubectlUrl);
     const kubectlBin = createWriteStream(loc);
     if (kubectlBinResp.status !== 200) throw new Error(`Could not get kubectl from ${kubectlUrl}: ${kubectlBinResp.statusText}`);
@@ -179,6 +180,10 @@ export interface KubectlDiffReturns {
     clientFallback: boolean;
 }
 
+const diffEnv: Environment = os.platform() === "win32" ? {
+    KUBECTL_EXTERNAL_DIFF: path.join(__dirname, "diff.cmd")
+} : {};
+
 /** @internal */
 export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlDiffReturns> {
     const opts = { ...diffDefaults, ...options };
@@ -191,7 +196,10 @@ export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlD
 
         const args = ["diff", "-f", manifestLoc];
         let result: execa.ExecaError | execa.ExecaReturnValue<string> =
-            await doExeca(() => kubectl(args, { kubeconfig: configPath }));
+            await doExeca(() => kubectl(args, {
+                env: diffEnv,
+                kubeconfig: configPath,
+            }));
 
         const serverInternalErrorRegex = new RegExp("^Error from server \\(InternalError\\)");
         if ((result.exitCode !== 0) && serverInternalErrorRegex.test(result.stderr)) {

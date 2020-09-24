@@ -33,6 +33,7 @@ import { makeResourceName } from "../common";
 import { ContainerNetwork, ContainerStatus, PortBinding, PortDescription } from "../Container";
 import { EnvSimple, mergeEnvSimple } from "../env";
 import {
+    defaultDockerHost,
     dockerImageId,
     dockerInspect,
     dockerNetworkConnect,
@@ -488,7 +489,7 @@ function networkStatus(
  */
 export class DockerContainer extends Action<DockerContainerProps, DockerContainerState> {
     static defaultProps = {
-        dockerHost: process.env.DOCKER_HOST,
+        dockerHost: defaultDockerHost,
         privileged: false,
     };
 

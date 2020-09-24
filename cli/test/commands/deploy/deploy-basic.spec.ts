@@ -15,11 +15,12 @@
  */
 
 import { mochaTmpdir, repoVersions  } from "@adpt/testutils";
-import { filePathToUrl, repoDirs, repoRootDir, yarn } from "@adpt/utils";
+import { repoDirs, repoRootDir, yarn } from "@adpt/utils";
 import execa from "execa";
 import * as fs from "fs-extra";
 import { cloneDeep, last } from "lodash";
 import * as path from "path";
+import { pathToFileURL } from "url";
 import { clitest, expect } from "../../common/fancy";
 import { cliLocalRegistry } from "../../common/start-local-registry";
 import { destroyAll, getNewDeployID } from "../../common/testlib";
@@ -170,7 +171,7 @@ const testCommonNoEnv =
 // This is a function in order to capture cwd at usage time
 const commonEnv = () => ({
     ADAPT_NPM_REGISTRY: cliLocalRegistry.yarnProxyOpts.registry,
-    ADAPT_SERVER_URL: filePathToUrl(process.cwd()),
+    ADAPT_SERVER_URL: pathToFileURL(process.cwd()).href,
 });
 
 const testCommon =

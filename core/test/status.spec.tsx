@@ -123,9 +123,6 @@ function MakePrimitiveMockStatus() {
 
 function MakeNull() { return null; }
 
-// DEBUG
-// tslint:disable: no-console
-
 describe("Default status calculation", () => {
     it("Should return noStatus for childless primitives", async () => {
         const root = <Group />;
@@ -149,19 +146,16 @@ describe("Default status calculation", () => {
     });
 
     it("Should return successor status for elements that build to null", async () => {
-        console.time("PREV");
         const root = <MakeNull />;
         const { mountedOrig } = await Adapt.build(root, null);
         if (mountedOrig === null) throw should(mountedOrig).not.Null();
         should(await mountedOrig.status()).eql({ noStatus: "successor was null" });
-        console.timeEnd("PREV");
     });
 
 });
 
 describe("Build Helper elementStatus", () => {
     it("Should return undefined with no observations", async () => {
-        console.time("HELPER1");
         const observerPlugin = new MockObserver();
         const stateStore = createStateStore();
         const mgr = createObserverManagerDeployment();
@@ -184,11 +178,9 @@ describe("Build Helper elementStatus", () => {
         should(stateStore.elementState(statusGetter.stateNamespace)).eql({
             data: undefined
         });
-        console.timeEnd("HELPER1");
     });
 
     it("Should return status with observations", async () => {
-        console.time("HELPER2");
         const observerPlugin = new MockObserver();
         const stateStore = createStateStore();
         const mgr = createObserverManagerDeployment();
@@ -210,6 +202,5 @@ describe("Build Helper elementStatus", () => {
         const statusGetter = mountedOrig.buildData.origChildren![1];
         if (!isElementImpl(statusGetter)) throw should(isElementImpl(statusGetter)).True();
         should(ld.cloneDeep(stateStore.elementState(statusGetter.stateNamespace))).eql({ data: { idSquared: 100 } });
-        console.timeEnd("HELPER2");
     });
 });
