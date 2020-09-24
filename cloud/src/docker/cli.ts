@@ -143,6 +143,7 @@ export async function withFilesImage<T>(files: File[] | undefined,
 }
 
 export interface ExecDockerOptions extends DockerGlobalOptions {
+    requestBuildKit?: boolean;
     stdin?: string;
     env?: Environment;
 }
@@ -152,11 +153,14 @@ export async function execDocker(args: string[], options: ExecDockerOptions) {
     const globalArgs = [];
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
+    const env = mergeEnvSimple(options.env) || {};
+    env.DOCKER_BUILDKIT = options.requestBuildKit ? "1" : "0";
+
     args = globalArgs.concat(args);
     const execaOpts: ExecaOptions = {
         all: true,
         input: options.stdin,
-        env: mergeEnvSimple(options.env),
+        env,
     };
 
     const cmdDebug =
@@ -178,6 +182,7 @@ export async function execDocker(args: string[], options: ExecDockerOptions) {
 }
 
 export const defaultDockerBuildOptions = {
+    requestBuildKit: true,
     forceRm: true,
     uniqueTag: false,
 };
@@ -224,11 +229,8 @@ export async function dockerBuild(
     const { stdout, stderr } = cmdRet;
     if (debug.enabled) debugBuild(cmdRet);
 
-    const match = /^Successfully built ([0-9a-zA-Z]+)$/mg.exec(stdout);
-    if (!match || !match[1]) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
-
-    const id = await dockerImageId(match[1], opts);
-    if (id == null) throw new Error(`Built image ID not found`);
+    const id = await idFromBuild(stdout, stderr, opts);
+    if (!id) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
 
     if (opts.uniqueTag) {
         const prevId = opts.prevUniqueTag && await dockerImageId(opts.prevUniqueTag, opts);
@@ -246,6 +248,23 @@ export async function dockerBuild(
     const ret: ImageInfo = { id };
     if (nameTag) ret.nameTag = nameTag;
     return ret;
+}
+
+async function idFromBuild(stdout: string, stderr: string, opts: DockerGlobalOptions) {
+    let match = /^Successfully built ([0-9a-zA-Z]+)$/mg.exec(stdout);
+    if (match && match[1]) {
+        // Legacy docker build output
+        const id = await dockerImageId(match[1], opts);
+        if (id == null) throw new Error(`Built image ID not found`);
+        return id;
+    }
+
+    match = /writing image (sha256:[0-9a-f]+) /m.exec(stderr);
+    if (match && match[1]) {
+        // BuildKit output
+        return match[1];
+    }
+    return null;
 }
 
 function debugBuild(cmdRet: execa.ExecaReturnValue<string>) {

@@ -32,8 +32,23 @@ import {
 } from "../../src/docker";
 import {
     buildFilesImage,
+    busyboxImage,
     dockerBuild,
 } from "../../src/docker/cli";
+
+// This Dockerfile can be used for BuildKit detection.
+// - Without BuildKit enabled, this Dockerfile will error due to the
+//   unsupported --mount option to RUN.
+// - With BuildKit enabled, and no secrets mounted, the RUN will fail due
+//   to /run/secret not existing during the cat command.
+const buildKitDockerfile =
+`# syntax = docker/dockerfile:1.0-experimental
+FROM ${busyboxImage}
+RUN --mount=type=secret,id=mysecret cat /run/secret
+`;
+
+const buildKitEnabledError = RegExp("cat: can't open '/run/secret': No such file or directory");
+const buildKitDisabledError = /Dockerfile parse error line \d+: Unknown flag: mount/;
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);
@@ -88,9 +103,9 @@ describe("buildFilesImage", function () {
         }], {});
 
         const output = await buildAndRun(`
-            FROM ${image.id} as files
+            FROM ${image.nameTag} as files
 
-            FROM busybox
+            FROM ${busyboxImage}
             COPY --from=files /foo myfoo
             COPY --from=files foo1 myfoo1
             COPY --from=files dir/foo2 myfoo2
@@ -153,9 +168,23 @@ describe("LocalDockerImage", function () {
         return image;
     }
 
+    async function deployWithError(props: LocalDockerImageProps) {
+        const orig = <LocalDockerImage {...props} />;
+        try {
+            await mockDeploy.deploy(orig, { logError: false });
+            throw new Error(`Expected deploy to throw an error`);
+        } catch (err) {
+            const messages = err.mockDeployMessages;
+            if (typeof messages === "string") return messages;
+            // tslint:disable-next-line: no-console
+            console.log(`Unexpected error thrown from deploy`, err);
+            throw new Error(`Unexpected error type thrown from deploy`);
+        }
+    }
+
     it("Should build an image", async () => {
         await fs.writeFile("Dockerfile", `
-            FROM busybox
+            FROM ${busyboxImage}
             CMD echo SUCCESS1
         `);
         const props: LocalDockerImageProps = {
@@ -168,7 +197,7 @@ describe("LocalDockerImage", function () {
     it("Should build an image with files", async () => {
         const props: LocalDockerImageProps = {
             dockerfile: `
-                FROM busybox
+                FROM ${busyboxImage}
                 COPY --from=files somefile .
                 CMD cat somefile
             `,
@@ -179,5 +208,24 @@ describe("LocalDockerImage", function () {
             options: {},
         };
         await buildAndRun(props, "SUCCESS2");
+    });
+
+    it("Should build with BuildKit by default", async () => {
+        const props: LocalDockerImageProps = {
+            dockerfile: buildKitDockerfile,
+        };
+        const messages = await deployWithError(props);
+        should(messages).match(buildKitEnabledError);
+    });
+
+    it("Should disable BuildKit with option", async () => {
+        const props: LocalDockerImageProps = {
+            dockerfile: buildKitDockerfile,
+            options: {
+                requestBuildKit: false,
+            },
+        };
+        const messages = await deployWithError(props);
+        should(messages).match(buildKitDisabledError);
     });
 });

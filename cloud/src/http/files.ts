@@ -42,10 +42,14 @@ export function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
                 continue;
             }
             const image = callInstanceMethod<ImageInfo | undefined>(f.image, undefined, "image");
-            if (image && isObject(image) && isString(image.id)) {
+            const imgName = image && isObject(image) && isString(image.nameTag) ? image.nameTag : null;
+            if (image && !imgName) {
+                throw new Error(`Cannot use container image as file source. Image exists but does not have a tag.`);
+            }
+            if (imgName) {
                 done.push({
                     ...f,
-                    image: image.id
+                    image: imgName,
                 });
             } else {
                 return undefined;
