@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ export class Project {
     installModules(): ExecaChildProcess<string> | undefined {
         if (this.installed) return;
         const ret = yarn.install(yarnInstallOptions(this.options));
-        ret.then(() => this.installed = true).catch();
+        ret.then(() => this.installed = true).catch(() => {/* */});
         return ret;
     }
 

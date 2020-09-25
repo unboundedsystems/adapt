@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,13 @@
 
 import should from "should";
 import { run } from "../src/yarn/common";
+
+const errRegex = (cmd: string) => RegExp(
+    `^yarn ${cmd} failed: Command failed with exit code 1: yarn ${cmd} --no-progress\n` +
+    `yarn run v\\d.\\d+.\\d+\n` +
+    `error Command "${cmd}" not found.\n` +
+    `info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.\n$`
+);
 
 describe("yarn run", function () {
     this.slow(500);
@@ -41,7 +48,7 @@ describe("yarn run", function () {
     it("should transform error on catch", async () => {
         const retP = run("foo", {});
         await retP.catch((err) => {
-            should(err.message).startWith("yarn foo failed:");
+            should(err.message).match(errRegex("foo"));
         });
     });
 
@@ -52,7 +59,7 @@ describe("yarn run", function () {
                 throw new Error("Should not get here");
             },
             (err) => {
-                should(err.message).startWith("yarn foo2 failed:");
+                should(err.message).match(errRegex("foo2"));
             });
     });
 
@@ -61,7 +68,7 @@ describe("yarn run", function () {
             await run("foo3", {});
             throw new Error("Should not get here");
         } catch (err) {
-            should(err.message).startWith("yarn foo3 failed:");
+            should(err.message).match(errRegex("foo3"));
         }
     });
 

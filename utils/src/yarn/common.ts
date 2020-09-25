@@ -15,7 +15,7 @@
  */
 
 import decamelize from "decamelize";
-import execa, { ExecaChildProcess, ExecaError } from "execa";
+import execa, { ExecaChildProcess } from "execa";
 import npmRunPath from "npm-run-path";
 import { ciMaybeCreateLogger } from "../ci_report";
 
@@ -50,9 +50,6 @@ export const commonDefaults = {
 };
 
 const npmPath = npmRunPath({ cwd: __dirname });
-
-type OnRejectedFunc<T = any> = ((reason: ExecaError) => T | PromiseLike<T>);
-type OnRejected<T = any> = OnRejectedFunc<T> | null | undefined;
 
 /**
  * NOTE: This function is purposely NOT async.
@@ -94,39 +91,22 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
         childProc.stderr.pipe(process.stdout);
     }
 
-    // Make the error message slightly more helpful. But if we want to
-    // return the original childProc object, we have to do a little
-    // extra work to insert our translation into the promise chain rather
-    // than just adding a .catch handler.
-    const translateError = (err: ExecaError) => {
-        err.message = `yarn ${action} failed: ${err.message}\n${err.all}`;
-        return Promise.reject(err);
-    };
-    insertCatch(childProc, translateError);
-
-    // This "then" creates a separate chain and that's ok
-    childProc.then((child) => logStop(child.all), (err) => logStop(err.all || err.message || err));
+    // We want to return the original childProc object, so this creates a
+    // separate Promise chain that we do not pass back.
+    childProc
+        .catch((err) => {
+            // Make the error message slightly more helpful.
+            // Promise catches are guaranteed to execute in the order they
+            // are registered, so this catch will augment the error object
+            // before any callers of run see it.
+            err.message = `yarn ${action} failed: ${err.message}`;
+            if (err.all) err.message += "\n" + err.all;
+            throw err;
+        })
+        .then((child) => logStop(child.all), (err) => logStop(err.all || err.message || err))
+        .catch(() => {/* */});
 
     return childProc;
-}
-
-function insertCatch(childProc: ExecaChildProcess, catcher: OnRejectedFunc) {
-    const origCatch = childProc.catch;
-    const origThen = childProc.then;
-    childProc.then = (onFulfilled, onRejected) => {
-        try {
-            return origThen(onFulfilled, catcher).catch(onRejected);
-        } catch (err) {
-            return catcher(err);
-        }
-    };
-    childProc.catch = (onRejected: OnRejected) => {
-        try {
-            return origCatch(catcher).catch(onRejected);
-        } catch (err) {
-            return catcher(err);
-        }
-    };
 }
 
 function optionsBoolToUndef(options: AnyOptions, keys: string[]): AnyOptions {
