@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,9 +52,9 @@ export class MummyRegistry {
     objToJson = new Map<any, MummyJson>();
     packageRegistry: PackageRegistry;
 
-    constructor() {
+    constructor(projectRoot: string) {
         try {
-            this.packageRegistry = createPackageRegistry(".");
+            this.packageRegistry = createPackageRegistry(projectRoot);
         } catch (err) {
             err = ensureError(err);
             if (!err.message.includes("does not contain a node_modules folder")) {
@@ -171,10 +171,24 @@ export class MummyRegistry {
     }
 }
 
-let registry = new MummyRegistry();
+let _registry = initRegistry();
 
-function resetRegistry() {
-    registry = new MummyRegistry();
+function registry() {
+    if (!_registry) throw new InternalError(`Reanimate registry not initialized`);
+    return _registry;
+}
+
+function initRegistry() {
+    // Only create the registry if we have a project
+    let projectRoot;
+    try {
+        projectRoot = (global as any).getAdaptContext().projectRoot;
+    } catch (err) {
+        // If we can't get the Adapt context, we don't have a project.
+        return undefined;
+    }
+
+    return new MummyRegistry(projectRoot);
 }
 
 interface Mummy {
@@ -217,6 +231,7 @@ function enbalm(obj: any, name: string, namespace: string, module: NodeModule): 
 export function registerObject(obj: any, name: string,
                                modOrCallerNum: NodeModule | number = 0,
                                altNamespace = "$adaptExports") {
+    if (!_registry) return; // Only register objects when we're in a project
     if (obj == null) throw new Error(`Cannot register null or undefined`);
 
     const mod = findModule(modOrCallerNum);
@@ -233,7 +248,7 @@ export function registerObject(obj: any, name: string,
     // stuff.
     const exportName = findExportName(obj, name, mod);
 
-    registry.entomb(obj, enbalm(obj, exportName || name,
+    registry().entomb(obj, enbalm(obj, exportName || name,
                                 exportName ? "" : altNamespace, mod));
 
     if (!exportName) {
@@ -357,11 +372,11 @@ export function callerModule(callerNum: number): NodeModule {
 }
 
 export function reanimate(mummy: MummyJson): Promise<any> {
-    return registry.awaken(mummy);
+    return registry().awaken(mummy);
 }
 
 export function findMummy(obj: any): MummyJson {
-    return registry.findMummy(obj);
+    return registry().findMummy(obj);
 }
 
 function posixPath(p: string) {
@@ -370,11 +385,11 @@ function posixPath(p: string) {
 }
 
 // Exported for testing
-export function mockRegistry_(newRegistry?: MummyRegistry | null): MummyRegistry {
-    const oldRegistry = registry;
+export function mockRegistry_(newRegistry?: MummyRegistry | null): MummyRegistry | undefined {
+    const oldRegistry = _registry;
 
-    if (newRegistry === null) resetRegistry();
-    else if (newRegistry !== undefined) registry = newRegistry;
+    if (newRegistry === null) _registry = new MummyRegistry(".");
+    else if (newRegistry !== undefined) _registry = newRegistry;
 
     return oldRegistry;
 }
@@ -398,7 +413,8 @@ const encoder = URN.create("urn", {
 });
 
 export function findMummyUrn(obj: any): MummyUrn {
-    const mummyJson = registry.findMummy(obj);
+    if (!_registry) return "";
+    const mummyJson = registry().findMummy(obj);
     const mummy: Mummy = JSON.parse(mummyJson);
     return encoder.format({ domain: urnDomain, ...mummy });
 }
@@ -415,7 +431,7 @@ export function reanimateUrn(mummyUrn: MummyUrn): Promise<any> {
     }
 
     if (!isMummy(mummy)) throw new InternalError(`isMummy returned false`);
-    return registry.awaken(stringify(mummy));
+    return registry().awaken(stringify(mummy));
 }
 
 function packageId(pkg: Mummy): PackageId {
