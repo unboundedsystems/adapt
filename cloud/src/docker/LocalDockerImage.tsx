@@ -240,7 +240,7 @@ export class LocalDockerImage
         const stages = this.props.stages || [];
 
         const image = await withFilesImage(this.props.files, options, async (img) => {
-            if (img) stages.push({ image: img.id, name: "files" });
+            if (img && img.nameTag) stages.push({ image: img.nameTag, name: "files" });
 
             const stageConfig = stages
                 .map((s) => `FROM ${s.image} as ${s.name}`)

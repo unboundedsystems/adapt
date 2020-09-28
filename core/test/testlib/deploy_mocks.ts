@@ -243,11 +243,12 @@ export class MockDeploy {
                     return { ...actResults, dom, mountedOrig, stepID };
                 }
             } catch (err) {
+                err.mockDeployMessages = messagesToString(this.logger.messages);
                 if (opts.logError) {
                     // tslint:disable-next-line: no-console
                     console.log(`Deploy error:`, err.message,
                         `\nDumping log messages:\n`,
-                        messagesToString(this.logger.messages));
+                        err.mockDeployMessages);
                 }
                 throw err;
             }

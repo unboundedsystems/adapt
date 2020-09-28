@@ -33,6 +33,27 @@ export interface DockerGlobalOptions {
  * @public
  */
 export interface DockerBuildOptions extends DockerGlobalOptions {
+    /**
+     * Requests BuildKit as the internal Docker build engine.
+     *
+     * @remarks
+     * This option requests the use of the BuildKit build engine when building
+     * Docker images, if BuildKit is available. This is primarily useful for
+     * BuildKit's performance improvements over the legacy Docker build engine.
+     * However, because this option does not guarantee BuildKit will be used,
+     * BuildKit-only features such as secret mounting should not be used.
+     *
+     * Internally, this option sets the `DOCKER_BUILDKIT` environment
+     * variable when performing builds, which enables BuildKit on Docker
+     * systems that support it.
+     *
+     * For more information, see
+     * [Build images with BuildKit](https://docs.docker.com/develop/develop-images/build_enhancements/).
+     *
+     * @defaultValue `true`
+     */
+    requestBuildKit?: boolean;
+
     forceRm?: boolean;
     imageName?: string;
     imageTag?: string;
