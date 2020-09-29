@@ -367,23 +367,24 @@ export async function globalAdd(pkg: string, prefixDir: string) {
     const args = [ "install", ...registryOpts(), "-g", "-C", prefixDir, pkg ];
     const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
-        if (/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
-            return;
+        if (!/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
+            const cmd = "npm install " + args.join(" ");
+            // tslint:disable-next-line: no-console
+            console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
+                `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
+            throw new Error(`Warnings in npm install output`);
         }
-        const cmd = "npm install " + args.join(" ");
-        // tslint:disable-next-line: no-console
-        console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
-            `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
-        throw new Error(`Warnings in npm install output`);
     }
+    // Windows global doesn't create a bin directory
+    return process.platform === "win32" ? prefixDir : path.join(prefixDir, "bin");
 }
 
 function pathWithoutRepo(prepend?: string) {
     const orig = process.env.PATH;
     if (!orig) throw new Error(`PATH is invalid (${orig})`);
-    const paths = orig.split(":").filter((p) => !p.startsWith(repoRootDir));
+    const paths = orig.split(path.delimiter).filter((p) => !p.startsWith(repoRootDir));
     if (prepend) paths.unshift(prepend);
-    return paths.join(":");
+    return paths.join(path.delimiter);
 }
 
 /**
@@ -392,9 +393,7 @@ function pathWithoutRepo(prepend?: string) {
  */
 const basicNoSrcDirChain = basicTestChain
     .delayedenv(() => {
-        const pOrig = process.env.PATH || "";
-        const pNew = pOrig.split(":").filter((el) => !el.startsWith("/src/")).join(":");
-        return { PATH: pNew };
+        return { PATH: pathWithoutRepo() };
     });
 
 describe("Global CLI install", function () {
@@ -407,10 +406,10 @@ describe("Global CLI install", function () {
 
     before(async () => {
         tmpDir = process.cwd();
-        env.PATH = pathWithoutRepo(path.join(tmpDir, "global", "bin"));
 
         try {
-            await globalAdd("@adpt/cli@unit-tests", path.join(tmpDir, "global"));
+            const binPath = await globalAdd("@adpt/cli@unit-tests", path.join(tmpDir, "global"));
+            env.PATH = pathWithoutRepo(binPath);
         } catch (err) {
             // tslint:disable-next-line: no-console
             if (err.all) console.error(`${err.message}\n${err.all}`);
