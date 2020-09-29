@@ -19,6 +19,7 @@ export * from "./long_tests";
 export * from "./mocklogger";
 export * from "./package_maker";
 export * from "./repo_versions";
+export * from "./win";
 
 import * as awsutils from "./awsutils";
 import * as dockerMocha from "./docker-mocha";

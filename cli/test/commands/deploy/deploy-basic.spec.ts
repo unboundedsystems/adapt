@@ -1217,6 +1217,11 @@ describe("deploy:run negative tests", () => {
 
 const cliExecPath = path.join(repoDirs.cli, "bin", "run");
 
+// TODO: Better support for signals & testing signals on Windows
+// Node does emulate receiving SIGINT and SIGHUP on Windows, but it does
+// not provide a way to send the events that trigger those
+// signal handlers, making testing very difficult.
+if (process.platform !== "win32") {
 describe("signal tests", () => {
     mochaTmpdir.each("adapt-cli-test-signal");
 
@@ -1229,7 +1234,6 @@ describe("signal tests", () => {
         // await-promise lint rule.
         // tslint:disable-next-line: await-promise
         await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
-
     });
 
     loopTestChain
@@ -1241,7 +1245,6 @@ describe("signal tests", () => {
         // await-promise lint rule.
         // tslint:disable-next-line: await-promise
         await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
-
     });
 
     loopTestChain
@@ -1253,6 +1256,6 @@ describe("signal tests", () => {
         // await-promise lint rule.
         // tslint:disable-next-line: await-promise
         await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
-
     });
 });
+}
