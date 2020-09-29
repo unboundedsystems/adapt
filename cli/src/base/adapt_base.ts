@@ -26,7 +26,9 @@ import {
 } from "@adpt/utils";
 import { Command, flags } from "@oclif/command";
 import * as Parser from "@oclif/parser";
+import path from "path";
 import { PassThrough } from "stream";
+import { pathToFileURL } from "url";
 import { UserError } from "../error";
 import { ApiResponse, ApiSuccess } from "../types/adapt_shared";
 import { HasFlags, OutputFlags } from "../types/common";
@@ -252,4 +254,12 @@ export function createLoggerPair(loggerId: string, logging: boolean): LoggerPair
         client,
         logger,
     };
+}
+
+export function defaultLocalServerFile(config: Command["config"]) {
+    return path.join(config.dataDir, "local_deploy");
+}
+
+export function defaultServerUrl(config: Command["config"]) {
+    return pathToFileURL(defaultLocalServerFile(config)).href;
 }

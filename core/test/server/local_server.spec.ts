@@ -80,8 +80,8 @@ describe("LocalServer tests", () => {
     it("Should throw if DB doesn't exist and init is false", () => {
         mockServerTypes_([]);
         register(LocalServer);
-        return should(initLocalServer(false))
-            .rejectedWith(/Adapt local server file .* does not exist/);
+        return should(initLocalServer(false)).be.rejectedWith(RegExp(
+            `Invalid Adapt Server URL 'file://${process.cwd()}': 'adapt_local.json' does not exist`));
     });
 
     it("Should store data in JSON format", async () => {
