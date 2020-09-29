@@ -41,11 +41,13 @@ export * from "./process_global";
 export * from "./retries";
 export * from "./sleep";
 export * from "./to_array";
+export * from "./tool-cache";
 export * from "./ttylog";
 export * from "./type_check";
 export * from "./user_agent";
 export * from "./user_error";
 export * from "./wait_for";
+export * from "./xdg";
 
 import * as npm from "./npm";
 import { removeUndef } from "./removeUndef";
