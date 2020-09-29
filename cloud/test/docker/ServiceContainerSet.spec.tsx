@@ -80,7 +80,7 @@ describe("ServiceContainerSet", function () {
         await fs.writeFile(path.join("backend", "index.js"), nodeIndexJs);
         await fs.writeJSON(path.join("backend", "package.json"), nodePackage);
         dindInfo = await mkInstance.info;
-        dockerHost = dindInfo.hostname;
+        dockerHost = dindInfo.dockerHost;
         mockDeploy = new MockDeploy({
             pluginCreates: [createActionPlugin],
             tmpDir: pluginDir,
