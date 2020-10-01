@@ -15,7 +15,7 @@
  */
 
 import { S_IRWXG, S_IRWXO, S_IRWXU } from "constants";
-import { ensureDir, readFile, stat, writeFile } from "fs-extra";
+import { ensureDir, pathExists, readFile, stat, writeFile } from "fs-extra";
 // tslint:disable-next-line:no-var-requires
 const mockedEnv = require("mocked-env");
 import nock from "nock";
@@ -26,6 +26,7 @@ import { mkdtmp } from "../src/mkdtmp";
 import { fetchToCache } from "../src/tool-cache";
 
 async function checkPerm(file: string, expected: number) {
+    if (process.platform === "win32") return; // No permission support on Windows
     const actual = await stat(file);
     // tslint:disable-next-line: no-bitwise
     should(actual.mode & (S_IRWXG | S_IRWXO | S_IRWXU)).equal(expected,
@@ -96,6 +97,7 @@ describe("tool-cache", () => {
 
         await ensureDir(dir);
         await writeFile(file, "incache contents");
+        await writeFile(path.join(dir, ".complete"), "");
 
         const entry = await fetchToCache({
             name: "incache",
@@ -153,5 +155,44 @@ describe("tool-cache", () => {
         should(contents.toString()).equal("thefile contents");
         await checkPerm(path.join(toolsDir(), "ignore"), 0o700);
         await checkPerm(path.join(toolsDir(), "ignore", "1.2.3-629f7", "thefile"), 0o700);
+    });
+
+    it("Should untar file", async () => {
+        const url = "https://adaptjs.org/somefile.tgz";
+        nock("https://adaptjs.org")
+            .get("/somefile.tgz")
+            .replyWithFile(200, path.join(__dirname, "..", "..", "test", "tool-cache.tgz"));
+
+        const { dir } = await fetchToCache({
+            name: "tarfile",
+            version: "1.2.3",
+            url,
+            untar: true,
+        });
+
+        should(dir).equal(path.join(toolsDir(), "tarfile", "1.2.3-55ff2"));
+        should((await readFile(path.join(dir, "dir1", "file1"))).toString()).equal("file1 contents\n");
+        should((await readFile(path.join(dir, "dir1", "file2"))).toString()).equal("file2 contents\n");
+        await checkPerm(path.join(toolsDir(), "tarfile"), 0o700);
+        await checkPerm(dir, 0o700);
+    });
+
+    it("Should untar specific files", async () => {
+        const url = "https://adaptjs.org/somefile.tgz";
+        nock("https://adaptjs.org")
+            .get("/somefile.tgz")
+            .replyWithFile(200, path.join(__dirname, "..", "..", "test", "tool-cache.tgz"));
+
+        const { dir } = await fetchToCache({
+            name: "tarfile-specific",
+            version: "1.2.3",
+            url,
+            untar: true,
+            fileList: [ "dir1/file2" ],
+        });
+
+        should(dir).equal(path.join(toolsDir(), "tarfile-specific", "1.2.3-55ff2"));
+        should(await pathExists(path.join(dir, "dir1", "file1"))).equal(false);
+        should((await readFile(path.join(dir, "dir1", "file2"))).toString()).equal("file2 contents\n");
     });
 });

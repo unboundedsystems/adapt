@@ -14,26 +14,21 @@
  * limitations under the License.
  */
 
-import { createWriteStream, ensureDir, pathExists, rename } from "fs-extra";
-import fetch from "node-fetch";
+import { createWriteStream, ensureDir, pathExists, rename, writeFile } from "fs-extra";
+import fetch, { Response } from "node-fetch";
 import pDefer from "p-defer";
 import path from "path";
+import tar from "tar";
 import { URL } from "url";
 import { sha256hex } from "./crypto";
+import { InternalError } from "./internal_error";
 import { xdgCacheDir } from "./xdg";
 
-export interface FetchToCacheOptions {
-    /** Short human-friendly name for this file. Used in local path. */
+export interface FetchToCacheCommon {
+    /** Short human-friendly name for this download. Used in local path. */
     name: string;
     /** URL to fetch file from */
     url: string;
-    /**
-     * Name of the file on local disk.
-     * @defaultValue Last path component from URL
-     */
-    file?: string;
-    /** Mode (permissions) for the local file. */
-    mode?: number;
     /**
      * A human-friendly string describing the version of the file, used in local
      * path.
@@ -41,14 +36,47 @@ export interface FetchToCacheOptions {
     version?: string;
 }
 
+export interface FetchToCacheFileOptions extends FetchToCacheCommon {
+    /**
+     * Name of the file on local disk.
+     * @defaultValue Last path component from URL
+     */
+    file?: string;
+    /** Mode (permissions) for the local file. */
+    mode?: number;
+}
+
+export interface FetchToCacheTarOptions extends FetchToCacheCommon {
+    tarOptions?: tar.ExtractOptions;
+    fileList?: string[];
+    untar: true;
+}
+
+type FetchToCacheOptions = FetchToCacheFileOptions | FetchToCacheTarOptions;
+
+function isFileOptions(opt: FetchToCacheOptions): opt is FetchToCacheFileOptions {
+    return (opt as FetchToCacheTarOptions).untar !== true;
+}
+
 export interface CachedFile {
     file: string;
     dir: string;
 }
 
-type CachePromise = pDefer.DeferredPromise<CachedFile>;
+export interface CachedDir {
+    dir: string;
+}
+
+type CachePromise = pDefer.DeferredPromise<CachedFile | CachedDir>;
 
 const cacheMap = new Map<string, CachePromise>();
+
+interface CacheKey {
+    name: string;
+    url: string;
+    version?: string;
+}
+const cacheKey = ({ name, url, version }: CacheKey) => `${name}-${version}-${url}`;
 
 /**
  * Fetches a file to the cache and returns the path once fetch is complete.
@@ -64,73 +92,57 @@ const cacheMap = new Map<string, CachePromise>();
  * this URL.
  * @beta
  */
-export async function fetchToCache(options: FetchToCacheOptions): Promise<CachedFile> {
+export async function fetchToCache(options: FetchToCacheFileOptions): Promise<CachedFile>;
+export async function fetchToCache(options: FetchToCacheTarOptions): Promise<CachedDir>;
+export async function fetchToCache(options: FetchToCacheOptions): Promise<CachedFile | CachedDir> {
+    const key = cacheKey(options);
     const { name, url, version } = options;
-    const mode = options.mode != null ? options.mode : 0o500;
-    const entry = cacheMap.get(url);
+    const entry = cacheMap.get(key);
     if (entry) return entry.promise;
 
-    const deferred = pDefer<CachedFile>();
-    cacheMap.set(url, deferred);
+    const deferred = pDefer<CachedFile | CachedDir>();
+    cacheMap.set(key, deferred);
 
     try {
         const toolsCacheBase = path.join(xdgCacheDir(), "tools");
-        const urlObj = new URL(url);
-        const baseName = options.file || urlObj.pathname.split("/").slice(-1)[0];
-        if (!baseName) {
-            throw new Error(
-                `Cannot determine a local file name to use for fetching ${name}. ` +
-                `Use the 'file' option.`);
-        }
 
         const sha = sha256hex(url).slice(0, 5);
         const tag = version ? `${version}-${sha}` : sha;
 
         const dir = path.join(toolsCacheBase, name, tag);
-        const file = path.join(dir, baseName);
+        const complete = path.join(dir, ".complete");
+        let file: string | undefined;
+
+        if (isFileOptions(options)) {
+            const urlObj = new URL(url);
+            const baseName = options.file || urlObj.pathname.split("/").slice(-1)[0];
+            if (!baseName) {
+                throw new Error(
+                    `Cannot determine a local file name to use for fetching ${name}. ` +
+                    `Use the 'file' option.`);
+            }
+            file = path.join(dir, baseName);
+        }
 
         // TODO: With multiple processes, they can race and both attempt
         // a download at the same time. Use proper-lockfile to serialize
         // access and provide liveliness check to recover from an aborted
         // download.
-        if (!(await pathExists(file))) {
+        if (!(await pathExists(complete))) {
 
             await ensureDir(dir, 0o700);
 
             const response = await fetch(url);
             if (response.status !== 200) throw new Error(`Could not get ${name} from ${url}: ${response.statusText}`);
 
-            // If another process has a download in progress, don't allow
-            // us to corrupt it (flags: "wx").
-            // TODO: If a previous fetch was aborted and left this file,
-            // this will always fail until the download file is manually
-            // deleted. See above TODO for fix.
-            const fileStream = createWriteStream(`${file}.download`, { mode, flags: "wx" });
-            response.body.pipe(fileStream);
-            await new Promise((res, rej) => {
-                let err: any;
-                fileStream.on("close", res);
-                fileStream.on("error", (e) => {
-                    if (!err) {
-                        rej(e);
-                        err = e;
-                    } else {
-                        // tslint:disable-next-line: no-console
-                        console.error(`Unhandled error while writing ${name} from ${url}:`, e);
-                    }
-                });
-                response.body.on("error", (e) => {
-                    if (!err) {
-                        rej(e);
-                        err = e;
-                    } else {
-                        // tslint:disable-next-line: no-console
-                        console.error(`Unhandled error downloading ${name} from ${url}:`, e);
-                    }
-                });
-            });
-            // Only allow a completed file to occupy the 'file' path
-            await rename(`${file}.download`, file);
+            if (isFileOptions(options)) {
+                if (!file) throw new InternalError(`file cannot be null`);
+                await downloadFile(file, response, options);
+            } else {
+                await downloadTar(dir, response, options);
+            }
+
+            await writeFile(complete, "");
         }
         deferred.resolve({ dir, file });
 
@@ -139,4 +151,54 @@ export async function fetchToCache(options: FetchToCacheOptions): Promise<Cached
     }
 
     return deferred.promise;
+}
+
+async function downloadFile(file: string, response: Response, options: FetchToCacheFileOptions) {
+    const mode = options.mode != null ? options.mode : 0o500;
+
+    // If another process has a download in progress, don't allow
+    // us to corrupt it (flags: "wx").
+    // TODO: If a previous fetch was aborted and left this file,
+    // this will always fail until the download file is manually
+    // deleted. See above TODO for fix.
+    const fileStream = createWriteStream(`${file}.download`, { mode, flags: "wx" });
+    await waitForStreams(response.body, fileStream, options);
+    // Only allow a completed file to occupy the 'file' path
+    await rename(`${file}.download`, file);
+}
+
+async function downloadTar(dir: string, response: Response, options: FetchToCacheTarOptions) {
+    const tarOptions = {
+        ...(options.tarOptions || {}),
+        cwd: dir,
+    };
+    const tarStream = tar.extract(tarOptions || {}, options.fileList);
+    await waitForStreams(response.body, tarStream, options);
+}
+
+async function waitForStreams(from: NodeJS.ReadableStream, to: NodeJS.WritableStream,
+    { name, url }: FetchToCacheCommon) {
+    return new Promise((res, rej) => {
+        let err: any;
+        to.on("close", res);
+        to.on("error", (e) => {
+            if (!err) {
+                rej(e);
+                err = e;
+            } else {
+                // tslint:disable-next-line: no-console
+                console.error(`Unhandled error while writing ${name} from ${url}:`, e);
+            }
+        });
+        from.on("error", (e) => {
+            if (!err) {
+                rej(e);
+                err = e;
+            } else {
+                // tslint:disable-next-line: no-console
+                console.error(`Unhandled error downloading ${name} from ${url}:`, e);
+            }
+        });
+        from.pipe(to);
+    });
 }
