@@ -21,6 +21,7 @@ import {
     AdaptMountedElement,
     build,
     buildPrinter,
+    DeployOpID,
     FinalDomElement,
     StateStore,
 } from "../../src";
@@ -28,6 +29,7 @@ import { isBuildOutputPartial, ProcessStateUpdates } from "../../src/dom";
 
 export interface DoBuildOpts {
     deployID?: string;
+    deployOpID?: DeployOpID;
     stateStore?: StateStore;
     debug?: boolean;
     style?: AdaptElement | null;
@@ -51,6 +53,7 @@ export interface DoBuildNullOk {
 
 const doBuildDefaults = {
     deployID: "<none>",
+    deployOpID: 0,
     debug: false,
     style: null,
     nullDomOk: false,
@@ -61,10 +64,11 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOptsNullOk): P
 export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial<DoBuildNullOk> = {}
     ): Promise<DoBuild | DoBuildNullOk>  {
 
-    const { deployID, nullDomOk, stateStore, debug, style } = { ...doBuildDefaults, ...options };
+    const { deployID, deployOpID, nullDomOk, stateStore, debug, style } = { ...doBuildDefaults, ...options };
     const buildOpts = {
         recorder: debug ? buildPrinter() : undefined,
         deployID,
+        deployOpID,
         stateStore,
     };
     const buildOutput = await build(elem, style, buildOpts);
