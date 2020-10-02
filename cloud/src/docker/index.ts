@@ -18,6 +18,7 @@
  * Docker library for Adapt.
  * @public
  */
+export * from "./BuildKitImage";
 export * from "./DockerImage";
 export * from "./DockerContainer";
 export * from "./NetworkService";

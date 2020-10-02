@@ -246,6 +246,13 @@ export type RegistryString = string;
  */
 export interface ImageInfo {
     /**
+     * Docker repo digest in the form `[registry/]repo@algorithm:hex`.
+     * @remarks
+     * See {@link docker.RepoDigestString}.
+     */
+    digest?: RepoDigestString;
+
+    /**
      * Docker image ID, in the form `algorithm:hex`.
      * @remarks
      * See {@link docker.ImageIdString}.

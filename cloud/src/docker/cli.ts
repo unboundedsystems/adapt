@@ -42,13 +42,15 @@ import {
     RepoDigestString,
 } from "./types";
 
-const debug = db("adapt:cloud:docker");
+export const debug = db("adapt:cloud:docker");
 // Enable with DEBUG=adapt:cloud:docker:out*
-const debugOut = db("adapt:cloud:docker:out");
-let cmdId = 0;
+export const debugOut = db("adapt:cloud:docker:out");
+
+let _cmdId = 0;
+export const cmdId = () => ++_cmdId;
 
 // Should move to utils
-function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
+export function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
     prefix = prefix ? `[${prefix}] ` : "";
     s.on("data", (chunk) => d(prefix + chunk.toString()));
     s.on("error", (err) => debug(prefix, err));
@@ -70,7 +72,7 @@ export const busyboxImage = "busybox:1";
  * Staged build utilities
  */
 
-async function writeFiles(pwd: string, files: File[]) {
+export async function writeFiles(pwd: string, files: File[]) {
     // Strip any leading slash
     files = files.map((f) => {
         return f.path.startsWith("/") ?
@@ -167,7 +169,7 @@ export async function execDocker(argsIn: string[], options: ExecDockerOptions): 
     };
 
     const cmdDebug =
-        debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
+        debugOut.enabled ? debugOut.extend((cmdId()).toString()) :
             debug.enabled ? debug :
                 null;
     if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
@@ -338,7 +340,7 @@ export async function dockerRemoveImage(options: DockerRemoveImageOptions) {
     await execDocker(args, opts);
 }
 
-function createTag(baseTag: string | undefined, appendUnique: boolean): string | undefined {
+export function createTag(baseTag: string | undefined, appendUnique: boolean): string | undefined {
     if (!baseTag && !appendUnique) return undefined;
     let tag = baseTag || "";
     if (baseTag && appendUnique) tag += "-";
