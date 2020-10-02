@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,6 +166,14 @@ export async function removeFromNetwork(container: Docker.Container, network: Do
     }
 }
 
+export function inContainer() {
+    try {
+        return fs.readFileSync("/proc/self/cgroup").toString().includes("/docker/");
+    } catch (err) {
+        return false;
+    }
+}
+
 export async function getSelfContainer(docker: Docker): Promise<Docker.Container | null> {
     if (os.platform() === "win32") return null;
 
@@ -272,4 +280,28 @@ export async function deleteAllImages(filter: string, opts: DockerUtilOpts = {})
         // tslint:disable-next-line: no-console
         console.log(`Error deleting images (ignored):`, err);
     }
+}
+
+/**
+ * Create a TCP proxy on localhost inside a container that forwards to
+ * another host and/or port. Does nothing if this code is not running in
+ * a container.
+ *
+ * @remarks
+ * This is primarily useful for tricking tools that change their behavior
+ * when they connect to localhost. For example, Docker and related tools
+ * allow HTTP connections to localhost without configuration.
+ */
+export async function proxyFromContainer(localPort: number, target: string) {
+    if (!inContainer()) return async () => {/* */};
+
+    await execa("apt-get", ["install", "socat"]);
+
+    const child = execa(
+        "socat", [`tcp-listen:${localPort},reuseaddr,fork`, `tcp:${target}`], {
+            stdio: "inherit",
+        });
+    return async () => {
+        child.kill();
+    };
 }
