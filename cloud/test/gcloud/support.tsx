@@ -52,7 +52,8 @@ export function describeGCloud(
             });
         });
 
-        after(async () => {
+        after(async function () {
+            this.timeout("2m");
             if (!useConfig) await destroyGCloudConfig(confName);
         });
 
