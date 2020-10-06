@@ -29,17 +29,19 @@ import {
     computeContainerName,
     DockerContainer,
     File,
-    ImageInfo,
+    RegistryDockerImage,
     RegistryDockerImageProps,
 } from "../../src/docker";
 import { buildKitBuild, buildKitFilesImage } from "../../src/docker/bk-cli";
-import { BuildKitBuildOptions, BuildKitGlobalOptions, BuildKitOutput, BuildKitOutputRegistry, ImageStorage } from "../../src/docker/bk-types";
+import { BuildKitBuildOptions, BuildKitGlobalOptions, BuildKitOutputRegistry, ImageStorage } from "../../src/docker/bk-types";
 import {
     busyboxImage,
     dockerInspect,
 } from "../../src/docker/cli";
+import { ImageRef } from "../../src/docker/image-ref";
 import { buildKitHost } from "../run_buildkit";
 import { registryHost } from "../run_registry";
+import { checkRegistryImage } from "./common";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);
@@ -152,8 +154,8 @@ describe("BuildKitImage", function () {
         await mockDeploy.init();
     });
 
-    const storage = (): ImageStorage => ({
-        type: "registry",
+    const storage = () => ({
+        type: "registry" as const,
         insecure: true,
         registry: regHost,
     });
@@ -163,16 +165,17 @@ describe("BuildKitImage", function () {
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
-        const image: ImageInfo = dom.instance.image();
+        const image: ImageRef = dom.instance.image();
         should(image).not.be.Undefined();
-        const { digest, id, nameTag } = image;
-        if (!nameTag) throw should(nameTag).be.ok();
+        const { registryRef, registryDigest, id, nameTag } = image;
 
         should(id).match(/^sha256:[a-f0-9]{64}$/);
-        should(digest).match(RegExp(`^${regHost}/bki-test@sha256:[a-f0-9]{64}$`));
-        should(nameTag).startWith(regHost);
+        should(registryDigest).match(RegExp(`^${regHost}/bki-test@sha256:[a-f0-9]{64}$`));
+        if (nameTag) should(nameTag).startWith(`${regHost}/bki-test:`);
+        const ref = nameTag || registryRef;
+        if (!ref) throw new Error(`Both nameTag and registryRef are null`);
 
-        const output = await checkDockerRun(nameTag);
+        const output = await checkDockerRun(ref);
         should(output).equal(expected);
 
         return image;
@@ -214,7 +217,8 @@ describe("BuildKitImage", function () {
             },
         };
         const image = await buildAndRun(props, "SUCCESS2");
-        should(image.nameTag).match(RegExp(`^${regHost}/bki-test@sha256:[a-f0-9]{64}$`));
+        should(image.registryRef).match(RegExp(`^${regHost}/bki-test@sha256:[a-f0-9]{64}$`));
+        should(image.nameTag).equal(undefined);
     });
 
     it("Should build a registry image with a unique tag", async () => {
@@ -294,17 +298,17 @@ describe("BuildKitImage", function () {
         newTag?: string;
     }
     const defaultBasicDom = () => {
-        const output: BuildKitOutput = {
+        const output: BuildKitOutputRegistry = {
             ...storage(),
-            imageName: "testimage",
-            imageTag: "sometag",
+            imageName: "bki-test",
+            imageTag: "basicdom",
         };
         return {
             dockerfile: `
                 FROM ${smallDockerImage}
                 CMD sleep 10000
                 `,
-            registryUrl: "localhost:5000",
+            registryUrl: regHost,
             output,
         };
     };
@@ -313,7 +317,7 @@ describe("BuildKitImage", function () {
     });
 
     async function deployBasicTest(options: BasicDom = {}) {
-        const [ iSrc ] = [ handle() ];
+        const [ iReg, iSrc ] = [ handle(), handle() ];
         const opts = { ...defaultBasicDom(), ...options };
         const buildOpts = { ...defaultBuildOpts(), ...(opts.buildOpts || {})};
         const imageOpts: Partial<RegistryDockerImageProps> = {};
@@ -328,35 +332,34 @@ describe("BuildKitImage", function () {
                     options={buildOpts}
                     output={opts.output}
                 />
-                {/* <RegistryDockerImage
+                <RegistryDockerImage
                     handle={iReg}
                     imageSrc={iSrc}
                     registryUrl={opts.registryUrl}
                     {...imageOpts}
-                /> */}
-                <DockerContainer autoRemove={true} image={iSrc} stopSignal="SIGKILL" />
+                />
+                <DockerContainer autoRemove={true} image={iReg} stopSignal="SIGKILL" />
             </Group>;
 
         return mockDeploy.deploy(orig);
     }
 
-    async function checkBasicTest(dom: FinalDomElement | null, _options: BasicDom = {}) {
-        // const opts = { ...defaultBasicDom(), ...options };
+    async function checkBasicTest(dom: FinalDomElement | null, options: BasicDom = {}) {
+        const opts = { ...defaultBasicDom(), ...options };
 
         if (dom == null) throw should(dom).not.be.Null();
-        // should(dom.props.children).be.an.Array().with.length(3);
+        should(dom.props.children).be.an.Array().with.length(3);
 
         const iSrc = dom.props.children[0].props.handle;
-        // const iReg = dom.props.children[1].props.children[1].props.handle;
+        const iReg = dom.props.children[1].props.handle;
 
         const srcImageEl: FinalDomElement = dom.props.children[0];
         should(srcImageEl.componentType).equal(BuildKitImage);
-        const srcImageInfo = callInstanceMethod<ImageInfo | undefined>(iSrc, undefined, "latestImage");
+        const srcImageInfo = callInstanceMethod<ImageRef | undefined>(iSrc, undefined, "latestImage");
         if (srcImageInfo == null) throw should(srcImageInfo).be.ok();
 
         // Info on the running container
-        // const ctrEl: FinalDomElement = dom.props.children[2];
-        const ctrEl: FinalDomElement = dom.props.children[1];
+        const ctrEl: FinalDomElement = dom.props.children[2];
         should(ctrEl.componentType).equal(DockerContainer);
         const contName = computeContainerName(ctrEl.props.key, ctrEl.id, mockDeploy.deployID);
         should(contName).startWith("dockercontainer-");
@@ -366,12 +369,13 @@ describe("BuildKitImage", function () {
         if (ctrInfo == null) throw should(ctrInfo).be.ok();
 
         // Check image name
-        /*
-        const regImageInfo = callInstanceMethod<ImageInfo | undefined>(iReg, undefined, "latestImage");
+        const regImageInfo = callInstanceMethod<ImageRef | undefined>(iReg, undefined, "latestImage");
         if (regImageInfo == null) throw should(regImageInfo).be.ok();
         should(regImageInfo.nameTag).equal(ctrInfo.Config.Image);
-        const tag = opts.newTag || srcImageInfo.nameTag;
-        should(regImageInfo.nameTag).equal(`localhost:5000/${tag}`);
+        let nameTag = opts.newTag || srcImageInfo.nameTag;
+        if (!nameTag) throw should(nameTag).be.ok();
+        if (!nameTag.includes(":")) nameTag += ":latest";
+        should(regImageInfo.nameTag).equal(`${regHost}/${nameTag}`);
         should(regImageInfo.id).equal(ctrInfo.Image);
 
         // Stop the container so we can delete its image
@@ -383,12 +387,20 @@ describe("BuildKitImage", function () {
         await mockDeploy.deploy(null);
         const finalInfos = await dockerInspect([contName], { type: "container" });
         should(finalInfos).be.Array().of.length(0);
-        */
     }
 
-    it("Should push a built image to registry", async () => {
-        const { dom } = await deployBasicTest();
-        await checkBasicTest(dom);
+    it("Should push a built image to second tag in registry", async () => {
+        const output: BuildKitOutputRegistry = {
+            ...storage(),
+            imageName: "bki-test",
+            imageTag: "firsttag",
+        };
+        const opts = {
+            newTag: "secondtag",
+            output,
+        };
+        const { dom } = await deployBasicTest(opts);
+        await checkBasicTest(dom, opts);
     });
 
     /*

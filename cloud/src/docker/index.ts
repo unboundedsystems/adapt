@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 export * from "./BuildKitImage";
 export * from "./DockerImage";
 export * from "./DockerContainer";
+export * from "./image-ref";
 export * from "./NetworkService";
 export * from "./labels";
 export * from "./LocalDockerImage";

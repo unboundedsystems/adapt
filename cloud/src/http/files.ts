@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import {
 } from "@adpt/core";
 import { Dispatcher, notNull } from "@adpt/utils";
 import { isObject, isString } from "lodash";
-import { ImageInfo } from "../docker";
+import { ImageRef } from "../docker";
 import {
     Files,
     FilesInfo,
@@ -41,7 +41,7 @@ export function useResolvedFiles(files: Files[]): FilesResolved[] | undefined {
                 done.push(f);
                 continue;
             }
-            const image = callInstanceMethod<ImageInfo | undefined>(f.image, undefined, "image");
+            const image = callInstanceMethod<ImageRef | undefined>(f.image, undefined, "image");
             const imgName = image && isObject(image) && isString(image.nameTag) ? image.nameTag : null;
             if (image && !imgName) {
                 throw new Error(`Cannot use container image as file source. Image exists but does not have a tag.`);

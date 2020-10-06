@@ -85,15 +85,15 @@ export interface ImageNameTagOptions {
     imageTag?: string;
     /**
      * Use with `uniqueTag` to avoid generating a new unique tag if the newly
-     * built image is identical to `prevUniqueTag`.
+     * built image is identical to `prevUniqueNameTag`.
      */
-    prevUniqueTag?: string;
+    prevUniqueNameTag?: string;
     /**
      * If true and the newly built image ID does not match the image ID for
-     * prevUniqueTag (or prevUniqeTag is not set), a new unique nameTag is
+     * prevUniqueNameTag (or prevUniqueNameTag is not set), a new unique nameTag is
      * generated for this image (from imageName and imageTag).
      * If true and the newly built image ID does match the image ID for
-     * prevUniqueTag, then prevUniqueTag is returned as nameTag.
+     * prevUniqueNameTag, then prevUniqueNameTag is returned as nameTag.
      * If false, imageName and imageTag are used without modification.
      */
     uniqueTag?: boolean;

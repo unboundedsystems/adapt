@@ -31,7 +31,7 @@ import path from "path";
 import should from "should";
 import { Container, NetworkService, Service } from "../../src";
 import { createActionPlugin } from "../../src/action/action_plugin";
-import { ImageInfo, LocalDockerImage } from "../../src/docker";
+import { hasId, ImageRef, LocalDockerImage } from "../../src/docker";
 import { HttpServer, HttpServerProps } from "../../src/http";
 import * as nginx from "../../src/nginx";
 import { ReactApp } from "../../src/nodejs";
@@ -113,10 +113,10 @@ describe("ReactApp", function () {
 
         const nginxImageEl = els.filter((el) => el.props.options.imageName === "nginx-static")[0];
         should(nginxImageEl).be.ok();
-        const imageInfo = callInstanceMethod<ImageInfo | undefined>(
+        const imageInfo = callInstanceMethod<ImageRef | undefined>(
             nginxImageEl.props.handle, undefined, "latestImage");
         if (imageInfo == null) throw should(imageInfo).be.ok();
-        should(imageInfo.id).be.a.String();
+        if (!hasId(imageInfo)) throw should(imageInfo.id).be.a.String();
 
         // Check that the nginx image got the file "built" in the app image
         const out = await checkDockerRun(imageInfo.id, ["cat", "/www/static/file1"]);

@@ -84,6 +84,17 @@ export async function execCrane(args: string[]) {
     }
 }
 
+const copyDigestRe = /digest: +(sha\d+:[0-9a-f]+) /m;
+
+export async function registryCopy(from: ImageNameString, to: ImageNameString) {
+    const { stderr } = await execCrane(["copy", from, to]);
+
+    const m = stderr.match(copyDigestRe);
+    const digest = m && m[1];
+    if (!digest) throw new Error(`Container image copy did not return resulting digest. Output:\n${stderr}\n`);
+    return { digest };
+}
+
 export async function registryDelete(nameTag: NameTagString) {
     await execCrane(["delete", nameTag]);
 }

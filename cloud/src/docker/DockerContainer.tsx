@@ -47,9 +47,10 @@ import {
 } from "./cli";
 import { DockerObserver } from "./docker_observer";
 import { DockerImageInstance } from "./DockerImage";
+import { ImageRef } from "./image-ref";
 import { adaptDockerDeployIDKey } from "./labels";
 import { containerNetworks, NetworkDiff } from "./network_set";
-import { DockerContainerProps, DockerGlobalOptions, ImageIdString, ImageInfo, Mount } from "./types";
+import { DockerContainerProps, DockerGlobalOptions, ImageIdString, Mount } from "./types";
 
 /** @public */
 export interface DockerContainerStatus extends ContainerStatus { }
@@ -120,7 +121,7 @@ async function getImageId(source: string | Handle<DockerImageInstance>,
     props: DockerContainerProps): Promise<string | undefined> {
 
     if (isHandle(source)) {
-        const image = callInstanceMethod<ImageInfo | undefined>(source, undefined, "latestImage");
+        const image = callInstanceMethod<ImageRef | undefined>(source, undefined, "latestImage");
         if (!image) return undefined;
         return image.id;
     } else {
@@ -430,7 +431,7 @@ async function stopAndRmContainer(
 function getImageNameOrId(props: DockerContainerProps): string | undefined {
     const source = props.image;
     if (isHandle(source)) {
-        const image = callInstanceMethod<ImageInfo | undefined>(source, undefined, "latestImage");
+        const image = callInstanceMethod<ImageRef | undefined>(source, undefined, "latestImage");
         if (!image) return undefined;
         if (image.nameTag) return image.nameTag;
         return image.id;

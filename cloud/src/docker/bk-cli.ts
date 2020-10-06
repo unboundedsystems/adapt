@@ -21,9 +21,10 @@ import path from "path";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { BuildKitBuildOptions, BuildKitGlobalOptions, BuildKitOutput, ImageStorage, isBuildKitOutputRegistry } from "./bk-types";
 import { cmdId, createTag, debug, debugOut, streamToDebug, writeFiles } from "./cli";
+import { ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, MutableImageRef, WithId } from "./image-ref";
 import { registryDelete, registryImageId, registryTag } from "./image-tools";
 import { adaptDockerDeployIDKey } from "./labels";
-import { File, ImageInfo, ImageNameString } from "./types";
+import { File } from "./types";
 
 export const pickBuildKitGlobals = (opts: BuildKitGlobalOptions): BuildKitGlobalOptions =>
     pick(opts, "buildKitHost");
@@ -78,35 +79,32 @@ async function buildctlPath() {
 
 interface OutputInfo {
     args: string[];
-    nameTag: ImageNameString;
-    hasTag: boolean;
-    repo: string;
+    ref: MutableImageRef;
 }
 
 function outputInfo(output: BuildKitOutput): OutputInfo {
     const { imageName, imageTag, uniqueTag = false } = output;
-    let repo = imageName;
-    let nameTag = imageName;
+    const ref = mutableImageRef({
+        path: imageName,
+    });
     // When we're generating a unique tag, wait to add any tag
-    const hasTag = Boolean(imageTag) && !uniqueTag;
-    if (hasTag) nameTag += `:${imageTag}`;
+    if (imageTag && !uniqueTag) {
+        ref.tag = imageTag;
+    }
 
     if (isBuildKitOutputRegistry(output)) {
-        repo = `${output.registry}/${repo}`;
-        nameTag = `${output.registry}/${nameTag}`;
+        ref.domain = output.registry;
         const params = [
             "type=image",
             "push=true",
-            `name=${nameTag}`,
+            `name=${ref.nameTag || ref.name}`,
         ];
-        if (!hasTag) params.push(`push-by-digest=true`);
+        if (!ref.tag) params.push(`push-by-digest=true`);
         if (output.insecure) params.push(`registry.insecure=true`);
 
         return {
             args: ["--output", params.join(",")],
-            hasTag,
-            nameTag,
-            repo,
+            ref,
         };
     }
     throw new Error(`BuildKit output type not supported`);
@@ -120,10 +118,10 @@ export async function buildKitBuild(
     dockerfile: string,
     contextPath: string,
     output: BuildKitOutput,
-    options: BuildKitBuildOptions = {}): Promise<ImageInfo> {
+    options: BuildKitBuildOptions = {}): Promise<WithId<ImageRefRegistry>> {
 
     const opts = { ...defaultBuildKitBuildOptions, ...options };
-    const { imageName, imageTag, prevUniqueTag, uniqueTag = false } = output;
+    const { imageName, imageTag, prevUniqueNameTag, uniqueTag = false } = output;
     dockerfile = path.resolve(dockerfile);
 
     const args = [
@@ -139,42 +137,51 @@ export async function buildKitBuild(
     if (uniqueTag && !imageName) {
         throw new Error(`buildKitBuild: imageName must be set if uniqueTag is true`);
     }
-    const info = outputInfo(output);
+    const { args: oArgs, ref: mRef } = outputInfo(output);
 
     if (opts.deployID) {
         args.push("--opt", `label:${adaptDockerDeployIDKey}=${opts.deployID}`);
     }
     args.push(...collectBuildArgs(opts));
-    args.push(...info.args);
+    args.push(...oArgs);
 
     const cmdRet = await execBuildKit(args, opts);
     const { stderr } = cmdRet;
     // if (debug.enabled) debugBuild(cmdRet);
 
     const { id, digest } = idFromBuild(stderr);
-    const ret: ImageInfo = {
-        id,
-        digest: `${info.repo}@${digest}`,
-        nameTag: info.nameTag,
-    };
-    if (!ret.digest) throw new InternalError(`ret.digest should not be null`);
+    mRef.id = id;
+    mRef.digest = digest;
+    if (!mRef.registryDigest) throw new InternalError(`ref.registryDigest should not be null`);
 
     if (uniqueTag) {
-        const prevId = prevUniqueTag && await registryImageId(prevUniqueTag);
-        // TODO: Should this also confirm that registry has not changed?
+        let prevId: string | undefined;
+        if (prevUniqueNameTag) {
+            const prevRef = mutableImageRef();
+            prevRef.nameTag = prevUniqueNameTag;
+            // Since prevUniqueNameTag contains the registry, only allow reusing
+            // it if the registry for the built image is the same.
+            if (mRef.domain === prevRef.domain) {
+                prevId = await registryImageId(prevUniqueNameTag);
+            }
+        }
+
         if (prevId === id) {
-            ret.nameTag = prevUniqueTag; // prev points to current id
+            mRef.nameTag = prevUniqueNameTag; // prev points to current id
         } else {
             const newTag = createTag(imageTag, uniqueTag);
             if (!newTag) throw new InternalError(`newTag should not be null`);
-            ret.nameTag += `:${newTag}`;
-            await registryTag({ existing: ret.digest, newTag });
+            mRef.tag = newTag;
+            await registryTag({ existing: mRef.registryDigest, newTag });
         }
-    } else if (!info.hasTag) {
-        ret.nameTag = ret.digest;
     }
 
-    return ret;
+    const final = mRef.freeze();
+    if (!isImageRefRegistryWithId(final)) {
+        throw new InternalError(`Built image reference '${final.ref}' is not ` +
+            `a complete registry image with ID`);
+    }
+    return final;
 }
 
 function collectBuildArgs(opts: BuildKitBuildOptions): string[] {
@@ -273,19 +280,19 @@ export async function buildKitFilesImage(files: File[], options: BuildKitFilesIm
 
 export async function withBuildKitFilesImage<T>(files: File[] | undefined,
     opts: BuildKitFilesImageOptions,
-    fn: (img: ImageInfo | undefined) => T | Promise<T>): Promise<T> {
+    fn: (img: ImageRefRegistry | undefined) => T | Promise<T>): Promise<T> {
 
     if (!files || files.length === 0) return fn(undefined);
 
     const image = await buildKitFilesImage(files, opts);
-    const { digest } = image;
-    if (!digest) throw new InternalError(`buildKitFilesImage did not create a digest`);
+    const ref = image.registryTag || image.registryDigest;
+    if (!ref) throw new InternalError(`buildKitFilesImage did not create a tag or digest`);
 
     try {
         return await fn(image);
     } finally {
         try {
-            await registryDelete(digest);
+            await registryDelete(ref);
         } catch (err) {
             if (!err.stderr || !/UNSUPPORTED/.test(err.stderr)) {
                 err = ensureError(err);

@@ -29,10 +29,10 @@ import { Action, ActionContext, ShouldAct } from "../action";
 import { buildKitBuild, BuildKitFilesImageOptions, withBuildKitFilesImage } from "./bk-cli";
 import { BuildKitBuildOptions, BuildKitOutput } from "./bk-types";
 import { DockerPushableImageInstance } from "./DockerImage";
+import { ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, WithId } from "./image-ref";
+import { registryCopy } from "./image-tools";
 import {
     File,
-    ImageInfo,
-    NameTagString,
     Stage,
 } from "./types";
 
@@ -106,9 +106,9 @@ export interface BuildKitImageProps {
  */
 export interface BuildKitImageState {
     deployOpID?: DeployOpID;
-    image?: ImageInfo;
+    image?: WithId<ImageRefRegistry>;
     imagePropsJson?: string;
-    prevUniqueTag?: string;
+    prevUniqueNameTag?: string;
 }
 
 /**
@@ -131,7 +131,7 @@ export class BuildKitImage
     // status from this component, unless there's an active action.
     deployedWhenIsTrivial = true;
 
-    private image_?: ImageInfo;
+    private image_?: WithId<ImageRefRegistry>;
     private imagePropsJson_?: string;
     private options_: BuildKitBuildOptions;
 
@@ -165,23 +165,35 @@ export class BuildKitImage
         return this.image_;
     }
 
-    async pushTo(_registryUrl: string, _newTag?: NameTagString): Promise<undefined | ImageInfo> {
-        return undefined;
-        // const im = this.latestImage();
-        // if (!im) return undefined;
-        // newTag = newTag || im.nameTag;
-        // if (!newTag) {
-        //     throw new Error(`Unable to push image to registry: no nameTag ` +
-        //         `set for this image and new tag not provided`);
-        // }
-        // const fullTag = `${registryUrl}/${newTag}`;
-        // const globals = pickGlobals(this.options_);
-        // await dockerTag({ existing: im.id, newTag: fullTag, ...globals});
-        // await dockerPush({ nameTag: fullTag, ...globals });
-        // return {
-        //     id: im.id,
-        //     nameTag: fullTag,
-        // };
+    async pushTo(registryUrl: string, newPathTag?: string): Promise<undefined | WithId<ImageRefRegistry>> {
+        const source = this.latestImage();
+        if (!source) return undefined;
+
+        newPathTag = newPathTag || source.pathTag;
+        if (!newPathTag) {
+            throw new Error(`Unable to push image to registry: path and tag not ` +
+                `set for this image and new path and tag not provided`);
+        }
+        const dest = mutableImageRef({
+            id: source.id,
+        });
+        dest.pathTag = newPathTag;
+        dest.domain = registryUrl;
+        const destRef = dest.registryTag;
+        if (!destRef) {
+            throw new InternalError(`Unable to push image to registry: ` +
+                `destination reference '${dest.ref}' has no registryTag`);
+        }
+
+        const { digest } = await registryCopy(source.registryRef, destRef);
+        dest.digest = digest;
+
+        const final = dest.freeze();
+        if (!isImageRefRegistryWithId(final)) {
+            throw new InternalError(`Final pushed image '${final.ref}' is not ` +
+                `a complete registry image with ID`);
+        }
+        return final;
     }
 
     latestImage() {
@@ -223,7 +235,7 @@ export class BuildKitImage
             ...options,
             storage: this.props.output,
         };
-        const prevUniqueTag = this.state.prevUniqueTag;
+        const prevUniqueNameTag = this.state.prevUniqueNameTag;
 
         if (op === ChangeType.delete) {
             throw new InternalError(`Delete action should not happen due to check in shouldAct`);
@@ -256,7 +268,7 @@ export class BuildKitImage
                 await writeFile(dockerfileName, dockerfile);
                 return buildKitBuild(dockerfileName, contextDir, {
                     ...this.props.output,
-                    prevUniqueTag,
+                    prevUniqueNameTag,
                 }, options);
             }, { prefix: "adapt-buildkitimage" });
         });
@@ -264,9 +276,9 @@ export class BuildKitImage
         this.image_ = image;
         this.setState({
             deployOpID: this.deployInfo.deployOpID,
-            image,
+            image: this.image_,
             imagePropsJson: this.imagePropsJson,
-            prevUniqueTag: this.props.output.uniqueTag ? image.nameTag : undefined,
+            prevUniqueNameTag: this.props.output.uniqueTag ? image.nameTag : undefined,
         });
     }
 

@@ -26,6 +26,7 @@ import { deleteAllImages, deployIDFilter } from "../docker/common";
 import { MockDeploy } from "../testlib";
 
 import { DockerImageInstance } from "../../src/docker";
+import { hasId } from "../../src/docker/image-ref";
 import {
     LocalNodeImage,
     NodeImageBuildOptions,
@@ -88,6 +89,7 @@ describe("LocalNodeImage tests", function () {
     function TypescriptProject(props: TypescriptBuildProps) {
         const img = handle<DockerImageInstance>();
         const image = useMethod(img, "image");
+        if (image && !hasId(image)) throw new Error(`Image has no ID`);
         if (image) imageIds.push(image.id);
 
         return (

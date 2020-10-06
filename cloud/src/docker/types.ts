@@ -57,14 +57,14 @@ export interface DockerBuildOptions extends DockerGlobalOptions {
     forceRm?: boolean;
     imageName?: string;
     imageTag?: string;
-    prevUniqueTag?: string;
+    prevUniqueNameTag?: string;
     stdin?: string;
     /**
      * If true and the newly built image ID does not match the image ID for
-     * prevUniqueTag (or prevUniqeTag is not set), a new unique nameTag is
+     * prevUniqueNameTag (or prevUniqueNameTag is not set), a new unique nameTag is
      * generated for this image (from imageName and imageTag).
      * If true and the newly built image ID does match the image ID for
-     * prevUniqueTag, then prevUniqueTag is returned as nameTag.
+     * prevUniqueNameTag, then prevUniqueNameTag is returned as nameTag.
      * If false, imageName and imageTag are used without modification.
      */
     uniqueTag?: boolean;
@@ -242,16 +242,10 @@ export type RegistryString = string;
 /**
  * Information about a specific instance of a Docker image, as identified by
  * its image ID.
+ * @deprecated Replaced with {@link docker.ImageRef}.
  * @public
  */
 export interface ImageInfo {
-    /**
-     * Docker repo digest in the form `[registry/]repo@algorithm:hex`.
-     * @remarks
-     * See {@link docker.RepoDigestString}.
-     */
-    digest?: RepoDigestString;
-
     /**
      * Docker image ID, in the form `algorithm:hex`.
      * @remarks

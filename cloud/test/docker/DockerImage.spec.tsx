@@ -27,22 +27,30 @@ import Adapt, {
 import should from "should";
 import { LocalContainer } from "../../src";
 import { DockerImage, DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
+import { imageRef } from "../../src/docker/image-ref";
 import { doBuild } from "../testlib";
+
+const imageSha1 = "sha256:6858809bf669cc5da7cb6af83d0fae838284d12e1be0182f92f6bd96559873e3";
+const imageSha2 = "sha256:cc0abc535e36a7ede71978ba2bbd8159b8a5420b91f2fbc520cdf5f673640a34";
 
 class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
     implements DockerImageInstance {
 
     image() {
-        return {
-            id: "imageid",
-            nameTag: "imagetag"
-        };
+        return imageRef({
+            dockerHost: "default",
+            id: imageSha1,
+            path: "repo",
+            tag: "imagetag",
+        });
     }
     latestImage() {
-        return {
-            id: "latestid",
-            nameTag: "latesttag"
-        };
+        return imageRef({
+            dockerHost: "default",
+            id: imageSha2,
+            path: "repo",
+            tag: "latesttag",
+        });
     }
 }
 
@@ -82,10 +90,16 @@ describe("DockerImage", () => {
         const { dom } = await doBuild(orig, { style: mockImageStyle });
         const els = findElementsInDom(findLocalContainers, dom);
         should(els).have.length(1);
-        should(els[0].props.image).equal("latesttag");
+        should(els[0].props.image).equal("repo:latesttag");
         const inst = h.mountedOrig && h.mountedOrig.instance;
         if (!inst) throw should(inst).be.ok();
-        should(inst.image).eql({ id: "imageid", nameTag: "imagetag" });
-        should(inst.latest).eql({ id: "latestid", nameTag: "latesttag" });
+        should(inst.image).containEql({
+            id: imageSha1,
+            nameTag: "repo:imagetag",
+        });
+        should(inst.latest).containEql({
+            id: imageSha2,
+            nameTag: "repo:latesttag",
+        });
     });
 });

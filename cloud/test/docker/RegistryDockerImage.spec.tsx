@@ -28,7 +28,6 @@ import {
     computeContainerName,
     DockerBuildOptions,
     DockerContainer,
-    ImageInfo,
     LocalDockerImage,
     LocalDockerRegistry,
     RegistryDockerImage,
@@ -37,6 +36,7 @@ import {
 import {
     dockerInspect
 } from "../../src/docker/cli";
+import { ImageRef } from "../../src/docker/image-ref";
 
 describe("RegistryDockerImage", function () {
     let mockDeploy: MockDeploy;
@@ -128,7 +128,7 @@ describe("RegistryDockerImage", function () {
 
         const srcImageEl: FinalDomElement = dom.props.children[0];
         should(srcImageEl.componentType).equal(LocalDockerImage);
-        const srcImageInfo = callInstanceMethod<ImageInfo | undefined>(iSrc, undefined, "latestImage");
+        const srcImageInfo = callInstanceMethod<ImageRef | undefined>(iSrc, undefined, "latestImage");
         if (srcImageInfo == null) throw should(srcImageInfo).be.ok();
 
         // Info on the running container
@@ -142,10 +142,12 @@ describe("RegistryDockerImage", function () {
         if (ctrInfo == null) throw should(ctrInfo).be.ok();
 
         // Check image name
-        const regImageInfo = callInstanceMethod<ImageInfo | undefined>(iReg, undefined, "latestImage");
+        const regImageInfo = callInstanceMethod<ImageRef | undefined>(iReg, undefined, "latestImage");
         if (regImageInfo == null) throw should(regImageInfo).be.ok();
         should(regImageInfo.nameTag).equal(ctrInfo.Config.Image);
-        const tag = opts.newTag || srcImageInfo.nameTag;
+        let tag = opts.newTag || srcImageInfo.pathTag;
+        if (!tag) throw should(tag).be.ok();
+        if (!tag.includes(":")) tag += ":latest";
         should(regImageInfo.nameTag).equal(`localhost:5000/${tag}`);
         should(regImageInfo.id).equal(ctrInfo.Image);
 

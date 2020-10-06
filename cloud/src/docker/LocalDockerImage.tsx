@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,11 +34,10 @@ import {
     withFilesImage,
 } from "./cli";
 import { DockerPushableImageInstance } from "./DockerImage";
+import { ImageRefDockerHost, ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, WithId } from "./image-ref";
 import {
     DockerBuildOptions,
     File,
-    ImageInfo,
-    NameTagString,
     Stage,
 } from "./types";
 
@@ -108,9 +107,9 @@ export interface LocalDockerImageProps {
  */
 export interface LocalDockerImageState {
     deployOpID?: DeployOpID;
-    image?: ImageInfo;
+    image?: WithId<ImageRefDockerHost>;
     imagePropsJson?: string;
-    prevUniqueTag?: string;
+    prevUniqueNameTag?: string;
 }
 
 /**
@@ -136,7 +135,7 @@ export class LocalDockerImage
     // status from this component, unless there's an active action.
     deployedWhenIsTrivial = true;
 
-    private image_?: ImageInfo;
+    private image_?: WithId<ImageRefDockerHost>;
     private imagePropsJson_?: string;
     private options_: DockerBuildOptions;
 
@@ -170,22 +169,36 @@ export class LocalDockerImage
         return this.image_;
     }
 
-    async pushTo(registryUrl: string, newTag?: NameTagString): Promise<undefined | ImageInfo> {
-        const im = this.latestImage();
-        if (!im) return undefined;
-        newTag = newTag || im.nameTag;
-        if (!newTag) {
-            throw new Error(`Unable to push image to registry: no nameTag ` +
-                `set for this image and new tag not provided`);
+    async pushTo(registryUrl: string, newPathTag?: string): Promise<undefined | WithId<ImageRefRegistry>> {
+        const source = this.latestImage();
+        if (!source) return undefined;
+
+        newPathTag = newPathTag || source.pathTag;
+        if (!newPathTag) {
+            throw new Error(`Unable to push image to registry: path and tag not ` +
+                `set for this image and new path and tag not provided`);
         }
-        const fullTag = `${registryUrl}/${newTag}`;
+        const dest = mutableImageRef({
+            id: source.id,
+        });
+        dest.pathTag = newPathTag;
+        dest.domain = registryUrl;
+        const destRef = dest.registryTag;
+        if (!destRef) {
+            throw new InternalError(`Unable to push image to registry: ` +
+                `destination reference '${dest.ref}' has no registryTag`);
+        }
+
         const globals = pickGlobals(this.options_);
-        await dockerTag({ existing: im.id, newTag: fullTag, ...globals});
-        await dockerPush({ nameTag: fullTag, ...globals });
-        return {
-            id: im.id,
-            nameTag: fullTag,
-        };
+        await dockerTag({ existing: source.id, newTag: destRef, ...globals});
+        await dockerPush({ nameTag: destRef, ...globals });
+
+        const final = dest.freeze();
+        if (!isImageRefRegistryWithId(final)) {
+            throw new InternalError(`Final pushed image '${final.ref}' is not ` +
+                `a complete registry image with ID`);
+        }
+        return final;
     }
 
     latestImage() {
@@ -223,7 +236,7 @@ export class LocalDockerImage
             ...this.options_,
             deployID: ctx.buildData.deployID,
         };
-        const prevUniqueTag = this.state.prevUniqueTag;
+        const prevUniqueNameTag = this.state.prevUniqueNameTag;
 
         if (op === ChangeType.delete) {
             throw new InternalError(`Delete action should not happen due to check in shouldAct`);
@@ -253,7 +266,7 @@ export class LocalDockerImage
             contextDir = path.resolve(contextDir);
             return dockerBuild("-", contextDir, {
                 ...options,
-                prevUniqueTag,
+                prevUniqueNameTag,
                 stdin: dockerfile,
             });
         });
@@ -263,7 +276,7 @@ export class LocalDockerImage
             deployOpID: this.deployInfo.deployOpID,
             image,
             imagePropsJson: this.imagePropsJson,
-            prevUniqueTag: options.uniqueTag ? image.nameTag : undefined,
+            prevUniqueNameTag: options.uniqueTag ? image.nameTag : undefined,
         });
     }
 
