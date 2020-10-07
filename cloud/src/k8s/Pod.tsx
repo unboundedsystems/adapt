@@ -817,7 +817,7 @@ export interface PodProps extends WithChildren {
      * If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit
      * class with an empty definition that uses the default runtime handler.
      *
-     * More info: {@link https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md}
+     * More info: {@link https://kubernetes.io/docs/concepts/containers/runtime-class/}
      *
      * This is a beta feature as of Kubernetes v1.14.
      */
