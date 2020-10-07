@@ -742,7 +742,7 @@ export interface PodProps extends WithChildren {
      * Selector which must match a node's labels for the pod to be scheduled on that node.
      * More info: {@link https://kubernetes.io/docs/concepts/configuration/assign-pod-node/}
      */
-    nodeSelector?: NodeSelector;
+    nodeSelector?: { [label: string]: boolean | string };
 
     /**
      * Overhead represents the resource overhead associated with running a pod for a given RuntimeClass.
