@@ -65,7 +65,7 @@ export interface Ports {
     [portString: string]: string | undefined;
 }
 
-const specDefaults: ContainerSpec = {
+const specDefaults = (): ContainerSpec => ({
     AttachStdin: false,
     AttachStdout: false,
     AttachStderr: false,
@@ -81,7 +81,7 @@ const specDefaults: ContainerSpec = {
     },
     Env: [],
     Volumes: {},
-};
+});
 
 type StopFunc = () => (void | Promise<void>);
 
@@ -129,7 +129,7 @@ class DockerFixtureImpl implements DockerFixture {
 
         const tempName = `test_${process.pid}_${moment().format("MMDD-HHmm-ss-SSSSSS")}`;
 
-        const spec = merge(specDefaults, { name: tempName }, containerSpec);
+        const spec = merge(specDefaults(), { name: tempName }, containerSpec);
 
         if (this.options.pullPolicy !== "never") {
             await dockerPull(this.dockerClient, image, "      ");
