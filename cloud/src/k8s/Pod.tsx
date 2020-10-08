@@ -742,7 +742,7 @@ export interface PodProps extends WithChildren {
      * Selector which must match a node's labels for the pod to be scheduled on that node.
      * More info: {@link https://kubernetes.io/docs/concepts/configuration/assign-pod-node/}
      */
-    nodeSelector?: NodeSelector;
+    nodeSelector?: { [label: string]: boolean | string };
 
     /**
      * Overhead represents the resource overhead associated with running a pod for a given RuntimeClass.
@@ -817,7 +817,7 @@ export interface PodProps extends WithChildren {
      * If unset or empty, the "legacy" RuntimeClass will be used, which is an implicit
      * class with an empty definition that uses the default runtime handler.
      *
-     * More info: {@link https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md}
+     * More info: {@link https://kubernetes.io/docs/concepts/containers/runtime-class/}
      *
      * This is a beta feature as of Kubernetes v1.14.
      */
