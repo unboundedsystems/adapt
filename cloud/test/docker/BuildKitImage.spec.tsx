@@ -15,7 +15,7 @@
  */
 
 import Adapt, { callInstanceMethod, FinalDomElement, Group, handle } from "@adpt/core";
-import { mochaTmpdir } from "@adpt/testutils";
+import { dockerMocha, mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
@@ -23,6 +23,8 @@ import should from "should";
 import { createActionPlugin } from "../../src/action/action_plugin";
 import { MockDeploy, smallDockerImage } from "../testlib";
 
+import { waitForNoThrow } from "@adpt/utils";
+import fetch from "node-fetch";
 import {
     BuildKitImage,
     BuildKitImageProps,
@@ -41,7 +43,7 @@ import {
 import { ImageRef } from "../../src/docker/image-ref";
 import { buildKitHost } from "../run_buildkit";
 import { registryHost } from "../run_registry";
-import { checkRegistryImage } from "./common";
+import { checkRegistryImage, deleteAllContainers, deleteAllImages, deployIDFilter } from "./common";
 
 async function checkDockerRun(image: string) {
     const { stdout } = await execa("docker", [ "run", "--rm", image ]);
@@ -93,7 +95,9 @@ describe("buildKitFilesImage", function () {
         return checkDockerRun(nameTag);
     }
 
-    it("Should build an image", async () => {
+    it("Should build an image", async function () {
+        if (process.platform === "win32") this.skip();
+
         const image = await doBuildFiles([{
             path: "foo",
             contents: "foo contents\n",
@@ -130,6 +134,7 @@ describe("BuildKitImage", function () {
     let mockDeploy: MockDeploy;
     let pluginDir: string;
     let regHost: string;
+    let reg2Host: string;
     let bkHost: string;
 
     this.timeout(80 * 1000);
@@ -137,11 +142,31 @@ describe("BuildKitImage", function () {
 
     mochaTmpdir.all(`adapt-cloud-buildkitimage`);
 
+    const reg2Fixture = dockerMocha.all({
+        Image: "registry:2",
+        HostConfig: {
+            PublishAllPorts: true,
+        },
+    }, {
+        namePrefix: "bkimage-registry",
+        proxyPorts: true,
+    });
+
     before(async () => {
         pluginDir = path.join(process.cwd(), "plugins");
         regHost = await registryHost();
         bkHost = await buildKitHost();
         await fs.ensureDir("ctx");
+
+        const localPorts = await reg2Fixture.ports(true);
+        const host = localPorts["5000/tcp"];
+        if (!host) throw new Error(`Unable to get host/port for registry`);
+        reg2Host = host;
+
+        await waitForNoThrow(60, 1, async () => {
+            const resp = await fetch(`http://${host}/v2/`);
+            if (!resp.ok) throw new Error(`Registry ping returned status ${resp.status}: ${resp.statusText}`);
+        });
     });
 
     beforeEach(async () => {
@@ -152,6 +177,13 @@ describe("BuildKitImage", function () {
             uniqueDeployID: true
         });
         await mockDeploy.init();
+    });
+
+    afterEach(async function () {
+        this.timeout(20 * 1000);
+        const filter = deployIDFilter(mockDeploy.deployID);
+        await deleteAllContainers(filter);
+        await deleteAllImages(filter);
     });
 
     const storage = () => ({
@@ -181,7 +213,8 @@ describe("BuildKitImage", function () {
         return image;
     }
 
-    it("Should build a registry image with an imageTag", async () => {
+    it("Should build a registry image with an imageTag", async function () {
+        if (process.platform === "win32") this.skip();
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -201,7 +234,8 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(`${regHost}/bki-test:simple`);
     });
 
-    it("Should build a registry image without an imageTag", async () => {
+    it("Should build a registry image without an imageTag", async function () {
+        if (process.platform === "win32") this.skip();
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS2
@@ -221,7 +255,8 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(undefined);
     });
 
-    it("Should build a registry image with a unique tag", async () => {
+    it("Should build a registry image with a unique tag", async function () {
+        if (process.platform === "win32") this.skip();
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS3
@@ -247,7 +282,8 @@ describe("BuildKitImage", function () {
         should(image2.id).equal(image.id);
     });
 
-    it("Should build using alternate file name", async () => {
+    it("Should build using alternate file name", async function () {
+        if (process.platform === "win32") this.skip();
         await fs.writeFile("notadockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -267,7 +303,8 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(`${regHost}/bki-test:simple`);
     });
 
-    it("Should build a registry image with files", async () => {
+    it("Should build a registry image with files", async function () {
+        if (process.platform === "win32") this.skip();
         const props: BuildKitImageProps = {
             dockerfile: `
                 FROM ${busyboxImage}
@@ -294,8 +331,8 @@ describe("BuildKitImage", function () {
         buildOpts?: BuildKitBuildOptions;
         dockerfile?: string;
         output?: BuildKitOutputRegistry;
-        registryUrl?: string;
-        newTag?: string;
+        registryUrl: string;
+        newPathTag?: string;
     }
     const defaultBasicDom = () => {
         const output: BuildKitOutputRegistry = {
@@ -308,7 +345,6 @@ describe("BuildKitImage", function () {
                 FROM ${smallDockerImage}
                 CMD sleep 10000
                 `,
-            registryUrl: regHost,
             output,
         };
     };
@@ -316,12 +352,12 @@ describe("BuildKitImage", function () {
         buildKitHost: bkHost,
     });
 
-    async function deployBasicTest(options: BasicDom = {}) {
+    async function deployBasicTest(options: BasicDom) {
         const [ iReg, iSrc ] = [ handle(), handle() ];
         const opts = { ...defaultBasicDom(), ...options };
         const buildOpts = { ...defaultBuildOpts(), ...(opts.buildOpts || {})};
         const imageOpts: Partial<RegistryDockerImageProps> = {};
-        if (opts.newTag) imageOpts.newTag = opts.newTag;
+        if (opts.newPathTag) imageOpts.newPathTag = opts.newPathTag;
 
         const orig =
             <Group>
@@ -344,7 +380,7 @@ describe("BuildKitImage", function () {
         return mockDeploy.deploy(orig);
     }
 
-    async function checkBasicTest(dom: FinalDomElement | null, options: BasicDom = {}) {
+    async function checkBasicTest(dom: FinalDomElement | null, options: BasicDom) {
         const opts = { ...defaultBasicDom(), ...options };
 
         if (dom == null) throw should(dom).not.be.Null();
@@ -372,11 +408,12 @@ describe("BuildKitImage", function () {
         const regImageInfo = callInstanceMethod<ImageRef | undefined>(iReg, undefined, "latestImage");
         if (regImageInfo == null) throw should(regImageInfo).be.ok();
         should(regImageInfo.nameTag).equal(ctrInfo.Config.Image);
-        let nameTag = opts.newTag || srcImageInfo.nameTag;
-        if (!nameTag) throw should(nameTag).be.ok();
-        if (!nameTag.includes(":")) nameTag += ":latest";
-        should(regImageInfo.nameTag).equal(`${regHost}/${nameTag}`);
+        let pathTag = opts.newPathTag || srcImageInfo.pathTag;
+        if (!pathTag) throw should(pathTag).be.ok();
+        if (!pathTag.includes(":")) pathTag += ":latest";
+        should(regImageInfo.nameTag).equal(`${options.registryUrl}/${pathTag}`);
         should(regImageInfo.id).equal(ctrInfo.Image);
+        should(regImageInfo.digest).equal(srcImageInfo.digest);
 
         // Stop the container so we can delete its image
         await execa("docker", ["rm", "-f", contName]);
@@ -389,34 +426,34 @@ describe("BuildKitImage", function () {
         should(finalInfos).be.Array().of.length(0);
     }
 
-    it("Should push a built image to second tag in registry", async () => {
+    it("Should push a built image to second registry with same pathTag", async function () {
+        if (process.platform === "win32") this.skip();
+        const output: BuildKitOutputRegistry = {
+            ...storage(),
+            imageName: "bki-test",
+            imageTag: "sametag",
+        };
+        const opts = {
+            output,
+            registryUrl: reg2Host,
+        };
+        const { dom } = await deployBasicTest(opts);
+        await checkBasicTest(dom, opts);
+    });
+
+    it("Should push a built image to second registry with new pathTag", async function () {
+        if (process.platform === "win32") this.skip();
         const output: BuildKitOutputRegistry = {
             ...storage(),
             imageName: "bki-test",
             imageTag: "firsttag",
         };
         const opts = {
-            newTag: "secondtag",
             output,
+            newPathTag: "new/repo/image:secondtag",
+            registryUrl: reg2Host,
         };
         const { dom } = await deployBasicTest(opts);
         await checkBasicTest(dom, opts);
     });
-
-    /*
-    it("Should push a built image to registry with full URL", async () => {
-        const { dom } = await deployBasicTest({ registryUrl: "http://localhost:5000"});
-        await checkBasicTest(dom);
-    });
-
-    it("Should push a built image to registry with new tag", async () => {
-        const opts = {
-            newTag: "myimage",
-            // No tag
-            buildOpts: { imageName: undefined, uniqueTag: false}
-        };
-        const { dom } = await deployBasicTest(opts);
-        await checkBasicTest(dom, opts);
-    });
-    */
 });
