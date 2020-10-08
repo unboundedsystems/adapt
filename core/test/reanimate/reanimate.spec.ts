@@ -76,7 +76,7 @@ function requireModule(modName: ModName) {
 }
 
 describe("Reanimate basic tests", () => {
-    let origRegistry: MummyRegistry;
+    let origRegistry: MummyRegistry | undefined;
     let firstMummyJ: MummyJson;
 
     before(() => {
@@ -442,6 +442,16 @@ const registerInFuncPackage: Package = {
 
 const distSrc = path.join(packageDirs.dist, "src");
 
+const reanimateIndexJs = `
+const path = require("path");
+
+global.getAdaptContext = () => ({
+    projectRoot: path.resolve("."),
+});
+
+module.exports = require('./reanimate');
+`;
+
 const reanimatePackage: Package = {
     pkgJson: {
         name: "@usys/reanimate",
@@ -455,7 +465,7 @@ const reanimatePackage: Package = {
         },
     },
     files: {
-        "index.js": "module.exports = require('./reanimate');\n",
+        "index.js": reanimateIndexJs,
     },
     copy: {
         "reanimate/index.js": path.join(distSrc, "reanimate", "reanimate.js"),

@@ -31,15 +31,17 @@ export interface AdaptContext {
     adaptStacks: Stacks;
     observers: Map<string, ObserverManagerDeployment>;
     Adapt: typeof Adapt;
+    projectRoot: string;
 }
 
-export function createAdaptContext(): AdaptContext {
+export function createAdaptContext(projectRoot: string): AdaptContext {
     const adaptStacks = new Map<string, Stack>();
     adaptStacks.set("(null)", nullStack());
     return Object.assign(Object.create(null), {
         pluginModules: new Map<string, PluginModule>(),
         adaptStacks,
         observers: new Map<string, ObserverManagerDeployment>(),
+        projectRoot,
     });
 }
 
@@ -57,7 +59,7 @@ export function projectExec(projectRoot: string, rootFileName: string) {
     // This becomes "global" inside the project program
     const context = Object.create(null);
 
-    const adaptContext = createAdaptContext();
+    const adaptContext = createAdaptContext(projectRoot);
     context.getAdaptContext = () => adaptContext;
 
     const fileExt = path.extname(rootFileName);
@@ -89,12 +91,15 @@ export interface MockAdaptContext extends AdaptContext {
 
 // Testing only
 export function mockAdaptContext(): MockAdaptContext {
-    const ctx = createAdaptContext();
+    const ctx = createAdaptContext(path.resolve("."));
     const g: any = global;
-    if (g.getAdaptContext != null) throw new Error(`Can't mock AdaptContext. getAdaptContext already set.`);
+    const oldContext = g.getAdaptContext;
     g.getAdaptContext = () => ctx;
     return {
         ...ctx,
-        stop: () => delete g.getAdaptContext
+        stop: () => {
+            if (!oldContext) delete g.getAdaptContext;
+            else g.getAdaptContext = oldContext;
+        },
     };
 }

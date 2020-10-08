@@ -20,10 +20,9 @@ import Listr from "@unboundedsystems/listr";
 import * as fs from "fs-extra";
 import * as path from "path";
 import { ReplaceT } from "type-ops";
-import { pathToFileURL } from "url";
 import { DeployState, DeploySuccess } from "../types/adapt_shared";
 import { taskObservable } from "../ui";
-import { AdaptBase, createLoggerPair, HandleResponseOptions } from "./adapt_base";
+import { AdaptBase, createLoggerPair, defaultServerUrl, HandleResponseOptions } from "./adapt_base";
 
 import {
     getGen,
@@ -87,13 +86,7 @@ export abstract class DeployBase extends AdaptBase {
 
         this.tasks_ = new Listr(this.outputSettings.listrOptions);
 
-        let adaptUrl: string;
-        if (f.serverUrl) {
-            adaptUrl = f.serverUrl;
-        } else {
-            const dbFile = path.join(this.config.dataDir, "local_deploy");
-            adaptUrl = pathToFileURL(dbFile).href;
-        }
+        const adaptUrl = f.serverUrl || defaultServerUrl(this.config);
 
         const pair = createLoggerPair("deploy", this.outputSettings.logging);
         this.ctx = {

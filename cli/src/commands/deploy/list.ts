@@ -16,7 +16,7 @@
 
 import { dirname } from "path";
 import * as util from "util";
-import { DeployBase } from "../../base";
+import { defaultServerUrl, DeployBase } from "../../base";
 import { projectAdaptModule } from "../../proj";
 import { AdaptModule, DeploymentInfo } from "../../types/adapt_shared";
 import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
@@ -91,6 +91,14 @@ export default class ListCommand extends DeployBase {
             }),
             onCompleteRoot: async (_ctx, _task, err, prom) => {
                 const info = await waitForInitiate(err, prom);
+                if (err && err.message) {
+                    const m = err.message.match(/Invalid Adapt Server URL '(.*?)'.*does not exist/);
+                    const url = m && m[1];
+                    if (url === defaultServerUrl(this.config)) {
+                        this.appendOutput(formatDeployments([]));
+                        return;
+                    }
+                }
                 if (!this.isApiSuccess(info, { action: "list" })) return;
                 this.appendOutput(formatDeployments(info.deployments));
             }

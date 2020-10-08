@@ -442,6 +442,31 @@ describe("deploy:list tests", function () {
     this.timeout(3 * 60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
+    testBase
+    .env({
+        ADAPT_SERVER_URL: undefined,
+    })
+    .command(["deploy:list", "-q"])
+
+    .it("Should list no deployments with no local server (default server)", async (ctx) => {
+        expect(ctx.stderr).equals("");
+        expect(ctx.stdout).equals("");
+    });
+
+    testBase
+    .env({
+        ADAPT_SERVER_URL: "file:///tmp/foo",
+    })
+    .command(["deploy:list", "-q"])
+    .catch((err) => {
+        expect(err.message).equals(
+            "1 error encountered during list:\n" +
+            "[deploy:list] : Error Listing deployments: Invalid Adapt Server URL 'file:///tmp/foo': 'adapt_local.json' does not exist"
+        );
+        expect((err as any).oclif.exit).equals(2);
+    })
+    .it("Should error listing deployments with empty non-default local server");
+
     basicTestChain
     .command(["deploy:run", "dev"])
     .command(["deploy:list"])

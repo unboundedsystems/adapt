@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { mapMap } from "@adpt/utils";
+import { mapMap, UserError } from "@adpt/utils";
 import * as fs from "fs-extra";
 import { JsonDB } from "node-json-db";
 import * as path from "path";
@@ -76,6 +76,7 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
     private filename: string;
     private options: LocalServerOptions;
     private historyStores: Map<string, HistoryStore>;
+    private url: string;
 
     constructor(url: URL, options: Partial<LocalServerOptions>) {
         const pathname = fileURLToPath(url);
@@ -87,6 +88,7 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
         this.filename = filename;
         this.historyStores = new Map<string, HistoryStore>();
         this.options = {...defaultOptions, ...options};
+        this.url = url.href;
     }
 
     async init(): Promise<void> {
@@ -104,7 +106,7 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
             // fall through
         }
         if (rootStat && !rootStat.isDirectory()) {
-            throw new Error(`Local server: ${this.rootDir} is not a directory`);
+            return throwServerUrlError(this.url, `'${this.rootDir}' is not a directory`);
         }
         if (this.options.init === true && rootStat === undefined) {
             await fs.ensureDir(this.rootDir);
@@ -112,7 +114,7 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
 
         const exists = await fs.pathExists(this.filename);
         if (exists === false && this.options.init === false) {
-            throw new Error(`Adapt local server file '${this.filename}' does not exist`);
+            return throwServerUrlError(this.url, `'${dbFilename}' does not exist`);
         }
 
         // Creates file if none exists. Params are:
@@ -128,7 +130,8 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
                 // fall through
             }
             if (ver !== currentVersion) {
-                throw new Error(`File '${this.filename}' is not a valid Adapt local server file`);
+                return throwServerUrlError(this.url,
+                    `'${dbFilename}' is not a valid local server file (ver=${ver})`);
             }
         } else {
             this.db.push("/adaptLocalServerVersion", currentVersion);
@@ -189,4 +192,8 @@ export class LocalServer extends ServerBase<FileLock> implements AdaptServer {
         return store;
     }
 
+}
+
+function throwServerUrlError(url: string, message: string) {
+    throw new UserError(`Invalid Adapt Server URL '${url}': ${message}`);
 }

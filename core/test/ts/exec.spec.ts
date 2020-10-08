@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -167,7 +167,7 @@ describe("Exec module tests", function () {
 
 describe("adaptContext Tests", () => {
     it("Should add null stack into adapt context", () => {
-        const context = createAdaptContext();
+        const context = createAdaptContext(path.resolve("."));
         const stacks = context.adaptStacks;
         const nullStack = stacks.get("(null)");
         if (nullStack === undefined) throw should(nullStack).not.Undefined();
