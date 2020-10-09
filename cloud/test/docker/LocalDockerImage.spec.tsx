@@ -15,7 +15,7 @@
  */
 
 import Adapt from "@adpt/core";
-import { mochaTmpdir } from "@adpt/testutils";
+import { dockerMocha, mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import { uniq } from "lodash";
@@ -50,8 +50,12 @@ RUN --mount=type=secret,id=mysecret cat /run/secret
 const buildKitEnabledError = RegExp("cat: can't open '/run/secret': No such file or directory");
 const buildKitDisabledError = /Dockerfile parse error line \d+: Unknown flag: mount/;
 
-async function checkDockerRun(image: string) {
-    const { stdout } = await execa("docker", [ "run", "--rm", image ]);
+async function checkDockerRun(image: string, dockerHost?: string) {
+    const { stdout } = await execa("docker", [ "run", "--rm", image ], {
+        env: {
+            DOCKER_HOST: dockerHost || process.env.DOCKER_HOST,
+        },
+    });
     return stdout;
 }
 
@@ -124,14 +128,36 @@ describe("LocalDockerImage", function () {
     const cleanupIds: string[] = [];
     let mockDeploy: MockDeploy;
     let pluginDir: string;
+    let dindHost: string;
+    let supportsBuildKit: boolean;
 
     this.timeout(60 * 1000);
     this.slow(4 * 1000);
 
     mochaTmpdir.all(`adapt-cloud-localdockerimage`);
 
-    before(() => {
+    const dindFixture = dockerMocha.all({
+        // Test with an older version without BuildKit
+        Image: "docker:18.06-dind",
+        name: "test-dind-localdocker",
+        HostConfig: {
+            PublishAllPorts: true,
+            Privileged: true,
+        },
+    }, { proxyPorts: true });
+
+    before(async () => {
         pluginDir = path.join(process.cwd(), "plugins");
+        const ports = await dindFixture.ports(true);
+        const dind = ports["2375/tcp"];
+        if (!dind) throw new Error(`Unable to get host:port for dind instance`);
+        dindHost = dind;
+
+        // Check to see if Docker of the system we're running on supports BuildKit
+        const { stdout } = await execa("docker", ["info", "-f", "{{ .ServerVersion }}"]);
+        const majorVer = parseInt(stdout, 10);
+        if (isNaN(majorVer)) throw new Error(`Unable to determine Docker daemon version from '${stdout}'`);
+        supportsBuildKit = majorVer >= 19;
     });
 
     after(async function () {
@@ -162,7 +188,7 @@ describe("LocalDockerImage", function () {
         should(id).match(/^sha256:[a-f0-9]{64}$/);
         cleanupIds.push(id);
 
-        const output = await checkDockerRun(id);
+        const output = await checkDockerRun(id, props.options && props.options.dockerHost);
         should(output).equal(expected);
 
         return image;
@@ -194,6 +220,20 @@ describe("LocalDockerImage", function () {
         await buildAndRun(props, "SUCCESS1");
     });
 
+    it("Should build an image on older Docker daemon", async () => {
+        await fs.writeFile("Dockerfile", `
+            FROM ${busyboxImage}
+            CMD echo SUCCESS1
+        `);
+        const props: LocalDockerImageProps = {
+            dockerfileName: "Dockerfile",
+            options: {
+                dockerHost: dindHost,
+            },
+        };
+        await buildAndRun(props, "SUCCESS1");
+    });
+
     it("Should build an image with files", async () => {
         const props: LocalDockerImageProps = {
             dockerfile: `
@@ -210,7 +250,9 @@ describe("LocalDockerImage", function () {
         await buildAndRun(props, "SUCCESS2");
     });
 
-    it("Should build with BuildKit by default", async () => {
+    it("Should build with BuildKit by default", async function () {
+        if (!supportsBuildKit) this.skip();
+
         const props: LocalDockerImageProps = {
             dockerfile: buildKitDockerfile,
         };
@@ -218,7 +260,9 @@ describe("LocalDockerImage", function () {
         should(messages).match(buildKitEnabledError);
     });
 
-    it("Should disable BuildKit with option", async () => {
+    it("Should disable BuildKit with option", async function () {
+        if (!supportsBuildKit) this.skip();
+
         const props: LocalDockerImageProps = {
             dockerfile: buildKitDockerfile,
             options: {
