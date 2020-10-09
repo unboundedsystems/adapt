@@ -36,13 +36,15 @@
     "@types/fs-extra": "8.1.1",
     "@types/mocha": "5.2.7",
     "@types/node": "10.17.9",
+    "@types/node-fetch": "2.5.4",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "dockerode": "3.2.1",
     "execa": "4.0.3",
     "fs-extra": "8.1.0",
     "mocha": "5.2.0",
-    "mocha-slow-options": "0.0.2"
+    "mocha-slow-options": "0.0.2",
+    "node-fetch": "2.6.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
