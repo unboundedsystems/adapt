@@ -19,7 +19,7 @@ import Docker = require("dockerode");
 import { merge } from "lodash";
 import moment from "moment";
 import pDefer from "p-defer";
-import { addToNetwork, createNetwork, dockerPull } from "./dockerutils";
+import { addToNetwork, createNetwork, dockerPull, inContainer, proxyFromContainer } from "./dockerutils";
 
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
@@ -51,6 +51,19 @@ export interface Options {
     addToNetworks?: string[];
     delayStart?: boolean;
     finalSetup?: (fixture: DockerFixture) => MaybePromise<void>;
+    /**
+     * When running from a container, set up TCP proxies on localhost that
+     * match the localhost port bindings on the container. The result is that
+     * connecting to this container is done via the exact same port on
+     * localhost from both the parent host and from this container.
+     * Additionally, the connection is always to `localhost`, which may have
+     * special properties regarding security.
+     *
+     * This option must be used with a container configuration that binds
+     * ports to localhost via either PortBindings or PublishAllPorts.
+     * Only TCP ports are supported.
+     */
+    proxyPorts?: boolean;
     pullPolicy?: "always" | "never";
 }
 
@@ -58,6 +71,7 @@ const defaults: Required<Options> = {
     addToNetworks: [],
     delayStart: false,
     finalSetup: () => {/* */},
+    proxyPorts: false,
     pullPolicy: "always",
 };
 
@@ -153,6 +167,7 @@ class DockerFixtureImpl implements DockerFixture {
         this.onStop(() => container.stop());
         await pStart;
         this.container_ = container;
+        if (this.options.proxyPorts) await this.setupProxies();
         await this.options.finalSetup(this);
     }
 
@@ -219,6 +234,29 @@ class DockerFixtureImpl implements DockerFixture {
             });
         }
         return p;
+    }
+
+    async setupProxies() {
+        if (!inContainer()) return;
+
+        const localPorts = await this.ports(true);
+        if (Object.keys(localPorts).length === 0) {
+            throw new Error(`No ports bound to localhost on container. Use PortBindings or PublishAllPorts`);
+        }
+        const targetPorts = await this.ports(false);
+
+        for (const [portStr, local] of Object.entries(localPorts)) {
+            if (!local) continue;
+            if (!portStr.includes("/tcp")) continue; // Only tcp supported
+            const m = local.match(/:(\d+)$/);
+            if (!m || !m[1]) throw new Error(`Can't find local port number in '${portStr}`);
+            const localPort = parseInt(m[1], 10);
+
+            const target = targetPorts[portStr];
+            if (!target) throw new Error(`No target port for '${portStr}'`);
+            const stop = await proxyFromContainer(localPort, target);
+            this.onStop(stop);
+        }
     }
 }
 
