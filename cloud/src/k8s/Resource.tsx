@@ -35,6 +35,7 @@ import Adapt, {
 import * as ld from "lodash";
 
 import { InternalError } from "@adpt/utils";
+import * as yup from "yup";
 import { Action, ActionContext, ShouldAct } from "../action";
 import { mountedElement } from "../common";
 import { ResourceProps, ResourcePropsWithConfig } from "./common";
@@ -89,6 +90,14 @@ export class Resource extends Action<ResourceProps> {
         if (!this.props.isTemplate && this.props.config === undefined) {
             throw new Error("Non-template Resource elements must have a config prop");
         }
+
+        yup.object().shape({
+            kubeconfig: yup.object().shape({ "current-context": yup.string() }).required(),
+            registry: yup.mixed().oneOf([
+                yup.object().shape({ internal: yup.string().url(), external: yup.string().url() }),
+                yup.string().url()
+            ])
+        }).validateSync(this.props.config);
 
         //Do other validations of Specs here
     }
