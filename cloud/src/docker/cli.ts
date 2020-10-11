@@ -142,6 +142,8 @@ export async function withFilesImage<T>(files: File[] | undefined,
     }
 }
 
+const buildKitUnsupported = new Map<string | undefined, boolean>();
+
 export interface ExecDockerOptions extends DockerGlobalOptions {
     requestBuildKit?: boolean;
     stdin?: string;
@@ -149,14 +151,15 @@ export interface ExecDockerOptions extends DockerGlobalOptions {
 }
 
 /** @internal */
-export async function execDocker(args: string[], options: ExecDockerOptions) {
+export async function execDocker(argsIn: string[], options: ExecDockerOptions): Promise<ExecaReturnValue> {
     const globalArgs = [];
     if (options.dockerHost) globalArgs.push("-H", options.dockerHost);
 
     const env = mergeEnvSimple(options.env) || {};
-    env.DOCKER_BUILDKIT = options.requestBuildKit ? "1" : "0";
+    env.DOCKER_BUILDKIT = options.requestBuildKit &&
+        buildKitUnsupported.get(options.dockerHost) !== true ? "1" : "0";
 
-    args = globalArgs.concat(args);
+    const args = globalArgs.concat(argsIn);
     const execaOpts: ExecaOptions = {
         all: true,
         input: options.stdin,
@@ -176,7 +179,13 @@ export async function execDocker(args: string[], options: ExecDockerOptions) {
         }
         return await ret;
     } catch (e) {
-        if (e.all) e.message += "\n" + e.all;
+        if (e.all) {
+            if (e.all.includes("buildkit not supported by daemon")) {
+                buildKitUnsupported.set(options.dockerHost, true);
+                return execDocker(argsIn, options);
+            }
+            e.message += "\n" + e.all;
+        }
         throw e;
     }
 }

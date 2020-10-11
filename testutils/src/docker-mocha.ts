@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-import { onExit } from "@adpt/utils";
+import { MaybePromise, onExit } from "@adpt/utils";
 import Docker = require("dockerode");
 import { merge } from "lodash";
 import moment from "moment";
-import { addToNetwork, createNetwork, dockerPull } from "./dockerutils";
+import pDefer from "p-defer";
+import { addToNetwork, createNetwork, dockerPull, inContainer, proxyFromContainer } from "./dockerutils";
 
 type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
 
 function setup(fixture: DockerFixtureImpl, beforeFn: FixtureFunc, afterFn: FixtureFunc) {
 
-    beforeFn(async function startContainer(this: any) {
-        this.timeout(4 * 60 * 1000);
-        await fixture.start();
-    });
+    if (!fixture.options.delayStart) {
+        beforeFn(async function startContainer(this: any) {
+            this.timeout(4 * 60 * 1000);
+            await fixture.start();
+        });
+    }
 
     afterFn(async function stopContainer(this: any) {
         this.timeout(60 * 1000);
@@ -38,21 +41,45 @@ function setup(fixture: DockerFixtureImpl, beforeFn: FixtureFunc, afterFn: Fixtu
 export interface DockerFixture {
     dockerClient: Docker;
     container: Docker.Container;
+    ports(localhost?: boolean): Promise<Ports>;
+    start(): Promise<void>;
 }
 export type ContainerSpec = Docker.ContainerCreateOptions;
 export type ContainerSpecFunc = () => ContainerSpec;
 
 export interface Options {
     addToNetworks?: string[];
+    delayStart?: boolean;
+    finalSetup?: (fixture: DockerFixture) => MaybePromise<void>;
+    /**
+     * When running from a container, set up TCP proxies on localhost that
+     * match the localhost port bindings on the container. The result is that
+     * connecting to this container is done via the exact same port on
+     * localhost from both the parent host and from this container.
+     * Additionally, the connection is always to `localhost`, which may have
+     * special properties regarding security.
+     *
+     * This option must be used with a container configuration that binds
+     * ports to localhost via either PortBindings or PublishAllPorts.
+     * Only TCP ports are supported.
+     */
+    proxyPorts?: boolean;
     pullPolicy?: "always" | "never";
 }
 
 const defaults: Required<Options> = {
     addToNetworks: [],
+    delayStart: false,
+    finalSetup: () => {/* */},
+    proxyPorts: false,
     pullPolicy: "always",
 };
 
-const specDefaults: ContainerSpec = {
+export interface Ports {
+    [portString: string]: string | undefined;
+}
+
+const specDefaults = (): ContainerSpec => ({
     AttachStdin: false,
     AttachStdout: false,
     AttachStderr: false,
@@ -68,7 +95,7 @@ const specDefaults: ContainerSpec = {
     },
     Env: [],
     Volumes: {},
-};
+});
 
 type StopFunc = () => (void | Promise<void>);
 
@@ -79,6 +106,8 @@ class DockerFixtureImpl implements DockerFixture {
     options: Required<Options>;
     specFunc: ContainerSpecFunc;
     removeOnStop?: () => void;
+    pStarted?: pDefer.DeferredPromise<void>;
+    ready = false;
 
     constructor(containerSpec: ContainerSpec | ContainerSpecFunc, options: Options = {}) {
         this.specFunc = (typeof containerSpec === "function") ?
@@ -93,13 +122,28 @@ class DockerFixtureImpl implements DockerFixture {
     }
 
     async start() {
+        if (!this.pStarted) {
+            this.pStarted = pDefer<void>();
+            try {
+                await this.start_();
+                this.ready = true;
+                this.pStarted.resolve();
+
+            } catch (err) {
+                this.pStarted.reject(err);
+            }
+        }
+        return this.pStarted.promise;
+    }
+
+    async start_() {
         const containerSpec = this.specFunc();
         const image = containerSpec.Image;
         if (image == null) throw new Error(`Image must be specified in container spec`);
 
         const tempName = `test_${process.pid}_${moment().format("MMDD-HHmm-ss-SSSSSS")}`;
 
-        const spec = merge(specDefaults, { name: tempName }, containerSpec);
+        const spec = merge(specDefaults(), { name: tempName }, containerSpec);
 
         if (this.options.pullPolicy !== "never") {
             await dockerPull(this.dockerClient, image, "      ");
@@ -123,9 +167,21 @@ class DockerFixtureImpl implements DockerFixture {
         this.onStop(() => container.stop());
         await pStart;
         this.container_ = container;
+        if (this.options.proxyPorts) await this.setupProxies();
+        await this.options.finalSetup(this);
     }
 
     async stop() {
+        if (!this.pStarted) return; // We never tried to start
+        if (!this.ready) {
+            // We're still starting or failed. Let that finish.
+            try {
+                await this.pStarted.promise;
+            } catch (err) {
+                /* */
+            }
+        }
+
         if (this.removeOnStop) {
             this.removeOnStop();
             this.removeOnStop = undefined;
@@ -161,6 +217,46 @@ class DockerFixtureImpl implements DockerFixture {
             this.removeOnStop = onExit(() => this.stop());
         }
         this.stops.push(fn);
+    }
+
+    async ports(localhost = false): Promise<Ports> {
+        const info = await this.container.inspect();
+        const p: Ports = {};
+
+        if (localhost === true) {
+            Object.entries(info.NetworkSettings.Ports).forEach(([portStr, hostArr]) => {
+                p[portStr] = `localhost:${hostArr[0].HostPort}`;
+            });
+        } else {
+            const hostname = info.NetworkSettings.IPAddress;
+            Object.keys(info.Config.ExposedPorts).forEach((portStr) => {
+                p[portStr] = `${hostname}:${parseInt(portStr, 10)}`;
+            });
+        }
+        return p;
+    }
+
+    async setupProxies() {
+        if (!inContainer()) return;
+
+        const localPorts = await this.ports(true);
+        if (Object.keys(localPorts).length === 0) {
+            throw new Error(`No ports bound to localhost on container. Use PortBindings or PublishAllPorts`);
+        }
+        const targetPorts = await this.ports(false);
+
+        for (const [portStr, local] of Object.entries(localPorts)) {
+            if (!local) continue;
+            if (!portStr.includes("/tcp")) continue; // Only tcp supported
+            const m = local.match(/:(\d+)$/);
+            if (!m || !m[1]) throw new Error(`Can't find local port number in '${portStr}`);
+            const localPort = parseInt(m[1], 10);
+
+            const target = targetPorts[portStr];
+            if (!target) throw new Error(`No target port for '${portStr}'`);
+            const stop = await proxyFromContainer(localPort, target);
+            this.onStop(stop);
+        }
     }
 }
 
