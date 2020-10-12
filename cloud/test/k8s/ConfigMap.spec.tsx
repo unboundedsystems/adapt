@@ -58,7 +58,7 @@ describe("k8s ConfigMap Component Tests", () => {
         should(dom.componentType).equal(Resource);
         should(dom.props.data).eql(data);
         should(dom.props.binaryData).eql({});
-        should(dom.props.immutable).be.False();
+        should(dom.props.immutable).be.Undefined();
     });
 
     it("Should respect string binary data", async () => {
@@ -161,7 +161,7 @@ describe("k8s ConfigMap operation tests", function () {
         const cm = maps[0];
         should(cm.data).eql(data);
         if (cm.immutable) {
-            should(cm.immutable).be.False();
+            should(cm.immutable).be.Undefined();
         }
     });
 
@@ -182,7 +182,7 @@ describe("k8s ConfigMap operation tests", function () {
         const cm = maps[0];
         should(cm.binaryData).eql(mapValues(data, (v) => isBuffer(v) ? v.toString("base64") : v));
         if (cm.immutable) {
-            should(cm.immutable).be.False();
+            should(cm.immutable).be.Undefined();
         }
     });
 });

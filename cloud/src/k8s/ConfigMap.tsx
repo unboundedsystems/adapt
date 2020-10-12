@@ -74,12 +74,11 @@ interface ConfigMapProps {
      * This is a beta field enabled by ImmutableEphemeralVolumes feature gate.
      */
     //tsline:enable max-line-length
-    immutable: boolean;
+    immutable?: boolean;
 }
 
 const defaultProps = {
     metadata: {},
-    immutable: false,
 };
 
 /**
