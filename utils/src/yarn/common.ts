@@ -99,8 +99,10 @@ export function run(action: string, options: InternalOptions & AnyOptions, args?
             // Promise catches are guaranteed to execute in the order they
             // are registered, so this catch will augment the error object
             // before any callers of run see it.
-            err.message = `yarn ${action} failed: ${err.message}`;
-            if (err.all) err.message += "\n" + err.all;
+            let msg = `yarn ${action} failed: `;
+            if (err.all) msg += `${err.shortMessage}\n${err.all}`;
+            else msg += err.message;
+            err.message = msg;
             throw err;
         })
         .then((child) => logStop(child.all), (err) => logStop(err.all || err.message || err))

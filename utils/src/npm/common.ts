@@ -65,8 +65,10 @@ export function run(action: string, options: CommonOptions | AnyOptions, args?: 
         }
         return prom;
     } catch (err) {
-        err.message = `npm ${action} failed: ${err.message}`;
-        if (err.all) err.message += "\n" + err.all;
+        let msg = `npm ${action} failed: `;
+        if (err.all) msg += `${err.shortMessage}\n${err.all}`;
+        else msg += err.message;
+        err.message = msg;
         throw err;
     }
 }

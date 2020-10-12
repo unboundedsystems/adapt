@@ -32,7 +32,7 @@
     "callsites": "3.1.0",
     "commander": "3.0.2",
     "dockerode": "3.2.1",
-    "execa": "3.4.0",
+    "execa": "4.0.3",
     "express": "4.17.1",
     "fs-extra": "8.1.0",
     "heapdump": "0.3.15",

@@ -184,7 +184,7 @@ export async function execDocker(argsIn: string[], options: ExecDockerOptions): 
                 buildKitUnsupported.set(options.dockerHost, true);
                 return execDocker(argsIn, options);
             }
-            e.message += "\n" + e.all;
+            e.message = `${e.shortMessage}\n${e.all}`;
         }
         throw e;
     }

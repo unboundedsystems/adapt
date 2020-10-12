@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,7 +141,7 @@ export async function kubectlGet(options: KubectlGetOptions) {
             result = await kubectl(args, { kubeconfig: configPath });
         } catch (e) {
             if (isExecaError(e) && e.all) {
-                e.message += "\n" + e.all;
+                e.message = `${e.shortMessage}\n${e.all}`;
                 if (e.exitCode !== 0) {
                     if (e.all.match(/Error from server \(NotFound\)/)) return undefined;
                 }
@@ -166,7 +166,7 @@ async function doExeca(f: () => Promise<execa.ExecaReturnValue<string>>):
         return await f();
     } catch (e) {
         if (!isExecaError(e)) throw e;
-        e.message += e.all ? "\n" + e.all : "";
+        if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
         return e;
     }
 }
@@ -299,7 +299,7 @@ export async function kubectlOpManifest(op: "create" | "apply" | "delete", optio
         try {
             return await kubectl(args, { kubeconfig: configPath });
         } catch (e) {
-            if ("all" in e) e.message += "\n" + e.all;
+            if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
             throw e;
         }
     });
@@ -373,7 +373,7 @@ export async function kubectlProxy(options: KubectlProxyOptions): Promise<Kubect
             hostPort = extractHostPort(proxyInfoStr);
         } catch (e) {
             if (isExecaError(e)) {
-                e.message += e.all ? "\n" + e.all : "";
+                if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
             } else {
                 kill();
                 e.message = `Failed to extract proxy host from command: ${kubectlPath} ${args.join(" ")} ` + e.message;
