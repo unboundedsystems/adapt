@@ -63,7 +63,9 @@ async function getKubeconfigFromPath(path: string | undefined): Promise<Kubeconf
     const result = await kubectl(["config", "view", "-o", "json", "--flatten"],
         { env: mergeEnvSimple(process.env as EnvSimple, kenv) });
     const json = result.stdout;
-    return JSON.parse(json);
+    const ret = JSON.parse(json);
+    if (ret.clusters === null) ret.clusters = [];
+    return ret;
 }
 
 async function getKubeconfig(configStr: string): Promise<Kubeconfig> {
