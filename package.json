@@ -40,7 +40,7 @@
     "devDependencies": {
         "@unboundedsystems/api-documenter": "7.6.1-unb1",
         "@unboundedsystems/api-extractor": "7.6.1-unb1",
-        "cross-env": "^7.0.2",
+        "cross-env": "7.0.2",
         "doctoc": "1.4.0",
         "lint-staged": "9.5.0",
         "markdown-clitest": "0.5.1",
