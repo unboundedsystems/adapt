@@ -51,13 +51,6 @@
             "protocol": "inspector",
             "localRoot": "${workspaceFolder}/..",
             "remoteRoot": "/src",
-            "windows": {
-                // WSL incorrectly handles the path backslashes in
-                // ${workspaceFolder} if present. BUT, Mac won't allow a
-                // relative executable path like the one below.
-                "runtimeExecutable": "../bin/node-debug",
-                "useWSL": true
-            },
         },
     ]
 }

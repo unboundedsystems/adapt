@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -169,6 +169,8 @@ export class MockDeploy {
         let processStateUpdates: ProcessStateUpdates;
         let builtElements: AdaptMountedElement[];
 
+        this.deployOpID = await this.deployment.newOpID();
+
         const startTime = new Date().getTime();
         while (true) {
             const now = new Date().getTime();
@@ -190,6 +192,7 @@ export class MockDeploy {
                 const res = await doBuild(orig, {
                     debug,
                     deployID: this.deployID,
+                    deployOpID: this.deployOpID,
                     stateStore: this.stateStore,
                     style,
                 });
