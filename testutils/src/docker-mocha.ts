@@ -52,6 +52,12 @@ export interface Options {
     delayStart?: boolean;
     finalSetup?: (fixture: DockerFixture) => MaybePromise<void>;
     /**
+     * If no `Name` is specified in the `ContainerSpec`, a unique name is
+     * generated for the container that begins with `namePrefix`.
+     * @defaultValue `"test"`
+     */
+    namePrefix?: string;
+    /**
      * When running from a container, set up TCP proxies on localhost that
      * match the localhost port bindings on the container. The result is that
      * connecting to this container is done via the exact same port on
@@ -71,6 +77,7 @@ const defaults: Required<Options> = {
     addToNetworks: [],
     delayStart: false,
     finalSetup: () => {/* */},
+    namePrefix: "test",
     proxyPorts: false,
     pullPolicy: "always",
 };
@@ -141,7 +148,7 @@ class DockerFixtureImpl implements DockerFixture {
         const image = containerSpec.Image;
         if (image == null) throw new Error(`Image must be specified in container spec`);
 
-        const tempName = `test_${process.pid}_${moment().format("MMDD-HHmm-ss-SSSSSS")}`;
+        const tempName = `${this.options.namePrefix}_${process.pid}_${moment().format("MMDD-HHmm-ss-SSSSSS")}`;
 
         const spec = merge(specDefaults(), { name: tempName }, containerSpec);
 
