@@ -139,12 +139,14 @@ describe("LocalDockerImage", function () {
     const dindFixture = dockerMocha.all({
         // Test with an older version without BuildKit
         Image: "docker:18.06-dind",
-        name: "test-dind-localdocker",
         HostConfig: {
             PublishAllPorts: true,
             Privileged: true,
         },
-    }, { proxyPorts: true });
+    }, {
+        namePrefix: "dind-localdocker",
+        proxyPorts: true,
+    });
 
     before(async () => {
         pluginDir = path.join(process.cwd(), "plugins");
