@@ -27,6 +27,8 @@
     "node": ">=10.0.0"
   },
   "dependencies": {
+    "@types/fs-extra": "8.1.1",
+    "@types/jju": "1.4.1",
     "@unboundedsystems/node-graceful": "3.0.0-unb.2",
     "@usys/collections-ts": "0.0.2",
     "capture-exit": "2.0.0",
@@ -50,8 +52,6 @@
   "devDependencies": {
     "@types/decamelize": "1.2.0",
     "@types/deep-diff": "1.0.0",
-    "@types/fs-extra": "8.1.1",
-    "@types/jju": "1.4.1",
     "@types/json5": "0.0.30",
     "@types/lodash": "4.14.149",
     "@types/node": "10.17.9",
