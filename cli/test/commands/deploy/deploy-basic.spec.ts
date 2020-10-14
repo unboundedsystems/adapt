@@ -895,7 +895,7 @@ const observerTest = testBase
 
 describe("Observer Needs Data Reporting", function () {
     this.slow(20 * 1000);
-    this.timeout(50 * 1000);
+    this.timeout(120 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     const namespaces = {
@@ -1082,7 +1082,7 @@ const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
 describe("deploy:update and deploy:status tests", function () {
     this.slow(5 * 1000);
-    this.timeout(20 * 1000);
+    this.timeout(60 * 1000);
     let deployID = "NOTFOUND";
 
     // These tests must all use a single temp directory where the
@@ -1223,40 +1223,40 @@ const cliExecPath = path.join(repoDirs.cli, "bin", "run");
 // not provide a way to send the events that trigger those
 // signal handlers, making testing very difficult.
 if (process.platform !== "win32") {
-describe("signal tests", () => {
-    mochaTmpdir.each("adapt-cli-test-signal");
+    describe("signal tests", () => {
+        mochaTmpdir.each("adapt-cli-test-signal");
 
-    loopTestChain
-    .it("Should exit on TERM signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGTERM"), 3 * 1000);
+        loopTestChain
+        .it("Should exit on TERM signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGTERM"), 3 * 1000);
 
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
+        });
+
+        loopTestChain
+        .it("Should exit on INT signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGINT"), 3 * 1000);
+
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
+        });
+
+        loopTestChain
+        .it("Should exit on HUP signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGHUP"), 3 * 1000);
+
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
+        });
     });
-
-    loopTestChain
-    .it("Should exit on INT signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGINT"), 3 * 1000);
-
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
-    });
-
-    loopTestChain
-    .it("Should exit on HUP signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGHUP"), 3 * 1000);
-
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
-    });
-});
 }
