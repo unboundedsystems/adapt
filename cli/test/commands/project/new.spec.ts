@@ -50,7 +50,7 @@ describe("project:new errors", () => {
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './doesntexist' as a starter: ` +
-            `'${process.cwd()}/doesntexist' not found`);
+            `'${path.resolve("doesntexist")}' not found`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error if local spec doesn't exist");
@@ -61,7 +61,7 @@ describe("project:new errors", () => {
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './empty' as a starter: ` +
-            `'${process.cwd()}/empty' is not a directory`);
+            `'${path.resolve("empty")}' is not a directory`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error if local spec isn't a directory");

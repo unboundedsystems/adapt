@@ -454,13 +454,13 @@ describe("deploy:list tests", function () {
 
     testBase
     .env({
-        ADAPT_SERVER_URL: "file:///tmp/foo",
+        ADAPT_SERVER_URL: pathToFileURL("/tmp/doesntexist").href,
     })
     .command(["deploy:list", "-q"])
     .catch((err) => {
         expect(err.message).equals(
             "1 error encountered during list:\n" +
-            "[deploy:list] : Error Listing deployments: Invalid Adapt Server URL 'file:///tmp/foo': 'adapt_local.json' does not exist"
+            `[deploy:list] : Error Listing deployments: Invalid Adapt Server URL '${pathToFileURL("/tmp/doesntexist")}': 'adapt_local.json' does not exist`
         );
         expect((err as any).oclif.exit).equals(2);
     })
@@ -667,6 +667,8 @@ describe("deploy:run basic tests", function () {
         await fs.writeJson("package.json", pkgJ, {spaces: 2});
     }
 
+    const check = process.platform === "win32" ? "√" : "✔";
+
     testBaseTty
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
@@ -675,8 +677,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
@@ -697,8 +699,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output (using alias)", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
@@ -719,8 +721,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output (using default stack)", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
