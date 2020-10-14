@@ -71,7 +71,7 @@
     "diff": "4.0.2",
     "execa": "4.0.3",
     "fetchu": "2.0.1",
-    "graphql": "14.6.0",
+    "graphql": "14.7.0",
     "graphql-tools": "4.0.6",
     "graphql-type-json": "0.3.1",
     "js-yaml": "3.13.1",
