@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import { mochaTmpdir } from "@adpt/testutils";
 import * as fs from "fs-extra";
 import * as path from "path";
 import should from "should";
+import { pathToFileURL } from "url";
 
 import {
     dbFilename,
@@ -81,7 +82,7 @@ describe("LocalServer tests", () => {
         mockServerTypes_([]);
         register(LocalServer);
         return should(initLocalServer(false)).be.rejectedWith(RegExp(
-            `Invalid Adapt Server URL 'file://${process.cwd()}': 'adapt_local.json' does not exist`));
+            `Invalid Adapt Server URL '${pathToFileURL(process.cwd())}': 'adapt_local.json' does not exist`));
     });
 
     it("Should store data in JSON format", async () => {
