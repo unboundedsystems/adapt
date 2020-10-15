@@ -15,7 +15,7 @@
  */
 
 import Adapt, { callInstanceMethod, FinalDomElement, Group, handle } from "@adpt/core";
-import { dockerMocha, mochaTmpdir } from "@adpt/testutils";
+import { dockerMocha, mochaTmpdir, TODO_platform } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
@@ -96,7 +96,7 @@ describe("buildKitFilesImage", function () {
     }
 
     it("Should build an image", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
 
         const image = await doBuildFiles([{
             path: "foo",
@@ -214,7 +214,8 @@ describe("BuildKitImage", function () {
     }
 
     it("Should build a registry image with an imageTag", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -235,7 +236,8 @@ describe("BuildKitImage", function () {
     });
 
     it("Should build a registry image without an imageTag", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS2
@@ -256,7 +258,8 @@ describe("BuildKitImage", function () {
     });
 
     it("Should build a registry image with a unique tag", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS3
@@ -283,7 +286,8 @@ describe("BuildKitImage", function () {
     });
 
     it("Should build using alternate file name", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         await fs.writeFile("notadockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -304,7 +308,8 @@ describe("BuildKitImage", function () {
     });
 
     it("Should build a registry image with files", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         const props: BuildKitImageProps = {
             dockerfile: `
                 FROM ${busyboxImage}
@@ -427,7 +432,8 @@ describe("BuildKitImage", function () {
     }
 
     it("Should push a built image to second registry with same pathTag", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         const output: BuildKitOutputRegistry = {
             ...storage(),
             imageName: "bki-test",
@@ -442,7 +448,8 @@ describe("BuildKitImage", function () {
     });
 
     it("Should push a built image to second registry with new pathTag", async function () {
-        if (process.platform === "win32") this.skip();
+        TODO_platform(this, "win32");
+
         const output: BuildKitOutputRegistry = {
             ...storage(),
             imageName: "bki-test",
