@@ -28,6 +28,7 @@ import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
 import { Config, ContainerStatus, RestartPolicy } from "../Container";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
+import { ImageRefDockerHost, isImageRefDockerhostWithId, mutableImageRef, WithId } from "./image-ref";
 import { adaptDockerDeployIDKey } from "./labels";
 import {
     DockerBuildOptions,
@@ -35,20 +36,21 @@ import {
     DockerGlobalOptions,
     File,
     ImageIdString,
-    ImageInfo,
     ImageNameString,
     Mount,
     NameTagString,
     RepoDigestString,
 } from "./types";
 
-const debug = db("adapt:cloud:docker");
+export const debug = db("adapt:cloud:docker");
 // Enable with DEBUG=adapt:cloud:docker:out*
-const debugOut = db("adapt:cloud:docker:out");
-let cmdId = 0;
+export const debugOut = db("adapt:cloud:docker:out");
+
+let _cmdId = 0;
+export const cmdId = () => ++_cmdId;
 
 // Should move to utils
-function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
+export function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
     prefix = prefix ? `[${prefix}] ` : "";
     s.on("data", (chunk) => d(prefix + chunk.toString()));
     s.on("error", (err) => debug(prefix, err));
@@ -70,7 +72,7 @@ export const busyboxImage = "busybox:1";
  * Staged build utilities
  */
 
-async function writeFiles(pwd: string, files: File[]) {
+export async function writeFiles(pwd: string, files: File[]) {
     // Strip any leading slash
     files = files.map((f) => {
         return f.path.startsWith("/") ?
@@ -116,7 +118,7 @@ export interface BuildFilesImageOptions extends DockerGlobalOptions {
 
 export async function withFilesImage<T>(files: File[] | undefined,
     opts: BuildFilesImageOptions,
-    fn: (img: ImageInfo | undefined) => T | Promise<T>): Promise<T> {
+    fn: (img: WithId<ImageRefDockerHost> | undefined) => T | Promise<T>): Promise<T> {
 
     if (!files || files.length === 0) return fn(undefined);
 
@@ -167,7 +169,7 @@ export async function execDocker(argsIn: string[], options: ExecDockerOptions): 
     };
 
     const cmdDebug =
-        debugOut.enabled ? debugOut.extend((++cmdId).toString()) :
+        debugOut.enabled ? debugOut.extend((cmdId()).toString()) :
             debug.enabled ? debug :
                 null;
     if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
@@ -207,10 +209,12 @@ function collectBuildArgs(opts: DockerBuildOptions): string[] {
 export async function dockerBuild(
     dockerfile: string,
     contextPath: string,
-    options: DockerBuildOptions = {}): Promise<ImageInfo> {
+    options: DockerBuildOptions = {}): Promise<WithId<ImageRefDockerHost>> {
 
     const opts = { ...defaultDockerBuildOptions, ...options };
-    let nameTag: string | undefined;
+    const mRef = mutableImageRef({
+        dockerHost: options.dockerHost || "default",
+    });
 
     const args = ["build", "-f", dockerfile];
 
@@ -223,9 +227,11 @@ export async function dockerBuild(
         throw new Error(`dockerBuild: imageName must be set if uniqueTag is true`);
     }
     if (opts.imageName) {
+        mRef.path = opts.imageName;
         const tag = createTag(opts.imageTag, opts.uniqueTag);
-        nameTag = tag ? `${opts.imageName}:${tag}` : opts.imageName;
-        if (!opts.uniqueTag) args.push("-t", nameTag);
+        if (tag) mRef.tag = tag;
+        else if (!opts.uniqueTag && !opts.imageTag) mRef.tag = "latest";
+        if (!opts.uniqueTag && mRef.nameTag) args.push("-t", mRef.nameTag);
     }
     if (opts.deployID) {
         args.push("--label", `${adaptDockerDeployIDKey}=${opts.deployID}`);
@@ -240,22 +246,27 @@ export async function dockerBuild(
 
     const id = await idFromBuild(stdout, stderr, opts);
     if (!id) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
+    mRef.id = id;
 
     if (opts.uniqueTag) {
-        const prevId = opts.prevUniqueTag && await dockerImageId(opts.prevUniqueTag, opts);
-        if (prevId === id) nameTag = opts.prevUniqueTag; // prev points to current id
+        const prevId = opts.prevUniqueNameTag && await dockerImageId(opts.prevUniqueNameTag, opts);
+        if (prevId === id) mRef.nameTag = opts.prevUniqueNameTag; // prev points to current id
         else {
-            if (!nameTag) throw new InternalError(`nameTag not set`);
+            if (!mRef.nameTag) throw new InternalError(`nameTag not set`);
             await dockerTag({
                 existing: id,
-                newTag: nameTag,
+                newTag: mRef.nameTag,
                 ...pickGlobals(opts),
             });
         }
     }
 
-    const ret: ImageInfo = { id };
-    if (nameTag) ret.nameTag = nameTag;
+    const ret = mRef.freeze();
+    if (!isImageRefDockerhostWithId(ret)) {
+        throw new InternalError(`Built image reference '${mRef.ref}' is not ` +
+            `a valid dockerhost reference with ID`);
+    }
+
     return ret;
 }
 
@@ -338,7 +349,7 @@ export async function dockerRemoveImage(options: DockerRemoveImageOptions) {
     await execDocker(args, opts);
 }
 
-function createTag(baseTag: string | undefined, appendUnique: boolean): string | undefined {
+export function createTag(baseTag: string | undefined, appendUnique: boolean): string | undefined {
     if (!baseTag && !appendUnique) return undefined;
     let tag = baseTag || "";
     if (baseTag && appendUnique) tag += "-";
@@ -683,7 +694,7 @@ export interface DockerPullOptions extends DockerGlobalOptions {
  */
 export interface DockerPullInfo {
     id: ImageIdString;
-    repoDigest: RepoDigestString;
+    registryDigest: RepoDigestString;
 }
 
 /**
@@ -699,15 +710,15 @@ export async function dockerPull(opts: DockerPullOptions): Promise<DockerPullInf
 
     const m = stdout.match(/Digest:\s+(\S+)/);
     if (!m) throw new Error(`Output from docker pull did not contain Digest. Output:\n${stdout}`);
-    const repoDigest = `${repo}@${m[1]}`;
+    const registryDigest = `${repo}@${m[1]}`;
 
-    const info = await dockerInspect([repoDigest], { type: "image", ...pickGlobals(opts) });
+    const info = await dockerInspect([registryDigest], { type: "image", ...pickGlobals(opts) });
     if (info.length !== 1) {
-        throw new Error(`Unexpected number of images (${info.length}) match ${repoDigest}`);
+        throw new Error(`Unexpected number of images (${info.length}) match ${registryDigest}`);
     }
     return {
         id: info[0].Id,
-        repoDigest,
+        registryDigest,
     };
 }
 

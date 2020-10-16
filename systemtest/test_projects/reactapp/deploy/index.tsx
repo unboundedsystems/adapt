@@ -2,7 +2,7 @@ import { UrlRouter } from "@adpt/cloud/http";
 import { NodeService, ReactApp } from "@adpt/cloud/nodejs";
 import { Postgres } from "@adpt/cloud/postgres";
 import Adapt, { Group, handle } from "@adpt/core";
-import { k8sProdStyle, k8sTestStyle, laptopStyle } from "./styles";
+import { k8sProdStyle, k8sTestStyle, laptopBkStyle, laptopStyle } from "./styles";
 
 function App() {
     const pg = handle();
@@ -28,5 +28,6 @@ function App() {
 }
 
 Adapt.stack("laptop", <App />, laptopStyle);
+Adapt.stack("laptop-buildkit", <App />, laptopBkStyle());
 Adapt.stack("prod", <App />, k8sProdStyle());
 Adapt.stack("k8s", <App />, k8sTestStyle());

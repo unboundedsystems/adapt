@@ -19,6 +19,8 @@ import { expect } from "@adpt/cli/dist/test/common/fancy";
 import { mkInstance } from "@adpt/cli/dist/test/common/start-minikube";
 import { getNewDeployID } from "@adpt/cli/dist/test/common/testlib";
 import { adaptDockerDeployIDKey } from "@adpt/cloud/dist/src/docker/labels";
+import { buildKitHost } from "@adpt/cloud/dist/test/run_buildkit";
+import { registryHost } from "@adpt/cloud/dist/test/run_registry";
 import {
     describeLong,
     dockerutils,
@@ -27,6 +29,7 @@ import {
 import { waitForNoThrow } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
+import fetch from "node-fetch";
 import path from "path";
 import { curlOptions, systemAppSetup, systemTestChain } from "./common";
 
@@ -54,22 +57,45 @@ async function dockerCurl(url: string) {
         all: true,
         env: { DOCKER_HOST: origDockerHost },
     });
-    if (!resp) throw new Error(`curl returned no data`);
     return resp;
+}
+
+async function localFetch(url: string) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`Fetching url '${url}' failed: ${resp.statusText}`);
+    return resp.text();
+}
+
+async function get(url: string) {
+    const fetcher = url.startsWith("http://localhost:") ? localFetch : dockerCurl;
+    const resp = await fetcher(url);
+    if (!resp) throw new Error(`get returned no data`);
+    return resp;
+}
+
+const deployIDFilter = (deployID: string) => `label=${adaptDockerDeployIDKey}=${deployID}`;
+
+async function cleanupDocker(deployID: string | undefined) {
+    if (!deployID) return;
+    const filter = deployIDFilter(deployID);
+    await deleteAllContainers(filter);
+    await deleteAllImages(filter);
+    await deleteAllNetworks(filter);
 }
 
 describeLong("reactapp system tests", function () {
     let kClient: k8sutils.KubeClient;
+    let bkDeployID: string | undefined;
     let kDeployID: string | undefined;
     let lDeployID: string | undefined;
     let dockerHost: string;
     let dockerIP: string;
+    let bkHost: string;
+    let regHost: string;
 
     this.timeout(6 * 60 * 1000);
 
     systemAppSetup.all("reactapp");
-
-    const deployIDFilter = () => `label=${adaptDockerDeployIDKey}=${lDeployID}`;
 
     before(async function () {
         this.timeout(60 * 1000 + mkInstance.setupTimeoutMs);
@@ -77,11 +103,15 @@ describeLong("reactapp system tests", function () {
             mkInstance.client,
             mkInstance.info,
             fs.outputJson(path.join("deploy", "kubeconfig.json"), await mkInstance.kubeconfig),
+            buildKitHost(),
+            registryHost(),
         ]);
 
         kClient = results[0];
         dockerHost = results[1].dockerHost;
         dockerIP = results[1].dockerIP;
+        bkHost = results[3];
+        regHost = results[4];
     });
 
     afterEach(async function () {
@@ -93,18 +123,14 @@ describeLong("reactapp system tests", function () {
             kDeployID = undefined;
         }
 
-        if (lDeployID) {
-            const filter = deployIDFilter();
-            await deleteAllContainers(filter, { dockerHost });
-            await deleteAllImages(filter, { dockerHost });
-            await deleteAllNetworks(filter, { dockerHost });
-        }
+        await cleanupDocker(lDeployID);
+        await cleanupDocker(bkDeployID);
     });
 
-    async function checkApi() {
+    async function checkApi(host: string) {
         await waitForNoThrow(5, 2, async () => {
-            const resp = await dockerCurl(
-                `http://${dockerIP}:8080/api/search/The%20Incredibles`);
+            const resp = await get(
+                `http://${host}:8080/api/search/The%20Incredibles`);
             jsonEql(resp, [{
                 title: "The Incredibles",
                 released: "Fri Nov 05 2004"
@@ -112,9 +138,9 @@ describeLong("reactapp system tests", function () {
         });
     }
 
-    async function checkRoot() {
+    async function checkRoot(host: string) {
         await waitForNoThrow(5, 2, async () => {
-            const resp = await dockerCurl(`http://${dockerIP}:8080/`);
+            const resp = await get(`http://${host}:8080/`);
             expect(resp).contains(`Unbounded Movie Database`);
         });
     }
@@ -123,6 +149,9 @@ describeLong("reactapp system tests", function () {
     .delayedenv(() => ({
         DOCKER_HOST: dockerHost,
         KUBECONFIG: "./kubeconfig.json",
+        // TODO: Fix style sheet so these aren't required
+        BUILDKIT_HOST: bkHost,
+        BUILDKIT_REGISTRY: regHost,
     }))
     .do(() => process.chdir("deploy"))
     .command(["run", "k8s"])
@@ -139,12 +168,15 @@ describeLong("reactapp system tests", function () {
         expect(names).to.include.members([
             "nginx-url-router", "nginx-static", "db", "node-service"]);
 
-        await checkApi();
-        await checkRoot();
+        await checkApi(dockerIP);
+        await checkRoot(dockerIP);
     });
 
     systemTestChain
-    .delayedenv(() => ({ DOCKER_HOST: dockerHost }))
+    .delayedenv(() => ({
+        BUILDKIT_HOST: bkHost,
+        BUILDKIT_REGISTRY: regHost,
+    }))
     .do(() => process.chdir("deploy"))
     .command(["run", "laptop"])
 
@@ -155,20 +187,79 @@ describeLong("reactapp system tests", function () {
         expect(stdout).contains("Validating project [completed]");
         expect(stdout).contains("Creating new project deployment [completed]");
 
-        const filter = deployIDFilter();
-        const { stdout: psOut } = await execa("docker", [
-            "ps",
-            "--format", "{{.Names}}",
-            "--filter", filter
-        ]);
-        const ctrs = psOut.split(/\s+/).sort();
+        const ctrs = (await containerNames(lDeployID)).sort();
         expect(ctrs).has.length(4);
         expect(ctrs.shift()).matches(/^nodeservice-/);
         expect(ctrs.shift()).matches(/^postgres-testpostgres-/);
         expect(ctrs.shift()).matches(/^reactapp-/);
         expect(ctrs.shift()).matches(/^urlrouter-/);
 
-        await checkApi();
-        await checkRoot();
+        const urlRouterIp = await containerIP(/^urlrouter-/, lDeployID);
+        if (!urlRouterIp) throw new Error(`Unable to find IP for URL Router`);
+
+        await checkApi(urlRouterIp);
+        await checkRoot(urlRouterIp);
     });
+
+    if (process.platform !== "win32") {
+        systemTestChain
+        .delayedenv(() => ({
+            BUILDKIT_HOST: bkHost,
+            BUILDKIT_REGISTRY: regHost,
+        }))
+        .do(() => process.chdir("deploy"))
+        .command(["run", "laptop-buildkit"])
+
+        .it("Should deploy reactapp to local Docker host (laptop-buildkit style)", async ({ stdout, stderr }) => {
+            bkDeployID = getNewDeployID(stdout);
+
+            expect(stderr).equals("");
+            expect(stdout).contains("Validating project [completed]");
+            expect(stdout).contains("Creating new project deployment [completed]");
+
+            const ctrs = (await containerNames(bkDeployID)).sort();
+            expect(ctrs).has.length(4);
+            expect(ctrs.shift()).matches(/^nodeservice-/);
+            expect(ctrs.shift()).matches(/^postgres-testpostgres-/);
+            expect(ctrs.shift()).matches(/^reactapp-/);
+            expect(ctrs.shift()).matches(/^urlrouter-/);
+
+            const urlRouterIp = await containerIP(/^urlrouter-/, bkDeployID);
+            if (!urlRouterIp) throw new Error(`Unable to find IP for URL Router`);
+
+            await checkApi(urlRouterIp);
+            await checkRoot(urlRouterIp);
+        });
+    }
 });
+
+async function containerNames(deployID: string) {
+    const filter = deployIDFilter(deployID);
+    const { stdout: psOut } = await execa("docker", [
+        "ps",
+        "--format", "{{.Names}}",
+        "--filter", filter
+    ]);
+    return psOut.split(/\s+/);
+}
+
+async function findContainer(nameRe: RegExp, deployID: string) {
+    const ctrs = await containerNames(deployID);
+    for (const ctr of ctrs) {
+        if (ctr.match(nameRe)) return ctr;
+    }
+    return undefined;
+}
+
+async function containerIP(nameRe: RegExp, deployID: string) {
+    if (!dockerutils.inContainer()) return "localhost";
+
+    const name = await findContainer(nameRe, deployID);
+    if (!name) return undefined;
+
+    const { stdout } = await execa("docker", [
+        "inspect", name,
+        "-f", "{{ .NetworkSettings.IPAddress }}"
+    ]);
+    return stdout;
+}

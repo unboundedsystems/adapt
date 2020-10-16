@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Adapt, { AdaptElement, childrenToArray, Group, handle } from "@adpt/core";
+import Adapt, { AdaptElement, callInstanceMethod, childrenToArray, createStateStore, Group, handle } from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
 import fs from "fs-extra";
 import { sortedUniq } from "lodash";
@@ -696,5 +696,35 @@ describe("DockerContainer", function () {
         info = await buildAndGetInfo(<Test privileged />);
         should(info.HostConfig.Privileged === true);
         should(info.Id).not.equal(lastId); // Changing order should not cause restart
+    });
+
+    it("Should provide dockerIP", async () => {
+        // tslint:disable-next-line: variable-name
+        const Test = () => (
+            <Group>
+                <DockerContainer
+                    command="sleep 1000"
+                    image={smallDockerImage}
+                    stopSignal="kill"
+                />
+            </Group>
+        );
+
+        const { dom } = await mockDeploy.deploy(<Test />);
+        if (dom == null) throw should(dom).not.be.Null();
+
+        let ctrElem = childrenToArray(dom.props.children)[0];
+        const ip = callInstanceMethod(ctrElem.props.handle, "Invalid", "dockerIP");
+        should(ip).match(/^\d+\.\d+\.\d+\.\d+$/);
+
+        // Delete state and test that a second deploy with the container
+        // already created but with NO state still gives the correct IP address.
+        mockDeploy.stateStore = createStateStore("{}");
+        const { dom: dom2 } = await mockDeploy.deploy(<Test />);
+        if (dom2 == null) throw should(dom2).not.be.Null();
+
+        ctrElem = childrenToArray(dom2.props.children)[0];
+        const ip2 = callInstanceMethod(ctrElem.props.handle, "Invalid", "dockerIP");
+        should(ip2).equal(ip);
     });
 });

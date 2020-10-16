@@ -29,7 +29,7 @@ import Adapt, {
     useMethodFrom,
     waiting
 } from "@adpt/core";
-import { k8sutils, minikubeMocha, mochaTmpdir } from "@adpt/testutils";
+import { k8sutils, minikubeMocha, mochaTmpdir, TODO_platform } from "@adpt/testutils";
 import { waitForNoThrow } from "@adpt/utils";
 import fs from "fs-extra";
 import path from "path";
@@ -137,6 +137,9 @@ describe("k8s ServiceDeployment tests", function () {
     });
 
     it("should push container to private registry and run in k8s", async function () {
+        // TODO: Failures due to container networking
+        TODO_platform(this, "win32");
+
         const timeout = 300 * 1000;
         this.timeout(timeout);
 

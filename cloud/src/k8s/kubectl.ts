@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { mkdtmp, withTmpDir } from "@adpt/utils";
+import { fetchToCache, withTmpDir } from "@adpt/utils";
 import execa = require("execa");
-import { chmod, createWriteStream, writeFile } from "fs-extra";
+import { writeFile } from "fs-extra";
 import * as ld from "lodash";
-import fetch from "node-fetch";
 import * as os from "os";
 import * as path from "path";
 import * as readline from "readline";
@@ -27,8 +26,6 @@ import { isExecaError } from "../common";
 import { Environment, mergeEnvSimple } from "../env";
 import { Kubeconfig } from "./common";
 import { Manifest } from "./manifest_support";
-
-let kubectlLoc: string;
 
 function kubectlPlatform(platform: string) {
     switch (platform) {
@@ -42,6 +39,8 @@ function kubectlPlatform(platform: string) {
     }
 }
 
+const kubeRelease = "v1.15.3";
+
 /**
  * Downloads kubectl and returns path to its location
  *
@@ -49,41 +48,16 @@ function kubectlPlatform(platform: string) {
  * @internal
  */
 export async function getKubectl(): Promise<string> {
-    if (kubectlLoc !== undefined) return kubectlLoc;
-    const kubeRelease = "v1.15.3";
     const platform = kubectlPlatform(os.platform());
     const extension = platform === "windows" ? ".exe" : "";
-    const loc = path.join(await mkdtmp("kubectl"), `kubectl${extension}`);
-    const kubectlUrl = `https://storage.googleapis.com/kubernetes-release/release/${kubeRelease}/bin/${platform}/amd64/kubectl${extension}`;
-    const kubectlBinResp = await fetch(kubectlUrl);
-    const kubectlBin = createWriteStream(loc);
-    if (kubectlBinResp.status !== 200) throw new Error(`Could not get kubectl from ${kubectlUrl}: ${kubectlBinResp.statusText}`);
-    kubectlBinResp.body.pipe(kubectlBin);
-    await new Promise((res, rej) => {
-        let err: any;
-        kubectlBin.on("close", res);
-        kubectlBin.on("error", (e) => {
-            if (!err) {
-                rej(e);
-                err = e;
-            } else {
-                // tslint:disable-next-line: no-console
-                console.error(`Unhandled error writing kubectl:`, e);
-            }
-        });
-        kubectlBinResp.body.on("error", (e) => {
-            if (!err) {
-                rej(e);
-                err = e;
-            } else {
-                // tslint:disable-next-line: no-console
-                console.error(`Unhandled error downloading kubectl:`, e);
-            }
-        });
+    const url = `https://storage.googleapis.com/kubernetes-release/release/${kubeRelease}/bin/${platform}/amd64/kubectl${extension}`;
+    const { file } = await fetchToCache({
+        name: "kubectl",
+        url,
+        mode: 0o700,
+        version: kubeRelease,
     });
-    await chmod(loc, "755");
-    kubectlLoc = loc;
-    return loc;
+    return file;
 }
 
 /** @internal */

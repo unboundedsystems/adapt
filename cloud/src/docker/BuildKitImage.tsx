@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,33 +21,28 @@ import {
     GoalStatus,
     waiting,
 } from "@adpt/core";
-import { InternalError } from "@adpt/utils";
-import fs from "fs-extra";
+import { InternalError, withTmpDir } from "@adpt/utils";
+import fs, { writeFile } from "fs-extra";
 import stringify from "json-stable-stringify";
 import * as path from "path";
 import { Action, ActionContext, ShouldAct } from "../action";
-import {
-    dockerBuild,
-    dockerPush,
-    dockerTag,
-    pickGlobals,
-    withFilesImage,
-} from "./cli";
+import { buildKitBuild, BuildKitFilesImageOptions, withBuildKitFilesImage } from "./bk-cli";
+import { BuildKitBuildOptions, BuildKitOutput } from "./bk-types";
 import { DockerPushableImageInstance } from "./DockerImage";
-import { ImageRefDockerHost, ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, WithId } from "./image-ref";
+import { ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, WithId } from "./image-ref";
+import { registryCopy } from "./image-tools";
 import {
-    DockerBuildOptions,
     File,
     Stage,
 } from "./types";
 
 /**
- * Props for {@link docker.LocalDockerImage}
+ * Props for {@link docker.BuildKitImage}
  *
  * @public
  */
-export interface LocalDockerImageProps {
-    /** Directory for use as the build context in docker build */
+export interface BuildKitImageProps {
+    /** Directory for use as the build context */
     contextDir?: string;
     /**
      * Contents of the dockerfile
@@ -68,7 +63,7 @@ export interface LocalDockerImageProps {
      * Extra files that should be included during the docker build
      *
      * @remarks
-     * LocalDockerImage uses a multi-stage build process.  It first creates
+     * BuildKitImage uses a multi-stage build process.  It first creates
      * a temporary image that includes the files specified in this field.
      * This temporary image is then made available to the `dockerfile` with
      * stage name `files` and can then be copied into the final image, as
@@ -88,14 +83,18 @@ export interface LocalDockerImageProps {
      *   COPY --from=files /path/to/myfile.txt /app/myfile.txt
      *   ...
      * `;
-     * return <LocalDockerImage files={files} dockerfile={dockerfile} />
+     * return <BuildKitImage files={files} dockerfile={dockerfile} />
      * ```
      */
     files?: File[];
     /**
      * Options to control the behavior of docker build
      */
-    options?: DockerBuildOptions;
+    options?: BuildKitBuildOptions;
+    /**
+     * Directs BuildKit where to store the built image.
+     */
+    output: BuildKitOutput;
     /**
      * Extra stages to include in a multi-stage docker build
      */
@@ -105,9 +104,9 @@ export interface LocalDockerImageProps {
 /**
  * @internal
  */
-export interface LocalDockerImageState {
+export interface BuildKitImageState {
     deployOpID?: DeployOpID;
-    image?: WithId<ImageRefDockerHost>;
+    image?: WithId<ImageRefRegistry>;
     imagePropsJson?: string;
     prevUniqueNameTag?: string;
 }
@@ -116,35 +115,32 @@ export interface LocalDockerImageState {
  * Locally builds a docker image
  *
  * @remarks
- * See {@link docker.LocalDockerImageProps}.
+ * See {@link docker.BuildKitImageProps}.
  *
  * @public
  */
-export class LocalDockerImage
-    extends Action<LocalDockerImageProps, LocalDockerImageState>
+export class BuildKitImage
+    extends Action<BuildKitImageProps, BuildKitImageState>
     implements DockerPushableImageInstance {
 
     static defaultProps = {
-        options: {
-            dockerHost: process.env.DOCKER_HOST,
-            forceRm: true,
-        },
+        options: {},
     };
 
     // Even though we have a custom deployedWhen, don't normally show
     // status from this component, unless there's an active action.
     deployedWhenIsTrivial = true;
 
-    private image_?: WithId<ImageRefDockerHost>;
+    private image_?: WithId<ImageRefRegistry>;
     private imagePropsJson_?: string;
-    private options_: DockerBuildOptions;
+    private options_: BuildKitBuildOptions;
 
-    constructor(props: LocalDockerImageProps) {
+    constructor(props: BuildKitImageProps) {
         super(props);
-        this.options_ = { ...LocalDockerImage.defaultProps.options, ...(props.options || {}) };
+        this.options_ = { ...BuildKitImage.defaultProps.options, ...(props.options || {}) };
 
         if (!props.dockerfile && !props.dockerfileName) {
-            throw new Error(`LocalDockerImage: one of dockerfile or ` +
+            throw new Error(`BuildKitImage: one of dockerfile or ` +
                 `dockerfileName must be given`);
         }
     }
@@ -177,10 +173,9 @@ export class LocalDockerImage
         if (!newPathTag) {
             throw new Error(`Unable to push image to registry: path and tag ` +
                 `not set for image '${source.ref}' and new path and tag not ` +
-                `provided. Set path and tag on this image with 'options.imageName' ` +
-                `and 'options.imageTag' or 'output.uniqueTag'. Or use a new ` +
-                `path and tag, probably via the 'newPathTag' prop on ` +
-                `RegistryDockerImage.`);
+                `provided. Either set a tag on this image with 'output.imageTag' ` +
+                `or 'output.uniqueTag' or use a new path and tag, probably ` +
+                `via the 'newPathTag' prop on RegistryDockerImage.`);
         }
         const dest = mutableImageRef({
             id: source.id,
@@ -193,9 +188,8 @@ export class LocalDockerImage
                 `destination reference '${dest.ref}' has no registryTag`);
         }
 
-        const globals = pickGlobals(this.options_);
-        await dockerTag({ existing: source.id, newTag: destRef, ...globals});
-        await dockerPush({ nameTag: destRef, ...globals });
+        const { digest } = await registryCopy(source.registryRef, destRef);
+        dest.digest = digest;
 
         const final = dest.freeze();
         if (!isImageRefRegistryWithId(final)) {
@@ -212,14 +206,14 @@ export class LocalDockerImage
     /**
      * User-facing name to display in status messages.
      */
-    displayName() { return this.options_.imageName; }
+    displayName() { return this.props.output.imageName; }
 
     /**
      * Implementations for Action base class
      * @internal
      */
     async shouldAct(op: ChangeType): Promise<ShouldAct> {
-        let imgName = this.options_.imageName || "";
+        let imgName = this.props.output.imageName || "";
         if (imgName) imgName = ` '${imgName}'`;
 
         if (op === ChangeType.delete) return false;
@@ -240,6 +234,10 @@ export class LocalDockerImage
             ...this.options_,
             deployID: ctx.buildData.deployID,
         };
+        const filesOptions: BuildKitFilesImageOptions = {
+            ...options,
+            storage: this.props.output,
+        };
         const prevUniqueNameTag = this.state.prevUniqueNameTag;
 
         if (op === ChangeType.delete) {
@@ -256,7 +254,7 @@ export class LocalDockerImage
 
         const stages = this.props.stages || [];
 
-        const image = await withFilesImage(this.props.files, options, async (img) => {
+        const image = await withBuildKitFilesImage(this.props.files, filesOptions, async (img) => {
             if (img && img.nameTag) stages.push({ image: img.nameTag, name: "files" });
 
             const stageConfig = stages
@@ -268,19 +266,22 @@ export class LocalDockerImage
 
             let contextDir = this.props.contextDir || ".";
             contextDir = path.resolve(contextDir);
-            return dockerBuild("-", contextDir, {
-                ...options,
-                prevUniqueNameTag,
-                stdin: dockerfile,
-            });
+            return withTmpDir(async (tmpDir) => {
+                const dockerfileName = path.join(tmpDir, "Dockerfile");
+                await writeFile(dockerfileName, dockerfile);
+                return buildKitBuild(dockerfileName, contextDir, {
+                    ...this.props.output,
+                    prevUniqueNameTag,
+                }, options);
+            }, { prefix: "adapt-buildkitimage" });
         });
 
         this.image_ = image;
         this.setState({
             deployOpID: this.deployInfo.deployOpID,
-            image,
+            image: this.image_,
             imagePropsJson: this.imagePropsJson,
-            prevUniqueNameTag: options.uniqueTag ? image.nameTag : undefined,
+            prevUniqueNameTag: this.props.output.uniqueTag ? image.nameTag : undefined,
         });
     }
 

@@ -367,23 +367,24 @@ export async function globalAdd(pkg: string, prefixDir: string) {
     const args = [ "install", ...registryOpts(), "-g", "-C", prefixDir, pkg ];
     const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
-        if (/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
-            return;
+        if (!/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
+            const cmd = "npm install " + args.join(" ");
+            // tslint:disable-next-line: no-console
+            console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
+                `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
+            throw new Error(`Warnings in npm install output`);
         }
-        const cmd = "npm install " + args.join(" ");
-        // tslint:disable-next-line: no-console
-        console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
-            `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
-        throw new Error(`Warnings in npm install output`);
     }
+    // Windows global doesn't create a bin directory
+    return process.platform === "win32" ? prefixDir : path.join(prefixDir, "bin");
 }
 
 function pathWithoutRepo(prepend?: string) {
     const orig = process.env.PATH;
     if (!orig) throw new Error(`PATH is invalid (${orig})`);
-    const paths = orig.split(":").filter((p) => !p.startsWith(repoRootDir));
+    const paths = orig.split(path.delimiter).filter((p) => !p.startsWith(repoRootDir));
     if (prepend) paths.unshift(prepend);
-    return paths.join(":");
+    return paths.join(path.delimiter);
 }
 
 /**
@@ -392,9 +393,7 @@ function pathWithoutRepo(prepend?: string) {
  */
 const basicNoSrcDirChain = basicTestChain
     .delayedenv(() => {
-        const pOrig = process.env.PATH || "";
-        const pNew = pOrig.split(":").filter((el) => !el.startsWith("/src/")).join(":");
-        return { PATH: pNew };
+        return { PATH: pathWithoutRepo() };
     });
 
 describe("Global CLI install", function () {
@@ -407,10 +406,10 @@ describe("Global CLI install", function () {
 
     before(async () => {
         tmpDir = process.cwd();
-        env.PATH = pathWithoutRepo(path.join(tmpDir, "global", "bin"));
 
         try {
-            await globalAdd("@adpt/cli@unit-tests", path.join(tmpDir, "global"));
+            const binPath = await globalAdd("@adpt/cli@unit-tests", path.join(tmpDir, "global"));
+            env.PATH = pathWithoutRepo(binPath);
         } catch (err) {
             // tslint:disable-next-line: no-console
             if (err.all) console.error(`${err.message}\n${err.all}`);
@@ -455,13 +454,13 @@ describe("deploy:list tests", function () {
 
     testBase
     .env({
-        ADAPT_SERVER_URL: "file:///tmp/foo",
+        ADAPT_SERVER_URL: pathToFileURL("/tmp/doesntexist").href,
     })
     .command(["deploy:list", "-q"])
     .catch((err) => {
         expect(err.message).equals(
             "1 error encountered during list:\n" +
-            "[deploy:list] : Error Listing deployments: Invalid Adapt Server URL 'file:///tmp/foo': 'adapt_local.json' does not exist"
+            `[deploy:list] : Error Listing deployments: Invalid Adapt Server URL '${pathToFileURL("/tmp/doesntexist")}': 'adapt_local.json' does not exist`
         );
         expect((err as any).oclif.exit).equals(2);
     })
@@ -668,6 +667,8 @@ describe("deploy:run basic tests", function () {
         await fs.writeJson("package.json", pkgJ, {spaces: 2});
     }
 
+    const check = process.platform === "win32" ? "√" : "✔";
+
     testBaseTty
     .do(async () => {
         await createProject(basicPackageJson, basicIndexTsx, "index.tsx");
@@ -676,8 +677,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
@@ -698,8 +699,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output (using alias)", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
@@ -720,8 +721,8 @@ describe("deploy:run basic tests", function () {
 
     .it("Should build basic with TTY output (using default stack)", async (ctx) => {
         expect(ctx.stderr).equals("");
-        expect(ctx.stdout).contains("✔ Validating project");
-        expect(ctx.stdout).contains("✔ Creating new project deployment");
+        expect(ctx.stdout).contains(`${check} Validating project`);
+        expect(ctx.stdout).contains(`${check} Creating new project deployment`);
         expect(ctx.stdout).contains("Deployment created successfully. DeployID is:");
         expect(ctx.stdout).does.not.contain("WARNING");
 
@@ -894,7 +895,7 @@ const observerTest = testBase
 
 describe("Observer Needs Data Reporting", function () {
     this.slow(20 * 1000);
-    this.timeout(50 * 1000);
+    this.timeout(120 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     const namespaces = {
@@ -1081,7 +1082,7 @@ const newDeployRegex = /Deployment created successfully. DeployID is: (.*)$/m;
 
 describe("deploy:update and deploy:status tests", function () {
     this.slow(5 * 1000);
-    this.timeout(20 * 1000);
+    this.timeout(60 * 1000);
     let deployID = "NOTFOUND";
 
     // These tests must all use a single temp directory where the
@@ -1217,42 +1218,45 @@ describe("deploy:run negative tests", () => {
 
 const cliExecPath = path.join(repoDirs.cli, "bin", "run");
 
-describe("signal tests", () => {
-    mochaTmpdir.each("adapt-cli-test-signal");
+// TODO: Better support for signals & testing signals on Windows
+// Node does emulate receiving SIGINT and SIGHUP on Windows, but it does
+// not provide a way to send the events that trigger those
+// signal handlers, making testing very difficult.
+if (process.platform !== "win32") {
+    describe("signal tests", () => {
+        mochaTmpdir.each("adapt-cli-test-signal");
 
-    loopTestChain
-    .it("Should exit on TERM signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGTERM"), 3 * 1000);
+        loopTestChain
+        .it("Should exit on TERM signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGTERM"), 3 * 1000);
 
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 143/);
+        });
 
+        loopTestChain
+        .it("Should exit on INT signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGINT"), 3 * 1000);
+
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
+        });
+
+        loopTestChain
+        .it("Should exit on HUP signal", async () => {
+            const proc = execa(cliExecPath, ["run"]);
+            setTimeout(() => proc.kill("SIGHUP"), 3 * 1000);
+
+            // Types are incorrect for rejectedWith, which incorrectly triggers
+            // await-promise lint rule.
+            // tslint:disable-next-line: await-promise
+            await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
+        });
     });
-
-    loopTestChain
-    .it("Should exit on INT signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGINT"), 3 * 1000);
-
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 130/);
-
-    });
-
-    loopTestChain
-    .it("Should exit on HUP signal", async () => {
-        const proc = execa(cliExecPath, ["run"]);
-        setTimeout(() => proc.kill("SIGHUP"), 3 * 1000);
-
-        // Types are incorrect for rejectedWith, which incorrectly triggers
-        // await-promise lint rule.
-        // tslint:disable-next-line: await-promise
-        await expect(proc).to.be.rejectedWith(/Command failed with exit code 129/);
-
-    });
-});
+}

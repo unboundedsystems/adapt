@@ -42,6 +42,8 @@ const noConfigTestChain = clitestBase
     .stderr({ print: debugOutput })
     .stub(process.stdout, "isTTY", false); // Turn off progress, etc
 
+const reEscapePath = (p: string) => p.replace(/\\/g, "\\\\");
+
 describe("config:list", () => {
 
     noConfigTestChain
@@ -140,7 +142,7 @@ describe("config:list", () => {
         expect(ctx.stdout).matches(RegExp([
             `Name\\s+Value\\s+Source`,
             `upgradeCheck\\s+false\\s+Environment`,
-            `upgradeCheckInterval\\s+1d\\s+${path.join(ctx.config.configDir, "config.json5")}`,
+            `upgradeCheckInterval\\s+1d\\s+${reEscapePath(path.join(ctx.config.configDir, "config.json5"))}`,
             `upgradeRemindInterval\\s+7 days\\s+Default`
         ].join(".*"), "s"));
     });

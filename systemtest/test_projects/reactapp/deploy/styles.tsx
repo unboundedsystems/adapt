@@ -1,5 +1,5 @@
 import { Service, ServiceProps } from "@adpt/cloud";
-import { ServiceContainerSet } from "@adpt/cloud/docker";
+import { BuildKitImage, LocalDockerImage, LocalDockerImageProps, ServiceContainerSet } from "@adpt/cloud/docker";
 import { HttpServer, HttpServerProps, UrlRouter, UrlRouterProps } from "@adpt/cloud/http";
 import { makeClusterInfo, ServiceDeployment } from "@adpt/cloud/k8s";
 import * as nginx from "@adpt/cloud/nginx";
@@ -53,6 +53,29 @@ export const laptopStyle = concatStyles(commonStyle,
         {Adapt.rule<ServiceProps>(({ handle, ...props }) =>
             <ServiceContainerSet dockerHost={process.env.DOCKER_HOST} {...props} />)}
     </Style>);
+
+/*
+ * Laptop style with BuildKitImage
+ */
+export function laptopBkStyle() {
+    const registry = process.env.BUILDKIT_REGISTRY;
+    if (!registry) throw new Error(`Environment variable BUILDKIT_REGISTRY must be set for buildkit style`);
+    const output = {
+        type: "registry" as const,
+        registry,
+    };
+    return concatStyles(laptopStyle,
+        <Style>
+            {LocalDockerImage}
+            {Adapt.rule<LocalDockerImageProps>(({ handle, options = {}, ...props }) =>
+                <BuildKitImage  {...props}
+                    options={{ ...options, buildKitHost: process.env.BUILDKIT_HOST }}
+                    output={{ imageName: "temp", ...options, ...output }}
+                />
+            )}
+
+        </Style>);
+}
 
 /*
  * Production style

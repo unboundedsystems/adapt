@@ -23,6 +23,7 @@ const program = require("commander");
 const crypto = require("crypto");
 const execa = require("execa");
 const fs = require("fs-extra");
+const os = require("os");
 const path = require("path");
 const { format } = require("util");
 
@@ -80,7 +81,7 @@ function error(arg, ...args) {
 }
 
 function pidFile(port) {
-    return `/tmp/local-registry-${port}.pid`;
+    return path.join(os.tmpdir(), `local-registry-${port}.pid`);
 }
 
 function pad(num, len = 2) {

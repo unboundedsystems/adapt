@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,14 @@
  */
 
 import { callFirstInstanceWithMethod, callInstanceMethod, ChangeType, DependsOnMethod, Handle, isHandle } from "@adpt/core";
-import { MaybePromise } from "@adpt/utils";
+import { InternalError, MaybePromise } from "@adpt/utils";
 import { isEqual } from "lodash";
 import { URL } from "url";
 import { isString } from "util";
 import { Action } from "../action";
 import { DockerImageInstance, DockerPushableImageInstance } from "./DockerImage";
-import { DockerSplitRegistryInfo, ImageInfo, NameTagString, RegistryString } from "./types";
+import { ImageRef, ImageRefRegistry, mutableImageRef } from "./image-ref";
+import { DockerSplitRegistryInfo, NameTagString, RegistryString } from "./types";
 
 /**
  * Props for {@link docker.RegistryDockerImage}
@@ -66,22 +67,41 @@ export interface RegistryDockerImageProps {
     registryUrl: string | DockerSplitRegistryInfo;
 
     /**
-     * Tag to use for the image in the registry.
+     * Path and tag to be used for the image in the new registry in
+     * `path:tag` or `path` format.
      * @remarks
-     * If omitted, the tag from the source is used.  The tag should not
-     * include the registry hostname/port prefix.
+     * If omitted, the path and tag from the source image is used. The
+     * newPathTag should not include the registry hostname/port prefix. If the
+     * `:tag` portion of `path:tag` is omitted, the tag `latest` will be used.
+     */
+    newPathTag?: string;
+
+    /**
+     * Path and tag to be used for the image in the new registry in
+     * `path:tag` or `path` format.
+     * @deprecated This prop has been renamed to `newPathTag`. The functionality
+     * for both props is the same and if both are set, `newPathTag` takes
+     * priority.
+     * @remarks
+     * If omitted, the path and tag from the source image is used. The
+     * newTag should not include the registry hostname/port prefix. If the
+     * `:tag` portion of `path:tag` is omitted, the tag `latest` will be used.
      */
     newTag?: string;
 }
 
 interface State {
-    image?: ImageInfo;
+    image?: ImageRefRegistry;
     registryUrl?: DockerSplitRegistryInfo;
 }
 
-function buildNameTag(url: string, nameTag: NameTagString | undefined): NameTagString | undefined {
-    if (nameTag === undefined) return undefined;
-    return `${url}/${nameTag}`;
+function buildNameTag(url: string, pathTag: string | undefined): NameTagString | undefined {
+    if (pathTag === undefined) return undefined;
+    const ref = mutableImageRef();
+    ref.pathTag = pathTag;  // defaults tag to 'latest' if not present
+    ref.domain = url;
+    if (!ref.registryTag) throw new InternalError(`Image reference '${ref.ref}' does not have a registryTag`);
+    return ref.registryTag;
 }
 
 function urlToRegistryString(registryUrl: string): RegistryString {
@@ -114,7 +134,7 @@ function normalizeRegistryUrl(url: string | DockerSplitRegistryInfo) {
 export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     implements DockerImageInstance {
 
-    private latestImage_?: ImageInfo;
+    private latestImage_?: ImageRefRegistry;
     private latestRegistryUrl_?: DockerSplitRegistryInfo;
     private registry: { external: RegistryString, internal: RegistryString };
 
@@ -136,12 +156,12 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
      * pushed to the registry.
      */
     image() {
-        const srcImage = callInstanceMethod<ImageInfo | undefined>(this.props.imageSrc, undefined, "latestImage");
+        const srcImage = callInstanceMethod<ImageRef | undefined>(this.props.imageSrc, undefined, "latestImage");
         const latestImg = this.latestImage();
         const latestReg = this.latestRegistryUrl_ || this.state.registryUrl;
         if (!srcImage || !latestImg || !latestReg) return undefined;
         if (srcImage.id === latestImg.id &&
-            this.currentNameTag(srcImage.nameTag) === latestImg.nameTag &&
+            this.currentNameTag(srcImage.pathTag) === latestImg.nameTag &&
             isEqual(this.registry, latestReg)) {
             return latestImg;
         }
@@ -161,7 +181,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     /** @internal */
     shouldAct(diff: ChangeType) {
         if (diff === ChangeType.delete) return false;
-        let name = this.props.newTag || this.srcImageName();
+        let name = this.getNewPathTag() || this.srcImageName();
         name = name ? ` '${name}'` : "";
         return { act: true, detail: `Pushing image${name} to ${this.registry.external}` };
     }
@@ -175,10 +195,10 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     /** @internal */
     async action(op: ChangeType): Promise<void> {
         if (op === ChangeType.delete || op === ChangeType.none) return;
-        const info = await callInstanceMethod<MaybePromise<ImageInfo | undefined>>(
+        const info = await callInstanceMethod<MaybePromise<ImageRefRegistry | undefined>>(
             this.props.imageSrc,
             undefined,
-            "pushTo", this.registry.external, this.props.newTag);
+            "pushTo", this.registry.external, this.getNewPathTag());
         if (info === undefined) {
             throw new Error(`Image source component did not push image to registry`);
         }
@@ -191,8 +211,12 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
         });
     }
 
-    private currentNameTag(nameTag: NameTagString | undefined): NameTagString | undefined {
-        return buildNameTag(this.registry.internal, this.props.newTag || nameTag);
+    private currentNameTag(pathTag: string | undefined): NameTagString | undefined {
+        return buildNameTag(this.registry.internal, this.getNewPathTag() || pathTag);
+    }
+
+    private getNewPathTag() {
+        return this.props.newPathTag || this.props.newTag;
     }
 
     private srcImageName() {

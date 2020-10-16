@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,19 +20,23 @@ import fs from "fs-extra";
 import should from "should";
 import { EnvPair, Service, ServiceProps } from "../../src";
 import { ConnectToInstance } from "../../src/ConnectTo";
-import { DockerImageInstance, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
+import { DockerImageInstance, imageRef, LocalDockerImage, LocalDockerImageProps } from "../../src/docker";
 import { Kubeconfig, Resource, ServiceDeployment } from "../../src/k8s";
 import { NodeService } from "../../src/nodejs";
 import { doBuild } from "../testlib";
+
+const imageSha1 = "sha256:6858809bf669cc5da7cb6af83d0fae838284d12e1be0182f92f6bd96559873e3";
 
 class MockDockerImage extends PrimitiveComponent<LocalDockerImageProps>
     implements DockerImageInstance {
 
     image() {
-        return {
-            id: "imagesha",
-            nameTag: "imagetag"
-        };
+        return imageRef({
+            dockerHost: "default",
+            id: imageSha1,
+            path: "repo",
+            tag: "imagetag",
+        });
     }
     latestImage() {
         return this.image();

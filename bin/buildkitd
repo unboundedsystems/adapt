@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+docker run \
+    -d \
+    --network host \
+    --rm \
+    --name buildkitd \
+    --device /dev/fuse \
+    --security-opt apparmor=unconfined \
+    --security-opt seccomp=unconfined \
+    moby/buildkit:v0.7.2-rootless \
+    --oci-worker-no-process-sandbox

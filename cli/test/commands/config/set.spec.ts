@@ -213,7 +213,7 @@ describe("config:set", () => {
     .command(["config:set", booleanKey, "true"])
     .catch((err) => {
         expect(err.message).equals(dedent
-            `Config file '${configDir}/config.json5': Invalid JSON5 format: invalid character '=' at line 1, column 5:
+            `Config file '${configDir + path.sep}config.json5': Invalid JSON5 format: invalid character '=' at line 1, column 5:
             {foo=1}
                 ^-- error here`);
         expect((err as any).oclif.exit).equals(2);
@@ -227,7 +227,7 @@ describe("config:set", () => {
     .command(["config:set", booleanKey, "true"])
     .catch((err) => {
         expect(err.message).equals(
-            `Config file '${configDir}/config.json5': Does not contain a ` +
+            `Config file '${configDir + path.sep}config.json5': Does not contain a ` +
             `single object in JSON/JSON5 format (actual type=number)`);
         expect((err as any).oclif.exit).equals(2);
     })

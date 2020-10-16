@@ -37,7 +37,7 @@ describe("Help", () => {
 `Command line interface for Adapt
 
 VERSION
-  ${pJson.name}/${pJson.version} linux-x64 node-${process.version}
+  ${pJson.name}/${pJson.version} ${process.platform}-x64 node-${process.version}
 
 USAGE
   $ adapt [COMMAND]

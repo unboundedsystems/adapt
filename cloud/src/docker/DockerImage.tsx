@@ -16,7 +16,7 @@
 
 import { Component } from "@adpt/core";
 import { MaybePromise } from "@adpt/utils";
-import { ImageInfo, NameTagString } from "./types";
+import { ImageRef, ImageRefRegistry } from "./image-ref";
 
 // tslint:disable: member-ordering
 /**
@@ -33,7 +33,7 @@ export interface DockerImageInstance {
      * this component OR if the component props have changed and the image
      * that corresponds to the current props has not yet been built.
      */
-    image(): ImageInfo | undefined;
+    image(): ImageRef | undefined;
 
     /**
      * Returns information about the most current version of the Docker image
@@ -42,22 +42,25 @@ export interface DockerImageInstance {
      * @remarks
      * Returns undefined if no image has ever been built by this component.
      */
-    latestImage(): ImageInfo | undefined;
+    latestImage(): ImageRef | undefined;
 
     /**
      * Pushes the image returned by `latestImage` to a Docker registry.
      * @remarks
-     * If `newTag` is provided, the image will have that tag in the
-     * given registry. Otherwise, the image's existing tag will be used.
-     * It is an error in that case if there is no tag associated with the
-     * `latestImage` image.
+     * If `newPathTag` is not provided, the image's existing pathTag will be
+     * used when pushing to the given registry. It is an error in that case if
+     * there is no path or tag associated with the `latestImage` image.
+     *
+     * If `newPathTag` is provided in `path:tag` format, the image will have
+     * that path and tag in the given registry. If the `:tag` portion is
+     * omitted, the tag `default` will be used.
      *
      * If there is no latest image available (`latestImage` returns
      * undefined), then `pushTo` will return undefined. Otherwise, if the
-     * push was successful, returns an {@link docker.ImageInfo} that contains
+     * push was successful, returns an {@link docker.ImageRefRegistry} that contains
      * the complete nameTag, including registry portion.
      */
-    pushTo?(registryUrl: string, newTag?: NameTagString): MaybePromise<ImageInfo | undefined>;
+    pushTo?(registryUrl: string, newPathTag?: string): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**
@@ -70,7 +73,7 @@ export interface DockerPushableImageInstance extends DockerImageInstance {
     /**
      * {@inheritdoc docker.DockerImageInstance.pushTo}
      */
-    pushTo(registryUrl: string, newTag?: NameTagString): MaybePromise<ImageInfo | undefined>;
+    pushTo(registryUrl: string, newPathTag?: string): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**
@@ -92,13 +95,13 @@ export abstract class DockerImage extends Component<DockerImageProps>
     /**
      * {@inheritdoc docker.DockerImageInstance.image}
      */
-    image(): ImageInfo | undefined {
+    image(): ImageRef | undefined {
         return undefined;
     }
     /**
      * {@inheritdoc docker.DockerImageInstance.latestImage}
      */
-    latestImage(): ImageInfo | undefined {
+    latestImage(): ImageRef | undefined {
         return undefined;
     }
 }
