@@ -468,6 +468,7 @@ async function runContainer(context: ActionContext, props: DockerContainerProps 
  */
 interface DockerContainerState {
     info?: ContainerInfo;
+    deployOpID?: number;
 }
 
 function networkStatus(
@@ -494,6 +495,8 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
         privileged: false,
     };
 
+    info?: ContainerInfo;
+
     dependsOn: DependsOnMethod = (_goalStatus, helpers) => {
         if (!isHandle(this.props.image)) return undefined;
         return helpers.dependsOn(this.props.image);
@@ -501,7 +504,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
 
     /** @internal */
     async shouldAct(diff: ChangeType, context: ActionContext): Promise<false | ShouldAct> {
-        const containerInfo = await fetchContainerInfo(context, this.props, this.state.info);
+        const containerInfo = await this.refreshContainerInfo(context);
         const displayName = this.displayName(context);
         switch (diff) {
             case "modify":
@@ -537,7 +540,7 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
 
     /** @internal */
     async action(diff: ChangeType, context: ActionContext): Promise<void> {
-        const oldInfo = await fetchContainerInfo(context, this.props, this.state.info);
+        const oldInfo = await this.refreshContainerInfo(context);
         switch (diff) {
             case "modify":
             case "create":
@@ -564,12 +567,12 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
                 if (status === "replace" || status === "noExist") {
                     await runContainer(context, this.props);
                 }
-                const newInfo = await fetchContainerInfo(context, this.props, this.state.info);
-                this.setState({ info: newInfo });
+                await this.refreshContainerInfo(context, true);
                 return;
 
             case "delete":
                 await stopAndRmContainer(context, oldInfo, this.props);
+                this.info = undefined;
                 this.setState({ info: undefined });
                 return;
 
@@ -621,6 +624,23 @@ export class DockerContainer extends Action<DockerContainerProps, DockerContaine
     private displayName(context: ActionContext) {
         const name = computeContainerNameFromContext(this.props, context);
         return `'${this.props.key}' (${name})`;
+    }
+
+    private async refreshContainerInfo(context: ActionContext, force = false): Promise<ContainerInfo> {
+        if (!this.info || force) {
+            // Only update info state once per deployOpID, unless forced.
+            if (force || !this.state.info || this.state.deployOpID !== this.deployInfo.deployOpID) {
+                const info = await fetchContainerInfo(context, this.props, this.state.info);
+                this.setState({
+                    deployOpID: this.deployInfo.deployOpID,
+                    info,
+                });
+                this.info = info;
+            } else {
+                this.info = this.state.info;
+            }
+        }
+        return this.info;
     }
 }
 export default DockerContainer;
