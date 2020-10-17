@@ -246,7 +246,7 @@ function deployedWhen(statusObj: unknown) {
     // cluster for every status update.  But we'd want to query if there were a pod
     // failure and report the failure.  Not sure if there is a good way to do this though.
     return waiting(
-          `Waiting for enough pods (${ready.val != null ? ready.val : 0} (${ready.field})/${desiredNumberScheduled} (desired)\n`
+          `Waiting for enough pods ${ready.val != null ? ready.val : 0} (${ready.field})/${desiredNumberScheduled} (desired)\n`
         + `Desired: ${desiredNumberScheduled}, Updated: ${updatedNumberScheduled}, Available: ${numberAvailable}, Ready: ${numberReady}, Scheduled: ${currentNumberScheduled}`);
 }
 

@@ -39,7 +39,7 @@ function kubectlPlatform(platform: string) {
     }
 }
 
-const kubeRelease = "v1.15.3";
+const kubeRelease = "v1.19.2";
 
 /**
  * Downloads kubectl and returns path to its location
@@ -230,7 +230,9 @@ export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlD
             };
         }
 
-        if (result.stderr === "exit status 1") {
+        if ((result.exitCode === 1)
+            && (result.stderr.length === 0)
+            && (result.stdout.startsWith("diff -u"))) {
             return {
                 diff: result.stdout,
                 errs: "",
