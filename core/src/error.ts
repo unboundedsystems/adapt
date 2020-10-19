@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { UserError } from "@adpt/utils";
+import { formatUserError, UserError } from "@adpt/utils";
 import { CustomError } from "ts-custom-error";
 import { inspect } from "util";
 
@@ -57,6 +57,21 @@ export class ProjectRunError extends CustomError {
         this.projectStack = projectStack;
         this.fullStack = fullStack;
     }
+}
+
+export function formatProjectError(e: any): string {
+    if (!(e instanceof ProjectRunError)) return formatUserError(e);
+
+    // Normally, the projectError message is included in both e.message
+    // and the first line of the projectStack. If that's true, e.message
+    // contains a more complete message, so don't show the first line of
+    // projectStack to avoid duplicate output.
+    const peMsg = e.projectError.message;
+    const lines = e.projectStack.split("\n");
+    if (e.message.includes(peMsg) && lines[0].includes(peMsg)) {
+        lines.shift();
+    }
+    return `${e.message}:\n${lines.join("\n")}`;
 }
 
 export class ThrewNonError extends CustomError {

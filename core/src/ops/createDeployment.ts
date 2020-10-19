@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-import { formatUserError } from "@adpt/utils";
-import { ProjectRunError } from "../error";
+import { formatProjectError } from "../error";
 import { adaptServer, AdaptServer } from "../server";
 import {
     createDeployment as createDeploymentObj,
@@ -99,10 +98,7 @@ export async function createDeployment(options: CreateOptions): Promise<DeploySt
             });
 
         } catch (err) {
-            const message = err instanceof ProjectRunError ?
-                `${err.message}:\n${err.projectStack}` :
-                formatUserError(err);
-            logger.error(`Error creating deployment: ${message}`);
+            logger.error(`Error creating deployment: ${formatProjectError(err)}`);
             ds = {
                 type: "error",
                 messages: logger.messages,
