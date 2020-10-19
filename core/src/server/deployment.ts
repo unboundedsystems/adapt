@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ export interface Deployment {
     releaseDataDir(): Promise<void>;
     commitEntry(toStore: HistoryEntry): Promise<void>;
     historyEntry(historyName: HistoryName): Promise<HistoryEntry>;
-    lastEntry(withStatus: HistoryStatus): Promise<HistoryEntry | undefined>;
+    lastEntry(withStatus?: HistoryStatus): Promise<HistoryEntry | undefined>;
 
     currentOpID(): Promise<DeployOpID>;
     newOpID(): Promise<DeployOpID>;

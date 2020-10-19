@@ -130,7 +130,7 @@ class LocalHistoryStore implements HistoryStore {
         this.db.push(this.dbPath + "/stateDirs[]", dirName, false /*override*/);
     }
 
-    async last(withStatus: HistoryStatus): Promise<HistoryEntry | undefined> {
+    async last(withStatus?: HistoryStatus): Promise<HistoryEntry | undefined> {
         const lastDir = this.lastDir(withStatus);
         if (lastDir === undefined) return undefined;
         return this.historyEntry(lastDir);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,12 +90,13 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
     const { deployment } = options;
     let lastCommit: HistoryStatus | undefined;
     const paths = computePaths(options);
-    const prev = await deployment.lastEntry(HistoryStatus.complete);
+    const prevComplete = await deployment.lastEntry(HistoryStatus.complete);
+    const prevTry = await deployment.lastEntry();
 
     const observationsJson = options.observationsJson ||
-        (prev ? prev.observationsJson : "{}");
+        (prevComplete ? prevComplete.observationsJson : "{}");
     const prevStateJson = options.prevStateJson ||
-        (prev ? prev.stateJson : "{}");
+        (prevComplete ? prevComplete.stateJson : "{}");
 
     let stateStore: StateStore;
     try {
@@ -110,10 +111,11 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
     const deployOpID = options.deployOpID !== undefined ?
         options.deployOpID : await deployment.newOpID();
 
-    const stackName = options.stackName || (prev && prev.stackName);
+    const stackName = options.stackName || (prevTry && prevTry.stackName);
     if (!stackName) {
-        throw new Error(`stackName option not provided and previous ` +
-            `stackName not present`);
+        // This should only occur if the API is being used incorrectly
+        throw new Error(`stackName option must be provided when creating ` +
+            `deployment`);
     }
 
     const ret = {
@@ -121,7 +123,7 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         ...paths,
         commit,
         observationsJson,
-        prevDomXml: prev && prev.domXml,
+        prevDomXml: prevComplete && prevComplete.domXml,
         prevStateJson,
         deployOpID,
         stackName,
