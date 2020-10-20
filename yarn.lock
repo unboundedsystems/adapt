@@ -1984,12 +1984,12 @@
   dependencies:
     "@types/node" "*"
 
-"@types/mocha@*", "@types/mocha@5.2.7":
+"@types/mocha@5.2.7":
   version "5.2.7"
   resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-5.2.7.tgz#315d570ccb56c53452ff8638738df60726d5b6ea"
   integrity sha512-NYrtPht0wGzhwe9+/idPaBB+TqkY9AhTvOLMkThm0IoEfLaiVQZwBwyJ5puCkO3AUCWrmcoePjp2mbFocKy4SQ==
 
-"@types/nock@*", "@types/nock@10.0.3":
+"@types/nock@10.0.3":
   version "10.0.3"
   resolved "https://registry.yarnpkg.com/@types/nock/-/nock-10.0.3.tgz#dab1d18ffbccfbf2db811dab9584304eeb6e1c4c"
   integrity sha512-OthuN+2FuzfZO3yONJ/QVjKmLEuRagS9TV9lEId+WHL9KhftYG+/2z+pxlr0UgVVXSpVD8woie/3fzQn8ft/Ow==
@@ -5000,7 +5000,7 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
   integrity sha1-4mifjzVvrWLMplo6kcXfX5VRaS8=
 
-fancy-test@1.4.9:
+fancy-test@1.4.9, fancy-test@^1.4.3:
   version "1.4.9"
   resolved "https://registry.yarnpkg.com/fancy-test/-/fancy-test-1.4.9.tgz#13dd99dee9872043763bee4ff3e9d84bab6191c6"
   integrity sha512-Tro3lkXPX438G3t2N9BDgD3ac5iUhNnxIE8tg/KL6z7eZ5GOCexs7fDEMacduqvJWPvsRlmyQ69V1jiTVcqkXQ==
@@ -5011,21 +5011,6 @@ fancy-test@1.4.9:
     "@types/sinon" "*"
     lodash "^4.17.13"
     mock-stdin "^1.0.0"
-    stdout-stderr "^0.1.9"
-
-fancy-test@^1.4.3:
-  version "1.4.4"
-  resolved "https://registry.yarnpkg.com/fancy-test/-/fancy-test-1.4.4.tgz#979f2827fccafac0ef52b542ab9ba9e8bcf40e50"
-  integrity sha512-F2JYBLJTsfvqjziAl/niwxnWYJy+JCIyDMbbBJqT7XzF8JwEIOL3/TC99v3Ig5LFXkvuwKrKpetSymd6CjH8ew==
-  dependencies:
-    "@types/chai" "*"
-    "@types/lodash" "*"
-    "@types/mocha" "*"
-    "@types/nock" "*"
-    "@types/node" "*"
-    "@types/sinon" "*"
-    lodash "^4.17.13"
-    mock-stdin "^0.3.1"
     stdout-stderr "^0.1.9"
 
 fast-deep-equal@^1.0.0:
@@ -8072,11 +8057,6 @@ mocha@5.2.0, mocha@^5.1.1:
     minimatch "3.0.4"
     mkdirp "0.5.1"
     supports-color "5.4.0"
-
-mock-stdin@^0.3.1:
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/mock-stdin/-/mock-stdin-0.3.1.tgz#c657d9642d90786435c64ca5e99bbd4d09bd7dd3"
-  integrity sha1-xlfZZC2QeGQ1xkyl6Zu9TQm9fdM=
 
 mock-stdin@^1.0.0:
   version "1.0.0"
