@@ -34,7 +34,7 @@
     "xml2js": "0.4.22"
   },
   "devDependencies": {
-    "@types/lodash": "4.14.149",
+    "@types/lodash": "4.14.162",
     "@types/mocha": "5.2.7",
     "@types/node": "10.17.9",
     "@types/stream-buffers": "3.0.3",

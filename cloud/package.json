@@ -98,7 +98,7 @@
     "@types/graphql-type-json": "0.3.2",
     "@types/js-yaml": "3.12.1",
     "@types/json-stable-stringify": "1.0.32",
-    "@types/lodash": "4.14.149",
+    "@types/lodash": "4.14.162",
     "@types/mocha": "5.2.7",
     "@types/node": "10.17.9",
     "@types/randomstring": "1.1.6",
