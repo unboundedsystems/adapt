@@ -39,7 +39,7 @@
         "@adpt/testutils": "0.4.0-next.6",
         "mocha": "5.2.0",
         "should": "13.2.3",
-        "source-map-support": "0.5.16"
+        "source-map-support": "0.5.19"
     },
     "scripts": {
         "coverage": "nyc mocha --opts mocha.opts",

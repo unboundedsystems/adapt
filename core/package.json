@@ -93,7 +93,7 @@
     "mocha-slow-options": "0.0.2",
     "should": "13.2.3",
     "sinon": "6.3.5",
-    "source-map-support": "0.5.16",
+    "source-map-support": "0.5.19",
     "type-ops": "3.0.3",
     "typescript": "3.4.5"
   },
