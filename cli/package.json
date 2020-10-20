@@ -81,7 +81,7 @@
     "semver": "5.7.1",
     "shell-escape": "0.2.0",
     "shellwords-ts": "2.0.4",
-    "source-map-support": "0.5.16",
+    "source-map-support": "0.5.19",
     "split": "1.0.1",
     "ts-custom-error": "3.1.1",
     "tslib": "1.10.0",
