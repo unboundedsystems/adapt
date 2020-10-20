@@ -65,7 +65,7 @@
   "dependencies": {
     "@adpt/core": "0.4.0-next.6",
     "@adpt/utils": "0.4.0-next.6",
-    "@types/node-fetch": "2.5.4",
+    "@types/node-fetch": "2.5.7",
     "aws-sdk": "2.589.0",
     "debug": "4.1.1",
     "diff": "4.0.2",
