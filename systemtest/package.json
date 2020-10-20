@@ -30,7 +30,7 @@
     "@adpt/cloud": "0.4.0-next.6",
     "@adpt/testutils": "0.4.0-next.6",
     "@adpt/utils": "0.4.0-next.6",
-    "@types/chai": "4.2.13",
+    "@types/chai": "4.2.14",
     "@types/chai-as-promised": "7.1.2",
     "@types/dockerode": "2.5.21",
     "@types/fs-extra": "8.1.1",
