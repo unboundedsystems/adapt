@@ -115,7 +115,7 @@
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
     "dedent": "0.7.0",
-    "fancy-test": "1.4.4",
+    "fancy-test": "1.4.9",
     "mocha": "5.2.0",
     "mocha-slow-options": "0.0.2",
     "stdout-stderr": "0.1.13",
