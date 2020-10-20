@@ -57,7 +57,7 @@
     "@types/js-yaml": "3.12.1",
     "@types/lodash": "4.14.162",
     "@types/node": "10.17.40",
-    "@types/numeral": "0.0.26",
+    "@types/numeral": "0.0.28",
     "@types/randomstring": "1.1.6",
     "mocha": "5.2.0",
     "mocha-slow-options": "0.0.2",
