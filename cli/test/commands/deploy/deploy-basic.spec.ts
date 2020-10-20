@@ -180,11 +180,13 @@ const testCommon =
 
 const testBase =
     testCommon
-    .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", false as any); // Turn off progress, etc
 
 const testBaseTty =
     testCommon
-    .stub(process.stdout, "isTTY", true) // Ensure TTY-flavored output on stdout
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", true as any) // Ensure TTY-flavored output on stdout
     .stub(process.stdout, "getWindowSize", fakeWindowSize);
 
 /*

@@ -29,7 +29,8 @@ const basicTestChain =
     clitest
     .stdout({ print: debugOutput })
     .stderr({ print: debugOutput })
-    .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", false as any); // Turn off progress, etc
 
 interface WriteConfigOptions {
     filename?: string;
