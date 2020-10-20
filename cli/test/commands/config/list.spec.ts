@@ -24,14 +24,16 @@ const debugOutput = false;
 const basicTestChain = clitest
     .stdout({ print: debugOutput })
     .stderr({ print: debugOutput })
-    .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", false as any); // Turn off progress, etc
 
 const fakeTermWidth = 80;
 
 const ttyTestChain = clitest
     .stdout({ print: debugOutput })
     .stderr({ print: debugOutput })
-    .stub(process.stdout, "isTTY", true)
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", true as any)
     .stub(process.stdout, "getWindowSize", () => [fakeTermWidth, 40]);
 
 // clitest has a config environment variable set, so use this for a
@@ -40,7 +42,8 @@ const noConfigTestChain = clitestBase
     .xdgdirs()
     .stdout({ print: debugOutput })
     .stderr({ print: debugOutput })
-    .stub(process.stdout, "isTTY", false); // Turn off progress, etc
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", false as any); // Turn off progress, etc
 
 const reEscapePath = (p: string) => p.replace(/\\/g, "\\\\");
 

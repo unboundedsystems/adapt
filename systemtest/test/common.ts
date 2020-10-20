@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ export const systemTestChain =
         console.log(ctx.stderr);
         // tslint:enable:no-console
     })
-    .stub(process.stdout, "isTTY", false) // Turn off progress, etc
+    // fancy-test types are incorrect. See https://github.com/oclif/fancy-test/issues/113
+    .stub(process.stdout, "isTTY", false as any) // Turn off progress, etc
     .stdout()
     .stderr()
     .delayedenv(() => {
