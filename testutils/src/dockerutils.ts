@@ -30,7 +30,7 @@ export async function dockerExec(container: Docker.Container, command: string[])
         Cmd: command
     });
 
-    const output = await exec.start();
+    const output = await exec.start({});
     const buf = new sb.WritableStreamBuffer();
     const errBuf = new sb.WritableStreamBuffer();
     exec.modem.demuxStream(output, buf, errBuf);
