@@ -58,7 +58,7 @@
     "@types/deep-diff": "1.0.0",
     "@types/json5": "0.0.30",
     "@types/lodash": "4.14.162",
-    "@types/node": "10.17.40",
+    "@types/node": "10.17.41",
     "@types/node-fetch": "2.5.7",
     "@types/sinon": "5.0.7",
     "@types/stream-buffers": "3.0.3",
