@@ -9,7 +9,7 @@
   "dependencies": {
     "@types/fs-extra": "5.1.0",
     "@types/lodash": "4.14.162",
-    "@types/node": "8.10.60",
+    "@types/node": "8.10.65",
     "@adpt/core": "unit-tests",
     "@adpt/cloud": "unit-tests",
     "@adpt/utils": "unit-tests",
