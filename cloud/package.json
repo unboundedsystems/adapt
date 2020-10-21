@@ -73,7 +73,7 @@
     "fetchu": "2.0.1",
     "graphql": "14.7.0",
     "graphql-tools": "4.0.8",
-    "graphql-type-json": "0.3.1",
+    "graphql-type-json": "0.3.2",
     "js-yaml": "3.13.1",
     "json-stable-stringify": "1.0.1",
     "jsonschema": "1.2.5",
