@@ -5,7 +5,7 @@
   "scripts": {},
   "author": "",
   "dependencies": {
-    "@types/node": "10.17.40",
+    "@types/node": "10.17.41",
     "@adpt/core": "latest",
     "@adpt/cloud": "latest",
     "source-map-support": "0.5.19",
