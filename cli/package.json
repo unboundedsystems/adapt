@@ -55,7 +55,7 @@
     "@oclif/command": "1.5.19",
     "@oclif/config": "1.13.3",
     "@oclif/parser": "3.8.5",
-    "@samverschueren/stream-to-observable": "0.3.0",
+    "@samverschueren/stream-to-observable": "0.3.1",
     "@unboundedsystems/listr": "0.14.3-unb5",
     "@unboundedsystems/plugin-autocomplete": "0.1.0-unb2",
     "@unboundedsystems/plugin-help": "2.1.6-unb1",
