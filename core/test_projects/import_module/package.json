@@ -10,6 +10,6 @@
     "decamelize": "4.0.0"
   },
   "devDependencies": {
-    "@types/node": "8.10.60"
+    "@types/node": "8.10.65"
   }
 }
