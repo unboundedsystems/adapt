@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@adpt/utils": "0.4.0-next.6",
-    "aws-sdk": "2.775.0",
+    "aws-sdk": "2.776.0",
     "callsites": "3.1.0",
     "commander": "3.0.2",
     "dockerode": "3.2.1",
