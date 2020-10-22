@@ -46,7 +46,7 @@
     "stream-buffers": "3.0.2",
     "strip-ansi": "4.0.0",
     "tslib": "1.10.0",
-    "verdaccio": "4.3.5"
+    "verdaccio": "4.8.1"
   },
   "devDependencies": {
     "@types/callsites": "2.0.0",
