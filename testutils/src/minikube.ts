@@ -54,10 +54,14 @@ async function getKubeconfig(_docker: Docker, container: Docker.Container,
     const configYAML = await dockerExec(container, ["cat", "/kubeconfig"]);
 
     const kubeconfig = jsYaml.safeLoad(configYAML);
-    if (!ld.isArray(kubeconfig.clusters)) {
+    if (!kubeconfig || typeof kubeconfig !== "object") {
         throw new Error(`Invalid kubeconfig\n ${configYAML}\n\n${util.inspect(kubeconfig)}`);
     }
-    for (const cluster of kubeconfig.clusters) {
+    const clusters: any[] = (kubeconfig as any).clusters;
+    if (!ld.isArray(clusters)) {
+        throw new Error(`Invalid kubeconfig\n ${configYAML}\n\n${util.inspect(kubeconfig)}`);
+    }
+    for (const cluster of clusters) {
         // Ensure kubeconfig's servers use the preferred alias/port, regardless
         // of which of these names it originally used in the config.
         const url = new URL(cluster.cluster.server);

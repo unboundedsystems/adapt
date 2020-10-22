@@ -87,7 +87,7 @@ async function getKubeconfig(configStr: string): Promise<Kubeconfig> {
 
     //YAML
     try {
-        kubeconfig = yaml.safeLoad(configStr); //FIXME(manishv) Put a Kubeconfig schema to validate YAML
+        kubeconfig = yaml.safeLoad(configStr) as any; //FIXME(manishv) Put a Kubeconfig schema to validate YAML
     } catch (e) {
         errors.push({ attempt: "as YAML", message: e.message });
     }
