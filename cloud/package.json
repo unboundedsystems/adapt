@@ -83,7 +83,7 @@
     "shellwords-ts": "2.0.4",
     "swagger-client": "3.9.6",
     "tmp": "0.2.1",
-    "ts-custom-error": "3.1.1",
+    "ts-custom-error": "3.2.0",
     "tslib": "1.10.0",
     "type-ops": "3.0.3",
     "yup": "0.29.3"
