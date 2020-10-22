@@ -16,12 +16,12 @@
 
 import fs from "fs-extra";
 import jju from "jju";
-import json5 from "json5";
+import json5 from "json5-with-undefined";
 import { ReadonlyDeepT } from "type-ops";
 import { AnyObject } from "./common_types";
 import { InternalError } from "./internal_error";
 
-export { stringify as stringifyJson5 } from "json5";
+export { stringify as stringifyJson5 } from "json5-with-undefined";
 
 // TODO: These JSON definitions aren't exactly right because TS < 3.7 doesn't
 // allow recursive types. Update to recursive types once we update TS.

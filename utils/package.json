@@ -42,7 +42,7 @@
     "global-dirs": "2.0.1",
     "jju": "1.4.0",
     "json-stable-stringify": "1.0.1",
-    "json5": "2.1.3",
+    "json5-with-undefined": "^2.1.301",
     "lodash": "4.17.20",
     "node-fetch": "2.6.1",
     "npm-run-path": "4.0.1",
@@ -56,7 +56,6 @@
   "devDependencies": {
     "@types/decamelize": "1.2.0",
     "@types/deep-diff": "1.0.0",
-    "@types/json5": "0.0.30",
     "@types/lodash": "4.14.162",
     "@types/node": "10.17.42",
     "@types/node-fetch": "2.5.7",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import {
     isObject,
     MaybeArray,
     mkdtmp,
+    readJson5,
     toArray,
     UserError,
 } from "@adpt/utils";
@@ -27,7 +28,6 @@ import copy from "copy";
 import db from "debug";
 import execa from "execa";
 import fs from "fs-extra";
-import json5 from "json5";
 import { isArray, isString } from "lodash";
 import pkgArg from "npm-package-arg";
 import pacote from "pacote";
@@ -268,8 +268,7 @@ function checkMaybeArrayString(config: any, prop: string) {
 async function validateConfig(starterDir: string): Promise<StarterConfig> {
     let config: any;
     try {
-        const configJson = await fs.readFile(path.join(starterDir, starterJsonFile));
-        config = json5.parse(configJson.toString());
+        config = await readJson5(path.join(starterDir, starterJsonFile));
     } catch (err) {
         err = ensureError(err);
         const msg = err.code === "ENOENT" ? `no ${starterJsonFile} file found` :
