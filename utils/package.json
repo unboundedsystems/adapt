@@ -42,7 +42,7 @@
     "global-dirs": "2.0.1",
     "jju": "1.4.0",
     "json-stable-stringify": "1.0.1",
-    "json5": "2.1.1",
+    "json5": "2.1.3",
     "lodash": "4.17.19",
     "node-fetch": "2.6.1",
     "npm-run-path": "4.0.1",
