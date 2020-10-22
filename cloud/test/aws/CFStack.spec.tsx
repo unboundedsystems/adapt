@@ -74,10 +74,10 @@ describe("AWS CFStack component tests", () => {
     <__props__>
       <prop name="StackName">"mystack-XXXXXXXX"</prop>
       <prop name="awsCredentials">{
-  "awsAccessKeyId": "",
-  "awsSecretAccessKey": "",
-  "awsRegion": ""
-}</prop>
+        awsAccessKeyId: "",
+        awsSecretAccessKey: "",
+        awsRegion: "",
+      }</prop>
       <prop name="key">"anonymous"</prop>
     </__props__>
   </CFStackPrimitive>
@@ -100,10 +100,10 @@ describe("AWS CFStack component tests", () => {
   <CFStackPrimitive StackName="mystack">
     <__props__>
       <prop name="awsCredentials">{
-  "awsAccessKeyId": "",
-  "awsSecretAccessKey": "",
-  "awsRegion": ""
-}</prop>
+        awsAccessKeyId: "",
+        awsSecretAccessKey: "",
+        awsRegion: "",
+      }</prop>
       <prop name="key">"anonymous"</prop>
     </__props__>
   </CFStackPrimitive>

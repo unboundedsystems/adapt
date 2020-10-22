@@ -263,12 +263,12 @@ describe("Element Handle", () => {
       <__props__>
         <prop name="key">"Anything"</prop>
         <prop name="ref">{
-  "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
-  "target": [
+  __adaptIsHandle: "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
+  target: [
     "Group",
-    "MakeEmpty-Empty"
+    "MakeEmpty-Empty",
   ],
-  "urn": "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl"
+  urn: "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl",
 }</prop>
       </__props__>
     </Anything>
@@ -306,18 +306,18 @@ describe("Element Handle", () => {
       <__props__>
         <prop name="key">"Anything"</prop>
         <prop name="ref">{
-  "foo": [
+  foo: [
     {
-      "hand": {
-        "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
-        "target": [
+      hand: {
+        __adaptIsHandle: "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
+        target: [
           "Group",
-          "MakeEmpty-Empty"
+          "MakeEmpty-Empty",
         ],
-        "urn": "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl"
-      }
-    }
-  ]
+        urn: "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl",
+      },
+    },
+  ],
 }</prop>
       </__props__>
       <__lifecycle__>

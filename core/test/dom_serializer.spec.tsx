@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,8 +64,35 @@ describe("DOM Prop Serialization", () => {
   <Flex>
     <__props__>
       <prop name="x">{
-  "a": 1,
-  "b": "foo"
+  a: 1,
+  b: "foo",
+}</prop>
+    </__props__>
+  </Flex>
+</Adapt>
+`);
+    });
+
+    it("should serialize single element with undefined prop", () => {
+        const ser = Adapt.serializeDom(<Flex x={1} y={undefined} />);
+        should(ser).equal(`<Adapt>
+  <Flex x="1">
+    <__props__>
+      <prop name="y">undefined</prop>
+    </__props__>
+  </Flex>
+</Adapt>
+`);
+    });
+
+    it("should serialize element with nested undefined prop", () => {
+        const ser = Adapt.serializeDom(<Flex x={{ a: 1, b: undefined }} />);
+        should(ser).equal(`<Adapt>
+  <Flex>
+    <__props__>
+      <prop name="x">{
+  a: 1,
+  b: undefined,
 }</prop>
     </__props__>
   </Flex>
@@ -120,8 +147,8 @@ describe("DOM Child Serialization", () => {
         should(ser).equal(`<Adapt>
   <Flex>
     <json>{
-  "x": 1,
-  "y": 2
+  x: 1,
+  y: 2,
 }</json>
   </Flex>
 </Adapt>

@@ -272,12 +272,13 @@ class HandleImpl implements HandleInternal {
     toJSON(): HandleObj {
         const el = this.target;
         const target = isMountedElement(el) ? el.keyPath : null;
-        return {
+        const ret: HandleObj = {
             __adaptIsHandle: handleSignature,
-            name: this.name,
             target,
             urn: handleUrn
         };
+        if (this.name !== undefined) ret.name = this.name;
+        return ret;
     }
 
     origDebug() {

@@ -121,23 +121,24 @@ describe("k8s Service Component Tests", () => {
 
         const domXml = Adapt.serializeDom(dom);
         const expected =
-            `<Adapt>
+`<Adapt>
   <Resource kind="Service">
     <__props__>
       <prop name="config">{}</prop>
       <prop name="key">"NetworkService"</prop>
       <prop name="metadata">{}</prop>
       <prop name="spec">{
-  "sessionAffinity": "None",
-  "type": "ClusterIP",
-  "ports": [
-    {
-      "port": 8080,
-      "targetPort": 8080,
-      "protocol": "TCP"
-    }
-  ]
-}</prop>
+        sessionAffinity: "None",
+        type: "ClusterIP",
+        ports: [
+          {
+            port: 8080,
+            targetPort: 8080,
+            protocol: "TCP",
+          },
+        ],
+        selector: undefined,
+      }</prop>
     </__props__>
   </Resource>
 </Adapt>

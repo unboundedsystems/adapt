@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ import * as ld from "lodash";
 import * as util from "util";
 import * as xmlbuilder from "xmlbuilder";
 
+import { stringifyJson5 } from "@adpt/utils";
 import { InternalError } from "./error";
 import {
     AdaptElement,
@@ -52,7 +53,12 @@ interface AnyObj {
 }
 
 function serializeAny(val: any, reanimateable: boolean): string | null | undefined {
-    return JSON.stringify(val, serializeSpecials(reanimateable), 2);
+    return stringifyJson5(val, {
+        quote: `"`,
+        replacer: serializeSpecials(reanimateable),
+        space: 2,
+        useUndefined: true,
+    });
 }
 
 function serializeSpecials(reanimateable: boolean): ((this: AnyObj, key: string, value: any) => any) {
@@ -84,7 +90,12 @@ function serializeShortPropVal(propVal: any) {
 }
 
 function serializeLongPropVal(propVal: any, pretty = true, reanimateable = true): string {
-    const json = JSON.stringify(propVal, serializeSpecials(reanimateable), pretty ? 2 : undefined);
+    const json = stringifyJson5(propVal, {
+        quote: `"`,
+        replacer: serializeSpecials(reanimateable),
+        space: pretty ? 2 : undefined,
+        useUndefined: true,
+    });
     if (json != null) return json;
     return propVal.toString();
 }
@@ -113,7 +124,6 @@ function collectProps(elem: AdaptElement, options: SerializeOptions) {
         if (propName === "children" || propName === "handle") continue;
 
         const prop = props[propName];
-        if (prop === undefined) continue;
 
         if (canBeShort(propName, prop)) {
             shortProps[propName] = serializeShortPropVal(prop);

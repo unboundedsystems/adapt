@@ -273,7 +273,7 @@ async function validateConfig(starterDir: string): Promise<StarterConfig> {
         err = ensureError(err);
         const msg = err.code === "ENOENT" ? `no ${starterJsonFile} file found` :
             err.name === "SyntaxError" ? `unable to parse ${starterJsonFile}:` +
-                err.message.replace(/^JSON5:/, "") :
+                err.message.replace(/^Invalid JSON5 format:/, "") :
             err.message;
         throw new Error(msg);
     }

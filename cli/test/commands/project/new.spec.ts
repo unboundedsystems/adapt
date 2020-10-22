@@ -87,7 +87,9 @@ describe("project:new errors", () => {
     .catch((err) => {
         expect(err.message).equals(
             `Unable to use './invalid' as a starter: ` +
-            `unable to parse adapt_starter.json: invalid character 'o' at 1:2`);
+            `unable to parse adapt_starter.json: invalid character 'o' at line 1, column 2:\n` +
+            `foo:\n` +
+            ` ^-- error here`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error with invalid adapt_starter.json");
