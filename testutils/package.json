@@ -59,7 +59,7 @@
     "@types/node": "10.17.42",
     "@types/numeral": "0.0.28",
     "@types/randomstring": "1.1.6",
-    "mocha": "5.2.0",
+    "mocha": "8.2.0",
     "mocha-slow-options": "0.0.2",
     "should": "13.2.3",
     "source-map-support": "0.5.19"
