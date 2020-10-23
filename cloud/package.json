@@ -81,7 +81,7 @@
     "node-fetch": "2.6.1",
     "randomstring": "1.1.5",
     "shellwords-ts": "2.0.4",
-    "swagger-client": "3.9.6",
+    "swagger-client": "3.10.9",
     "tmp": "0.2.1",
     "ts-custom-error": "3.2.0",
     "tslib": "1.14.1",
