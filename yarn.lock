@@ -7020,7 +7020,7 @@ json-to-pretty-yaml@1.2.2:
     remedial "^1.0.7"
     remove-trailing-spaces "^1.0.6"
 
-json5-with-undefined@^2.1.301:
+json5-with-undefined@2.1.301:
   version "2.1.301"
   resolved "https://registry.yarnpkg.com/json5-with-undefined/-/json5-with-undefined-2.1.301.tgz#3d32fe22b47065fc6350ed3af5a4b3863394e760"
   integrity sha512-GUI3FVAk5bJfh5yzjoqd82RebCIEBVFcqmLfoEGcaZulyMpqnqDm35GhX9zPakrU0/IS9m4PClmpofetg55Tvw==
