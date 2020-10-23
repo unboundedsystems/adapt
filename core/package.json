@@ -1,6 +1,6 @@
 {
   "name": "@adpt/core",
-  "version": "0.4.0-next.6",
+  "version": "0.4.0-next.7",
   "description": "AdaptJS core library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -65,7 +65,7 @@
     "test": "mocha --opts mocha.opts"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.4.0-next.6",
+    "@adpt/testutils": "0.4.0-next.7",
     "@graphql-codegen/cli": "1.9.1",
     "@graphql-codegen/typescript": "1.9.1",
     "@graphql-codegen/typescript-resolvers": "1.9.1",
@@ -98,8 +98,8 @@
     "typescript": "3.4.5"
   },
   "dependencies": {
-    "@adpt/dom-parser": "0.4.0-next.6",
-    "@adpt/utils": "0.4.0-next.6",
+    "@adpt/dom-parser": "0.4.0-next.7",
+    "@adpt/utils": "0.4.0-next.7",
     "@usys/fork-require": "1.0.9-unb3",
     "async-lock": "1.2.4",
     "callsites": "3.1.0",
