@@ -64,10 +64,29 @@ describe("DOM Prop Serialization", () => {
   <Flex>
     <__props__>
       <prop name="x">{
-  a: 1,
-  b: "foo",
-}</prop>
+        a: 1,
+        b: "foo",
+      }</prop>
     </__props__>
+  </Flex>
+</Adapt>
+`);
+    });
+
+    it("should indent object props to the correct level", () => {
+        const ser = Adapt.serializeDom(<Flex><Flex><Flex x={{ a: 1, b: "foo" }} /></Flex></Flex>);
+        should(ser).equal(`<Adapt>
+  <Flex>
+    <Flex>
+      <Flex>
+        <__props__>
+          <prop name="x">{
+            a: 1,
+            b: "foo",
+          }</prop>
+        </__props__>
+      </Flex>
+    </Flex>
   </Flex>
 </Adapt>
 `);
@@ -91,9 +110,9 @@ describe("DOM Prop Serialization", () => {
   <Flex>
     <__props__>
       <prop name="x">{
-  a: 1,
-  b: undefined,
-}</prop>
+        a: 1,
+        b: undefined,
+      }</prop>
     </__props__>
   </Flex>
 </Adapt>
