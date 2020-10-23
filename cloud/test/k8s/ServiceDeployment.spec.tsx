@@ -274,7 +274,7 @@ describe("k8s ServiceDeployment tests", function () {
 
         const orig = <TestBench />;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         oldDaemonJSON = JSON.parse((await fs.readFile("oldDaemonJSON.json")).toString());
         should(dom).not.Null();

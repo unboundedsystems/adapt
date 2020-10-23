@@ -78,11 +78,20 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
-    "coverage": "nyc mocha --opts mocha.opts",
+    "coverage": "nyc mocha",
     "docs": "true",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts"
+    "test": "mocha"
+  },
+  "mocha": {
+    "recursive": true,
+    "reporter": "mocha-slow-options",
+    "require": [
+      "source-map-support/register"
+    ],
+    "spec": "dist/test",
+    "timeout": 30000
   }
 }

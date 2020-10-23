@@ -152,7 +152,7 @@ describe("k8s ConfigMap operation tests", function () {
             data={data}
         />;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         should(dom).not.Null();
 
@@ -173,7 +173,7 @@ describe("k8s ConfigMap operation tests", function () {
             binaryData={data}
         />;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         should(dom).not.Null();
 

@@ -184,7 +184,7 @@ describe("k8s Deployment operation tests", function () {
             </Pod>
         </Deployment>;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         if (dom == null) throw should(dom).not.Null();
 
@@ -217,7 +217,7 @@ describe("k8s Deployment operation tests", function () {
         </Deployment>;
 
         const { dom } = await mockDeploy.deploy(modified, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         if (dom == null) throw should(dom).not.Null();
 

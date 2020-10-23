@@ -42,7 +42,7 @@
         "source-map-support": "0.5.19"
     },
     "scripts": {
-        "coverage": "nyc mocha --opts mocha.opts",
+        "coverage": "nyc mocha",
         "docs": ":",
         "lint": "tslint -e '**/*.json' --project .",
         "lint-and-fix": "tslint -e '**/*.json' --project . --fix",

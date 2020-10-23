@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 
 import * as crypto from "crypto";
 import * as fs from "fs-extra";
+import { Done } from "mocha";
 import * as os from "os";
 import * as path from "path";
 import * as localRegistry from "./local-registry";
 import * as localRegistryDefaults from "./local-registry-defaults";
 
-type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
+type FixtureFunc = (callback: (done: Done) => PromiseLike<any> | void) => void;
 
 export type MochaLocalRegOptions = MochaLocalRegShared | MochaLocalRegConfig;
 

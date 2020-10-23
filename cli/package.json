@@ -165,14 +165,25 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
-    "coverage": "nyc mocha --opts mocha.opts",
+    "coverage": "nyc mocha",
     "docs": "cross-env ../scripts/cli_docs.sh",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "postpack": "rm -f oclif.manifest.json",
     "prepack": "make build && oclif-dev manifest",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts",
+    "test": "mocha",
     "version": "npm run docs && git add README.md"
+  },
+  "mocha": {
+    "expose-gc": true,
+    "recursive": true,
+    "reporter": "mocha-slow-options",
+    "require": [
+      "test/init.js",
+      "source-map-support/register"
+    ],
+    "spec": "dist/test",
+    "timeout": 30000
   }
 }
