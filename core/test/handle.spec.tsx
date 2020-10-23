@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -263,13 +263,13 @@ describe("Element Handle", () => {
       <__props__>
         <prop name="key">"Anything"</prop>
         <prop name="ref">{
-  "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
-  "target": [
-    "Group",
-    "MakeEmpty-Empty"
-  ],
-  "urn": "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl"
-}</prop>
+          __adaptIsHandle: "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
+          target: [
+            "Group",
+            "MakeEmpty-Empty",
+          ],
+          urn: "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl",
+        }</prop>
       </__props__>
     </Anything>
   </Group>
@@ -306,19 +306,19 @@ describe("Element Handle", () => {
       <__props__>
         <prop name="key">"Anything"</prop>
         <prop name="ref">{
-  "foo": [
-    {
-      "hand": {
-        "__adaptIsHandle": "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
-        "target": [
-          "Group",
-          "MakeEmpty-Empty"
-        ],
-        "urn": "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl"
-      }
-    }
-  ]
-}</prop>
+          foo: [
+            {
+              hand: {
+                __adaptIsHandle: "2cc59ea3765538055042932741f6387d04a5fb8cc00350fe1ab755da3830a810",
+                target: [
+                  "Group",
+                  "MakeEmpty-Empty",
+                ],
+                urn: "urn:Adapt:@adpt/core:${aVer}:$adaptExports:handle.js:HandleImpl",
+              },
+            },
+          ],
+        }</prop>
       </__props__>
       <__lifecycle__>
         <field name="stateNamespace">["Group","Anything"]</field>

@@ -9,17 +9,19 @@
     <DockerHost/>
     <MongoContainer mongoCtrPort="27017" mongoPort="27017" name="mongo" webStatusCtrPort="28017" webStatusPort="8081">
       <__props__>
+        <prop name="dockerHost">undefined</prop>
         <prop name="image">{
-  "repository": "mongo",
-  "tag": "3.1"
-}</prop>
+          repository: "mongo",
+          tag: "3.1",
+        }</prop>
       </__props__>
     </MongoContainer>
     <AppContainer ctrPort="8080" mongoHostname="mongo" mongoPort="27017" port="8080">
       <__props__>
+        <prop name="dockerHost">undefined</prop>
         <prop name="image">{
-  "repository": "uric/nodecellar"
-}</prop>
+          repository: "uric/nodecellar",
+        }</prop>
         <prop name="name">"nodecellar"</prop>
       </__props__>
     </AppContainer>

@@ -85,6 +85,7 @@ $(coverage_submakes): build
 #
 # Build dependencies between directories
 #
+dom-parser-build: utils-build
 core-build: utils-build dom-parser-build testutils-build
 cli-build: core-build cloud-build utils-build testutils-build
 cloud-build: core-build utils-build testutils-build

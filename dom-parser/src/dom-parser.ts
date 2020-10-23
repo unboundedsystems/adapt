@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Unbounded Systems, LLC
+ * Copyright 2018-2019 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 import * as stream from "stream";
 import * as util from "util";
 
+import { parseJson5 } from "@adpt/utils";
 import * as ld from "lodash";
 import * as sb from "stream-buffers";
 import * as xml2js from "xml2js";
@@ -155,7 +156,7 @@ function extractDOMObject(xmlNode: XMLNode): DOMObject {
     const uri = uriOf(child);
     if (!uri.startsWith("urn:")) throw new Error("child has bad xmlns");
     const json = extractSoleText(child);
-    return new DOMObject(uri, JSON.parse(json));
+    return new DOMObject(uri, parseJson5(json));
 }
 
 function handleJSON(xmlNode: XMLNode): object {
@@ -167,7 +168,7 @@ function handleJSON(xmlNode: XMLNode): object {
     let txt = "";
     try {
         txt = extractSoleText(xmlNode);
-        return JSON.parse(txt);
+        return parseJson5(txt);
     } catch (e) {
         throw new Error("malformed json node body: " + e.message);
     }
@@ -183,7 +184,7 @@ function getPropsNode(xmlNode: XMLNode): XMLPropsNode[] {
 
 function extractProp(prop: XMLPropNode): any {
     try {
-        return JSON.parse(extractSoleText(prop));
+        return parseJson5(extractSoleText(prop));
     } catch (err) { /* */ }
 
     return extractDOMObject(prop);
@@ -244,7 +245,7 @@ function getLifecycleNode(xmlNode: XMLNode): XMLLifecycleNode[] {
 function extractStringArray(xmlNode: XMLNode): string[] {
     const dataJson = extractSoleText(xmlNode);
     if (dataJson == null) throw new Error(`No text data in node: ${util.inspect(xmlNode)}`);
-    const data = JSON.parse(dataJson);
+    const data = parseJson5(dataJson);
     if (!util.isArray(data)) throw new Error(`text data is not an array, expecting string[]: ${util.inspect(xmlNode)}`);
     const notString = data.find((v) => !util.isString(v));
     if (notString !== undefined) {
@@ -256,7 +257,7 @@ function extractStringArray(xmlNode: XMLNode): string[] {
 function extractString(xmlNode: XMLNode): string {
     const dataJson = extractSoleText(xmlNode);
     if (dataJson == null) throw new Error(`No text data in node: ${util.inspect(xmlNode)}`);
-    const data = JSON.parse(dataJson);
+    const data = parseJson5(dataJson);
     if (!util.isString(data)) throw new Error(`text data is not a string: ${util.inspect(xmlNode)}`);
     return data;
 }

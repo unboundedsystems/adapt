@@ -77,14 +77,15 @@ describe("AWS EC2Instance component tests", () => {
   <CFResourcePrimitive>
     <__props__>
       <prop name="Properties">{
-  "InstanceType": "t2.micro",
-  "KeyName": "mykey",
-  "ImageId": "ami12345",
-  "SecurityGroups": [
-    "secgroupname"
-  ]
-}</prop>
+        InstanceType: "t2.micro",
+        KeyName: "mykey",
+        ImageId: "ami12345",
+        SecurityGroups: [
+          "secgroupname",
+        ],
+      }</prop>
       <prop name="Type">"AWS::EC2::Instance"</prop>
+      <prop name="cfStackHandle">undefined</prop>
       <prop name="key">"anonymous"</prop>
     </__props__>
     <Foo key="Foo"/>
@@ -116,15 +117,16 @@ apt-get update -qq
   <CFResourcePrimitive>
     <__props__>
       <prop name="Properties">{
-  "InstanceType": "t2.micro",
-  "KeyName": "mykey",
-  "ImageId": "ami12345",
-  "SecurityGroups": [
-    "secgroupname"
-  ],
-  "UserData": "IyEvYmluL2Jhc2gKYXB0LWdldCB1cGRhdGUgLXFxCg=="
-}</prop>
+        InstanceType: "t2.micro",
+        KeyName: "mykey",
+        ImageId: "ami12345",
+        SecurityGroups: [
+          "secgroupname",
+        ],
+        UserData: "IyEvYmluL2Jhc2gKYXB0LWdldCB1cGRhdGUgLXFxCg==",
+      }</prop>
       <prop name="Type">"AWS::EC2::Instance"</prop>
+      <prop name="cfStackHandle">undefined</prop>
       <prop name="key">"anonymous"</prop>
     </__props__>
   </CFResourcePrimitive>
