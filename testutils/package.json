@@ -59,7 +59,7 @@
     "@types/node": "10.17.42",
     "@types/numeral": "0.0.28",
     "@types/randomstring": "1.1.6",
-    "mocha": "5.2.0",
+    "mocha": "8.2.0",
     "mocha-slow-options": "0.0.2",
     "should": "13.2.3",
     "source-map-support": "0.5.19"
@@ -71,11 +71,20 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
-    "coverage": "nyc mocha --opts mocha.opts",
+    "coverage": "nyc mocha",
     "docs": "true",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts"
+    "test": "mocha"
+  },
+  "mocha": {
+    "recursive": true,
+    "reporter": "mocha-slow-options",
+    "require": [
+      "source-map-support/register"
+    ],
+    "spec": "dist/test",
+    "timeout": 30000
   }
 }

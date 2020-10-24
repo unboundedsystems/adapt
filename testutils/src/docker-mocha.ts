@@ -17,11 +17,12 @@
 import { MaybePromise, onExit } from "@adpt/utils";
 import Docker = require("dockerode");
 import { merge } from "lodash";
+import { Done } from "mocha";
 import moment from "moment";
 import pDefer from "p-defer";
 import { addToNetwork, createNetwork, dockerPull, inContainer, proxyFromContainer } from "./dockerutils";
 
-type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
+type FixtureFunc = (callback: (done: Done) => PromiseLike<any> | void) => void;
 
 function setup(fixture: DockerFixtureImpl, beforeFn: FixtureFunc, afterFn: FixtureFunc) {
 

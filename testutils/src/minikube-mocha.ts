@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { Done } from "mocha";
 import pDefer from "p-defer";
 import { getClient, getK8sConfig, KubeClient } from "./k8sutils";
 import {
@@ -22,7 +23,7 @@ import {
     stopTestMinikube,
 } from "./minikube";
 
-type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
+type FixtureFunc = (callback: (done: Done) => PromiseLike<any> | void) => void;
 
 function setup(fixture: MinikubeFixtureImpl, _beforeFn: FixtureFunc, afterFn: FixtureFunc) {
 

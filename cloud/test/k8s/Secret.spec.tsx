@@ -152,7 +152,7 @@ describe("k8s Secret operation tests", function () {
             stringData={data}
         />;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         should(dom).not.Null();
 
@@ -170,7 +170,7 @@ describe("k8s Secret operation tests", function () {
             data={data}
         />;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.enableTimeouts() ? timeout : undefined,
+            timeoutInMs: this.timeout() ? timeout : undefined,
         });
         should(dom).not.Null();
 

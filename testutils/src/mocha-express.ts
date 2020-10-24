@@ -16,10 +16,11 @@
 import { InternalError } from "@adpt/utils";
 import express, { Express } from "express";
 import http from "http";
+import { Done } from "mocha";
 
 export { Request, Response } from "express";
 
-type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
+type FixtureFunc = (callback: (done: Done) => PromiseLike<any> | void) => void;
 
 export interface MochaExpressOptions {
 }

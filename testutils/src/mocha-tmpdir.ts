@@ -16,6 +16,7 @@
 
 import callsites = require("callsites");
 import * as fs from "fs-extra";
+import { Done } from "mocha";
 import * as os from "os";
 import * as path from "path";
 
@@ -33,7 +34,7 @@ const defaultOptions = {
     copy: undefined,
 };
 
-type FixtureFunc = (callback: (done: MochaDone) => PromiseLike<any> | void) => void;
+type FixtureFunc = (callback: (done: Done) => PromiseLike<any> | void) => void;
 
 type Listener = (...args: any[]) => void;
 interface DirInfo {

@@ -1,5 +1,0 @@
---require source-map-support/register
---recursive
---reporter mocha-slow-options
---timeout 30000
-dist/test

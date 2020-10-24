@@ -36,11 +36,11 @@
   },
   "devDependencies": {
     "@types/lodash": "4.14.162",
-    "@types/mocha": "5.2.7",
+    "@types/mocha": "8.0.3",
     "@types/node": "10.17.42",
     "@types/stream-buffers": "3.0.3",
     "@types/xml2js": "0.4.5",
-    "mocha": "5.2.0",
+    "mocha": "8.2.0",
     "mocha-slow-options": "0.0.2",
     "should": "13.2.3",
     "source-map-support": "0.5.19"
@@ -53,10 +53,18 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "clean": "rm -rf build dist generated temp",
     "docs": "true",
-    "coverage": "nyc mocha --opts mocha.opts",
+    "coverage": "nyc mocha",
     "lint": "tslint -e '**/*.json' --project .",
     "lint-and-fix": "tslint -e '**/*.json' --project . --fix",
     "pretest": "make build",
-    "test": "mocha --opts mocha.opts"
+    "test": "mocha"
+  },
+  "mocha": {
+    "recursive": true,
+    "reporter": "mocha-slow-options",
+    "require": [
+      "source-map-support/register"
+    ],
+    "spec": "dist/test"
   }
 }
