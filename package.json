@@ -44,7 +44,7 @@
         "doctoc": "1.4.0",
         "lint-staged": "9.5.0",
         "markdown-clitest": "0.5.1",
-        "nyc": "13.3.0",
+        "nyc": "15.1.0",
         "semver": "5.7.1",
         "tslint": "5.20.1",
         "typescript": "3.4.5"
