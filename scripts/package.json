@@ -24,7 +24,7 @@
     },
     "dependencies": {
         "@adpt/utils": "0.4.0-next.7",
-        "commander": "3.0.2",
+        "commander": "6.2.0",
         "copyright-header": "0.4.6",
         "debug": "4.2.0",
         "diff": "4.0.2",
