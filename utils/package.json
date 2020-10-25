@@ -37,7 +37,7 @@
     "deep-diff": "1.0.2",
     "eventemitter2": "6.4.3",
     "execa": "4.0.3",
-    "find-up": "4.1.0",
+    "find-up": "5.0.0",
     "fs-extra": "8.1.0",
     "global-dirs": "2.0.1",
     "jju": "1.4.0",
