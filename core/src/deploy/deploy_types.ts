@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -250,6 +250,7 @@ export interface ActOptions {
     deployOpID: DeployOpID;
     dryRun?: boolean;
     goalStatus?: GoalStatus;
+    ignoreDeleteErrors?: boolean;
     pollDelayMs?: number;
     processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
     taskObserver: TaskObserver;
@@ -413,6 +414,7 @@ export interface ExecutionPlan {
 export interface ExecuteOptions {
     concurrency?: number;
     dryRun?: boolean;
+    ignoreDeleteErrors?: boolean;
     logger: MessageLogger;
     plan: ExecutionPlan;
     pollDelayMs?: number;

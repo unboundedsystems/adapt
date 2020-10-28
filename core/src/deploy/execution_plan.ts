@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -589,6 +589,7 @@ function debugExecDetailId(id: string, ...args: any[]) {
 
 const defaultExecuteOptions = {
     concurrency: Infinity,
+    ignoreDeleteErrors: false,
     dryRun: false,
     pollDelayMs: 1000,
     timeoutMs: 0,
@@ -727,6 +728,8 @@ export async function executePass(opts: ExecutePassOptions) {
 
             const w = n.waitInfo;
             if (w) {
+                let errorIgnored = false;
+
                 if (!isInProgress(stat)) {
                     await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
 
@@ -736,21 +739,28 @@ export async function executePass(opts: ExecutePassOptions) {
                         try {
                             if (!dryRun) await w.action();
                         } catch (err) {
-                            logger.error(`--Error while ${w.description}\n${err}\n----------`);
-                            errorLogged = true;
-                            throw err;
+                            if (n.goalStatus === GoalStatus.Destroyed && opts.ignoreDeleteErrors) {
+                                errorIgnored = true;
+                                logger.warning(`--Error (ignored) while ${w.description}\n${err}\n----------`);
+                            } else {
+                                logger.error(`--Error while ${w.description}\n${err}\n----------`);
+                                errorLogged = true;
+                                throw err;
+                            }
                         }
                     }
                 }
-                const wStat = await w.deployedWhen(n.goalStatus);
-                if (wStat !== true) {
-                    const statStr = waitStatusToString(wStat);
-                    debugExecId(id, `NOT COMPLETE: ${w.description}: ${statStr}`);
-                    nodeStatus.output(n, statStr);
-                    dwQueue.enqueue(n, id, wStat);
-                    return;
+                if (!errorIgnored) {
+                    const wStat = await w.deployedWhen(n.goalStatus);
+                    if (wStat !== true) {
+                        const statStr = waitStatusToString(wStat);
+                        debugExecId(id, `NOT COMPLETE: ${w.description}: ${statStr}`);
+                        nodeStatus.output(n, statStr);
+                        dwQueue.enqueue(n, id, wStat);
+                        return;
+                    }
                 }
-                debugExecId(id, `COMPLETE: ${w.description}`);
+                debugExecId(id, `COMPLETE${errorIgnored ? "(error ignored)" : ""}: ${w.description}`);
 
             } else {
                 debugExecId(id, `  No wait info`);
