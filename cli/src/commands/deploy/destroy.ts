@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
+import { flags } from "@oclif/command";
 import { ListrTaskWrapper } from "@unboundedsystems/listr";
 import { dirname } from "path";
 import { DeployOpBase } from "../../base/deploy_base";
 import { projectAdaptModule } from "../../proj";
 import { AdaptModule } from "../../types/adapt_shared";
-import { addDynamicTask, waitForInitiate } from "../../ui/dynamic_task_mgr";
+import { addDynamicTask, filterDynamicTaskFailed, waitForInitiate } from "../../ui/dynamic_task_mgr";
 import { UpdateBaseCommand } from "./update";
 
 export default class DestroyCommand extends UpdateBaseCommand {
@@ -35,6 +36,10 @@ Destroy the deployment "myproj-dev-abcd" using the default project description f
 
     static flags = {
         ...DeployOpBase.flags,
+        force: flags.boolean({
+            char: "f",
+            description: "Continue destroying the deployment even if errors are encountered",
+        }),
     };
 
     static args = [
@@ -48,6 +53,7 @@ Destroy the deployment "myproj-dev-abcd" using the default project description f
     edverb = "stopped";
 
     async run() {
+        this.ctx.force = this.flags(DestroyCommand).force;
         this.ctx.stackName = "(null)";
         this.addUpdateTask();
 
@@ -92,6 +98,12 @@ Destroy the deployment "myproj-dev-abcd" using the default project description f
             }
         });
 
-        await this.tasks.run();
+        try {
+            await this.tasks.run();
+        } catch (err) {
+            // Ignore errors from individual dynamic tasks
+            err = filterDynamicTaskFailed(err);
+            if (err) throw err[0];
+        }
     }
 }

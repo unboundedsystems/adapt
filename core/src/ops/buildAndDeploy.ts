@@ -65,6 +65,7 @@ export interface BuildOptions {
     taskObserver: TaskObserver;
 
     deployOpID?: DeployOpID;
+    ignoreDeleteErrors?: boolean;
     withStatus?: boolean;
     observationsJson?: string;
     prevStateJson?: string;
@@ -122,6 +123,7 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         ...options,
         ...paths,
         commit,
+        ignoreDeleteErrors: Boolean(options.ignoreDeleteErrors),
         observationsJson,
         prevDomXml: prevComplete && prevComplete.domXml,
         prevStateJson,
@@ -397,6 +399,7 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
                 builtElements: buildResults.builtElements,
                 deployOpID: options.deployOpID,
                 dryRun: options.dryRun,
+                ignoreDeleteErrors: options.ignoreDeleteErrors,
                 processStateUpdates,
                 taskObserver: actTaskObserver,
             });

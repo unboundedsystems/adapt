@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -319,4 +319,18 @@ export function waitForInitiate<Ret>(err: any | undefined,
     }
 
     return initiatePromise;
+}
+
+export function isDynamicTaskFailed(err: any): err is DynamicTaskFailed {
+    return err instanceof DynamicTaskFailed;
+}
+
+export function filterDynamicTaskFailed(err: undefined | Error): undefined | Error[] {
+    if (err == null) return undefined;
+    if (typeof err !== "object") {
+        throw new InternalError(`err must be Error or undefined but got '${typeof err}'`);
+    }
+    const errList: Error[] = err.name === "ListrError" ? (err as any).errors : [err];
+    const finalList = errList.filter((e) => !isDynamicTaskFailed(e));
+    return finalList.length === 0 ? undefined : finalList;
 }

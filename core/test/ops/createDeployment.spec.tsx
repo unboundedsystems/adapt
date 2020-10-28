@@ -53,6 +53,8 @@ import Adapt, {
     Constructor,
     gql,
     Group,
+    handle,
+    Handle,
     Observer,
     PrimitiveComponent,
     registerObserver,
@@ -66,6 +68,11 @@ class Simple extends PrimitiveComponent<{}> {
 }
 class ActError extends PrimitiveComponent<{}> {}
 class AnalyzeError extends PrimitiveComponent<{}> {}
+export class DeleteError extends PrimitiveComponent<{ dep?: Handle }> {
+    dependsOn = (goal, helpers) => {
+        if (this.props.dep) return helpers.dependsOn(this.props.dep);
+    };
+}
 
 class BuildNull extends Component<{}> {
     build() { return null; }
@@ -104,6 +111,16 @@ function makeTwo(Comp: Constructor<Component<WithChildren>>) {
     return <Comp key={key}><Comp key={key} /></Comp>;
 }
 
+function DeleteErrorApp() {
+    const h = handle();
+    return (
+        <Group>
+            <DeleteError handle={h} />
+            <DeleteError dep={h} />
+        </Group>
+    );
+}
+
 Adapt.stack("default", makeTwo(Simple));
 Adapt.stack("ActError", <Group><ActError /><ActError /></Group>);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -113,6 +130,7 @@ Adapt.stack("ObserverToSimple", <ObserverToSimple />);
 Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName: "neverObserve" }}/>);
 Adapt.stack("promises", makeSimple(), makeNull());
 Adapt.stack("BuildError", <BuildError error={true} />);
+Adapt.stack("DeleteError", <DeleteErrorApp />);
 `;
 
 function defaultDomXmlOutput(namespace: string[]) {
@@ -141,7 +159,9 @@ import {
     Action,
     AdaptElement,
     AdaptElementOrNull,
+    AdaptMountedElement,
     childrenToArray,
+    domDiff,
     FinalDomElement,
     ChangeType,
     Plugin,
@@ -166,48 +186,89 @@ class EchoPlugin implements Plugin<{}> {
         this.log("observe");
         return {};
     }
-    analyze(oldDom: AdaptElementOrNull, dom: AdaptElementOrNull, _obs: {}): Action[] {
+
+    analyze(oldDom: AdaptMountedElement | null, dom: AdaptMountedElement | null, _obs: {}): Action[] {
         this.log("analyze");
-        if (oldDom == null && dom == null) return [];
+        const { added, deleted, commonNew } = domDiff(oldDom, dom);
+        const actions: Action[] = [];
 
-        // Gather all the non-Group elements
-        let els: AdaptElement[] = [];
-        if (dom) {
-            els.push(dom);
-            els.push(...childrenToArray(dom.props.children));
-        }
-        els = els.filter((el) => el.componentType.name !== "Group");
-
-        const info = (n: number, type = "action") => ({
-            type: ChangeType.create,
-            detail: "echo " + type + n,
-            changes: [{
-                type: ChangeType.create,
-                element: els[n - 1] as FinalDomElement,
-                detail: "echo action" + n,
-            }]
-        });
-
-        const firstName = els[0] && els[0].componentType.name;
-
-        if (firstName === "AnalyzeError") {
-            throw new Error("AnalyzeError");
-        }
-        if (firstName === "ActError") {
-            return [
-                // First action is purposely NOT returning a promise and doing
-                // a synchronous throw
-                { ...info(1, "error"), act: () => { throw new Error("ActError1"); } },
-                // Second action is correctly implemented as an async function
-                // so will return a rejected promise.
-                { ...info(2, "error"), act: async () => { throw new Error("ActError2"); } }
-            ];
-        }
-        return [
-            { ...info(1), act: () => this.doAction("action1") },
-            { ...info(2), act: () => this.doAction("action2") }
+        const actErrors = [
+            // First action is purposely NOT returning a promise and doing
+            // a synchronous throw
+            () => { throw new Error("ActError1"); },
+            // Second action is correctly implemented as an async function
+            // so will return a rejected promise.
+            async () => { throw new Error("ActError2"); },
         ];
+        let actErrNum = 0;
+        let elNum = 1;
+
+        const info = (el: AdaptElement, type: ChangeType, what = "action") => {
+            const detail = "echo " + what + elNum;
+            return {
+                detail,
+                type,
+                changes: [{
+                    detail,
+                    type,
+                    element: el as FinalDomElement,
+                }],
+            };
+        };
+
+        for (const el of added) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                case "AnalyzeError":
+                    throw new Error("AnalyzeError");
+
+                case "ActError":
+                    actions.push({ ...info(el, ChangeType.create, "error"), act: actErrors[actErrNum]});
+                    actErrNum = (actErrNum + 1) % actErrors.length;
+                    break;
+
+                default:
+                    const actStr = "action" + elNum;
+                    actions.push({ ...info(el, ChangeType.create), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
+        }
+
+        for (const el of deleted) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                case "DeleteError":
+                    actions.push({ ...info(el, ChangeType.delete, "delete"), act: async () => { throw new Error("DeleteError"); } });
+                    break;
+
+                default:
+                    const actStr = "delete" + elNum;
+                    actions.push({ ...info(el, ChangeType.delete, "delete"), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
+        }
+
+        for (const el of commonNew) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                default:
+                    const actStr = "action" + elNum;
+                    actions.push({ ...info(el, ChangeType.modify), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
+        }
+        return actions;
     }
+
     async finish() {
         this.log("finish");
     }
@@ -595,4 +656,90 @@ describe("createDeployment Tests", async function () {
         ]);
     });
 
+    it("Should stop on delete error", async () => {
+        const ds1 = await createSuccess("DeleteError");
+
+        should(ds1.stateJson).equal("{}");
+        should(ds1.deployID).match(/myproject::DeleteError-[a-z]{4}/);
+
+        let lstdout = client.stdout;
+        let lstderr = client.stderr;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/Doing echo action1/);
+        should(lstdout).match(/Doing echo action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
+        should(lstderr).equal("");
+
+        // Now stop the deployment
+        const ds2 = await updateDeployment({
+            adaptUrl,
+            deployID: ds1.deployID,
+            fileName: "index.tsx",
+            client,
+            prevStateJson: "{}",
+            stackName: "(null)",
+        });
+        lstdout = client.stdout;
+        lstderr = client.stderr;
+
+        // Should return an error
+        if (isDeploySuccess(ds2)) throw should(isDeploySuccess(ds2)).be.False();
+        should(ds2.summary.error).equal(4); // 3 components + 1 overall failure
+        should(ds2.summary.warning).equal(0);
+
+        // component2 depends on component1, so component 2 creates last but
+        // deletes first.
+        should(lstdout).match(/Doing echo delete2/);
+        should(lstderr).match(/Error while echo delete2/);
+
+        // Because component2 errors, we shouldn't even try to delete
+        // component1.
+        should(lstdout).not.match(/Doing echo delete1/);
+        should(lstderr).not.match(/Error while echo delete1/);
+    });
+
+    it("Should continue on delete error with ignoreDeleteErrors", async () => {
+        const ds1 = await createSuccess("DeleteError");
+
+        // should(ds.domXml).equal(defaultDomXmlOutput(["Simple"]));
+        should(ds1.stateJson).equal("{}");
+        should(ds1.deployID).match(/myproject::DeleteError-[a-z]{4}/);
+
+        let lstdout = client.stdout;
+        let lstderr = client.stderr;
+        should(lstdout).match(/EchoPlugin: start/);
+        should(lstdout).match(/EchoPlugin: observe/);
+        should(lstdout).match(/EchoPlugin: analyze/);
+        should(lstdout).match(/Doing echo action1/);
+        should(lstdout).match(/Doing echo action2/);
+        should(lstdout).match(/EchoPlugin: finish/);
+        should(lstderr).equal("");
+
+        // Now stop the deployment, but ignore errors
+        const ds2 = await updateDeployment({
+            adaptUrl,
+            deployID: ds1.deployID,
+            fileName: "index.tsx",
+            client,
+            ignoreDeleteErrors: true,
+            prevStateJson: "{}",
+            stackName: "(null)",
+        });
+        lstdout = client.stdout;
+        lstderr = client.stderr;
+
+        // should return success
+        if (!isDeploySuccess(ds2)) throw should(isDeploySuccess(ds2)).be.True();
+        should(ds2.summary.error).equal(0);
+        should(ds2.summary.warning).equal(2);
+
+        // Both components should try to delete
+        should(lstdout).match(/Doing echo delete1/);
+        should(lstdout).match(/Doing echo delete2/);
+        should(lstdout).match(/WARNING: --Error \(ignored\) while echo delete1/);
+        should(lstdout).match(/WARNING: --Error \(ignored\) while echo delete2/);
+        should(lstderr).equal("");
+    });
 });

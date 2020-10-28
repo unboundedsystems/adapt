@@ -42,7 +42,20 @@ before_script:
   - echo "Time     CPU          Rd   Wr  Mem  eth0" > "${ADAPT_BUILD_LOGDIR}/system_resource.log"
   - nohup nmeter "%t %c %b %[mf] %[neth0]" >> "${ADAPT_BUILD_LOGDIR}/system_resource.log" &
 
-# Job parameters common to ALL jobs
+  # In order to fool make into not re-building in the test stages, save the
+  # .install_success files (from artifacts) that make uses and run yarn here.
+  - |
+    if [[ -f node_modules/.install_success ]]; then
+      tar -cf temp.tar node_modules/.install_success */node_modules/.install_success
+      ./bin/yarn
+      tar -xf temp.tar
+      rm temp.tar
+    fi
+  # Set timestamps for all source files to earlier than now so make doesn't
+  # rebuild due to timestamps
+  - git ls-files -z | xargs -0 touch -d '2020-01-01 00:00'
+
+# Job parameters common to all jobs except build stage
 .job_common: &job_common
   artifacts:
     name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME-$CI_JOB_ID"
@@ -52,19 +65,29 @@ before_script:
     expire_in: 30 days
 
 # Job to test build and do checks
-build:10:
-  <<: *job_common
+build:
   stage: build
   only:
     - branches
     - web
     - schedules
   variables:
-    ADAPT_TEST_NODE_VERSION: "10"
+    ADAPT_TEST_NODE_VERSION: "12"
   script:
     - |
       bash -o pipefail -c './bin/make build check-uncommitted lint web-test \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
+  artifacts:
+    name: "$CI_COMMIT_REF_NAME-$CI_JOB_NAME-$CI_JOB_ID"
+    paths:
+      - "$ADAPT_BUILD_LOGDIR"
+      - "*/dist"
+      - ".doctoc-updated"
+      - "core/generated"
+      - "node_modules/.install_success"
+      - "*/node_modules/.install_success"
+    when: always
+    expire_in: 30 days
 
 
 # Job definition used for testing different versions of Node
@@ -79,8 +102,7 @@ build:10:
     - |
       bash -o pipefail -c './bin/make ${MAKE_TARGETS} \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
-  # Don't download log files from previous jobs
-  dependencies: []
+  dependencies: ["build"]
 
 test-cli:10:
   <<: *job_common
@@ -211,8 +233,7 @@ release:
       if [ -z "${ADAPT_NPM_TOKEN}" ]; then printf "\n\nERROR: ADAPT_NPM_TOKEN must be set\n\n"; exit 1; fi
     - ./scripts/ci/checkout_branch.sh
     - ./bin/make release
-  # Don't download log files from previous jobs
-  dependencies: []
+  dependencies: ["build"]
 
 docs:
   <<: *job_common
@@ -226,5 +247,4 @@ docs:
       - $ADAPT_WEB_TOKEN
   script:
     - ./bin/make web-release-master
-  # Don't download log files from previous jobs
-  dependencies: []
+  dependencies: ["build"]

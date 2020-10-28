@@ -18,8 +18,6 @@
             "args": [
                 //"-g", "xmlns",
                 "--no-timeouts",
-                "--opts",
-                "mocha.opts"
             ],
             "env": {
                 "DOCKER_ARGS": "-p5858:5858"

@@ -39,6 +39,7 @@ export interface DeployCtx {
     adaptUrl: string;
     debug: string;
     dryRun?: boolean;
+    force?: boolean;
     logger: MessageLogger;
     client: MessageClient;
     projectFile?: string;

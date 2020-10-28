@@ -51,6 +51,7 @@ const simplePluginTs = `
 import {
     Action,
     ActionChange,
+    AdaptMountedElement,
     FinalDomElement,
     ChangeType,
     domDiff,
@@ -77,49 +78,78 @@ class EchoPlugin implements Plugin<{}> {
         this.log("observe", dom);
         return {};
     }
-    analyze(oldDom: any, dom: any, _obs: {}): Action[] {
-        this.log("analyze", dom);
-        if (oldDom == null && dom == null) return [];
 
-        const diff = domDiff(oldDom, dom);
-        const makeChanges = (key: keyof DomDiff, type: ChangeType, detail: string, n?: number): ActionChange[] => {
-            const changes = [...diff[key]].map((element) => ({
-                type,
-                element: element as FinalDomElement,
-                detail
-            }));
-            if (n !== undefined && changes.length > n) return [ changes[n] ];
-            return changes;
-        };
+    analyze(oldDom: AdaptMountedElement | null, dom: AdaptMountedElement | null, _obs: {}): Action[] {
+        this.log("analyze");
+        const { added, deleted, commonNew } = domDiff(oldDom, dom);
+        const actions: Action[] = [];
+        let elNum = 0;
 
-        const info = (msg: string, n: number) => {
-            const detail = msg + n;
-            const changes: ActionChange[] = [];
-            changes.push(...makeChanges("added", ChangeType.create, detail, n));
-            changes.push(...makeChanges("deleted", ChangeType.delete, detail, n));
-            changes.push(...makeChanges("commonNew", ChangeType.modify, detail, n));
-
+        const info = (el: AdaptMountedElement, type: ChangeType, what = "action") => {
+            const detail = "echo " + what + elNum;
             return {
-                type: ChangeType.modify,
                 detail,
-                changes,
+                type,
+                changes: [{
+                    detail,
+                    type,
+                    element: el as FinalDomElement,
+                }],
             };
         };
 
-        if (dom != null && dom.componentType.name === "AnalyzeError") {
-            throw new Error("AnalyzeError");
+        for (const el of added) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                case "AnalyzeError":
+                    throw new Error("AnalyzeError");
+
+                case "ActError":
+                    actions.push({ ...info(el, ChangeType.create, "error"), act: () => { throw new Error("ActError"); }});
+                    break;
+
+                default:
+                    const actStr = "action" + elNum;
+                    actions.push({ ...info(el, ChangeType.create), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
         }
-        if (dom != null && dom.componentType.name === "ActError") {
-            return [
-                { ...info("echo error", 0), act: () => { throw new Error("ActError"); } },
-                { ...info("echo error", 1), act: () => { throw new Error("ActError"); } },
-            ];
+
+        for (const el of deleted) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                case "DeleteError":
+                    actions.push({ ...info(el, ChangeType.delete, "delete"), act: async () => { throw new Error("DeleteError"); } });
+                    break;
+
+                default:
+                    const actStr = "delete" + elNum;
+                    actions.push({ ...info(el, ChangeType.delete, "delete"), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
         }
-        return [
-            { ...info("echo act", 0), act: () => this.doAction("action0") },
-            { ...info("echo act", 1), act: () => this.doAction("action1") }
-        ];
+
+        for (const el of commonNew) {
+            switch (el.componentType.name) {
+                case "Group":
+                    continue;
+
+                default:
+                    const actStr = "action" + elNum;
+                    actions.push({ ...info(el, ChangeType.modify), act: () => this.doAction(actStr)})
+                    break;
+            }
+            elNum++;
+        }
+        return actions;
     }
+
     async finish() {
         this.log("finish");
     }
@@ -250,6 +280,29 @@ const loopingIndexTsx = `
     import Adapt from "@adpt/core";
 
     const App = () => { while (true) {} };
+
+    Adapt.stack("default", <App />);
+`;
+
+const deleteIndexTsx = `
+    import Adapt, { handle, Group, Handle, PrimitiveComponent } from "@adpt/core";
+    import "./simple_plugin";
+
+    export class DeleteError extends PrimitiveComponent<{ dep?: Handle }> {
+        dependsOn = (goal, helpers) => {
+            if (this.props.dep) return helpers.dependsOn(this.props.dep);
+        };
+    }
+
+    function App() {
+        const h = handle();
+        return (
+            <Group>
+                <DeleteError handle={h} />
+                <DeleteError dep={h} />
+            </Group>
+        );
+    }
 
     Adapt.stack("default", <App />);
 `;
@@ -498,7 +551,25 @@ describe("deploy:destroy tests", function () {
     this.slow(30 * 1000);
     this.timeout(3 * 60 * 1000);
     let deployID: string;
+    let stdoutStart = 0;
+    let stderrStart = 0;
+
     mochaTmpdir.each("adapt-cli-test-deploy");
+
+    beforeEach(() => {
+        stdoutStart = 0;
+        stderrStart = 0;
+    });
+
+    const getOutput = (ctx: { stdout: string; stderr: string; }) => {
+        const ret = {
+            stdout: ctx.stdout.slice(stdoutStart),
+            stderr: ctx.stderr.slice(stderrStart),
+        };
+        stdoutStart = ctx.stdout.length;
+        stderrStart = ctx.stderr.length;
+        return ret;
+    };
 
     basicTestChain
     .command(["deploy:run", "dev"])
@@ -536,6 +607,142 @@ describe("deploy:destroy tests", function () {
         expect(ctx.stdout).contains("Listing Deployments [completed]");
         expect(ctx.stdout).does.not.contain("Listing Deployments [completed]\n\ntest::dev-");
         expect(ctx.stdout).does.not.contain("WARNING");
+    });
+
+    //
+    // Test normal behavior for destroy when there are errors on delete
+    //
+    testBase
+    .do(async () => {
+        await createProject(basicPackageJson, deleteIndexTsx, "index.tsx");
+    })
+    // Initial deploy
+    .command(["run"])
+    .do((ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        expect(stderr).equals("");
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Creating new project deployment [completed]");
+        expect(stdout).does.not.contain("WARNING");
+        deployID = getNewDeployID(stdout);
+    })
+
+    // Destroy
+    .delayedcommand(() => ["destroy", deployID!])
+    .catch((err) => {
+        // Errors = 3 components + 1 overall failure
+        expect(err.message).contains("This project cannot be deployed.\n4 errors encountered");
+    })
+    .do((ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // component1 depends on component0, so component1 creates last but
+        // deletes first
+        expect(stdout).contains("Doing echo delete1");
+        expect(stderr).contains("--Error while echo delete1\nError: DeleteError");
+
+        // Because component2 errors, we shouldn't even try to delete
+        // component1.
+        expect(stdout).does.not.contain("Doing echo delete0");
+        expect(stderr).does.not.contain("--Error while echo delete0\nError: DeleteError");
+    })
+
+    // Ensure deployment is still active
+    .command(["list", "-q"])
+    .it("Should stop on delete error", async (ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // The deployment should still be active.
+        expect(stdout).to.equal(`${deployID}\n`);
+        expect(stderr).to.equal("");
+    });
+
+    //
+    // Test destroying deployment that errors on delete with --force
+    //
+    testBase
+    .do(async () => {
+        await createProject(basicPackageJson, deleteIndexTsx, "index.tsx");
+    })
+
+    // Initial deploy
+    .command(["run"])
+    .do((ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        expect(stderr).equals("");
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Creating new project deployment [completed]");
+        expect(stdout).does.not.contain("WARNING");
+        deployID = getNewDeployID(stdout);
+    })
+
+    // Destroy using --force
+    .delayedcommand(() => ["destroy", "--force", deployID!])
+    .do((ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // Both components should try to delete and generate warnings
+        expect(stdout).contains("Doing echo delete0");
+        expect(stdout).contains("Doing echo delete1");
+        expect(stdout).contains("WARNING: --Error (ignored) while echo delete0\nError: DeleteError");
+        expect(stdout).contains("WARNING: --Error (ignored) while echo delete1\nError: DeleteError");
+        expect(stdout).contains("\n2 warnings encountered");
+        expect(stdout).contains("Stopping project deployment [completed]");
+        expect(stdout).contains("Destroying deployment [completed]");
+        expect(stdout).contains(`Deployment ${deployID} stopped successfully.`);
+        expect(stderr).equals("");
+    })
+
+    // Ensure deployment is gone
+    .command(["list", "-q"])
+    .it("Should destroy deployment with errors on delete with --force", async (ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // The deployment should be gone.
+        expect(stdout).to.equal("");
+        expect(stderr).to.equal("");
+    });
+
+    //
+    // Test destroying deployment that errors on build with --force
+    //
+    testBase
+    .do(async () => {
+        await createProject(basicPackageJson, deleteIndexTsx, "index.tsx");
+    })
+
+    // Initial deploy
+    .command(["run"])
+    .do(async (ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        expect(stderr).equals("");
+        expect(stdout).contains("Validating project [completed]");
+        expect(stdout).contains("Creating new project deployment [completed]");
+        expect(stdout).does.not.contain("WARNING");
+        deployID = getNewDeployID(stdout);
+
+        // Insert compile error
+        await fs.outputFile("index.tsx", "compile error!\n");
+    })
+
+    // Destroy using --force
+    .delayedcommand(() => ["destroy", "--force", deployID!])
+    .do((ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // Both components should try to delete and generate warnings
+        expect(stdout).contains("Error compiling Adapt project");
+        expect(stdout).contains(
+            "Errors encountered, but ignored due to --force:\n" +
+            "This project cannot be deployed.\n" +
+            "1 error encountered during deploy:\n");
+        expect(stdout).contains("Stopping project deployment [completed]");
+        expect(stdout).contains("Destroying deployment [completed]");
+        expect(stdout).contains("Deployment stopped with errors.");
+        expect(stderr).matches(/ERROR: Error Updating deployment: .*Error compiling Adapt project/);
+    })
+    .command(["list", "-q"])
+
+    .it("Should destroy deployment with compile error with --force", async (ctx) => {
+        const { stdout, stderr } = getOutput(ctx);
+        // The deployment should be gone.
+        expect(stdout).to.equal("");
+        expect(stderr).to.equal("");
     });
 });
 
