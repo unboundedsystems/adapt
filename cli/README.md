@@ -181,6 +181,8 @@ OPTIONS
   -d, --debug=debugFlags  Enable additional debug output. Should be a comma-separated list of debug flags. Valid debug
                           flags are: build
 
+  -f, --force             Continue destroying the deployment even if errors are encountered
+
   -q, --quiet             Suppress status output messages. Still outputs any result output.
 
   --dryRun                Show what would happen during deploy, but do not modify the deployment

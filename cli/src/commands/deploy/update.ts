@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
             id: loggerId,
             title: `${cap(this.ingverb)} project deployment`,
             adoptable: true,
-            initiate: () => {
+            initiate: async () => {
                 if (ctx.project == null) {
                     throw new Error(`Internal error: project cannot be null`);
                 }
@@ -56,6 +56,7 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
                     client: ctx.client,
                     dryRun: ctx.dryRun,
                     fileName: ctx.projectFile,
+                    ignoreDeleteErrors: ctx.force,
                     logger,
                     loggerId,
                     stackName: ctx.stackName,
@@ -65,13 +66,20 @@ export abstract class UpdateBaseCommand extends DeployOpBase {
             },
             onCompleteRoot: async (_ctx, _task, err, prom) => {
                 const deployState = await waitForInitiate(err, prom);
-                if (!this.isDeploySuccess(deployState)) return;
+                try {
+                    if (!this.isDeploySuccess(deployState)) return;
 
-                this.deployInformation(deployState);
+                    this.deployInformation(deployState);
 
-                const id = deployState.deployID;
+                    const id = deployState.deployID;
 
-                this.appendOutput(`Deployment ${id} ${this.edverb} successfully.`);
+                    this.appendOutput(`Deployment ${id} ${this.edverb} successfully.`);
+                } catch (err) {
+                    if (!ctx.force) throw err;
+                    const id = deployState.deployID ? " " + deployState.deployID : "";
+                    this.appendOutput(`Errors encountered, but ignored due to --force:\n${err.message}`);
+                    this.appendOutput(`Deployment${id} ${this.edverb} with errors.`);
+                }
             }
         });
     }
