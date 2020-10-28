@@ -19,8 +19,6 @@
             "args": [
                 //"-g", "keyword",
                 "--no-timeouts",
-                "--opts",
-                "mocha.opts"
             ],
             "env":{
                 "ADAPT_NO_FORK": "1",

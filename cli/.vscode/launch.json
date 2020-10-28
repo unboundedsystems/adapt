@@ -19,8 +19,6 @@
             "args": [
                 //"-g", "keyword",
                 "--no-timeouts",
-                "--opts",
-                "mocha.opts"
             ],
             "env":{
                 //"ADAPT_TEST_K8S": "k3s",

@@ -19,12 +19,10 @@
             "args": [
                 //"-g", "keyword",
                 "--no-timeouts",
-                "--opts",
-                "mocha.opts"
             ],
             "env":{
                 //"ADAPT_TEST_K8S": "k3s",
-                //"ADAPT_RUN_LONG_TESTS": "1",
+                "ADAPT_RUN_LONG_TESTS": "1",
                 "ADAPT_NO_FORK": "1",
                 "DOCKER_ARGS": "-p5858:5858"
                 //"DOCKER_ARGS": "-p5858:5858 -eDEBUG=adapt:*"
