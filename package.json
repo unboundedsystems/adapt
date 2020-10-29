@@ -51,7 +51,7 @@
     },
     "scripts": {
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",
-        "precommit": "lint-staged --config config/lint-staged.json",
+        "precommit": "lint-staged --config config/lint-staged-fix.json",
         "prepublishOnly": "make build"
     },
     "renovate": {
