@@ -86,7 +86,7 @@ describe("Project basic tests", function () {
         expect(p.manifest.dependencies.xregexp).equal("^4.2.4");
 
         await p.installModules();
-        expect(p.getLockedVersion("xregexp")).equal("4.3.0");
+        expect(p.getLockedVersion("xregexp")).equal("4.4.0");
         expect(p.getLockedVersion("badpkg")).equal(null);
     });
 
