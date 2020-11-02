@@ -82,6 +82,7 @@ build:
     paths:
       - "$ADAPT_BUILD_LOGDIR"
       - "*/dist"
+      - "*/build/docs"
       - ".doctoc-updated"
       - "core/generated"
       - "node_modules/.install_success"
