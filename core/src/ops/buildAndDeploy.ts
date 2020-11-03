@@ -37,6 +37,7 @@ import * as AdaptDontUse from "../exports";
 let Adapt: never;
 
 import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@adpt/utils";
+import { EPPrimitiveDependencies } from "../deploy";
 import { createPluginManager } from "../deploy/plugin_support";
 import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
 import { buildPrinter } from "../dom_build_data_recorder";
@@ -78,6 +79,7 @@ export interface FullBuildOptions extends Required<BuildOptions> {
     ctx?: AdaptContext;
     commit: (entry: CommitData) => Promise<void>;
     stateStore: StateStore;
+    prevDependenciesJson: string;
     prevDomXml: string | undefined;
 }
 
@@ -94,10 +96,9 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
     const prevComplete = await deployment.lastEntry(HistoryStatus.complete);
     const prevTry = await deployment.lastEntry();
 
-    const observationsJson = options.observationsJson ||
-        (prevComplete ? prevComplete.observationsJson : "{}");
-    const prevStateJson = options.prevStateJson ||
-        (prevComplete ? prevComplete.stateJson : "{}");
+    const observationsJson = options.observationsJson ?? prevComplete?.observationsJson ?? "{}";
+    const prevStateJson = options.prevStateJson ?? prevComplete?.stateJson ?? "{}";
+    const prevDependenciesJson = prevComplete?.dependenciesJson ?? "{}";
 
     let stateStore: StateStore;
     try {
@@ -125,7 +126,8 @@ export async function currentState(options: BuildOptions): Promise<FullBuildOpti
         commit,
         ignoreDeleteErrors: Boolean(options.ignoreDeleteErrors),
         observationsJson,
-        prevDomXml: prevComplete && prevComplete.domXml,
+        prevDependenciesJson,
+        prevDomXml: prevComplete?.domXml,
         prevStateJson,
         deployOpID,
         stackName,
@@ -160,7 +162,7 @@ interface ExecutedQueries {
 }
 
 export interface BuildResults extends FullBuildOptions {
-    builtElements: AdaptMountedElement[];
+    mountedElements: AdaptMountedElement[];
     domXml: string;
     mountedOrigStatus: Status;
     executedQueries: ExecutedQueries;
@@ -191,7 +193,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         const stack = stacks.get(stackName);
         if (!stack) throw new UserError(`Adapt stack '${stackName}' not found`);
 
-        let builtElements: AdaptMountedElement[] = [];
+        let mountedElements: AdaptMountedElement[] = [];
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
         let executedQueries: ExecutedQueries = {};
@@ -217,7 +219,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
                 throw new ProjectBuildError(inAdapt.serializeDom(results.contents));
             }
 
-            builtElements = results.builtElements;
+            mountedElements = results.mountedElements;
             newDom = results.contents;
             mountedOrig = results.mountedOrig;
             executedQueries = podify(observeManager.executedQueries());
@@ -227,7 +229,7 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
 
         return {
             ...options,
-            builtElements,
+            mountedElements,
             ctx,
             domXml: inAdapt.serializeDom(newDom, { reanimateable: true }),
             mountedOrigStatus: (mountedOrig && options.withStatus) ?
@@ -291,15 +293,21 @@ export async function withContext<T>(
 
 interface ReanimateOpts {
     ctx: AdaptContext;
-    domXml: string;
+    domXml: string | undefined;
     stateJson: string;
     deployID: string;
     deployOpID: DeployOpID;
     logger: MessageLogger;
 }
-async function reanimateAndBuild(opts: ReanimateOpts) {
+interface ReanimateAndBuild {
+    dom: FinalDomElement | null;
+    mountedElements: AdaptMountedElement[];
+}
+
+async function reanimateAndBuild(opts: ReanimateOpts): Promise<ReanimateAndBuild> {
     const inAdapt = opts.ctx.Adapt;
     const { deployID, deployOpID, domXml, logger } = opts;
+    if (domXml === undefined) return { dom: null, mountedElements: [] };
     let stateStore: StateStore;
     try {
         stateStore = createStateStore(opts.stateJson);
@@ -309,7 +317,7 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
         throw new Error(msg);
     }
     const zombie = await inAdapt.internal.reanimateDom(domXml, deployID, deployOpID);
-    if (zombie === null) return null;
+    if (zombie === null) return { dom: null, mountedElements: [] };
     const buildRes = await inAdapt.build(zombie, null, {
         deployID,
         deployOpID,
@@ -329,21 +337,36 @@ async function reanimateAndBuild(opts: ReanimateOpts) {
             `Original:\n` + domXml + `\nCheck:\n` + checkXML);
         throw new Error(`Error comparing reanimated built dom to original`);
     }
-    return buildRes.contents;
+    return {
+        dom: buildRes.contents,
+        mountedElements: buildRes.mountedElements,
+    };
 }
 
 export interface DeployPassOptions extends FullBuildOptions {
     actTaskObserver: TaskObserver;
     dataDir: string;
+    prevDependencies: EPPrimitiveDependencies;
     prevDom: FinalDomElement | null;
+    prevMountedElements: AdaptMountedElement[];
 }
 export interface DeployPassResults extends BuildResults {
+    dependenciesJson: string;
     deployComplete: boolean;
     stateChanged: boolean;
 }
 
 export async function deployPass(options: DeployPassOptions): Promise<DeployPassResults> {
-    const { actTaskObserver, dataDir, deployment, prevDom, taskObserver, ...buildOpts } = options;
+    const {
+        actTaskObserver,
+        dataDir,
+        deployment,
+        prevDependencies,
+        prevDom,
+        prevMountedElements,
+        taskObserver,
+        ...buildOpts
+    } = options;
 
     return withContext(options, async (ctx: AdaptContext): Promise<DeployPassResults> => {
         // This is the inner context's copy of Adapt
@@ -366,20 +389,27 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
         taskObserver.updateStatus("Observing and analyzing environment");
         const mgr = createPluginManager(ctx.pluginModules);
 
-        await mgr.start(prevDom, newDom, {
+        await mgr.start({
             dataDir: path.join(dataDir, "plugins"),
             deployment,
+            deployOpID: options.deployOpID,
             logger: actTaskObserver.logger,
+            newDom,
+            newMountedElements: buildResults.mountedElements,
+            prevDependencies,
+            prevDom,
+            prevMountedElements,
         });
         const newPluginObs = await mgr.observe();
 
         debugAction(`deployPass: analyze`);
-        mgr.analyze();
+        const { dependencies } = mgr.analyze();
 
         const observationsJson = stringifyFullObservations({
             plugin: newPluginObs,
             observer: parseFullObservationsJson(options.observationsJson).observer
         });
+        const dependenciesJson = JSON.stringify(dependencies);
 
         /*
          * NOTE: There should be no deployment side effects prior to here, but
@@ -396,8 +426,6 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
                 actTaskObserver.started();
             }
             const { deployComplete, stateChanged } = await mgr.act({
-                builtElements: buildResults.builtElements,
-                deployOpID: options.deployOpID,
                 dryRun: options.dryRun,
                 ignoreDeleteErrors: options.ignoreDeleteErrors,
                 processStateUpdates,
@@ -408,6 +436,7 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
             debugAction(`deployPass: done (complete: ${deployComplete}, state changed: ${stateChanged})`);
             return {
                 ...buildResults,
+                dependenciesJson,
                 deployComplete,
                 stateChanged,
                 observationsJson,
@@ -421,6 +450,7 @@ export async function deployPass(options: DeployPassOptions): Promise<DeployPass
             await options.commit({
                 status,
                 dataDir,
+                dependenciesJson,
                 domXml: buildResults.domXml,
                 observationsJson,
             });
@@ -462,17 +492,17 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
             }));
 
             debugAction(`buildAndDeploy: reanimate`);
-            const prevDom = await tasks.reanimatePrev.complete(async () => {
-                return initial.prevDomXml ?
-                    reanimateAndBuild({
-                        ctx,
-                        deployOpID: initial.deployOpID,
-                        domXml: initial.prevDomXml,
-                        stateJson: initial.prevStateJson,
-                        deployID,
-                        logger: tasks.reanimatePrev.logger,
-                    }) : null;
-            });
+            const prev = await tasks.reanimatePrev.complete(async () =>
+                reanimateAndBuild({
+                    ctx,
+                    deployOpID: initial.deployOpID,
+                    domXml: initial.prevDomXml,
+                    stateJson: initial.prevStateJson,
+                    deployID,
+                    logger: tasks.reanimatePrev.logger,
+                })
+            );
+            const prevDependencies: EPPrimitiveDependencies = JSON.parse(initial.prevDependenciesJson);
 
             debugAction(`buildAndDeploy: observe`);
             const observeOptions = {
@@ -491,7 +521,9 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
                             ...fromBuild,
                             actTaskObserver: deployTasks.act,
                             dataDir,
-                            prevDom,
+                            prevDependencies,
+                            prevDom: prev.dom,
+                            prevMountedElements: prev.mountedElements,
                             taskObserver: deployTasks.status,
                         };
                         while (true) {
@@ -503,6 +535,7 @@ export async function buildAndDeploy(options: BuildOptions): Promise<DeployState
                                 await commit({
                                     status: HistoryStatus.success,
                                     dataDir,
+                                    dependenciesJson: res.dependenciesJson,
                                     domXml: res.domXml,
                                     observationsJson: res.observationsJson,
                                 });

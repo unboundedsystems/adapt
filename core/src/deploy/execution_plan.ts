@@ -18,7 +18,7 @@ import { ensureError, formatUserError, MultiError, notNull, sleep, toArray, User
 import AsyncLock from "async-lock";
 import db from "debug";
 import { alg, Graph } from "graphlib";
-import { isError, isObject } from "lodash";
+import { flatten, isError, isObject } from "lodash";
 import PQueue from "p-queue";
 import pTimeout from "p-timeout";
 import { inspect } from "util";
@@ -31,7 +31,9 @@ import {
     // @ts-ignore - here to deal with issue #71
     AnyProps,
     ElementID,
+    isElement,
     isMountedElement,
+    isPrimitiveElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
 import { DeployOpID } from "../server/deployment_data";
@@ -44,6 +46,7 @@ import {
     DeployOpStatus,
     DeployStatus,
     DeployStatusExt,
+    EPPrimitiveDependencies,
     ExecuteComplete,
     ExecuteOptions,
     ExecutionPlan,
@@ -53,19 +56,15 @@ import {
     isDependsOn,
     isFinalStatus,
     isInProgress,
+    isProxying,
     isRelation,
     Relation,
 } from "./deploy_types";
 import {
-    EPEdge,
     EPNode,
-    // @ts-ignore - here to deal with issue #71
-    EPNodeEl,
     EPNodeId,
-    EPNodeWI,
     EPObject,
     ExecutePassOptions,
-    isEPNodeWI,
     isWaitInfo,
     StatusTracker,
     WaitInfo,
@@ -85,15 +84,33 @@ import { createStatusTracker } from "./status_tracker";
 const debugExecute = db("adapt:deploy:execute");
 const debugExecuteDetail = db("adapt:detail:deploy:execute");
 
-export async function createExecutionPlan(options: ExecutionPlanOptions): Promise<ExecutionPlan> {
-    const { actions, builtElements, diff } = options;
-
+export function createExecutionPlan(options: ExecutionPlanOptions): ExecutionPlan {
     const plan = new ExecutionPlanImpl(options);
+
+    function addParents(e: AdaptMountedElement) {
+        const kids: (AdaptMountedElement | null)[] = e.buildData.origChildren as any || [];
+        kids.forEach((child) => isElement(child) && plan.setParent(child, e));
+        const succ = e.buildData.successor;
+        if (succ) plan.setParent(succ, e);
+    }
+
+    const { actions, diff } = options;
 
     diff.added.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.commonNew.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.deleted.forEach((e) => plan.addElem(e, DeployStatus.Destroyed));
-    builtElements.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
+
+    diff.added.forEach(addParents);
+    diff.commonNew.forEach(addParents);
+    diff.deleted.forEach(addParents);
+
+    plan.addSavedDependencies(options.dependencies);
+
+    // Force memoization of primitiveDependencies. MUST happen before actions
+    // are added because adding actions removes primitive Elements from the
+    // graph and collapses dependencies.
+    plan.computePrimitiveDependencies();
+
     actions.forEach((a) => plan.addAction(a));
 
     return plan;
@@ -106,6 +123,13 @@ export function getWaitInfo(goalStatus: GoalStatus,
     const elem = hand.mountedOrig;
     if (elem === undefined) throw new InternalError("element has no mountedOrig!");
     if (elem === null) throw new ElementNotInDom();
+
+    if (!elem.built()) {
+        return {
+            deployedWhen: () => true,
+            description: elem.componentName,
+        };
+    }
 
     const dependsOn = elem.dependsOn(goalStatus, helpers);
 
@@ -122,10 +146,56 @@ export function getWaitInfo(goalStatus: GoalStatus,
     return wi;
 }
 
+const elIdToNodeId = (id: ElementID) => "E:" + id;
+const elToNodeId = (e: AdaptMountedElement) => "E:" + e.id;
+
+/**
+ * Dependency types:
+ *
+ * - FinishStart: This is also referrred to as a "soft" FinishStart
+ *   dependency. It is current the only type of dependency that users can
+ *   manually specify, which is done via a `dependsOn` method or related
+ *   mechanism. These dependencies are inserted into the plan graph,
+ *   but are really checked/enforced by the Relations associated with the
+ *   node, not solely by the graph. The reason for this is to support
+ *   Relation types besides just a strict dependency, such as a
+ *   Relation with a logical "OR". This enables creating a dependency like
+ *   waiting for one instance of a failover group to be deployed, rather than
+ *   waiting for all instances to be deployed.
+ *   When executing a plan, a node that has only incomplete FinishStart
+ *   (soft) dependencies remaining will get signaled to check its Relations
+ *   every time one of the node's dependencies change to a finished state.
+ *
+ * - FinishStartHard: This dependency type is the more traditional strict
+ *   dependency one might expect in a dependency graph. When N1 depends
+ *   on N2 with FinishStartHard type, N1 will not start until N2 finishes.
+ *   A node will never get signaled to do any work or check its Relations as long
+ *   as it has any FinishStartHard dependencies remaining in the graph. This
+ *   dependency type is currently only created via `plan.addSavedDependencies`,
+ *   which is used for saved/reanimated DOMs. Note that a node's Relations will
+ *   not necessarily have or enforce these dependencies, so the graph must do all
+ *   the enforcing.
+ *
+ * - StartStart: When N1 depends on N2 with a StartStart type, N1 will not start
+ *   until N2 has started. These dependencies are created automatically
+ *   between an Element and its parent and/or predecessors in the DOM via
+ *   `plan.setParent`.
+ */
+export enum DependencyType {
+    FinishStart = "FinishStart",
+    FinishStartHard = "FinishStartHard",
+    StartStart = "StartStart",
+}
+
+export interface EPEdge {
+    edgeType: DependencyType;
+}
+
 export interface EPDependency {
     id: EPNodeId;
-    type: "soft" | "hard";
+    type: DependencyType;
 }
+
 export interface EPDependencies {
     [epNodeId: string]: {
         elementId?: ElementID;
@@ -147,8 +217,11 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     readonly helpers: DeployHelpersFactory;
     protected graph = new Graph({ compound: true });
     protected nextWaitId = 0;
+    protected _primitiveDependencies?: EPPrimitiveDependencies;
     protected waitInfoIds = new WeakMap<WaitInfo, string>();
-    protected complete = new Map<EPNodeId, EPNode>();
+
+    /** Nodes that are complete or have been replaced in the graph by actions */
+    protected nonGraph = new Map<EPNodeId, EPNode>();
 
     constructor(options: ExecutionPlanImplOptions) {
         this.goalStatus = options.goalStatus;
@@ -161,9 +234,21 @@ export class ExecutionPlanImpl implements ExecutionPlan {
      * Public interfaces
      */
     check() {
-        const cycleGroups = alg.findCycles(this.graph);
-        if (cycleGroups.length > 0) {
-            const cycles = cycleGroups.map(printCycleGroups).join("\n");
+        // findCycles reports IDs in the opposite direction than we want to
+        // work with.
+        const allCycles = alg.findCycles(this.graph).map((c) => c.reverse());
+        if (allCycles.length === 0) return;
+        const toReport: string[][] = [];
+
+        // Cycles that consist solely of StartStart dependencies can be
+        // safely broken.
+        for (const c of allCycles) {
+            if (this.isStartStartCycle(c)) this.breakCycle(c);
+            else toReport.push(c);
+        }
+
+        if (toReport.length > 0) {
+            const cycles = toReport.map(this.printCycleGroups).join("\n");
             if (debugExecute.enabled) {
                 debugExecute(`Execution plan dependencies:\n${this.print()}`);
             }
@@ -174,13 +259,13 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     /*
      * Semi-private interfaces (for use by this file)
      */
-    addElem(el: AdaptMountedElement, goalStatus: GoalStatus): void {
-        const element = toBuiltElem(el);
+    addElem(element: AdaptMountedElement, goalStatus: GoalStatus): void {
         if (!element || this.hasNode(element)) return;
         const helpers = this.helpers.create(element);
         const waitInfo = getWaitInfo(goalStatus, element, helpers);
+        const children = new Set<EPNode>();
 
-        const node: EPNode = { element, goalStatus, waitInfo };
+        const node: EPNode = { children, element, goalStatus, waitInfo };
         this.addNode(node);
         this.addWaitInfo(node, goalStatus);
     }
@@ -189,6 +274,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         if (action.type === ChangeType.none) return undefined;
 
         const node: EPNode = {
+            children: new Set<EPNode>(),
             goalStatus: changeTypeToGoalStatus(action.type),
             waitInfo: {
                 description: action.detail,
@@ -208,23 +294,20 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             const elNode = this.getNode(c.element);
             elNode.waitInfo.activeAction = true;
             elNode.waitInfo.description = action.detail;
-            const leader = this.groupLeader(c.element);
-            if (leader === node) return;
-            if (leader) {
-                throw new Error(
-                    `More than one Action referenced Element '${c.element.id}'. ` +
-                    `An Element may only be affected by one Action`);
-            }
-            this.setGroup(c.element, node);
+            this.setActingFor(node, c.element);
         });
         return node;
     }
 
-    addWaitInfo(nodeOrWI: WaitInfo | EPNodeWI, goalStatus: GoalStatus) {
-        let node: EPNodeWI;
+    addWaitInfo(nodeOrWI: WaitInfo | EPNode, goalStatus: GoalStatus) {
+        let node: EPNode;
         let waitInfo: WaitInfo;
         if (isWaitInfo(nodeOrWI)) {
-            node = { goalStatus, waitInfo: nodeOrWI };
+            node = {
+                children: new Set<EPNode>(),
+                goalStatus,
+                waitInfo: nodeOrWI,
+            };
             waitInfo = nodeOrWI;
             this.addNode(node);
         } else {
@@ -255,6 +338,16 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return node;
     }
 
+    addSavedDependencies(saved: EPPrimitiveDependencies) {
+        for (const [id, depList] of Object.entries(saved)) {
+            const node = this.getNode(elIdToNodeId(id));
+            for (const dep of depList) {
+                this.addEdge(node, this.getNode(elIdToNodeId(dep)),
+                    DependencyType.FinishStartHard);
+            }
+        }
+    }
+
     /**
      * Now used only in unit test. Should eventually be removed.
      */
@@ -265,7 +358,6 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             if (n.waitInfo != null && !refresh) throw new InternalError(`Expected EPNode.waitInfo to be null`);
             const helpers = this.helpers.create(el);
             n.waitInfo = getWaitInfo(n.goalStatus, el, helpers);
-            if (!isEPNodeWI(n)) return;
 
             this.addWaitInfo(n, n.goalStatus);
         });
@@ -276,68 +368,55 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         this.graph.setNode(this.getId(node, true), node);
     }
 
-    addHardDep(obj: EPObject, dependsOn: EPObject) {
-        this.addEdge(obj, dependsOn, true);
+    removeDep(obj: EPObject, dependsOn: EPNode) {
+        this.removeEdgeInternal(obj, dependsOn);
     }
 
     removeNode(node: EPNode) {
         const id = this.getId(node);
-        const preds = this.predecessors(node);
-        preds.forEach((p) => this.removeHardDepInternal(p, node));
         this.graph.removeNode(id);
-        this.complete.set(id, node);
+        this.nonGraph.set(id, node);
     }
 
-    predecessors(n: EPNode): EPNode[] {
-        const preds = this.graph.predecessors(this.getId(n));
-        if (preds == null) throw new InternalError(`Requested node that's not in graph id=${this.getId(n)}`);
-        return preds.map(this.getNode);
+    predecessors(n: EPNode, edgeType: DependencyType | "all" = "all"): EPNode[] {
+        return this.neighbors(n, edgeType, "predecessors");
     }
 
-    successors(n: EPNode): EPNode[] {
-        const succs = this.graph.successors(this.getId(n));
-        if (succs == null) throw new InternalError(`Requested node that's not in graph id=${this.getId(n)}`);
-        return succs.map(this.getNode);
+    successors(n: EPNode, edgeType: DependencyType | "all" = "all"): EPNode[] {
+        return this.neighbors(n, edgeType, "successors");
     }
 
-    groupLeader(n: EPObject): EPNode | undefined {
-        const leader = this.graph.parent(this.getId(n));
-        return leader ? this.getNode(leader) : undefined;
-    }
-
-    groupFollowers(n: EPObject): EPNode[] {
-        const fols = this.graph.children(this.getId(n)) || [];
+    /**
+     * Returns the set of nodes that `n` is acting on behalf of. For an
+     * Element node, this will always be an empty array and for an Action
+     * node, there should always be at least one node in the array.
+     */
+    actingFor(n: EPObject): EPNode[] {
+        const node = this.getNode(n);
+        const fols = node.waitInfo.actingFor?.map((c) => c.element) || [];
         return fols.map(this.getNode);
     }
 
-    setGroup(n: EPObject, leader: EPObject) {
-        const nId = this.getId(n);
+    setParent(n: EPObject, parent: EPObject) {
         n = this.getNode(n);
-        const oldLeader = this.groupLeader(n);
-        if (oldLeader) throw new InternalError(`Node '${nId}' already in group '${this.getId(oldLeader)}'`);
-
-        // When n becomes part of a group, the group leader adopts the
-        // dependencies of all the other members of the group. For example,
-        // starting with deps:
-        //   el1 -> el2
-        // Now call setGroup(el1, lead) and the result should be:
-        //   el1 -> lead -> el2
-        this.successors(n).forEach((succ) => {
-            const e = this.getEdgeInternal(n, succ);
-            if (!e) {
-                throw new InternalError(`Internal consistency check failed. ` +
-                    `node has a successor, but no edge`);
-            }
-            this.removeEdgeInternal(n, succ);
-            this.addEdgeInternal(leader, succ, e.hard === true);
-        });
-
-        this.addEdgeInternal(n, leader, true);
-        this.graph.setParent(nId, this.getId(leader));
+        parent = this.getNode(parent);
+        parent.children.add(n);
+        this.addEdge(n, parent, DependencyType.StartStart);
     }
 
+    /** Returns nodes active in the graph */
     get nodes(): EPNode[] {
         return this.graph.nodes().map(this.getNode);
+    }
+
+    /** Returns only nodes NOT active in the graph */
+    get nonGraphNodes(): EPNode[] {
+        return [ ...this.nonGraph.values() ];
+    }
+
+    /** Returns both graph and non-graph nodes */
+    get allNodes(): EPNode[] {
+        return [ ...this.nodes, ...this.nonGraph.values() ];
     }
 
     get elems(): AdaptMountedElement[] {
@@ -366,7 +445,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return this.getNodeInternal(idOrObj) != null;
     }
 
-    toDependencies(): EPDependencies {
+    toDependencies(type: DependencyType | "all"): EPDependencies {
         const detail = (n: EPNode) => {
             const w = n.waitInfo;
             if (w) return w.description;
@@ -374,20 +453,16 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             return "unknown";
         };
         const getDeps = (node: EPNode, id: EPNodeId) => {
-            const hardDeps = node.hardDeps ?
-                [...node.hardDeps].map((n) => this.getId(n)) : [];
-            const hardSet = new Set(hardDeps);
-
-            const succIds = this.graph.successors(id);
-            if (!succIds) throw new InternalError(`id '${id}' not found`);
-            const deps = succIds.map<EPDependency>((sId) => {
-                const isHard = hardSet.delete(sId);
-                return { id: sId, type: isHard ? "hard" : "soft" };
+            const succs = this.neighbors(node, type, "successors");
+            const deps: EPDependency[] = succs.map((n) => {
+                const nId = this.getId(n);
+                const edge = this.getEdgeInternal(id, nId);
+                if (!edge) throw new InternalError(`Consistency check failed: successor without edge ${id}->${nId}`);
+                return {
+                    id: nId,
+                    type: edge.edgeType,
+                };
             });
-            if (hardSet.size !== 0) {
-                throw new InternalError(`Internal consistency check failed: ` +
-                    `not all hardDeps are successors`);
-            }
             const entry: EPDependencies[string] = { detail: detail(node), deps };
             if (node.element) entry.elementId = node.element.id;
             return entry;
@@ -407,14 +482,14 @@ export class ExecutionPlanImpl implements ExecutionPlan {
     }
 
     print() {
-        const epDeps = this.toDependencies();
+        const epDeps = this.toDependencies("all");
         const depIDs = Object.keys(epDeps);
         if (depIDs.length === 0) return "<empty>";
 
         const succs = (id: string) => {
             const list = epDeps[id] && epDeps[id].deps;
             if (!list || list.length === 0) return "    <none>";
-            return list.map((s) => `    ${name(s.id)} [${s.type[0]}]`).join("\n");
+            return list.map((s) => `    ${name(s.id)} [${s.type}]`).join("\n");
         };
         const name = (id: string) => {
             const w = this.getNode(id).waitInfo;
@@ -448,11 +523,69 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         return lines.join("\n");
     }
 
+    get primitiveDependencies(): EPPrimitiveDependencies {
+        if (this._primitiveDependencies) return this._primitiveDependencies;
+        throw new InternalError(`Must call computePrimitiveDependencies before accessing primitiveDependencies`);
+    }
+
+    computePrimitiveDependencies(): void {
+        const work = new Map<string, Set<string>>();
+        const workFrom = (fromId: string) => {
+            const exists = work.get(fromId);
+            if (exists) return exists;
+            const f = new Set<string>();
+            work.set(fromId, f);
+            return f;
+        };
+        const addDep = (from: EPNode, to: EPNode) => {
+            if (!from.element) throw new InternalError(`Node '${this.getId(from)}' has no element `);
+            const fromId = from.element.id;
+            if (!to.element) throw new InternalError(`Node '${this.getId(to)}' has no element `);
+            const toId = to.element.id;
+
+            workFrom(fromId).add(toId);
+        };
+
+        const ids = alg.isAcyclic(this.graph) ?
+            alg.topsort(this.graph) : this.graph.nodes();
+
+        // Insert starting with leaves for a more human-readable ordering
+        for (let i = ids.length - 1; i >= 0; i--) {
+            const id = ids[i];
+            const node = this.getNode(id);
+
+            // Because the start of a node is gated by automatic StartStart
+            // dependencies between parents and their children, we only need the
+            // pruned dependencies for the "from" set of nodes (prune=true).
+            const fromPrims = this.primitiveDependencyTargets(node, true);
+
+            const succs = this.neighbors(node, DependencyType.FinishStart, "successors")
+                .concat(this.neighbors(node, DependencyType.FinishStartHard, "successors"));
+
+            // The finish of a node doesn't necessarily include its children
+            // because nodes can have custom deployedWhen functions. So ensure
+            // we get the complete (non-pruned) set of nodes for the "to"
+            // nodes (prune=false).
+            const toPrims = flatten(succs.map((s) => this.primitiveDependencyTargets(s, false)));
+
+            for (const from of fromPrims) {
+                for (const to of toPrims) {
+                    addDep(from, to);
+                }
+            }
+        }
+
+        const finalDeps: EPPrimitiveDependencies = {};
+        for (const [from, toSet] of work.entries()) {
+            finalDeps[from] = [...toSet];
+        }
+        this._primitiveDependencies = finalDeps;
+    }
+
     /*
      * Class-internal methods
      */
     protected getIdInternal = (obj: EPObject, create = false): EPNodeId | undefined => {
-        const elId = (e: AdaptMountedElement) => "E:" + e.id;
         const wiId = (w: WaitInfo) => {
             let id = this.waitInfoIds.get(w);
             if (!id) {
@@ -463,9 +596,9 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             return id;
         };
 
-        if (isMountedElement(obj)) return elId(obj);
+        if (isMountedElement(obj)) return elToNodeId(obj);
         if (isWaitInfo(obj)) return wiId(obj);
-        if (isMountedElement(obj.element)) return elId(obj.element);
+        if (isMountedElement(obj.element)) return elToNodeId(obj.element);
         if (isWaitInfo(obj.waitInfo)) return wiId(obj.waitInfo);
         throw new InternalError(`Invalid object in getId (${obj})`);
     }
@@ -475,7 +608,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             typeof idOrObj === "string" ? idOrObj :
             this.getIdInternal(idOrObj);
         if (!id) return undefined;
-        return this.graph.node(id) || this.complete.get(id);
+        return this.graph.node(id) || this.nonGraph.get(id);
     }
 
     protected getEdgeInternal =
@@ -488,11 +621,7 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         const id2 = this.getIdInternal(n2);
         if (!id1 || !id2) return undefined;
 
-        if (!this.graph.hasEdge(id1, id2)) return undefined;
-
-        // TODO: Should probably just store this info on the edge itself
-        if (n1.hardDeps && n1.hardDeps.has(n2)) return { hard: true };
-        return {};
+        return this.graph.edge(id1, id2);
     }
 
     /**
@@ -522,57 +651,203 @@ export class ExecutionPlanImpl implements ExecutionPlan {
      *      to something being deleted from the old DOM. This is currently
      *      an error.
      */
-    protected addEdge(obj: EPObject, dependsOn: EPObject, hardDep = false) {
+    protected addEdge(obj: EPObject, dependsOn: EPObject, edgeType = DependencyType.FinishStart) {
         obj = this.getNode(obj);
         dependsOn = this.getNode(dependsOn);
         let a: EPNode;
         let b: EPNode;
-        const goals = `${obj.goalStatus},${dependsOn.goalStatus}`;
-        switch (goals) {
-            case "Deployed,Deployed":   a = obj; b = dependsOn; break;
-            case "Destroyed,Destroyed": a = dependsOn; b = obj; break;
-            case "Destroyed,Deployed":  return; // Intentionally no edge
-            case "Deployed,Destroyed":
-            default:
-                throw new InternalError(`Unable to create dependency for ` +
-                    `invalid goal pair '${goals}'`);
-        }
-        // If a is in a group, all outbound dependencies are attached to
-        // the group leader (and "a" will already have a dependency on the
-        // group leader from when it joined the group).
-        const leader = this.groupLeader(a);
-
-        // If there's a leader, re-make the check for dissimilar goalStatus
-        // but with the leader.
-        if (leader && leader.goalStatus !== b.goalStatus) {
-            if (leader.goalStatus === GoalStatus.Destroyed) {
-                throw new InternalError(`Unable to create dependency for ` +
-                    `leader being Destroyed on dependency being Deployed`);
+        if (edgeType === DependencyType.StartStart) {
+            a = obj;
+            b = dependsOn;
+        } else {
+            const goals = `${obj.goalStatus},${dependsOn.goalStatus}`;
+            switch (goals) {
+                case "Deployed,Deployed":   a = obj; b = dependsOn; break;
+                case "Destroyed,Destroyed": a = dependsOn; b = obj; break;
+                case "Destroyed,Deployed":  return; // Intentionally no edge
+                case "Deployed,Destroyed":
+                default:
+                    throw new InternalError(`Unable to create dependency for ` +
+                        `invalid goal pair '${goals}'`);
             }
-            return; // Intentionally no edge
         }
-        this.addEdgeInternal(leader || a, b, hardDep);
+        this.addEdgeInternal(a, b, edgeType);
     }
 
-    protected addEdgeInternal(obj: EPObject, dependsOn: EPObject, hardDep: boolean) {
+    protected addEdgeInternal(obj: EPObject, dependsOn: EPObject, edgeType: DependencyType) {
+        const e: EPEdge = { edgeType };
         const objId = this.getId(obj);
-        this.graph.setEdge(objId, this.getId(dependsOn));
-        if (hardDep) this.addHardDepInternal(this.getNode(objId), this.getNode(dependsOn));
+        const depId = this.getId(dependsOn);
+        const existing: EPEdge | undefined = this.graph.edge(objId, depId);
+        if (existing) {
+            const pair = `${existing.edgeType},${edgeType}`;
+            switch (pair) {
+                case "FinishStart,FinishStart":
+                case "FinishStartHard,FinishStartHard":
+                case "StartStart,StartStart":
+                    return; // No change requested
+                case "FinishStart,FinishStartHard":
+                    break; // Allowed to upgrade to more restrictive type
+                case "FinishStartHard,FinishStart":
+                    return; // Leave it at the more restrictive type
+
+                case "FinishStart,StartStart":
+                case "FinishStartHard,StartStart":
+                case "StartStart,FinishStart":
+                case "StartStart,FinishStartHard":
+                    throw new Error(`Attempt to add multiple dependencies between the same Elements. ` +
+                        `DependencyTypes=${pair} ${objId}->${depId}`);
+
+                default:
+                    throw new InternalError(`Unhandled dependency types: ${pair}`);
+            }
+        }
+        this.graph.setEdge(objId, depId, e);
     }
 
     protected removeEdgeInternal(obj: EPObject, dependsOn: EPObject) {
         const objId = this.getId(obj);
         this.graph.removeEdge(objId, this.getId(dependsOn));
-        this.removeHardDepInternal(this.getNode(objId), this.getNode(dependsOn));
     }
 
-    protected addHardDepInternal(obj: EPNode, dependsOn: EPNode) {
-        if (obj.hardDeps == null) obj.hardDeps = new Set();
-        obj.hardDeps.add(dependsOn);
+    /**
+     * Retrieve predecessors or successors from the graph, optionally
+     * filtered for a particular DependencyType.
+     */
+    protected neighbors(n: EPNode, edgeType: DependencyType | "all",
+        which: "predecessors" | "successors"): EPNode[] {
+
+        const nId = this.getId(n);
+        // Nodes that have been pulled out of the graph have no neighbors
+        if (this.nonGraph.has(nId)) return [];
+        let nbors = this.graph[which](nId);
+        if (nbors == null) throw new InternalError(`Requested node that's not in graph id=${nId}`);
+        if (edgeType !== "all") {
+            const getEdge = (nborId: string): EPEdge => {
+                const from = which === "predecessors" ? nborId : nId;
+                const to = which === "predecessors" ? nId : nborId;
+                const e = this.graph.edge(from, to);
+                if (!e) throw new InternalError(`No edge '${from}' -> '${to}' but in ${which}`);
+                return e;
+            };
+
+            nbors = nbors.filter((nbor) => getEdge(nbor).edgeType === edgeType);
+        }
+        return nbors.map(this.getNode);
     }
 
-    protected removeHardDepInternal(obj: EPNode, dependsOn: EPNode) {
-        if (obj.hardDeps != null) obj.hardDeps.delete(dependsOn);
+    /**
+     * Given an Element node N, returns the set of primitive Element
+     * nodes that are descendents of N (including N if it's a
+     * primitive Element node).
+     * If `prune` is true, stop recursively traversing descendents at the first
+     * primitive Element node found.
+     */
+    protected primitiveDependencyTargets = (n: EPNode, prune: boolean): EPNode[] => {
+        const prims = new Set<EPNode>();
+        function addPrims(node: EPNode) {
+            const el = node.element;
+            if (!el) return;
+            if (isPrimitiveElement(el)) {
+                prims.add(node);
+                if (prune) return;
+            }
+            node.children.forEach(addPrims);
+        }
+        addPrims(n);
+        return [...prims];
+    }
+
+    protected printCycleGroups = (group: string[]) => {
+        if (group.length < 1) throw new InternalError(`Cycle group with no members`);
+
+        const nodeDesc = (n: EPNode, pad = 0) => {
+            const desc = n.element?.path || `Action: ${n.waitInfo.description}`;
+            return desc.padEnd(pad);
+        };
+
+        const ids = [...group, group[0]];
+        const nodes = ids.map(this.getNode);
+        let padLen = nodes.map((n) => nodeDesc(n).length).reduce((max, cur) => Math.max(max, cur));
+        padLen = Math.min(padLen, 65);
+
+        // The dependency type from (i-1) to (i).
+        const depType = (i: number) => {
+            if (i === 0) return "";
+            const e = this.getEdgeInternal(ids[i - 1], ids[i]);
+            return `[${e?.edgeType || "??"}]`;
+        };
+        const short = (n: EPNode, i: number) => {
+            const dt = depType(i);
+            const idx = i === ids.length - 1 ? 0 : i;
+            return `${idx.toString().padStart(2)}: ${nodeDesc(n, padLen)}  ${dt}`;
+        };
+        const detail = (n: EPNode, i: number) => {
+            const info = [];
+            const niceId = n.element ? n.element.id : this.getId(n).slice(2);
+            info.push(`${i.toString().padStart(2)}: ${nodeDesc(n)}`);
+            if (n.element) info.push(`    key: ${n.element.props.key}`);
+            info.push(`    id: ${niceId}`);
+            return info.join("\n");
+        };
+
+        let output = `Dependencies:\n  ${nodes.map(short).join("\n   -> ")}\n`;
+        nodes.pop();
+        output += `Details:\n${nodes.map(detail).join("\n")}`;
+
+        return output;
+    }
+
+    /**
+     * Actions always act on behalf of one or more Elements. The Action node
+     * replaces the Element nodes in the graph. This means that all of the
+     * Element nodes' dependencies are moved over to the Action node and the
+     * Element nodes are then removed from the graph.
+     */
+    protected setActingFor(actionNode: EPNode, elNode: EPObject) {
+        elNode = this.getNode(elNode);
+
+        this.successors(elNode).forEach((succ) => {
+            const e = this.getEdgeInternal(elNode, succ);
+            if (!e) {
+                throw new InternalError(`Internal consistency check failed. ` +
+                    `node has a successor, but no edge`);
+            }
+            this.removeEdgeInternal(elNode, succ);
+            // Don't create a circular dependency to the actionNode. This can
+            // happen when a single Action serves multiple Elements that have
+            // dependencies between each other. Simply ignore those.
+            if (actionNode === succ) return;
+            this.addEdgeInternal(actionNode, succ, e.edgeType);
+        });
+        this.predecessors(elNode).forEach((pred) => {
+            const e = this.getEdgeInternal(pred, elNode);
+            if (!e) {
+                throw new InternalError(`Internal consistency check failed. ` +
+                    `node has a predecessor, but no edge`);
+            }
+            this.removeEdgeInternal(pred, elNode);
+            // Don't create a circular dependency to the actionNode. This can
+            // happen when a single Action serves multiple Elements that have
+            // dependencies between each other. Simply ignore those.
+            if (actionNode === pred) return;
+            this.addEdgeInternal(pred, actionNode, e.edgeType);
+        });
+
+        this.removeNode(elNode);
+    }
+
+    protected isStartStartCycle(cycle: string[]) {
+        for (let i = 0; i < cycle.length; ++i) {
+            const e = this.getEdgeInternal(cycle[i], cycle[(i + 1) % cycle.length]);
+            if (e?.edgeType !== DependencyType.StartStart) return false;
+        }
+        return true;
+}
+
+    protected breakCycle(cycle: string[]) {
+        debugExecuteDetail(`Breaking StartStart Cycle by removing ${cycle[0]} -> ${cycle[1]}`);
+        this.removeEdgeInternal(this.getNode(cycle[0]), this.getNode(cycle[1]));
     }
 }
 
@@ -608,13 +883,10 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
         deployOpID,
         dryRun: opts.dryRun,
         goalStatus: plan.goalStatus,
-        nodes: plan.nodes,
+        nodes: plan.allNodes,
         taskObserver: opts.taskObserver,
     });
     plan.helpers.nodeStatus = nodeStatus;
-
-    //TODO: Remove?
-    debugExecute(`\nExecution plan:\n${plan.print()}`);
 
     try {
         while (true) {
@@ -622,6 +894,7 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
             const stepStr = `${deployOpID}.${stepNum}`;
             debugExecute(`\n\n-----------------------------\n\n` +
                 `**** Starting execution step ${stepStr}`);
+            debugExecute(`\nExecution plan:\n${plan.print()}`);
 
             await executePass({ ...opts, nodeStatus, timeoutTime });
             const { stateChanged } = await opts.processStateUpdates();
@@ -655,10 +928,11 @@ export async function execute(options: ExecuteOptions): Promise<ExecuteComplete>
 
         debugExecute(`**** Execution failed:`, inspect(err));
         if (err.name === "TimeoutError") {
-            //TODO : Mark all un-deployed as timed out
-            for (const n of plan.nodes) {
-                await nodeStatus.set(n, DeployStatus.Failed, err);
-            }
+            await Promise.all(
+                plan.allNodes
+                .filter((n) => !nodeIsFinal(n, nodeStatus))
+                .map((n) => nodeStatus.set(n, DeployStatus.Failed, err))
+            );
             return nodeStatus.complete(stateChanged);
 
         } else {
@@ -682,22 +956,53 @@ export async function executePass(opts: ExecutePassOptions) {
     // the status of the action in certain cases.
     const signalActingFor = async (node: EPNode, stat: DeployStatusExt, err: Error | undefined) => {
         const w = node.waitInfo;
-        if (!w || !w.actingFor || !shouldNotifyActingFor(stat)) return;
-        await Promise.all(w.actingFor.map(async (c) => {
-            const n = plan.getNode(c.element);
-            if (!nodeStatus.isActive(n)) return;
-            const s =
-                err ? err :
-                stat === DeployStatusExt.Deploying ? DeployStatusExt.ProxyDeploying :
-                stat === DeployStatusExt.Destroying ? DeployStatusExt.ProxyDestroying :
-                stat;
-            await updateStatus(n, s, c.detail);
-        }));
+        if (!w || !w.actingFor) return;
+        if (shouldNotifyActingFor(stat)) {
+            await Promise.all(w.actingFor.map(async (c) => {
+                const n = plan.getNode(c.element);
+                if (!nodeStatus.isActive(n)) return;
+                const s =
+                    err ? err :
+                    stat === DeployStatusExt.Deploying ? DeployStatusExt.ProxyDeploying :
+                    stat === DeployStatusExt.Destroying ? DeployStatusExt.ProxyDestroying :
+                    stat;
+                await updateStatus(n, s, c.detail);
+            }));
+        }
+
+        // Queue the actingFor Elements for successful final states so they
+        // can run their deployedWhen and possibly also transition to a
+        // final state.
+        if (shouldQueueActingFor(stat)) {
+            w.actingFor
+                .map((c) => plan.getNode(c.element))
+                .forEach(queueRun);
+        }
     };
 
-    const signalPreds = async (n: EPNode, stat: DeployStatusExt) => {
-        if (!isFinalStatus(stat)) return;
-        plan.predecessors(n).forEach(queueRun);
+    const signalPreds = (n: EPNode, stat: DeployStatusExt) => {
+        let toSignal: EPNode[];
+
+        if (isFinalStatus(stat)) {
+            // Signal predecessors that depend on our Finish
+            toSignal = plan.predecessors(n, DependencyType.FinishStart)
+                .concat(plan.predecessors(n, DependencyType.FinishStartHard));
+        } else if (isInProgress(stat) || isProxying(stat)) {
+            // Signal predecessors that depend on our Start
+            toSignal = plan.predecessors(n, DependencyType.StartStart);
+        } else {
+            return;
+        }
+
+        // Each toSignal dependency has been satisfied. In successful cases,
+        // remove all the dependencies onto `n`.
+        // In the error case, leave dependencies in place so the
+        // predecessors can use those relationships to realize they depend
+        // on an errored node and signal their predecessors.
+        if (stat !== DeployStatus.Failed) {
+            toSignal.forEach((pred) => plan.removeDep(pred, n));
+        }
+        toSignal.forEach(queueRun);
     };
 
     const fatalError = (err: any) => {
@@ -730,7 +1035,7 @@ export async function executePass(opts: ExecutePassOptions) {
             if (w) {
                 let errorIgnored = false;
 
-                if (!isInProgress(stat)) {
+                if (!(isInProgress(stat) || isProxying(stat))) {
                     await updateStatus(n, goalToInProgress(n.goalStatus)); // now in progress
 
                     if (w.action) {
@@ -780,8 +1085,6 @@ export async function executePass(opts: ExecutePassOptions) {
                     `${nodeDescription(n)}: ${formatUserError(err)}`);
             }
             if (err.name === "InternalError") throw err;
-        } finally {
-            if (n.element) dwQueue.completed(n.element, queueRun);
         }
     };
 
@@ -797,7 +1100,10 @@ export async function executePass(opts: ExecutePassOptions) {
         const changed = await nodeStatus.set(n, deployStatus, err, description);
         if (changed) {
             await signalActingFor(n, deployStatus, err);
-            await signalPreds(n, deployStatus);
+            signalPreds(n, deployStatus);
+            if (isFinalStatus(deployStatus) && n.element) {
+                dwQueue.completed(n.element, queueRun);
+            }
         }
         return changed;
     };
@@ -812,13 +1118,21 @@ export async function executePass(opts: ExecutePassOptions) {
 
         // But if the node is being Destroyed, we instead evaluate all of our
         // successors' WaitInfos, each in the inverse direction.
-        const succs = plan.successors(n);
+        const succs = plan.successors(n, DependencyType.FinishStart)
+            .concat(plan.successors(n, DependencyType.FinishStartHard));
         debugExecDetailId(mkIdStr(ids), `  Evaluating: ${succs.length} successors`);
         for (const s of succs) {
             // TODO: There probably needs to be a check here comparing
             // goalStatus for s and n, similar to addEdge.
             const sId = plan.getId(s);
             if (!waitIsReady(s, true, [...ids, sId])) return false;
+
+            // Evaluate successor's actingFor the same way
+            const actingFor = plan.actingFor(s);
+            for (const a of actingFor) {
+                const aId = plan.getId(a);
+                if (!waitIsReady(a, true, [...ids, sId, aId])) return false;
+            }
         }
         return true;
     };
@@ -843,30 +1157,31 @@ export async function executePass(opts: ExecutePassOptions) {
     };
 
     const dependenciesMet = (n: EPNode, id: EPNodeId): boolean => {
-        const hardDeps = n.hardDeps || new Set();
-        debugExecDetailId(id, `  Evaluating: ${hardDeps.size} hard deps`);
-        for (const d of hardDeps) {
-            if (!nodeIsDeployed(d, id, nodeStatus)) {
-                debugExecId(id, `NOTYET: hard deps`);
-                return false;
-            }
-        }
+        const hardDeps = plan.successors(n, DependencyType.FinishStartHard);
 
-        if (!softDepsReady(n, [id])) {
-            debugExecId(id, `NOTYET: soft dep`);
+        // Check for errors in our dependencies first. Throws on errored dep.
+        hardDeps.forEach((d) => nodeIsDeployed(d, id, nodeStatus));
+
+        if (hardDeps.length > 0) {
+            debugExecId(id, `Dependencies not met: ${hardDeps.length} FinishStartHard dependencies remaining`);
             return false;
         }
 
-        const followers = plan.groupFollowers(n);
-        debugExecDetailId(id, `  Evaluating: ${followers.length} followers`);
-        for (const f of followers) {
-            const fStat = nodeStatus.get(f);
-            const fId = plan.getId(f);
-            if (!isWaiting(fStat)) {
-                throw new InternalError(`Invalid status ${fStat} for follower ${fId}`);
+        if (!softDepsReady(n, [id])) {
+            debugExecId(id, `Dependencies not met: FinishStart (soft) dependencies remaining`);
+            return false;
+        }
+
+        const actingFor = plan.actingFor(n);
+        debugExecDetailId(id, `  Evaluating: ${actingFor.length} actingFor elements`);
+        for (const a of actingFor) {
+            const aStat = nodeStatus.get(a);
+            const aId = plan.getId(a);
+            if (!isWaiting(aStat)) {
+                throw new InternalError(`Invalid status ${aStat} for actingFor element ${aId}`);
             }
-            if (!softDepsReady(f, [id, fId])) {
-                debugExecId(id, `NOTYET: followers`);
+            if (!softDepsReady(a, [id, aId])) {
+                debugExecId(id, `Dependencies not met: actingFor elements have incomplete dependencies`);
                 return false;
             }
         }
@@ -878,6 +1193,10 @@ export async function executePass(opts: ExecutePassOptions) {
      * Main execute code path
      */
     try {
+        // Queue any non-graph nodes that are already in progress so they
+        // can check their completions.
+        plan.nonGraphNodes.filter((n) => nodeIsActive(n, nodeStatus)).forEach(queueRun);
+
         // Queue the leaf nodes that have no dependencies
         plan.leaves.forEach(queueRun);
 
@@ -912,6 +1231,16 @@ function shouldNotifyActingFor(status: DeployStatusExt) {
     }
 }
 
+function shouldQueueActingFor(status: DeployStatusExt) {
+    switch (status) {
+        case DeployStatus.Deployed:
+        case DeployStatus.Destroyed:
+            return true;
+        default:
+            return false;
+    }
+}
+
 function isWaiting(stat: DeployStatusExt) {
     return (
         stat === DeployStatusExt.Waiting ||
@@ -932,12 +1261,6 @@ function changeTypeToGoalStatus(ct: ChangeType): GoalStatus {
         default:
             throw new InternalError(`Bad ChangeType '${ct}'`);
     }
-}
-
-function printCycleGroups(group: string[]) {
-    if (group.length < 1) throw new InternalError(`Cycle group with no members`);
-    const c = [...group, group[0]];
-    return "  " + c.join(" -> ");
 }
 
 function toBuiltElemOrWaitInfo(val: Handle | AdaptMountedElement | WaitInfo): AdaptMountedElement | WaitInfo | null {
@@ -971,6 +1294,16 @@ function nodeDescription(n: EPNode): string {
     if (n.waitInfo) return n.waitInfo.description;
     if (n.element) return `${n.element.componentName} (id=${n.element.id})`;
     return "Unknown node";
+}
+
+function nodeIsActive(n: EPNode, tracker: StatusTracker): boolean {
+    const sStat = tracker.get(n);
+    return isInProgress(sStat) || isProxying(sStat);
+}
+
+function nodeIsFinal(n: EPNode, tracker: StatusTracker): boolean {
+    const sStat = tracker.get(n);
+    return isFinalStatus(sStat);
 }
 
 function idOrObjInfo(idOrObj: EPNodeId | EPObject) {

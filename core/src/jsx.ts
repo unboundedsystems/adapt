@@ -798,7 +798,7 @@ export function defaultDeployedWhen(el: AdaptElement): DeployedWhenMethod {
         }
 
         return helpers.isDeployed(succ.props.handle) ? true :
-            waiting(`Waiting on successor element`, [succ.props.handle]);
+            waiting(`Waiting on successor element (${succ.componentName})`, [succ.props.handle]);
     };
 }
 

@@ -40,6 +40,7 @@ export function isStatusComplete(status: HistoryStatus) {
 
 export interface HistoryEntry {
     status: HistoryStatus;
+    dependenciesJson: string;
     domXml: string;
     stateJson: string;
     observationsJson: string;

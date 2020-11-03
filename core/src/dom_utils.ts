@@ -56,14 +56,25 @@ export function domDiff<E extends AdaptMountedElement = AdaptMountedElement> (
     idFunc = defaultDomDiffId
     ): DomDiff<E> {
 
+    const oldElems = domMap(oldDom, (el) => el);
+    const newElems = domMap(newDom, (el) => el);
+    return domDiffElements(oldElems, newElems, idFunc);
+}
+
+export function domDiffElements<E extends AdaptMountedElement = AdaptMountedElement> (
+    oldElems: E[],
+    newElems: E[],
+    idFunc = defaultDomDiffId
+    ): DomDiff<E> {
+
     const byId = new Map<ElementID, E>();
     const added = new Set<E>();
     const deleted = new Set<E>();
     const commonOld = new Set<E>();
     const commonNew = new Set<E>();
 
-    domForEach(oldDom, (el) => byId.set(idFunc(el), el));
-    domForEach(newDom, (el) => {
+    oldElems.forEach((el) => byId.set(idFunc(el), el));
+    newElems.forEach((el) => {
         const id = idFunc(el);
         const old = byId.get(id);
         if (old) {

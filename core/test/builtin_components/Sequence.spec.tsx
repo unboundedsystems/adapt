@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -203,25 +203,14 @@ describe("Sequence Component Tests", () => {
                 const { dom, dependencies, mountedOrig } = await deploy.getExecutionPlan(root, deployOpts);
                 if (dom == null) throw should(dom).be.ok();
                 if (mountedOrig == null) throw should(mountedOrig).be.ok();
-                should(dependencies).eql({
-                    '["Sequence","Sequence","1"]': [],
-                    "Action create - 1": [],
-                    '["Sequence","Sequence","1","1"]': [ "Action create - 1" ],
-
+                should(dependencies.FinishStart).eql({
                     // Dependency should be on the mountedOrig (ToPrim) component
                     '["Sequence","Sequence","2"]': [ '["Sequence","Sequence","1"]' ],
                     "Action create - 2": [ '["Sequence","Sequence","1"]' ],
-                    '["Sequence","Sequence","2","2"]': [ "Action create - 2" ],
 
                     // Dependency should be on the mountedOrig (ToPrim) component
                     '["Sequence","Sequence","3"]': [ '["Sequence","Sequence","2"]' ],
                     "Action create - 3": [ '["Sequence","Sequence","2"]' ],
-                    '["Sequence","Sequence","3","3"]': [ "Action create - 3" ],
-
-                    // These don't have dependencies, but they do have deployedWhens
-                    '["Sequence"]': [],
-                    '["Sequence","Sequence"]': [],
-                    '["Sequence","Sequence","Sequence"]': [],
                 });
             }
 
@@ -266,36 +255,14 @@ describe("Sequence Component Tests", () => {
                 if (dom == null) throw should(dom).be.ok();
                 if (mountedOrig == null) throw should(mountedOrig).be.ok();
 
-                should(dependencies).eql({
-                    "Action create - 1": [],
+                should(dependencies.FinishStart).eql({
                     "Action create - 2": [ '["Group","1"]' ],
-                    "Action create - 3": [],
                     "Action create - 4": [ '["Group","3"]' ],
-                    "Action create - 5": [],
                     "Action create - 6": [ '["Group","5"]' ],
-
-                    '["Group","1","1"]': [ "Action create - 1" ],
-                    '["Group","3","3"]': [ "Action create - 3" ],
-                    '["Group","5","5"]': [ "Action create - 5" ],
-
-                    '["Group","Sequence","Sequence","2"]': [ "Action create - 2" ],
 
                     // ToPrim gets a dependency on 3
                     '["Group","Sequence","Sequence","4"]': [ '["Group","3"]' ],
-                    '["Group","Sequence","Sequence","4","4"]': [ "Action create - 4" ],
-
-                    '["Group","Sequence","Sequence","6"]': [ "Action create - 6" ],
-
-                    // Intermediate components don't get dependencies
-                    '["Group"]': [],
-                    '["Group","1"]': [],
-                    '["Group","3"]': [],
-                    '["Group","5"]': [],
-                    '["Group","Sequence"]': [],
-                    '["Group","Sequence","Sequence"]': [],
-                    '["Group","Sequence","Sequence","Sequence"]': [],
                 });
-
             }
 
             const { deployComplete } = await deploy.deploy(root, deployOpts);

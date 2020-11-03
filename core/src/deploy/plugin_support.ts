@@ -24,7 +24,7 @@ import * as fs from "fs-extra";
 import * as ld from "lodash";
 import * as path from "path";
 import { inspect } from "util";
-import { domDiff, DomDiff, logElements } from "../dom_utils";
+import { domDiff, DomDiff, domDiffElements, logElements } from "../dom_utils";
 import { InternalError } from "../error";
 import {
     AdaptElementOrNull,
@@ -32,6 +32,7 @@ import {
     isMountedElement,
 } from "../jsx";
 import { findPackageInfo } from "../packageinfo";
+import { DeployOpID } from "../server";
 import { Deployment } from "../server/deployment";
 import { getAdaptContext } from "../ts";
 
@@ -40,6 +41,7 @@ import {
     Action,
     ActOptions,
     DeployOpStatus,
+    EPPrimitiveDependencies,
     ExecutionPlan,
     GoalStatus,
     Plugin,
@@ -91,7 +93,10 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
         case PluginManagerState.Observing:
             return next === PluginManagerState.PreAnalyze;
         case PluginManagerState.PreAnalyze:
-            return next === PluginManagerState.Analyzing;
+            return [
+                PluginManagerState.Analyzing,
+                PluginManagerState.Finishing,
+            ].find((v) => v === next) !== undefined;
         case PluginManagerState.Analyzing:
             return next === PluginManagerState.PreAct;
         case PluginManagerState.PreAct:
@@ -101,8 +106,8 @@ function legalStateTransition(prev: PluginManagerState, next: PluginManagerState
             ].find((v) => v === next) !== undefined;
         case PluginManagerState.Acting:
             return [
-                PluginManagerState.PreAct, //  dryRun
-                PluginManagerState.PreFinish  // !dryRun
+                PluginManagerState.PreAnalyze, //  dryRun
+                PluginManagerState.PreFinish   // !dryRun
             ].find((v) => v === next) !== undefined;
         case PluginManagerState.PreFinish:
             return next === PluginManagerState.Finishing;
@@ -163,24 +168,37 @@ interface AnyObservation {
     [name: string]: any;
 }
 
+const defaultStartOptions = {
+    prevDependencies: {},
+};
+
 const defaultActOptions = {
     dryRun: false,
     ignoreDeleteErrors: false,
-    goalStatus: DeployOpStatus.Deployed as GoalStatus,
     processStateUpdates: () => Promise.resolve({ stateChanged: false }),
 };
 
 class PluginManagerImpl implements PluginManager {
-    plugins: PluginInstances;
+    // Initialized during construction
     modules: PluginModules;
-    deployment?: Deployment;
-    dom?: AdaptElementOrNull;
-    prevDom?: AdaptElementOrNull;
-    diff?: DomDiff;
     parallelActions: Action[] = [];
-    logger?: MessageLogger;
+    plugins: PluginInstances;
     state: PluginManagerState;
+
+    // Initialized during `start`
+    deployment_?: Deployment;
+    deployOpID_?: DeployOpID;
+    goalStatus_?: GoalStatus;
+    logger_?: MessageLogger;
+    newDom_?: AdaptElementOrNull;
+    newMountedElements_?: AdaptMountedElement[];
     observations: AnyObservation;
+    prevDependencies_?: EPPrimitiveDependencies;
+    prevDom_?: AdaptElementOrNull;
+    prevMountedElements_?: AdaptMountedElement[];
+
+    // Created during `analyze`
+    plan_?: ExecutionPlan;
 
     constructor(config: PluginConfig) {
         this.plugins = new Map(config.plugins);
@@ -195,14 +213,20 @@ class PluginManagerImpl implements PluginManager {
         this.state = next;
     }
 
-    async start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-        options: PluginManagerStartOptions) {
+    async start(opts: PluginManagerStartOptions) {
         this.transitionTo(PluginManagerState.Starting);
-        this.dom = dom;
-        this.prevDom = prevDom;
-        this.deployment = options.deployment;
-        this.logger = options.logger;
+        const options = { ...defaultStartOptions, ...opts };
+
+        this.deployment_ = options.deployment;
+        this.deployOpID_ = options.deployOpID;
+        this.goalStatus_ = options.newDom === null ? GoalStatus.Destroyed : GoalStatus.Deployed;
+        this.logger_ = options.logger;
+        this.newDom_ = options.newDom;
+        this.newMountedElements_ = options.newMountedElements;
         this.observations = {};
+        this.prevDependencies_ = options.prevDependencies;
+        this.prevDom_ = options.prevDom;
+        this.prevMountedElements_ = options.prevMountedElements;
 
         const loptions = {
             deployID: options.deployment.deployID,
@@ -226,7 +250,7 @@ class PluginManagerImpl implements PluginManager {
 
     async observe() {
         this.transitionTo(PluginManagerState.Observing);
-        const dom = this.dom;
+        const dom = this.newDom;
         const prevDom = this.prevDom;
         if (dom === undefined || prevDom === undefined) {
             throw new InternalError("Must call start before observe");
@@ -247,7 +271,7 @@ class PluginManagerImpl implements PluginManager {
 
     analyze() {
         this.transitionTo(PluginManagerState.Analyzing);
-        const dom = this.dom;
+        const dom = this.newDom;
         const prevDom = this.prevDom;
         if (dom === undefined || prevDom === undefined) {
             throw new InternalError("Must call start before analyze");
@@ -267,53 +291,39 @@ class PluginManagerImpl implements PluginManager {
         if (prevDom && !isMountedElement(prevDom)) {
             throw new InternalError(`prevDom is not Mounted`);
         }
-        this.diff = domDiff(prevDom, dom);
-        checkPrimitiveActions(this.diff, this.actions);
+        const diff = domDiff(prevDom, dom);
+        checkPrimitiveActions(diff, this.actions);
+
+        this.plan_ = createExecutionPlan({
+            actions: this.actions,
+            dependencies: this.prevDependencies,
+            deployment: this.deployment,
+            deployOpID: this.deployOpID,
+            diff: domDiffElements(this.prevMountedElements, this.newMountedElements),
+            goalStatus: this.goalStatus,
+        });
+        this.plan.check();
 
         this.transitionTo(PluginManagerState.PreAct);
-        return this.actions;
+        return {
+            actions: this.actions,
+            dependencies: this.plan.primitiveDependencies,
+        };
     }
 
     addActions(actions: Action[], plugin: Plugin) {
         this.parallelActions = this.parallelActions.concat(actions);
     }
 
-    /**
-     * Creates an ExecutionPlan. Solely intended for unit testing.
-     * @internal
-     */
-    async _createExecutionPlan(options: ActOptions): Promise<ExecutionPlan> {
-        const { builtElements, deployOpID, goalStatus } = { ...defaultActOptions, ...options };
-        // tslint:disable-next-line: no-this-assignment
-        const { deployment, diff } = this;
-
-        if (diff == null) throw new InternalError("Must call analyze before act (diff == null)");
-        if (deployment == null) throw new InternalError("Must start analyze before act (deployment == null)");
-
-        const plan = await createExecutionPlan({
-            actions: this.parallelActions,
-            builtElements,
-            deployment,
-            deployOpID,
-            diff,
-            goalStatus,
-        });
-        plan.check();
-        return plan;
-    }
-
     async act(options: ActOptions): Promise<ActComplete> {
-        const { builtElements, deployOpID, goalStatus, ...opts } = { ...defaultActOptions, ...options };
+        const opts = { ...defaultActOptions, ...options };
         // tslint:disable-next-line: no-this-assignment
-        const { logger } = this;
+        const { goalStatus, logger, plan } = this;
 
         if (opts.taskObserver.state !== TaskState.Started) {
             throw new InternalError(
                 `PluginManager: A new TaskObserver must be provided for additional calls to act()`);
         }
-        if (logger == null) throw new InternalError("Must call start before act (logger == null)");
-
-        const plan = await this._createExecutionPlan(options);
 
         this.transitionTo(PluginManagerState.Acting);
 
@@ -330,7 +340,9 @@ class PluginManagerImpl implements PluginManager {
             throw new InternalError(`Unexpected DeployOpStatus (${deploymentStatus}) from execute`);
         }
 
-        if (opts.dryRun) this.transitionTo(PluginManagerState.PreAct);
+        // In the case of a dry run, the ExecutionPlan has been used, so
+        // analyze must be called again to create a new one.
+        if (opts.dryRun) this.transitionTo(PluginManagerState.PreAnalyze);
         else this.transitionTo(PluginManagerState.PreFinish);
 
         return {
@@ -343,12 +355,80 @@ class PluginManagerImpl implements PluginManager {
         this.transitionTo(PluginManagerState.Finishing);
         const waitingFor = mapMap(this.plugins, (_, plugin) => plugin.finish());
         await Promise.all(waitingFor);
-        this.dom = undefined;
-        this.prevDom = undefined;
-        this.parallelActions = [];
-        this.logger = undefined;
+        delete this.deployment_;
+        delete this.deployOpID_;
+        delete this.goalStatus_;
+        delete this.logger_;
+        delete this.newDom_;
+        delete this.newMountedElements_;
         this.observations = {};
+        delete this.prevDependencies_;
+        delete this.prevDom_;
+        delete this.prevMountedElements_;
+        delete this.plan_;
         this.transitionTo(PluginManagerState.Initial);
+    }
+
+    get deployment(): Deployment {
+        if (this.deployment_ === undefined) throw new InternalError(`Must call start before accessing deployment`);
+        return this.deployment_;
+    }
+
+    get deployOpID(): DeployOpID {
+        if (this.deployOpID_ === undefined) throw new InternalError(`Must call start before accessing deployOpID`);
+        return this.deployOpID_;
+    }
+
+    get goalStatus(): GoalStatus {
+        if (this.goalStatus_ === undefined) throw new InternalError(`Must call start before accessing goalStatus`);
+        return this.goalStatus_;
+    }
+
+    get logger(): MessageLogger {
+        if (this.logger_ === undefined) {
+            throw new InternalError(`Must call start before accessing logger`);
+        }
+        return this.logger_;
+    }
+
+    get newDom(): AdaptElementOrNull {
+        if (this.newDom_ === undefined) {
+            throw new InternalError(`Must call start before accessing newDom`);
+        }
+        return this.newDom_;
+    }
+
+    get newMountedElements(): AdaptMountedElement[] {
+        if (this.newMountedElements_ === undefined) {
+            throw new InternalError(`Must call start before accessing newMountedElements`);
+        }
+        return this.newMountedElements_;
+    }
+
+    get plan(): ExecutionPlan {
+        if (this.plan_ === undefined) throw new InternalError(`Must call analyze before accessing plan`);
+        return this.plan_;
+    }
+
+    get prevDependencies(): EPPrimitiveDependencies {
+        if (this.prevDependencies_ === undefined) {
+            throw new InternalError(`Must call start before accessing prevDependencies`);
+        }
+        return this.prevDependencies_;
+    }
+
+    get prevDom(): AdaptElementOrNull {
+        if (this.prevDom_ === undefined) {
+            throw new InternalError(`Must call start before accessing prevDom`);
+        }
+        return this.prevDom_;
+    }
+
+    get prevMountedElements(): AdaptMountedElement[] {
+        if (this.prevMountedElements_ === undefined) {
+            throw new InternalError(`Must call start before accessing prevMountedElements`);
+        }
+        return this.prevMountedElements_;
     }
 
     private get actions(): Action[] {

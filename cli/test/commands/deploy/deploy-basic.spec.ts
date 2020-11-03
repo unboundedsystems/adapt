@@ -29,6 +29,7 @@ const domFilename = "adapt_dom.xml";
 const observationsFilename = "adapt_observations.json";
 const stateFilename = "adapt_state.json";
 const infoFilename = "adapt_deploy.json";
+const dependenciesFilename = "adapt_dependencies.json";
 const dataDirFilename = "dataDir";
 
 const basicPackageJson = {
@@ -334,6 +335,7 @@ async function checkBasicIndexTsxState(
     const historyDir = await findHistoryDir();
     const fileList = await fs.readdir(historyDir);
     expect(fileList).eqls([
+        dependenciesFilename,
         infoFilename,
         domFilename,
         observationsFilename,

@@ -258,6 +258,6 @@ export function shouldTrackStatus(n: EPNode) {
 
 export function isTrivial(n: EPNode) {
     if (n.waitInfo.activeAction) return false;
-    if (n.element) return n.element.deployedWhenIsTrivial;
+    if (n.element && n.element.built()) return n.element.deployedWhenIsTrivial;
     return true;
 }

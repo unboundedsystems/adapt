@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,7 +105,8 @@ describe("Plugin Support Basic Tests", () => {
     mochaTmpdir.all("adapt-plugin-tests");
 
     beforeEach(async () => {
-        dom = (await doBuild(orig)).dom;
+        const build = await doBuild(orig);
+        dom = build.dom;
         kids = dom.props.children;
         spy = sinon.spy();
         logger = createMockLogger();
@@ -122,14 +123,18 @@ describe("Plugin Support Basic Tests", () => {
 
         mgr = pluginSupport.createPluginManager(registered);
         dataDir = path.join(process.cwd(), "pluginData");
+        const deployment = await createMockDeployment({ deployID: "deploy123"});
         options = {
-            logger,
-            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
+            deployment,
+            deployOpID: await deployment.newOpID(),
+            logger,
+            newDom: dom,
+            newMountedElements: build.mountedElements,
+            prevDom: null,
+            prevMountedElements: [],
         };
         actOptions = {
-            builtElements: [],
-            deployOpID: await options.deployment.newOpID(),
             taskObserver,
         };
     });
@@ -143,7 +148,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call start on each plugin", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         should(spy.calledOnce).True();
         should(spy.getCall(0).args[0]).eql("start");
         should(spy.getCall(0).args[1].deployID).eql("deploy123");
@@ -152,7 +157,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should create plugin data directory", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         should(spy.calledOnce).True();
         should(spy.getCall(0).args[0]).eql("start");
         const expected = path.join(dataDir, "test_plugin@1.0.0", "TestPlugin");
@@ -161,7 +166,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call observe after start", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         should(spy.callCount).equal(2);
         should(spy.getCall(0).args[0]).eql("start");
@@ -170,7 +175,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call analyze after observe", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         should(spy.callCount).equal(3);
@@ -185,7 +190,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should call actions", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act(actOptions);
@@ -213,7 +218,7 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not call actions on dry run", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act({ ...actOptions, dryRun: true });
@@ -238,14 +243,14 @@ describe("Plugin Support Basic Tests", () => {
     });
 
     it("Should not allow illegal call sequences", async () => {
-        await mgr.start(null, dom, options);
-        should(() => mgr.analyze()).throw();
+        await mgr.start(options);
+        should(() => mgr.analyze()).throwError(
+            /Illegal call to Plugin Manager, attempting to go from PreObserve to Analyzing/);
         await should(mgr.act(actOptions)).rejectedWith(Error);
         await should(mgr.finish()).rejectedWith(Error);
 
         await mgr.observe();
         await should(mgr.act(actOptions)).rejectedWith(Error);
-        await should(mgr.finish()).rejectedWith(Error);
 
         mgr.analyze();
         await mgr.act({ ...actOptions, dryRun: true });
@@ -255,19 +260,22 @@ describe("Plugin Support Basic Tests", () => {
         taskObserver = createTaskObserver("parent2", { logger });
         taskObserver.started();
         actOptions.taskObserver = taskObserver;
+        await should(mgr.act(actOptions)).rejectedWith(Error);
+
+        mgr.analyze();
         await mgr.act(actOptions);
         await mgr.finish();
     });
 
     it("Should allow finish without acting", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         await mgr.finish();
     });
 
     it("Should run actions after dry run", async () => {
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act({ ...actOptions, dryRun: true });
@@ -292,14 +300,16 @@ describe("Plugin Support Basic Tests", () => {
         taskObserver = createTaskObserver("parent2", { logger });
         taskObserver.started();
         actOptions.taskObserver = taskObserver;
+        mgr.analyze();
+        should(spy.getCall(3).args).eql(["analyze", dom, { test: "object" }]);
         await mgr.act(actOptions);
         await mgr.finish();
 
-        should(spy.callCount).equal(6);
+        should(spy.callCount).equal(7);
         // The two actions can be called in either order
-        should([spy.getCall(3).args, spy.getCall(4).args])
+        should([spy.getCall(4).args, spy.getCall(5).args])
             .containDeep([ ["action1"], ["action2"] ]);
-        should(spy.getCall(5).args).eql(["finish"]);
+        should(spy.getCall(6).args).eql(["finish"]);
 
         const newTasks = getTasks();
         should(newTasks).not.equal(tasks);
@@ -389,20 +399,25 @@ describe("Plugin concurrency", () => {
     mochaTmpdir.all("adapt-plugin-tests");
 
     beforeEach(async () => {
-        dom = (await doBuild(orig)).dom;
+        const build = await doBuild(orig);
+        dom = build.dom;
         logger = createMockLogger();
         registered = new Map<string, PluginModule>();
         shared = new Concurrent();
 
         dataDir = path.join(process.cwd(), "pluginData");
+        const deployment = await createMockDeployment({ deployID: "deploy123"});
         options = {
-            logger,
-            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir,
+            deployment,
+            deployOpID: await deployment.newOpID(),
+            logger,
+            newDom: dom,
+            newMountedElements: build.mountedElements,
+            prevDom: null,
+            prevMountedElements: [],
         };
         actOptions = {
-            builtElements: [],
-            deployOpID: await options.deployment.newOpID(),
             taskObserver: createTaskObserver("parent", { logger }),
         };
         actOptions.taskObserver.started();
@@ -413,13 +428,13 @@ describe("Plugin concurrency", () => {
         registered.set("SlowPlugin", {
             name: "SlowPlugin",
             module,
-            create: () => new SlowPlugin(false, spy, shared),
+            create: () => new SlowPlugin(false, spy, shared, 1),
             packageName: "slow_plugin",
             version: "1.0.0",
         });
         mgr = pluginSupport.createPluginManager(registered);
 
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         await mgr.observe();
         mgr.analyze();
         await mgr.act(actOptions);
@@ -471,16 +486,23 @@ describe("Plugin register and deploy", () => {
     let logger: MockLogger;
     let mockContext: MockAdaptContext;
     let options: PluginManagerStartOptions;
-    const dom = <Group />;
+    const orig = <Group />;
 
     beforeEach(async () => {
         cleanupTestPlugins();
         mockContext = mockAdaptContext();
         logger = createMockLogger();
+        const build = await doBuild(orig);
+        const deployment = await createMockDeployment({ deployID: "deploy123"});
         options = {
-            logger,
-            deployment: await createMockDeployment({ deployID: "deploy123"}),
             dataDir: "/tmp/fakeDataDir",
+            deployment,
+            deployOpID: await deployment.newOpID(),
+            logger,
+            newDom: build.dom,
+            newMountedElements: build.mountedElements,
+            prevDom: null,
+            prevMountedElements: [],
         };
     });
     afterEach(() => {
@@ -496,7 +518,7 @@ describe("Plugin register and deploy", () => {
         should(mockContext.pluginModules).size(1);
 
         const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
         const lines = outputLines(logger);
         should(lines).have.length(1);
         should(lines[0]).match(/EchoPlugin: start/);
@@ -520,7 +542,7 @@ describe("Plugin register and deploy", () => {
         should(mockContext.pluginModules).size(2);
 
         const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
 
         const lines = outputLines(logger);
         should(lines).have.length(2);
@@ -534,7 +556,7 @@ describe("Plugin register and deploy", () => {
         should(mockContext.pluginModules).size(1);
 
         const mgr = pluginSupport.createPluginManager(mockContext.pluginModules);
-        await mgr.start(null, dom, options);
+        await mgr.start(options);
 
         const lines = outputLines(logger);
         should(lines).have.length(1);
