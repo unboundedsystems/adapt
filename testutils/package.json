@@ -34,7 +34,7 @@
     "dockerode": "3.2.1",
     "execa": "4.0.3",
     "express": "4.17.1",
-    "fs-extra": "8.1.0",
+    "fs-extra": "9.0.1",
     "heapdump": "0.3.15",
     "js-yaml": "3.14.0",
     "kubernetes-client": "7.0.1",

@@ -29,7 +29,7 @@
         "debug": "4.2.0",
         "diff": "4.0.2",
         "execa": "4.0.3",
-        "fs-extra": "8.1.0",
+        "fs-extra": "9.0.1",
         "globby": "11.0.1",
         "indent-string": "3.2.0",
         "lerna": "3.22.1",
