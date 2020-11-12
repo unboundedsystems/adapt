@@ -1,0 +1,46 @@
+{
+    extends: [
+        "config:base",
+        ":prHourlyLimit2",
+        ":pinAllExceptPeerDependencies",
+        ":automergeMinor",
+        ":automergePr",
+        ":automergeRequireAllStatusChecks",
+        ":githubComToken(OEgQZs1qycnqHUwzcRTWcnc9XpL3tRoTGDrlX27enWGYZh7DIvhx0P4/GK/og74Ai9tRxKYqpQxvmjSH1BfBYJZUltrotFLnAEO+sqt38hJPd1qeAlP8EzlgdwlWHgX/jfg4GsOIkj+JnU/yDd9IPj6M3lrY0/HPDOh5d+mz/JJXfGsRUcwYBCe9YjNOefsWW9kEhePCRYsAKI1yYQjD2znsL4BI1fDqkMfw6L2ufVjzUbeZMOriYH5nAIsuH2FMyYtGqqx7Q9kHGN4QMXLQClPpKwbwSLhN0i1AxgELr5XI22jVlwgDs/cvMP00Eu+kuUqN0PZlBR7V9tCmf5ttLg==)"
+    ],
+    prConcurrentLimit: 4,
+    packageRules: [
+
+        // No MAJOR version upgrades
+        {
+            packageNames: [
+                // We want to build against a specific (older) version of Node
+                "@types/node"
+            ],
+            major: {
+                enabled: false
+            }
+        },
+
+        // No MINOR version upgrades
+        {
+            packageNames: [
+                // TypeScript doesn't follow SemVer. Minor upgrades often
+                // include breaking changes and almost always require
+                // substantial code changes, so we do these by hand.
+                "typescript"
+            ],
+            minor: {
+                "enabled": false
+            }
+        },
+
+        // No version upgrades at all
+        {
+            packageNames: [
+                "moment"
+            ],
+            enabled: false
+        },
+    ],
+}

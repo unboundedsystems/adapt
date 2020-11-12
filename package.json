@@ -53,41 +53,5 @@
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",
         "precommit": "lint-staged --config config/lint-staged-fix.json",
         "prepublishOnly": "make build"
-    },
-    "renovate": {
-        "extends": [
-            "config:base",
-            ":prHourlyLimit2",
-            ":pinAllExceptPeerDependencies",
-            ":automergeMinor",
-            ":automergePr",
-            ":automergeRequireAllStatusChecks",
-            ":githubComToken(OEgQZs1qycnqHUwzcRTWcnc9XpL3tRoTGDrlX27enWGYZh7DIvhx0P4/GK/og74Ai9tRxKYqpQxvmjSH1BfBYJZUltrotFLnAEO+sqt38hJPd1qeAlP8EzlgdwlWHgX/jfg4GsOIkj+JnU/yDd9IPj6M3lrY0/HPDOh5d+mz/JJXfGsRUcwYBCe9YjNOefsWW9kEhePCRYsAKI1yYQjD2znsL4BI1fDqkMfw6L2ufVjzUbeZMOriYH5nAIsuH2FMyYtGqqx7Q9kHGN4QMXLQClPpKwbwSLhN0i1AxgELr5XI22jVlwgDs/cvMP00Eu+kuUqN0PZlBR7V9tCmf5ttLg==)"
-        ],
-        "prConcurrentLimit": 4,
-        "packageRules": [
-            {
-                "packageNames": [
-                    "@types/node"
-                ],
-                "major": {
-                    "enabled": false
-                }
-            },
-            {
-                "packageNames": [
-                    "typescript"
-                ],
-                "minor": {
-                    "enabled": false
-                }
-            },
-            {
-                "packageNames": [
-                    "moment"
-                ],
-                "enabled": false
-            }
-        ]
     }
 }
