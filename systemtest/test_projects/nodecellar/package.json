@@ -7,7 +7,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
-    "@types/node": "8.10.65",
+    "@types/node": "8.10.66",
     "@adpt/core": "unit-tests",
     "@adpt/cloud": "unit-tests",
     "source-map-support": "0.5.19",
