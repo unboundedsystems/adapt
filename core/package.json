@@ -77,7 +77,7 @@
     "@types/graphql-type-json": "0.3.2",
     "@types/indent-string": "3.2.0",
     "@types/json-stable-stringify": "1.0.32",
-    "@types/lodash": "4.14.162",
+    "@types/lodash": "4.14.165",
     "@types/mkdirp": "0.5.2",
     "@types/mocha": "8.0.3",
     "@types/node": "10.17.42",
