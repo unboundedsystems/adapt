@@ -35,7 +35,7 @@
     "@types/dockerode": "3.2.1",
     "@types/fs-extra": "8.1.1",
     "@types/mocha": "8.0.3",
-    "@types/node": "10.17.42",
+    "@types/node": "10.17.44",
     "@types/node-fetch": "2.5.7",
     "chai": "4.2.0",
     "chai-as-promised": "7.1.1",
