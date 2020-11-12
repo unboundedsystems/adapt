@@ -41,6 +41,14 @@
         // No version upgrades at all
         {
             packageNames: [
+                // Pinned at 6.2.1 due to deps requiring Node >= 10.17",
+                // Un-pin when we drop Node 10 or update required Node 10 ver
+                "@graphql-tools/prisma-loader",
+
+                // Pinned at 3.0.0 due to deps requiring Node >= 10.17"
+                // Un-pin when we drop Node 10 or update required Node 10 ver
+                "graphql-request",
+
                 "moment"
             ],
             enabled: false
