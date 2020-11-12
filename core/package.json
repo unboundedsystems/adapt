@@ -87,7 +87,7 @@
     "@types/read-pkg-up": "3.0.1",
     "@types/sinon": "9.0.8",
     "@types/type-name": "1.0.28",
-    "execa": "4.0.3",
+    "execa": "4.1.0",
     "fs-extra": "9.0.1",
     "mocha": "8.2.1",
     "mocha-slow-options": "0.0.2",
