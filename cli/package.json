@@ -99,7 +99,7 @@
     "@types/decamelize": "3.0.2",
     "@types/dedent": "0.7.0",
     "@types/fs-extra": "8.1.1",
-    "@types/lodash": "4.14.162",
+    "@types/lodash": "4.14.165",
     "@types/mocha": "8.0.3",
     "@types/node": "10.17.42",
     "@types/node-fetch": "2.5.7",

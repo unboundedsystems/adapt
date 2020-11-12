@@ -56,7 +56,7 @@
   "devDependencies": {
     "@types/decamelize": "3.0.2",
     "@types/deep-diff": "1.0.0",
-    "@types/lodash": "4.14.162",
+    "@types/lodash": "4.14.165",
     "@types/node": "10.17.42",
     "@types/node-fetch": "2.5.7",
     "@types/sinon": "9.0.8",
