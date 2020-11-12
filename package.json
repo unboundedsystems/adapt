@@ -53,5 +53,13 @@
         "copyright-fix-staged": "lint-staged --config config/lint-staged-fix.json && printf \"\n\nYou may need to 'git add' any updated files.\n\n\"",
         "precommit": "lint-staged --config config/lint-staged-fix.json",
         "prepublishOnly": "make build"
+    },
+    "//resolutions": {
+        "@graphql-tools/prisma-loader": "Pinned at 6.2.1 due to deps requiring Node >= 10.17",
+        "graphql-request": "Pinned at 3.0.0 due to deps requiring Node >= 10.17"
+    },
+    "resolutions": {
+        "@graphql-tools/prisma-loader": "6.2.1",
+        "graphql-request": "3.0.0"
     }
 }
