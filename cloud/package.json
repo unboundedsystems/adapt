@@ -100,7 +100,7 @@
     "@types/json-stable-stringify": "1.0.32",
     "@types/lodash": "4.14.165",
     "@types/mocha": "8.0.3",
-    "@types/node": "10.17.42",
+    "@types/node": "10.17.44",
     "@types/randomstring": "1.1.6",
     "@types/tmp": "0.2.0",
     "@types/yup": "0.29.8",
