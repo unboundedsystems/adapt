@@ -68,7 +68,7 @@
     "@types/node-fetch": "2.5.7",
     "aws-sdk": "2.790.0",
     "debug": "4.2.0",
-    "diff": "4.0.2",
+    "diff": "5.0.0",
     "execa": "4.1.0",
     "fetchu": "2.0.1",
     "graphql": "14.7.0",
