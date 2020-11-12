@@ -45,6 +45,24 @@
                 // Un-pin when we drop Node 10 or update required Node 10 ver
                 "@graphql-tools/prisma-loader",
 
+                // Cannot upgrade beyond 1.5.20 due to their update to
+                // TypeScript >=3.7.
+                // See https://github.com/microsoft/TypeScript/issues/33939
+                // Un-pin when we upgrade to TS 3.7 or later.
+                "@oclif/command",
+
+                // Cannot upgrade beyond 1.15.1 due to their update to
+                // TypeScript >=3.7.
+                // See https://github.com/microsoft/TypeScript/issues/33939
+                // Un-pin when we upgrade to TS 3.7 or later.
+                "@oclif/config",
+
+                // Cannot upgrade beyond 5.4.5 due to their update to
+                // TypeScript >=3.7.
+                // See https://github.com/microsoft/TypeScript/issues/33939
+                // Un-pin when we upgrade to TS 3.7 or later.
+                "cli-ux",
+
                 // Pinned at 3.0.0 due to deps requiring Node >= 10.17"
                 // Un-pin when we drop Node 10 or update required Node 10 ver
                 "graphql-request",
