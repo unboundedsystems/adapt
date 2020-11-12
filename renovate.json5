@@ -57,6 +57,12 @@
                 // Un-pin when we upgrade to TS 3.7 or later.
                 "@oclif/config",
 
+                // Cannot upgrade beyond 1.2.2 due to their update to
+                // TypeScript >=3.7.
+                // See https://github.com/microsoft/TypeScript/issues/33939
+                // Un-pin when we upgrade to TS 3.7 or later.
+                "@oclif/errors",
+
                 // Cannot upgrade beyond 5.4.5 due to their update to
                 // TypeScript >=3.7.
                 // See https://github.com/microsoft/TypeScript/issues/33939
