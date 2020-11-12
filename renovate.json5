@@ -15,7 +15,10 @@
         {
             packageNames: [
                 // We want to build against a specific (older) version of Node
-                "@types/node"
+                "@types/node",
+                // @types/fs-extra@9.0.4 does not built with @types/node@10
+                // Waiting for fix for https://github.com/DefinitelyTyped/DefinitelyTyped/issues/44946
+                "@types/fs-extra",
             ],
             major: {
                 enabled: false
