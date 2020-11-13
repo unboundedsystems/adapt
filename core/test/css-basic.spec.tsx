@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ describe("Selector matching", () => {
     });
 
     it("Should Match Child", () => {
-        const style = <css.Style>{Dummy} > {Foo} {css.rule(() => null)}</css.Style>;
+        const style = <css.Style>{Dummy} {">"} {Foo} {css.rule(() => null)}</css.Style>;
         const dom = <Dummy><Foo /></Dummy>;
         const matchPath = pathToLeaf(dom);
         const noMatchPath = [dom];
@@ -139,7 +139,7 @@ describe("Selector matching", () => {
     });
 
     it("Should not match :root as child", () => {
-        const style = <css.Style>{Dummy} > :root {css.rule(() => null)}</css.Style>;
+        const style = <css.Style>{Dummy} {">"} :root {css.rule(() => null)}</css.Style>;
         const noMatchDom = <Dummy id="1"><Dummy id="2"><Dummy id="3"></Dummy></Dummy></Dummy>;
         testStyleDom(style, null, noMatchDom);
     });

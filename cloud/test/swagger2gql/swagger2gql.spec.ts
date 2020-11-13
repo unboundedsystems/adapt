@@ -227,7 +227,7 @@ describe("Swagger to GraphQL Tests (with resolvers)", () => {
             { name: "base", in: "query", type: "integer", default: 3 }
         ];
 
-        const schema = swagger2gql(swagger, {
+        const schema = swagger2gql<unknown, unknown, { addend?: number; base?: number; }>(swagger, {
             fieldResolvers: (_type, fieldName) => {
                 switch (fieldName) {
                     case "plus1":

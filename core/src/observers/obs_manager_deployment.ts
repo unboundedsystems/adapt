@@ -73,7 +73,7 @@ type ExecutedQueryStorage = Map<string, { doc: Query, vars: Set<Variables | unde
 
 interface Observable {
     schema: GraphQLSchema;
-    observations: ObserverResponse;
+    observations: ObserverResponse<any>;
     executedQueries: ExecutedQueryStorage;
 }
 
@@ -109,7 +109,9 @@ class ObserverManagerDeploymentImpl implements ObserverManagerDeployment {
     observable: { [name: string]: Observable } = {};
     needsData: { [name: string]: ExecutedQueryStorage } = {};
 
-    registerSchema = (observer: ObserverNameHolder, schema: GraphQLSchema, observations: ObserverResponse): void => {
+    registerSchema = <D = object>(observer: ObserverNameHolder,
+        schema: GraphQLSchema, observations: ObserverResponse<D>): void => {
+
         const name = observer.observerName;
         if (name in this.observable) throw new Error("Cannot register schema with name: " + name);
         this.observable[name] = {

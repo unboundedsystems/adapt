@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,10 @@ import {
 import { safeLoad } from "js-yaml";
 import path from "path";
 import swagger2gql, { ResolverFactory } from "../../src/swagger2gql";
+import { UnknownArgs } from "../swagger2gql/converter";
 import AWS from "./aws-sdk";
 import {
+    AwsQueryParams,
     computeQueryId,
     infoSym,
     Observations,
@@ -75,7 +77,7 @@ const observeResolverFactory: ResolverFactory = {
     }
 };
 
-const queryResolverFactory: ResolverFactory = {
+const queryResolverFactory: ResolverFactory<unknown, unknown, AwsQueryParams> = {
     fieldResolvers: (_type, fieldName, isQuery) => {
         if (!isQuery) return;
         if (fieldName === withParamsProp) {
@@ -97,7 +99,8 @@ const queryResolverFactory: ResolverFactory = {
     }
 };
 
-function buildSchema(resolverFactory: ResolverFactory) {
+function buildSchema<ObjectT = unknown, Context = unknown, Args = UnknownArgs>
+    (resolverFactory: ResolverFactory<ObjectT, Context, Args>) {
     const schema = swagger2gql(swaggerDef(), resolverFactory);
     const queryOrig = schema.getQueryType();
     if (queryOrig == null) throw new Error("Internal Error, invalid schema");

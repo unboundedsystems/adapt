@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ import { Pod, PodProps } from "./Pod";
 import { k8sServiceProps, Service, ServiceProps } from "./Service";
 
 interface AllowableComponentProps extends WithChildren {
-    config: ClusterInfo;
+    config?: ClusterInfo;
 }
 
 /**

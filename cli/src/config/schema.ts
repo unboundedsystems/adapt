@@ -173,7 +173,7 @@ export function parseItem<S extends Schema, Prop extends keyof S>(
 
     try {
         const parsed = validator(val);
-        const store = storeFormat(vti, val);
+        const store = (storeFormat as any)(vti, val);
         return {
             parsed,
             store,
