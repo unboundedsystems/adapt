@@ -56,16 +56,10 @@
     },
     "//resolutions": {
         "@graphql-tools/prisma-loader": "Pinned at 6.2.1 due to deps requiring Node >= 10.17",
-        "@oclif/command": "Pinned at 1.5.20 due to TypeScript >=3.7",
-        "@oclif/config": "Pinned at 1.15.1 due to TypeScript >=3.7",
-        "@oclif/errors": "Pinned at 1.2.2 due to TypeScript >=3.7",
         "graphql-request": "Pinned at 3.0.0 due to deps requiring Node >= 10.17"
     },
     "resolutions": {
         "@graphql-tools/prisma-loader": "6.2.1",
-        "@oclif/command": "1.5.20",
-        "@oclif/config": "1.15.1",
-        "@oclif/errors": "1.2.2",
         "graphql-request": "3.0.0"
     }
 }
