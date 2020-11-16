@@ -85,7 +85,7 @@
     "ts-custom-error": "3.2.0",
     "tslib": "2.0.3",
     "type-ops": "3.0.3",
-    "which": "1.3.1"
+    "which": "2.0.2"
   },
   "devDependencies": {
     "@adpt/cloud": "0.4.0-next.9",
