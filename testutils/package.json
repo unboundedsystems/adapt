@@ -45,7 +45,7 @@
     "randomstring": "1.1.5",
     "stream-buffers": "3.0.2",
     "strip-ansi": "6.0.0",
-    "tslib": "1.14.1",
+    "tslib": "2.0.3",
     "verdaccio": "4.8.1"
   },
   "devDependencies": {

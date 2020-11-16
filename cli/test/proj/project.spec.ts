@@ -134,8 +134,8 @@ describe("Project basic tests", function () {
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("@adpt/dom-parser");
         expect(p.manifest.version).equal(repoVersions["dom-parser"]);
-        expect(p.manifest.dependencies.tslib).equal("1.14.1");
+        expect(p.manifest.dependencies.tslib).equal("2.0.3");
         await p.installModules();
-        expect(p.getLockedVersion("tslib")).equals("1.14.1");
+        expect(p.getLockedVersion("tslib")).equals("2.0.3");
     });
 });

@@ -84,7 +84,7 @@
     "swagger-client": "3.12.0",
     "tmp": "0.2.1",
     "ts-custom-error": "3.2.0",
-    "tslib": "1.14.1",
+    "tslib": "2.0.3",
     "type-ops": "3.0.3",
     "yup": "0.29.3"
   },

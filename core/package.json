@@ -119,7 +119,7 @@
     "randomstring": "1.1.5",
     "read-pkg-up": "7.0.1",
     "ts-custom-error": "3.2.0",
-    "tslib": "1.14.1",
+    "tslib": "2.0.3",
     "type-name": "2.0.2",
     "urn-lib": "1.2.0",
     "xmlbuilder": "15.1.1"
