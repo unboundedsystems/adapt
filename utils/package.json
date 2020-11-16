@@ -54,7 +54,6 @@
     "yarn": "1.22.10"
   },
   "devDependencies": {
-    "@types/decamelize": "3.0.2",
     "@types/deep-diff": "1.0.0",
     "@types/lodash": "4.14.165",
     "@types/node": "10.17.44",
