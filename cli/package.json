@@ -79,7 +79,7 @@
     "rxjs": "6.6.3",
     "semver": "7.3.2",
     "shell-escape": "0.2.0",
-    "shellwords-ts": "2.0.4",
+    "shellwords-ts": "3.0.0",
     "source-map-support": "0.5.19",
     "split": "1.0.1",
     "ts-custom-error": "3.2.0",
