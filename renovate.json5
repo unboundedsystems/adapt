@@ -19,6 +19,9 @@
                 // @types/fs-extra@9.0.4 does not build with @types/node@10
                 // Waiting for fix for https://github.com/DefinitelyTyped/DefinitelyTyped/issues/44946
                 "@types/fs-extra",
+                // v10.0.0 was a complete re-write. Maybe update major
+                // versions after it gets more runtime.
+                "pacote",
             ],
             major: {
                 enabled: false
