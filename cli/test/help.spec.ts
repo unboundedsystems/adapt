@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ async function getPJson() {
     if (loadedPJson) return loadedPJson;
     const pkg = await readPkgUp({ cwd: __dirname });
     if (!pkg) throw new Error(`No package.json??`);
-    loadedPJson = pkg.pkg;
+    loadedPJson = pkg.packageJson;
     return loadedPJson;
 }
 

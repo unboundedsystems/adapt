@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -457,11 +457,11 @@ const reanimatePackage: Package = {
         name: "@usys/reanimate",
         dependencies: {
             "@adpt/utils": repoVersions.utils,
-            "callsites": "2.0.0",
+            "callsites": "^3.1.0",
             "json-stable-stringify": "1.0.1",
-            "read-pkg-up": "4.0.0",
-            "ts-custom-error": "^2.2.1",
-            "urn-lib": "1.1.2",
+            "read-pkg-up": "^7.0.1",
+            "ts-custom-error": "^3.2.0",
+            "urn-lib": "^1.2.0",
         },
     },
     files: {
