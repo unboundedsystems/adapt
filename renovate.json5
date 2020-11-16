@@ -22,6 +22,9 @@
                 // v10.0.0 was a complete re-write. Maybe update major
                 // versions after it gets more runtime.
                 "pacote",
+                // v7 was a complete re-write and requires some changes
+                // to systemtest/test_rpojects/reactapp to support it.
+                "react-table",
             ],
             major: {
                 enabled: false
