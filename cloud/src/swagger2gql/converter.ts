@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -395,22 +395,27 @@ function buildQueryObject(swagger: Swagger2): GraphQLObjectType {
     });
 }
 
-type GQLFieldResolver<ObjectT = unknown, Context = unknown, Args = { [name: string]: unknown }> =
+export interface UnknownArgs {
+    [name: string]: unknown;
+}
+
+type GQLFieldResolver<ObjectT = unknown, Context = unknown, Args = UnknownArgs> =
     GraphQLFieldResolver<ObjectT, Context, Args>;
 type GQLTypeResolver<ObjectT = unknown, Context = unknown> = GraphQLTypeResolver<ObjectT, Context>;
-type FieldResolverFactory = (ty: GraphQLObjectType, field: string, isQueryType: boolean)
-    => GQLFieldResolver | undefined;
+type FieldResolverFactory<ObjectT = unknown, Context = unknown, Args = UnknownArgs> =
+    (ty: GraphQLObjectType, field: string, isQueryType: boolean)
+        => GQLFieldResolver<ObjectT, Context, Args> | undefined;
 type TypeResolverFactory = (ty: GraphQLScalarType, field: undefined, isQueryType: boolean)
     => GQLTypeResolver | undefined;
-export interface ResolverFactory {
-    fieldResolvers?: FieldResolverFactory;
+export interface ResolverFactory<ObjectT = unknown, Context = unknown, Args = UnknownArgs> {
+    fieldResolvers?: FieldResolverFactory<ObjectT, Context, Args>;
     typeResolvers?: TypeResolverFactory;
 }
 
-function addResolversToFields(
+function addResolversToFields<ObjectT = unknown, Context = unknown, Args = UnknownArgs>(
     seen: Set<GraphQLObjectType>,
     obj: GraphQLObjectType,
-    getResolver: ResolverFactory,
+    getResolver: ResolverFactory<ObjectT, Context, Args>,
     isQuery: boolean = false): void {
 
     if (seen.has(obj)) return;
@@ -431,16 +436,17 @@ function addResolversToFields(
     }
 }
 
-function addResolversToSchema(schema: GraphQLSchema, getResolver: ResolverFactory): void {
+function addResolversToSchema<ObjectT = unknown, Context = unknown, Args = UnknownArgs>(
+    schema: GraphQLSchema, getResolver: ResolverFactory<ObjectT, Context, Args>): void {
     const queryType = schema.getQueryType();
     if (!queryType) return;
     addResolversToFields(new Set<GraphQLObjectType>(), queryType, getResolver, true);
     return;
 }
 
-export function buildGraphQLSchema(
+export function buildGraphQLSchema<ObjectT = unknown, Context = unknown, Args = UnknownArgs>(
     swagger: Swagger2,
-    getResolver?: ResolverFactory): GraphQLSchema {
+    getResolver?: ResolverFactory<ObjectT, Context, Args>): GraphQLSchema {
     const qobj = buildQueryObject(swagger);
     const schema = new GraphQLSchema({ query: qobj });
     if (getResolver) addResolversToSchema(schema, getResolver);

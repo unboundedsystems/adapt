@@ -31,7 +31,7 @@ import {
 const debug = db("adapt:observers");
 
 interface ObserverRecord {
-    [name: string]: ObserverPlugin;
+    [name: string]: ObserverPlugin<any>;
 }
 
 export interface ObserverNameHolder {
@@ -51,7 +51,7 @@ export function makeObserverManagerDeployment(observations: Observations): Obser
     return mgr;
 }
 
-export function registerObserver(obs: ObserverPlugin, nameIn?: string): string {
+export function registerObserver<D = object, C = any>(obs: ObserverPlugin<D, C>, nameIn?: string): string {
     const constructor: { name: string, observerName?: string } = obs.constructor;
     const name = nameIn ? nameIn : constructor.name;
 

@@ -900,7 +900,7 @@ export function cloneElement(
     const elProps = { ...element.props };
 
     // handle cannot be cloned
-    delete elProps.handle;
+    delete (elProps as any).handle;
 
     const newProps = {
         ...elProps,

@@ -94,7 +94,7 @@ const observeResolvers: Resolvers<CachedData> = {
     }
 };
 
-export class MockObserver implements ObserverPlugin {
+export class MockObserver implements ObserverPlugin<undefined, CachedData> {
     static observerName: string;
 
     static schema_ = makeExecutableSchema({

@@ -142,7 +142,7 @@ export async function loadUserConfig(userConfigFile: string) {
         for (const s of sources) {
             const val = getValIfSet(key, s.obj, userConfigSchema, s.opts);
             if (val != null) {
-                conf[key] = val.parsed;
+                (conf as any)[key] = val.parsed;
                 details[key] = {
                     parsed: val.parsed,
                     sourceType: s.sourceType,

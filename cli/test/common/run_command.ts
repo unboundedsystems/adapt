@@ -53,7 +53,7 @@ async function withStdMock(func: () => void | Promise<void>) {
 }
 
 export async function runCommand(args: string[] | string, env: Env = {}) {
-    const config = await Config.load({ root: pkgRootDir });
+    const config: Config.IConfig = await Config.load({ root: pkgRootDir });
     if (typeof args === "string") args = [args];
     const [id, ...extra] = args;
 

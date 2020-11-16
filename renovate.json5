@@ -16,7 +16,7 @@
             packageNames: [
                 // We want to build against a specific (older) version of Node
                 "@types/node",
-                // @types/fs-extra@9.0.4 does not built with @types/node@10
+                // @types/fs-extra@9.0.4 does not build with @types/node@10
                 // Waiting for fix for https://github.com/DefinitelyTyped/DefinitelyTyped/issues/44946
                 "@types/fs-extra",
             ],
@@ -44,30 +44,6 @@
                 // Pinned at 6.2.1 due to deps requiring Node >= 10.17",
                 // Un-pin when we drop Node 10 or update required Node 10 ver
                 "@graphql-tools/prisma-loader",
-
-                // Cannot upgrade beyond 1.5.20 due to their update to
-                // TypeScript >=3.7.
-                // See https://github.com/microsoft/TypeScript/issues/33939
-                // Un-pin when we upgrade to TS 3.7 or later.
-                "@oclif/command",
-
-                // Cannot upgrade beyond 1.15.1 due to their update to
-                // TypeScript >=3.7.
-                // See https://github.com/microsoft/TypeScript/issues/33939
-                // Un-pin when we upgrade to TS 3.7 or later.
-                "@oclif/config",
-
-                // Cannot upgrade beyond 1.2.2 due to their update to
-                // TypeScript >=3.7.
-                // See https://github.com/microsoft/TypeScript/issues/33939
-                // Un-pin when we upgrade to TS 3.7 or later.
-                "@oclif/errors",
-
-                // Cannot upgrade beyond 5.4.5 due to their update to
-                // TypeScript >=3.7.
-                // See https://github.com/microsoft/TypeScript/issues/33939
-                // Un-pin when we upgrade to TS 3.7 or later.
-                "cli-ux",
 
                 // Pinned at 3.0.0 due to deps requiring Node >= 10.17"
                 // Un-pin when we drop Node 10 or update required Node 10 ver

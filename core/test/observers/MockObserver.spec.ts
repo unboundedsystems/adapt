@@ -72,7 +72,7 @@ describe("Mock Observer Observations Tests", () => {
 
 describe("Mock Observer Query Tests", () => {
     let mock: MockObserver;
-    let obs: ObserverResponse;
+    let obs: ObserverResponse<any>;
 
     beforeEach(async () => {
         mock = new MockObserver();
