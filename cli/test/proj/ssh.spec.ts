@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,23 @@
  * limitations under the License.
  */
 
+import which from "which";
 import { gitSshExe, isOpenSsh, withGitSshCommand } from "../../src/proj/ssh";
 import { clitest, expect } from "../common/fancy";
 
 //.stub(process.stdout, "isTTY", false); // Turn off progress, etc
 
-const defaultSshPath = "/usr/bin/ssh";
+function getExePath(prog: string): string {
+    try {
+        return which.sync(prog);
+    } catch (err) {
+        throw new Error(`Unable to test CLI ssh support. No '${prog}' found in PATH. PATH='${process.env.PATH}'`);
+    }
+}
+
+const defaultSshPath = getExePath("ssh");
+const catPath = getExePath("cat");
+const echoPath = getExePath("echo");
 
 describe("isOpenSsh", () => {
     it("Should detect OpenSSH", () => {
@@ -27,7 +38,7 @@ describe("isOpenSsh", () => {
     });
 
     it("Should detect non-OpenSSH", () => {
-        expect(isOpenSsh("/bin/cat")).to.be.false;
+        expect(isOpenSsh(catPath)).to.be.false;
     });
 });
 
@@ -56,7 +67,7 @@ describe("gitSshExe", () => {
         GIT_SSH_COMMAND: "cat",
     })
     .it("Should return full path to alternate bin from GIT_SSH_COMMAND", () => {
-        expect(gitSshExe()).equals("/bin/cat");
+        expect(gitSshExe()).equals(catPath);
     });
 
     clitest
@@ -65,7 +76,7 @@ describe("gitSshExe", () => {
         GIT_SSH_COMMAND: `  'cat'  isn\\'t ssh `,
     })
     .it("Should return bin from GIT_SSH_COMMAND with extra shell characters", () => {
-        expect(gitSshExe()).equals("/bin/cat");
+        expect(gitSshExe()).equals(catPath);
     });
 
     clitest
@@ -83,7 +94,7 @@ describe("gitSshExe", () => {
         GIT_SSH_COMMAND: undefined,
     })
     .it("Should return full path to alternate bin from GIT_SSH", () => {
-        expect(gitSshExe()).equals("/bin/cat");
+        expect(gitSshExe()).equals(catPath);
     });
 
     clitest
@@ -101,7 +112,7 @@ describe("gitSshExe", () => {
         GIT_SSH_COMMAND: "echo some command",
     })
     .it("Should GIT_SSH_COMMAND take priority over GIT_SSH", () => {
-        expect(gitSshExe()).equals("/bin/echo");
+        expect(gitSshExe()).equals(echoPath);
     });
 });
 
