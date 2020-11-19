@@ -2433,10 +2433,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/xml2js@0.4.6":
-  version "0.4.6"
-  resolved "https://registry.yarnpkg.com/@types/xml2js/-/xml2js-0.4.6.tgz#9216ceb739e67cd8d686d9e7ba0a31537a95711b"
-  integrity sha512-0nufNQdD4xbim3rD2UBhGl2HSw/LTU8i/6Anbm+Jt2U6qTd5kOKQyDiby6sr+6Ciqvv2m5LPyoXoHQZJAnIrtw==
+"@types/xml2js@0.4.7":
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/@types/xml2js/-/xml2js-0.4.7.tgz#cd5b6c67bbec741ac625718a76e6cb99bc34365e"
+  integrity sha512-f5VOKSMEE0O+/L54FHwA/a7vcx9mHeSDM71844yHCOhh8Cin2xQa0UFw0b7Vc5hoZ3Ih6ZHaDobjfLih4tWPNw==
   dependencies:
     "@types/node" "*"
 
