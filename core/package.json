@@ -99,7 +99,7 @@
     "async-lock": "1.2.4",
     "callsites": "3.1.0",
     "css-what": "4.0.0",
-    "debug": "4.3.0",
+    "debug": "4.3.1",
     "flush-write-stream": "2.0.0",
     "graphlib": "2.1.8",
     "graphql": "14.7.0",
