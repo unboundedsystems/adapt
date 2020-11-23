@@ -6,7 +6,7 @@
   "dependencies": {
     "react": "17.0.1",
     "react-dom": "17.0.1",
-    "react-scripts": "4.0.0",
+    "react-scripts": "4.0.1",
     "react-table": "6.11.5"
   },
   "scripts": {
