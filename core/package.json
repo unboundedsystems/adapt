@@ -80,7 +80,7 @@
     "@types/node": "10.17.46",
     "@types/proper-lockfile": "4.1.1",
     "@types/randomstring": "1.1.6",
-    "@types/sinon": "9.0.8",
+    "@types/sinon": "9.0.9",
     "@types/type-name": "1.0.28",
     "execa": "4.1.0",
     "fs-extra": "9.0.1",
