@@ -28,7 +28,7 @@ export function sourceDir(dirname: string) {
     if (!path.isAbsolute(dirname)) {
         throw new Error(`'${dirname} is not an absolute path`);
     }
-    return dirname.replace(RegExp(path.sep + "dist"), "");
+    return dirname.replace(path.sep + "dist", "");
 }
 
 /**
@@ -87,4 +87,15 @@ export const repoDirs = {
 export function normalizeWithDrive(p: string, cwd = process.cwd()) {
     const root = path.parse(cwd).root;
     return path.normalize(path.join(root, p));
+}
+
+/**
+ * Given a native platform path string (i.e. can contain backslash path
+ * separators on Windows), returns the path using the POSIX path separator
+ * (forward slash).
+ * @param p A path string in a form accepted by the native platform.
+ */
+export function posixPath(p: string) {
+    if (process.platform !== "win32") return p;
+    return path.posix.join(...p.split(path.sep));
 }

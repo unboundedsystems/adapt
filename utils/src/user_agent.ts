@@ -50,7 +50,11 @@ async function dockerInfo() {
     try {
         const result = await execa("docker", [ "version", "-f", "{{json .}}" ],
             { reject: false });
-        const versions = JSON.parse(result.stdout);
+
+        // stdout can have both a JSON object on the first line and
+        // (on Windows) error information on subsequent lines. Parse thie
+        // JSON object and ignore the rest.
+        const versions = JSON.parse(result.stdout.split("\n")[0]);
         const client = versions.Client.Version;
         const server = versions.Server && versions.Server.Version;
         if (!server) return client;

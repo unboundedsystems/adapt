@@ -1386,7 +1386,8 @@ describe("deploy:update and deploy:status tests", function () {
     });
 });
 
-describe("deploy:run negative tests", () => {
+describe("deploy:run negative tests", function () {
+    this.timeout(60 * 1000);
     mochaTmpdir.each("adapt-cli-test-deploy");
 
     testBase
