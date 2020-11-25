@@ -77,7 +77,7 @@
     "@types/json-stable-stringify": "1.0.32",
     "@types/lodash": "4.14.165",
     "@types/mocha": "8.0.4",
-    "@types/node": "10.17.46",
+    "@types/node": "10.17.47",
     "@types/proper-lockfile": "4.1.1",
     "@types/randomstring": "1.1.6",
     "@types/sinon": "9.0.9",
