@@ -664,7 +664,17 @@
     auto-bind "~4.0.0"
     tslib "~2.0.1"
 
-"@graphql-codegen/typescript@1.17.11", "@graphql-codegen/typescript@^1.17.10":
+"@graphql-codegen/typescript@1.18.0":
+  version "1.18.0"
+  resolved "https://registry.yarnpkg.com/@graphql-codegen/typescript/-/typescript-1.18.0.tgz#470bc5395e7312a65b43048b5e13cf68fd06fb03"
+  integrity sha512-uzZnZ17O3E/2GQ08jhKa4UMUvwzikrmbTc3sdbr48ItpTp1EWeslT6QbxyRjqZuGfAdJBua+Z8UMGC+7I3NakA==
+  dependencies:
+    "@graphql-codegen/plugin-helpers" "^1.17.9"
+    "@graphql-codegen/visitor-plugin-common" "^1.17.19"
+    auto-bind "~4.0.0"
+    tslib "~2.0.1"
+
+"@graphql-codegen/typescript@^1.17.10":
   version "1.17.11"
   resolved "https://registry.yarnpkg.com/@graphql-codegen/typescript/-/typescript-1.17.11.tgz#9bcc00580b36e8c98e7cc565dbccaf1b8b8ce85d"
   integrity sha512-cZsuOWpPWWHX7IIv2xMbrI/AZOiv+wEzyGpoGFV8zU6vjs54C50gb7Chhj9XPjMbOhUQ+z3Pn01geTRvi1gDeA==
@@ -695,6 +705,22 @@
   integrity sha512-/E083ja1vcl5GCnoeC7BObbTq6N1hpIXF3lQElLMvVvegSRzEm3XtvMNGQIumd6t3RDdpGT87ebSAS3lKPj8Pw==
   dependencies:
     "@graphql-codegen/plugin-helpers" "^1.18.1"
+    "@graphql-tools/relay-operation-optimizer" "^6"
+    array.prototype.flatmap "^1.2.3"
+    auto-bind "~4.0.0"
+    dependency-graph "^0.9.0"
+    graphql-tag "^2.11.0"
+    parse-filepath "^1.0.2"
+    pascal-case "^3.1.1"
+    tslib "~2.0.1"
+
+"@graphql-codegen/visitor-plugin-common@^1.17.19":
+  version "1.17.19"
+  resolved "https://registry.yarnpkg.com/@graphql-codegen/visitor-plugin-common/-/visitor-plugin-common-1.17.19.tgz#4160746dfee7d3b199e26372f5f22e0c94f47830"
+  integrity sha512-c3+sQTiyb1R5t5pts/t5VABNbo47Wkx+NEgZrpiY5nbqWVpUbbF45/7ytH99EaR2Sjalrka/20bPDoO3lCopsg==
+  dependencies:
+    "@graphql-codegen/plugin-helpers" "^1.18.1"
+    "@graphql-tools/optimize" "1.0.0"
     "@graphql-tools/relay-operation-optimizer" "^6"
     array.prototype.flatmap "^1.2.3"
     auto-bind "~4.0.0"
@@ -840,6 +866,13 @@
   dependencies:
     "@graphql-tools/schema" "^7.0.0"
     "@graphql-tools/utils" "^7.0.0"
+    tslib "~2.0.1"
+
+"@graphql-tools/optimize@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@graphql-tools/optimize/-/optimize-1.0.0.tgz#975d22cd59749366baf5404923ca578d7ab2341c"
+  integrity sha512-Mi/opv6q0CmB+W/c2wKpI25jRY1w1e0GoSxg9JMm9ko9hrSW5JZANljs8Acq96L7CxFzAj0mkt9OQO1Rmt38cg==
+  dependencies:
     tslib "~2.0.1"
 
 "@graphql-tools/prisma-loader@6.2.1", "@graphql-tools/prisma-loader@^6":

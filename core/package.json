@@ -67,7 +67,7 @@
   "devDependencies": {
     "@adpt/testutils": "0.4.0-next.9",
     "@graphql-codegen/cli": "1.19.2",
-    "@graphql-codegen/typescript": "1.17.11",
+    "@graphql-codegen/typescript": "1.18.0",
     "@graphql-codegen/typescript-resolvers": "1.17.11",
     "@types/async-lock": "1.1.2",
     "@types/debug": "4.1.5",
