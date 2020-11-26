@@ -130,6 +130,7 @@
     "dirname": "adapt",
     "hooks": {
       "init": [
+        "./dist/src/init",
         "./dist/src/config/init",
         "./dist/src/upgrade/init"
       ]
