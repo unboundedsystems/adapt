@@ -19,7 +19,7 @@ import path from "path";
 import { cmdId, debug, debugOut, streamToDebug } from "./cli";
 import { ImageIdString, ImageNameString, NameTagString } from "./types";
 
-const craneVersion = "v0.1.3";
+const craneVersion = "v0.2.1";
 
 function cranePlatform() {
     switch (process.platform) {
@@ -28,9 +28,7 @@ function cranePlatform() {
         case "linux":
             return "Linux";
         case "win32":
-            // TODO: No release is published, but building from source on
-            // Windows seems to work fine.
-            // Waiting for https://github.com/google/go-containerregistry/pull/780
+            return "Windows";
         default:
             throw new Error(`Platform ${process.platform} unsupported by crane releases`);
     }
