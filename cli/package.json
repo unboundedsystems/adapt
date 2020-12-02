@@ -55,10 +55,10 @@
     "@oclif/command": "1.8.0",
     "@oclif/config": "1.17.0",
     "@oclif/parser": "3.8.5",
+    "@oclif/plugin-help": "3.2.0",
     "@samverschueren/stream-to-observable": "0.3.1",
     "@unboundedsystems/listr": "0.14.3-unb5",
     "@unboundedsystems/plugin-autocomplete": "0.1.0-unb2",
-    "@unboundedsystems/plugin-help": "2.1.6-unb1",
     "boxen": "4.2.0",
     "chalk": "4.1.0",
     "cli-ux": "5.5.1",
@@ -74,7 +74,6 @@
     "p-defer": "3.0.0",
     "pacote": "9.5.12",
     "parse-duration": "0.4.4",
-    "proxyquire": "2.1.3",
     "read-pkg-up": "7.0.1",
     "rxjs": "6.6.3",
     "semver": "7.3.2",
@@ -90,7 +89,7 @@
   "devDependencies": {
     "@adpt/cloud": "0.4.0-next.9",
     "@adpt/testutils": "0.4.0-next.9",
-    "@oclif/dev-cli": "1.23.1",
+    "@oclif/dev-cli": "1.24.2",
     "@oclif/test": "1.2.7",
     "@types/chai": "4.2.14",
     "@types/chai-as-promised": "7.1.3",
@@ -143,9 +142,10 @@
         "update"
       ]
     },
+    "helpClass": "./dist/src/utils/help",
     "plugins": [
       "@unboundedsystems/plugin-autocomplete",
-      "@unboundedsystems/plugin-help"
+      "@oclif/plugin-help"
     ],
     "topics": {
       "config": {

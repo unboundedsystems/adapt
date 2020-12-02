@@ -42,15 +42,17 @@ VERSION
 USAGE
   $ adapt [COMMAND]
 
+TOPICS
+  config   Manage configuration settings for Adapt
+  deploy   Manage deployments of Adapt projects
+  project  Manage Adapt projects
+
 COMMANDS
   autocomplete  display autocomplete installation instructions
-  config        Manage configuration settings for Adapt
-  deploy        Manage deployments of Adapt projects
   destroy       Destroy an existing deployment of an Adapt project
   help          display help for adapt
   list          List active Adapt deployments
   new           Create a new Adapt project
-  project       Manage Adapt projects
   run           Create a new deployment for an Adapt project
   status        Fetch the status of an existing deployment of an Adapt project
   update        Update an existing deployment of an Adapt project
