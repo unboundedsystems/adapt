@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1089,7 +1089,7 @@ function replaceChildren(elem: AdaptElement, children: any | any[] | undefined) 
 }
 
 export function domPathToString(domPath: DomPath): string {
-    return "/" + domPath.map((el) => el.componentType.name).join("/");
+    return "/" + domPath.map((el) => el.componentName).join("/");
 }
 
 function domPathToKeyPath(domPath: DomPath): KeyPath {
