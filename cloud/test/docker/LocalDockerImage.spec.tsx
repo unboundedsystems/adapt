@@ -51,7 +51,7 @@ const buildKitEnabledError = RegExp("cat: can't open '/run/secret': No such file
 const buildKitDisabledError = /Dockerfile parse error line \d+: Unknown flag: mount/;
 
 async function checkDockerRun(image: string, dockerHost?: string) {
-    const { stdout } = await execa("docker", [ "run", "--rm", image ], {
+    const { stdout } = await execa("docker", [ "run", "--rm", "-i", image ], {
         env: {
             DOCKER_HOST: dockerHost || process.env.DOCKER_HOST,
         },

@@ -148,7 +148,14 @@ describeLong("Nodecellar system tests", function () {
         if (incomplete > 1) throw new Error("Previous test did not complete");
     })
     .command(["run", "aws"])
+    .finally((ctx) => {
+        try {
+            // Ensure we have the deployID for teardown
+            aDeployID = getNewDeployID(ctx.stdout);
+        } catch (e) {/* */}
+    })
     .do(async (ctx) => {
+        aDeployID = getNewDeployID(ctx.stdout);
         expect(ctx.stderr).equals("");
         expect(ctx.stdout).contains("Validating project [completed]");
         expect(ctx.stdout).contains("Creating new project deployment [completed]");
@@ -156,8 +163,6 @@ describeLong("Nodecellar system tests", function () {
         // for the LocalContainer and LocalDockerHost elements not being
         // claimed by plugins. Uncomment this when fixed.
         //expect(ctx.stdout).does.not.contain("WARNING");
-
-        aDeployID = getNewDeployID(ctx.stdout);
 
         stdoutDivider();
     })
