@@ -795,7 +795,7 @@ export interface PodProps extends WithChildren {
      *  A pod is ready when all its containers are ready AND all conditions specified
      *  in the readiness gates have status equal to "True"
      *
-     *  More info: {@link https://git.k8s.io/enhancements/keps/sig-network/0007-pod-ready%2B%2B.md}
+     *  More info: {@link https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-readiness-gate}
      */
     readinessGates?: PodReadinessGate[];
 
