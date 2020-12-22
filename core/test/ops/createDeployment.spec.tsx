@@ -22,6 +22,7 @@ import {
     repoVersions,
 } from "@adpt/testutils";
 import {
+    grep,
     messagesToString,
     MessageType,
     yarn,
@@ -59,11 +60,12 @@ import Adapt, {
     PrimitiveComponent,
     registerObserver,
     WithChildren,
+    useDependsOn,
 } from "@adpt/core";
 import MockObserver from "@adpt/core/dist/src/observers/MockObserver";
 import "./simple_plugin";
 
-class Simple extends PrimitiveComponent<{}> {
+export class Simple extends PrimitiveComponent<{}> {
     async status() { return { status: "Here I am!" }; }
 }
 class ActError extends PrimitiveComponent<{}> {}
@@ -121,6 +123,29 @@ function DeleteErrorApp() {
     );
 }
 
+function ToSimple({ dep }: { dep?: Handle; }) {
+    useDependsOn((goal, helpers) => dep && helpers.dependsOn(dep));
+    return <Simple />;
+}
+
+// This app tests the primitiveDependencies functionality by placing a
+// dependency between non-primitive components. That means the dependency
+// will only be saved in primitiveDependencies, not the DOM and must be
+// re-hydrated correctly from storage in order for the delete of this app
+// to occur in the correct order.
+// Create order: 0, 2, 1
+// Delete order: 1, 2, 0
+function PrimDependsApp() {
+    const h = [ handle(), handle(), handle() ];
+    return (
+        <Group>
+            <ToSimple handle={h[0]} />
+            <ToSimple handle={h[1]} dep={h[2]} />
+            <ToSimple handle={h[2]} dep={h[0]} />
+        </Group>
+    )
+}
+
 Adapt.stack("default", makeTwo(Simple));
 Adapt.stack("ActError", <Group><ActError /><ActError /></Group>);
 Adapt.stack("AnalyzeError", <AnalyzeError />);
@@ -131,13 +156,14 @@ Adapt.stack("NeverObserverToSimple", <ObserverToSimple observer={{ observerName:
 Adapt.stack("promises", makeSimple(), makeNull());
 Adapt.stack("BuildError", <BuildError error={true} />);
 Adapt.stack("DeleteError", <DeleteErrorApp />);
+Adapt.stack("PrimDepends", <PrimDependsApp />);
 `;
 
 function defaultDomXmlOutput(namespace: string[]) {
     const ns2 = namespace.concat("Simple");
     return `<Adapt>
-  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple">
-    <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0:$adaptExports:index.tsx:Simple">
+  <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0::index.tsx:Simple">
+    <Simple key="Simple" xmlns="urn:Adapt:test_project:1.0.0::index.tsx:Simple">
       <__lifecycle__>
         <field name="stateNamespace">${JSON.stringify(ns2)}</field>
         <field name="keyPath">["Simple","Simple"]</field>
@@ -742,4 +768,44 @@ describe("createDeployment Tests", async function () {
         should(lstdout).match(/WARNING: --Error \(ignored\) while echo delete2/);
         should(lstderr).equal("");
     });
+
+    it("Should rehydrate primitive dependencies", async () => {
+        const ds1 = await createSuccess("PrimDepends");
+
+        should(ds1.stateJson).equal("{}");
+        should(ds1.deployID).match(/myproject::PrimDepends-[a-z]{4}/);
+
+        let lstdout = client.stdout;
+        let lstderr = client.stderr;
+        let actionLogs = grep(lstdout, "Doing");
+        should(actionLogs).have.length(3);
+        should(actionLogs[0]).match(/action1/);
+        should(actionLogs[1]).match(/action3/);
+        should(actionLogs[2]).match(/action2/);
+        should(lstderr).equal("");
+
+        // Now stop the deployment
+        const ds2 = await updateDeployment({
+            adaptUrl,
+            deployID: ds1.deployID,
+            fileName: "index.tsx",
+            client,
+            prevStateJson: "{}",
+            stackName: "(null)",
+        });
+        lstdout = client.stdout;
+        lstderr = client.stderr;
+
+        if (!isDeploySuccess(ds2)) throw should(isDeploySuccess(ds2)).be.True();
+        should(ds2.summary.error).equal(0);
+        should(ds2.summary.warning).equal(0);
+
+        actionLogs = grep(lstdout, "Doing");
+        should(actionLogs).have.length(3);
+        should(actionLogs[0]).match(/delete2/);
+        should(actionLogs[1]).match(/delete3/);
+        should(actionLogs[2]).match(/delete1/);
+        should(lstderr).equal("");
+    });
+
 });

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,30 +67,20 @@ export function isWaitInfo(v: any): v is WaitInfo {
     );
 }
 
-export interface EPNodeCommon {
-    goalStatus: GoalStatus;
-    hardDeps?: Set<EPNode>;
-}
-export interface EPNodeEl extends EPNodeCommon {
-    element: AdaptMountedElement;
-    waitInfo: WaitInfo;
-}
-export interface EPNodeWI extends EPNodeCommon {
+export interface EPNode {
+    /**
+     * For Element nodes, this contains all the Element's original children
+     * and its successor.
+     */
+    children: Set<EPNode>;
+    /** Actions do not have an Element directly associated with them. */
     element?: AdaptMountedElement;
+    goalStatus: GoalStatus;
     waitInfo: WaitInfo;
 }
 
-export function isEPNodeWI(n: EPNode): n is EPNodeWI {
-    return isWaitInfo(n.waitInfo);
-}
-
-export type EPNode = EPNodeEl | EPNodeWI;
 export type EPObject = EPNode | AdaptMountedElement | WaitInfo;
 export type EPNodeId = string;
-
-export interface EPEdge {
-    hard?: boolean;
-}
 
 export interface StatusTracker {
     readonly deployment: Deployment;

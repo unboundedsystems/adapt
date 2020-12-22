@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import sinon from "sinon";
 import Adapt, {
     AdaptMountedElement,
     BuiltinProps,
-    domDiff,
+    domDiffElements,
     handle,
     Handle,
     PrimitiveComponent,
@@ -34,7 +34,7 @@ import {
     GoalStatus,
     WaitStatus,
 } from "../../src/deploy/deploy_types";
-import { EPDependencies, EPDependency, ExecutionPlanImpl } from "../../src/deploy/execution_plan";
+import { DependencyType, EPDependencies, EPDependency, ExecutionPlanImpl } from "../../src/deploy/execution_plan";
 import { GenericInstance } from "../../src/jsx";
 
 export interface IdProps {
@@ -83,6 +83,10 @@ export function MakeDependPrim(props: MakeDependProps) {
     useImperativeMethods(() => methods);
     return <DependPrim {...props.primProps} />;
 }
+MakeDependPrim.defaultProps = {
+    id: 0,
+    primProps: { id: 0 },
+};
 
 export function spyArgs(spy: sinon.SinonSpy): any[][];
 export function spyArgs(spy: sinon.SinonSpy, argNum: number): any[];
@@ -103,8 +107,8 @@ export function makeHandles(count: number, namePrefix = "") {
 export const toChangeType = (goal: GoalStatus) =>
     goal === DeployStatus.Deployed ? ChangeType.create : ChangeType.delete;
 
-export const toDiff = (dom: AdaptMountedElement, goal: GoalStatus) =>
-    goal === DeployStatus.Deployed ? domDiff(null, dom) : domDiff(dom, null);
+export const toDiff = (els: AdaptMountedElement[], goal: GoalStatus) =>
+    goal === DeployStatus.Deployed ? domDiffElements([], els) : domDiffElements(els, []);
 
 export interface StringDependencies {
     [ id: string ]: string[];
@@ -112,22 +116,27 @@ export interface StringDependencies {
 
 export interface DependenciesOptions {
     key?: "id" | "detail";
+    removeEmpty?: boolean;
+    type?: DependencyType;
 }
 const defaultDepOptions = {
     key: "detail",
+    removeEmpty: false,
+    type: DependencyType.FinishStart,
 };
 
 export function dependencies(plan: ExecutionPlanImpl,
     options: DependenciesOptions = {}): StringDependencies {
 
-    const { key } = { ...defaultDepOptions, ...options };
+    const { key, removeEmpty, type } = { ...defaultDepOptions, ...options };
     const ret: StringDependencies = {};
-    const epDeps = plan.toDependencies();
+    const epDeps = plan.toDependencies(type);
     const getKey = (ep: EPDependencies[string]) =>
         key === "detail" || !ep.elementId ? ep.detail : ep.elementId;
     const toKey = (d: EPDependency) => getKey(epDeps[d.id]);
     Object.keys(epDeps).map((id) => {
         const ep = epDeps[id];
+        if (removeEmpty && ep.deps.length === 0) return;
         ret[getKey(ep)] = ep.deps.map(toKey).sort();
     });
     return ret;

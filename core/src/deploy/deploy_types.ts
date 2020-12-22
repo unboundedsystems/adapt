@@ -27,6 +27,7 @@ import { Handle } from "../handle";
 import {
     AdaptElementOrNull,
     AdaptMountedElement,
+    ElementID,
     FinalDomElement,
 } from "../jsx";
 import { Deployment } from "../server/deployment";
@@ -148,6 +149,10 @@ export function isProxying(stat: DeployStatusExt) {
         stat === DeployStatusExt.ProxyDestroying;
 }
 
+export function isStarted(stat: DeployStatusExt) {
+    return stat !== DeployStatusExt.Initial && stat !== DeployStatusExt.Waiting;
+}
+
 export enum DeployOpStatusExt {
     StateChanged = "StateChanged",
 }
@@ -239,17 +244,30 @@ export interface Plugin<Observations extends object = object> {
 }
 
 export interface PluginManagerStartOptions {
-    deployment: Deployment;
-    logger: MessageLogger;
     dataDir: string;
+    deployment: Deployment;
+    deployOpID: DeployOpID;
+    logger: MessageLogger;
+
+    /** The new DOM to be deployed */
+    newDom: AdaptElementOrNull;
+    /** All mountedElements from build of the new DOM */
+    newMountedElements: AdaptMountedElement[];
+
+    /**
+     * Dependencies associated with `prevDom`, generated from a
+     * previous call to `analyze`.
+     */
+    prevDependencies?: EPPrimitiveDependencies;
+    /** The last successfully deployed DOM */
+    prevDom: AdaptElementOrNull;
+    /** All mountedElements from build of `prevDom` */
+    prevMountedElements: AdaptMountedElement[];
 }
 
 export interface ActOptions {
-    builtElements: AdaptMountedElement[];
     concurrency?: number;
-    deployOpID: DeployOpID;
     dryRun?: boolean;
-    goalStatus?: GoalStatus;
     ignoreDeleteErrors?: boolean;
     pollDelayMs?: number;
     processStateUpdates?: () => Promise<{ stateChanged: boolean; }>;
@@ -390,24 +408,34 @@ export interface DeployHelpers {
 }
 
 export interface PluginManager {
-    start(prevDom: AdaptElementOrNull, dom: AdaptElementOrNull,
-        options: PluginManagerStartOptions): Promise<void>;
+    start(options: PluginManagerStartOptions): Promise<void>;
     observe(): Promise<PluginObservations>;
-    analyze(): Action[];
+    analyze(): PluginManagerAnalysis;
     act(options: ActOptions): Promise<ActComplete>;
     finish(): Promise<void>;
 }
 
+export interface PluginManagerAnalysis {
+    actions: Action[];
+    dependencies: EPPrimitiveDependencies;
+}
+
 export interface ExecutionPlanOptions {
     actions: Action[];
-    builtElements: AdaptMountedElement[];
+    dependencies: EPPrimitiveDependencies;
     deployment: Deployment;
     deployOpID: DeployOpID;
+    /** The diff of _all mounted_ Elements from old and new DOM builds */
     diff: DomDiff;
     goalStatus: GoalStatus;
 }
 
+export interface EPPrimitiveDependencies {
+    [elementId: string]: ElementID[];
+}
+
 export interface ExecutionPlan {
+    primitiveDependencies: EPPrimitiveDependencies;
     check(): void;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,13 +39,13 @@ export interface DoBuildOptsNullOk extends DoBuildOpts {
 }
 
 export interface DoBuild {
-    builtElements: AdaptMountedElement[];
+    mountedElements: AdaptMountedElement[];
     mountedOrig: AdaptMountedElement;
     dom: FinalDomElement;
     processStateUpdates: ProcessStateUpdates;
 }
 export interface DoBuildNullOk {
-    builtElements: AdaptMountedElement[];
+    mountedElements: AdaptMountedElement[];
     mountedOrig: AdaptMountedElement | null;
     dom: FinalDomElement | null;
     processStateUpdates: ProcessStateUpdates;
@@ -83,12 +83,12 @@ export async function doBuild(elem: AdaptElement, options: DoBuildOpts & Partial
         should(buildOutput.partialBuild).be.False();
         throw new Error("Partially built DOM, but no messages");
     }
-    const { builtElements, mountedOrig, contents: dom, processStateUpdates } = buildOutput;
+    const { mountedElements, mountedOrig, contents: dom, processStateUpdates } = buildOutput;
     if (!nullDomOk && dom == null) {
         should(dom).not.Null();
         should(dom).not.Undefined();
         throw new Error("Unreachable");
     }
 
-    return { builtElements, dom, mountedOrig, processStateUpdates };
+    return { mountedElements, dom, mountedOrig, processStateUpdates };
 }

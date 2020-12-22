@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2019 Unbounded Systems, LLC
+ * Copyright 2018-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import { HistoryEntry, HistoryStatus, HistoryStore } from "../../src/server/hist
 import {
     createLocalHistoryStore,
     dataDirName,
+    dependenciesFilename,
     domFilename,
     infoFilename,
     observationsFilename,
@@ -109,6 +110,7 @@ describe("Local history store tests", () => {
         await fs.writeFile(path.join(dataDir, "testfile"), "this is a test");
 
         const entry: HistoryEntry = {
+            dependenciesJson: `{"depsJson":true}`,
             dataDir,
             domXml: "<Adapt/>",
             stateJson: `{"stateJson":true}`,
@@ -125,6 +127,7 @@ describe("Local history store tests", () => {
         const domXml = await fs.readFile(path.join(dir, domFilename));
         const stateJson = await fs.readFile(path.join(dir, stateFilename));
         const observationsJson = await fs.readFile(path.join(dir, observationsFilename));
+        const dependenciesJson = await fs.readFile(path.join(dir, dependenciesFilename));
         const info = await fs.readJson(path.join(dir, infoFilename));
         const committedDataDir = path.join(dir, dataDirName);
         const testfile = await fs.readFile(path.join(committedDataDir, "testfile"));
@@ -132,6 +135,7 @@ describe("Local history store tests", () => {
         should(domXml.toString()).equal(entry.domXml);
         should(stateJson.toString()).equal(entry.stateJson);
         should(observationsJson.toString()).equal(entry.observationsJson);
+        should(dependenciesJson.toString()).equal(entry.dependenciesJson);
         should(info).eql({
             ...origInfo,
             status: "preAct",
@@ -161,6 +165,7 @@ describe("Local history store tests", () => {
         await fs.writeFile(path.join(dataDir, "testfile"), "this is a test");
 
         const entry: HistoryEntry = {
+            dependenciesJson: `{"depsJson":true}`,
             dataDir,
             domXml: "<Adapt/>",
             stateJson: `{"stateJson":true}`,

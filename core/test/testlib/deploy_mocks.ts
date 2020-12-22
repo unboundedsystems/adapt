@@ -20,8 +20,8 @@ import fs from "fs-extra";
 import { isFunction } from "lodash";
 import * as path from "path";
 import randomstring from "randomstring";
-import { ActComplete, Action, ChangeType, ExecutionPlan, Plugin, PluginModule } from "../../src/deploy";
-import { isExecutionPlanImpl } from "../../src/deploy/execution_plan";
+import { ActComplete, Action, ChangeType, EPPrimitiveDependencies, ExecutionPlan, Plugin, PluginModule } from "../../src/deploy";
+import { DependencyType, isExecutionPlanImpl } from "../../src/deploy/execution_plan";
 import { createPluginManager, isPluginManagerImpl } from "../../src/deploy/plugin_support";
 import { noStateUpdates, ProcessStateUpdates } from "../../src/dom";
 import { domDiff } from "../../src/dom_utils";
@@ -76,7 +76,7 @@ export interface DeployOutput extends ActComplete {
 }
 
 export interface ExecutionPlanOutput {
-    dependencies: StringDependencies;
+    dependencies: Record<DependencyType, StringDependencies>;
     dom: FinalDomElement | null;
     mountedOrig: AdaptMountedElement | null;
     plan: ExecutionPlan;
@@ -95,6 +95,9 @@ export function makeDeployId(prefix: string) {
 export class MockDeploy {
     prevDom: FinalDomElement | null = null;
     currDom: FinalDomElement | null = null;
+    prevMountedElements: AdaptMountedElement[] = [];
+    currMountedElements: AdaptMountedElement[] = [];
+    prevDependencies: EPPrimitiveDependencies = {};
     logger = createMockLogger();
     dataDir: string;
     deployID = "MockDeploy123";
@@ -167,7 +170,7 @@ export class MockDeploy {
         let dom: FinalDomElement | null;
         let mountedOrig: AdaptMountedElement | null;
         let processStateUpdates: ProcessStateUpdates;
-        let builtElements: AdaptMountedElement[];
+        let mountedElements: AdaptMountedElement[];
 
         this.deployOpID = await this.deployment.newOpID();
 
@@ -183,7 +186,7 @@ export class MockDeploy {
             taskObserver.started();
 
             processStateUpdates = noStateUpdates;
-            builtElements = [];
+            mountedElements = [];
 
             if (orig === null) {
                 dom = null;
@@ -199,19 +202,14 @@ export class MockDeploy {
                 dom = res.dom;
                 mountedOrig = res.mountedOrig;
                 processStateUpdates = res.processStateUpdates;
-                builtElements = res.builtElements;
+                mountedElements = res.mountedElements;
             }
             this.prevDom = this.currDom;
             this.currDom = dom;
+            this.prevMountedElements = this.currMountedElements;
+            this.currMountedElements = mountedElements;
 
-            const mgrOpts = {
-                logger: this.logger,
-                deployment: this.deployment,
-                dataDir: this.dataDir,
-            };
             const actOpts = {
-                builtElements,
-                deployOpID: this.deployOpID,
                 dryRun: opts.dryRun,
                 pollDelayMs: opts.pollDelayMs,
                 processStateUpdates,
@@ -222,16 +220,32 @@ export class MockDeploy {
             const mgr = createPluginManager(this.plugins);
 
             try {
-                await mgr.start(this.prevDom, dom, mgrOpts);
+                await mgr.start({
+                    dataDir: this.dataDir,
+                    deployOpID: this.deployOpID,
+                    deployment: this.deployment,
+                    logger: this.logger,
+                    newDom: dom,
+                    newMountedElements: this.currMountedElements,
+                    prevDependencies: this.prevDependencies,
+                    prevDom: this.prevDom,
+                    prevMountedElements: this.prevMountedElements,
+                });
                 await mgr.observe();
-                mgr.analyze();
+                const analysis = mgr.analyze();
+                this.prevDependencies = analysis.dependencies;
 
                 if (opts.returnPlan) {
                     if (!isPluginManagerImpl(mgr)) throw new InternalError(`Not a PluginManagerImpl`);
-                    const plan = await mgr._createExecutionPlan(actOpts);
+                    const plan = mgr.plan;
                     if (!isExecutionPlanImpl(plan)) throw new InternalError(`Not an ExecutionPlanImpl`);
+                    const depOpts = { key: "id" as const, removeEmpty: true };
                     return {
-                        dependencies: dependencies(plan, { key: "id" }),
+                        dependencies: {
+                            FinishStart: dependencies(plan, { type: DependencyType.FinishStart, ...depOpts }),
+                            FinishStartHard: dependencies(plan, { type: DependencyType.FinishStartHard, ...depOpts }),
+                            StartStart: dependencies(plan, { type: DependencyType.StartStart, ...depOpts }),
+                        },
                         dom,
                         mountedOrig,
                         plan,

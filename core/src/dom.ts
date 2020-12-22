@@ -86,7 +86,7 @@ class BuildResults {
     mountedOrig: AdaptMountedElement | null;
     contents: AdaptElementOrNull;
     cleanups: CleanupFunc[];
-    mountedElements: AdaptMountedElement[];
+    mountedElements = new Set<AdaptMountedElement>();
     builtElements: AdaptMountedElement[];
     stateChanged: boolean;
     partialBuild: boolean;
@@ -120,7 +120,7 @@ class BuildResults {
         this.mountedOrig = null;
         this.contents = null;
         this.cleanups = [];
-        this.mountedElements = [];
+        this.mountedElements = new Set();
         this.builtElements = [];
         this.stateChanged = false;
         this.partialBuild = false;
@@ -175,7 +175,7 @@ class BuildResults {
     combine(other: BuildResults): BuildResults {
         this.messages.push(...other.messages);
         this.cleanups.push(...other.cleanups);
-        this.mountedElements.push(...other.mountedElements);
+        other.mountedElements.forEach((el) => this.mountedElements.add(el));
         this.builtElements.push(...other.builtElements);
         this.buildErr = this.buildErr || other.buildErr;
         this.partialBuild = this.partialBuild || other.partialBuild;
@@ -183,7 +183,7 @@ class BuildResults {
         other.messages = [];
         other.cleanups = [];
         other.builtElements = [];
-        other.mountedElements = [];
+        other.mountedElements = new Set();
         return this;
     }
     cleanup() {
@@ -221,7 +221,7 @@ class BuildResults {
             messages: this.messages,
             contents: this.contents,
             mountedOrig: this.mountedOrig,
-            builtElements: this.builtElements,
+            mountedElements: [...this.mountedElements],
             processStateUpdates: () => processStateUpdates(builtElements, stateStore),
         };
     }
@@ -511,7 +511,7 @@ function mountElement(
         domPathToKeyPath(finalPath), options.deployID, options.deployOpID);
     if (!isMountedElement(elem)) throw new InternalError(`just mounted element is not mounted ${elem}`);
     const out = new BuildResults(options.recorder, elem, elem);
-    out.mountedElements.push(elem);
+    out.mountedElements.add(elem);
     return out;
 }
 
@@ -675,7 +675,7 @@ export const noStateUpdates = () => Promise.resolve({ stateChanged: false });
 
 export interface BuildOutputSuccess extends BuildOutputBase {
     buildErr: false;
-    builtElements: AdaptMountedElement[];
+    mountedElements: AdaptMountedElement[];
     partialBuild: false;
     processStateUpdates: ProcessStateUpdates;
     contents: FinalDomElement | null;
@@ -952,7 +952,14 @@ async function realBuildOnce(
 
         const out = new BuildResults(options.recorder);
         let mountedElem: AdaptElementOrNull = oldElem;
-        if (!isMountedElement(oldElem)) {
+        if (isMountedElement(oldElem)) {
+            if (isElementImpl(oldElem) && oldElem.reanimated) {
+                // Reanimated elements get mounted at the time of re-animation,
+                // not during build, but they need to be in the mountedElements
+                // output.
+                out.mountedElements.add(oldElem);
+            }
+        } else {
             const mountOut = mountElement(pathIn, parentStateNamespace, options);
             if (mountOut.buildErr) return mountOut;
             out.contents = mountedElem = mountOut.contents;

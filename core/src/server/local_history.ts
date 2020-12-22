@@ -26,6 +26,7 @@ import { HistoryEntry, HistoryName, HistoryStatus, HistoryStore, isHistoryStatus
 
 // These are exported only for testing
 export const dataDirName = "dataDir";
+export const dependenciesFilename = "adapt_dependencies.json";
 export const domFilename = "adapt_dom.xml";
 export const stateFilename = "adapt_state.json";
 export const observationsFilename = "adapt_observations.json";
@@ -96,7 +97,7 @@ class LocalHistoryStore implements HistoryStore {
     }
 
     async commitEntry(toStore: HistoryEntry): Promise<void> {
-        const { domXml, stateJson, observationsJson, ...info } = toStore;
+        const { dependenciesJson, domXml, stateJson, observationsJson, ...info } = toStore;
 
         if (toStore.dataDir !== this.dataDir) {
             throw new Error(`Internal error: commiting invalid dataDir ` +
@@ -111,6 +112,7 @@ class LocalHistoryStore implements HistoryStore {
         await fs.outputFile(path.join(dirPath, domFilename), domXml);
         await fs.outputFile(path.join(dirPath, stateFilename), stateJson);
         await fs.outputFile(path.join(dirPath, observationsFilename), observationsJson);
+        await fs.outputFile(path.join(dirPath, dependenciesFilename), dependenciesJson);
         await fs.outputJson(path.join(dirPath, infoFilename), info);
 
         // If we're committing preAct, the directory remains in place and
@@ -151,7 +153,15 @@ class LocalHistoryStore implements HistoryStore {
         const observationsJson = await fs.readFile(path.join(dirName, observationsFilename));
         const info = await fs.readJson(path.join(dirName, infoFilename));
 
+        let dependenciesJson = "{}";
+        try {
+            dependenciesJson = (await fs.readFile(path.join(dirName, dependenciesFilename))).toString();
+        } catch (err) {
+            if (err.code !== "ENOENT") throw err;
+        }
+
         return {
+            dependenciesJson,
             domXml: domXml.toString(),
             stateJson: stateJson.toString(),
             observationsJson: observationsJson.toString(),
