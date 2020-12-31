@@ -29,6 +29,7 @@ import { InternalError } from "../error";
 import {
     AdaptElementOrNull,
     AdaptMountedElement,
+    isFinalDomElement,
     isMountedElement,
 } from "../jsx";
 import { findPackageInfo } from "../packageinfo";
@@ -285,8 +286,8 @@ class PluginManagerImpl implements PluginManager {
             this.addActions(actions, plugin);
         }
 
-        if (dom && !isMountedElement(dom)) {
-            throw new InternalError(`dom is not Mounted`);
+        if (dom && !isFinalDomElement(dom)) {
+            throw new InternalError(`dom is not MountedPrimitive`);
         }
         if (prevDom && !isMountedElement(prevDom)) {
             throw new InternalError(`prevDom is not Mounted`);
@@ -300,6 +301,7 @@ class PluginManagerImpl implements PluginManager {
             deployment: this.deployment,
             deployOpID: this.deployOpID,
             diff: domDiffElements(this.prevMountedElements, this.newMountedElements),
+            newDom: dom,
             goalStatus: this.goalStatus,
         });
         this.plan.check();

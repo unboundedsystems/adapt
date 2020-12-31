@@ -427,6 +427,7 @@ export interface ExecutionPlanOptions {
     deployOpID: DeployOpID;
     /** The diff of _all mounted_ Elements from old and new DOM builds */
     diff: DomDiff;
+    newDom: FinalDomElement | null;
     goalStatus: GoalStatus;
 }
 

@@ -180,7 +180,7 @@ describeLong("reactapp system tests", function () {
     .do(() => process.chdir("deploy"))
     .command(["run", "laptop"])
 
-    .it("Should deploy reactapp to local Docker host (laptop style)", async ({ stdout, stderr }) => {
+    .do(async ({ stdout, stderr }) => {
         lDeployID = getNewDeployID(stdout);
 
         expect(stderr).equals("");
@@ -199,6 +199,13 @@ describeLong("reactapp system tests", function () {
 
         await checkApi(urlRouterIp);
         await checkRoot(urlRouterIp);
+    })
+    .delayedcommand(() => ["destroy", lDeployID!])
+    .it("Should deploy/destroy reactapp to local Docker host (laptop style)", async ({ stdout, stderr }) => {
+        expect(stderr).equals("");
+        expect(stdout).contains(`Deployment ${lDeployID} stopped successfully.`);
+        const ctrs = await containerNames(lDeployID!);
+        expect(ctrs).has.length(0);
     });
 
     if (process.platform !== "win32") {
@@ -240,7 +247,7 @@ async function containerNames(deployID: string) {
         "--format", "{{.Names}}",
         "--filter", filter
     ]);
-    return psOut.split(/\s+/);
+    return psOut.split(/\s+/).filter(Boolean);
 }
 
 async function findContainer(nameRe: RegExp, deployID: string) {
