@@ -134,7 +134,7 @@ function Func({ key, dep }: { key: string; dep?: Handle }) {
 describe("Execution plan", () => {
     let deployment: Deployment;
     let deployOpID: DeployOpID;
-    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus">;
+    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus" | "newDom">;
 
     beforeEach(async () => {
         deployment = await createMockDeployment();
@@ -149,11 +149,12 @@ describe("Execution plan", () => {
 
     it("Should create a plan", async () => {
         const d = <Empty id={1}/>;
-        const { mountedElements } = await doBuild(d);
+        const { dom, mountedElements } = await doBuild(d);
         const plan = createExecutionPlan({
             ...planOpts,
             diff: domDiffElements([], mountedElements),
             goalStatus: DeployStatus.Deployed,
+            newDom: dom,
         });
         should(plan).not.be.Null();
 
@@ -228,7 +229,7 @@ describe("ExecutionPlanImpl", () => {
     let executeOpts: Omit<ExecuteOptions, "plan">;
     let deployID: string;
     let deployOpID: DeployOpID;
-    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus">;
+    let planOpts: Omit<ExecutionPlanOptions, "diff" | "goalStatus" | "newDom">;
     let implOpts: Omit<ExecutionPlanImplOptions, "goalStatus">;
     const dependOpts = { key: "id" as const, removeEmpty: true };
 
@@ -350,6 +351,7 @@ describe("ExecutionPlanImpl", () => {
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -458,7 +460,7 @@ describe("ExecutionPlanImpl", () => {
         ];
         const dep = (id: number, gs: GoalStatus, h: DeployHelpers) => deps[id](gs, h);
         const orig = <DependPrim id={0} handle={hand} dep={dep} />;
-        const { mountedElements } = await doBuild(orig);
+        const { dom, mountedElements } = await doBuild(orig);
 
         const plan = createExecutionPlan({
             ...implOpts,
@@ -466,6 +468,7 @@ describe("ExecutionPlanImpl", () => {
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -510,7 +513,7 @@ Details:
                 <DependPrim id={2} handle={hands[2]} dep={dep} />
                 <DependPrim id={3} handle={hands[3]} dep={dep} />
             </Group>;
-        const { mountedElements } = await doBuild(orig);
+        const { dom, mountedElements } = await doBuild(orig);
 
         const plan = createExecutionPlan({
             ...implOpts,
@@ -518,6 +521,7 @@ Details:
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -613,6 +617,7 @@ Details:
             dependencies: {},
             diff: toDiff(mountedElements, goal),
             goalStatus: goal,
+            newDom: goal === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -736,6 +741,7 @@ Details:
             dependencies: {},
             diff: toDiff(mountedElements, goal),
             goalStatus: goal,
+            newDom: goal === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -958,6 +964,7 @@ Details:
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -1082,6 +1089,7 @@ Details:
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -1245,6 +1253,7 @@ Details:
             actions: [action],
             dependencies: {},
             diff: domDiff(oldDom, newDom),
+            newDom,
         });
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
 
@@ -1391,6 +1400,7 @@ Details:
             actions,
             diff: toDiff(mountedElements, goal),
             goalStatus: goal,
+            newDom: goal === DeployStatus.Deployed ? dom : null,
         });
 
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
@@ -1549,6 +1559,7 @@ Details:
             actions: deployActions,
             diff: deployDiff,
             goalStatus: GoalStatus.Deployed,
+            newDom: deployBuild.dom,
         });
 
         if (!isExecutionPlanImpl(deployPlan)) throw new Error(`Not ExecutionPlanImpl`);
@@ -1603,6 +1614,7 @@ Details:
             dependencies: savedDeps,
             diff: destroyDiff,
             goalStatus: GoalStatus.Destroyed,
+            newDom: destroyBuild.dom,
         });
 
         if (!isExecutionPlanImpl(destroyPlan)) throw new Error(`Not ExecutionPlanImpl`);
@@ -1824,6 +1836,7 @@ INFO: Doing ActionB2-Prim
             dependencies: {},
             diff: toDiff(mountedElements, goalStatus),
             goalStatus,
+            newDom: goalStatus === DeployStatus.Deployed ? dom : null,
         });
 
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);
@@ -2073,7 +2086,7 @@ describe("Execution plan primitiveDependencies", () => {
     let deployment: Deployment;
     let deployID: string;
     let deployOpID: DeployOpID;
-    let planOpts: Omit<ExecutionPlanOptions, "dependencies" | "diff" | "goalStatus">;
+    let planOpts: Omit<ExecutionPlanOptions, "dependencies" | "diff" | "goalStatus" | "newDom">;
     let implOpts: Omit<ExecutionPlanImplOptions, "goalStatus">;
 
     beforeEach(async () => {
@@ -2116,6 +2129,7 @@ describe("Execution plan primitiveDependencies", () => {
             dependencies: savedDeps,
             diff,
             goalStatus: GoalStatus.Deployed,
+            newDom: dom,
         });
 
         if (!isExecutionPlanImpl(plan)) throw new Error(`Not ExecutionPlanImpl`);

@@ -23,6 +23,7 @@ import PQueue from "p-queue";
 import pTimeout from "p-timeout";
 import { inspect } from "util";
 import { makeElementStatus } from "../dom";
+import { domForEach } from "../dom_utils";
 import { ElementNotInDom, InternalError } from "../error";
 import { Handle, isHandle } from "../handle";
 import {
@@ -31,6 +32,7 @@ import {
     // @ts-ignore - here to deal with issue #71
     AnyProps,
     ElementID,
+    FinalDomElement,
     isElement,
     isMountedElement,
     isPrimitiveElement,
@@ -94,7 +96,7 @@ export function createExecutionPlan(options: ExecutionPlanOptions): ExecutionPla
         if (succ) plan.setParent(succ, e);
     }
 
-    const { actions, diff } = options;
+    const { actions, diff, newDom } = options;
 
     diff.added.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
     diff.commonNew.forEach((e) => plan.addElem(e, DeployStatus.Deployed));
@@ -104,12 +106,15 @@ export function createExecutionPlan(options: ExecutionPlanOptions): ExecutionPla
     diff.commonNew.forEach(addParents);
     diff.deleted.forEach(addParents);
 
+    debugExecuteDetail(`Plan before deps`, plan.print());
+    debugExecuteDetail(`Saved deps`, options.dependencies);
+
     plan.addSavedDependencies(options.dependencies);
 
     // Force memoization of primitiveDependencies. MUST happen before actions
     // are added because adding actions removes primitive Elements from the
     // graph and collapses dependencies.
-    plan.computePrimitiveDependencies();
+    plan.computePrimitiveDependencies(newDom);
 
     actions.forEach((a) => plan.addAction(a));
 
@@ -528,7 +533,11 @@ export class ExecutionPlanImpl implements ExecutionPlan {
         throw new InternalError(`Must call computePrimitiveDependencies before accessing primitiveDependencies`);
     }
 
-    computePrimitiveDependencies(): void {
+    computePrimitiveDependencies(dom: FinalDomElement | null): void {
+        const domEls = new Set<AdaptMountedElement>();
+        domForEach(dom, (el) => domEls.add(el));
+        const isInDom = (n: EPNode) => n.element && domEls.has(n.element);
+
         const work = new Map<string, Set<string>>();
         const workFrom = (fromId: string) => {
             const exists = work.get(fromId);
@@ -557,7 +566,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             // Because the start of a node is gated by automatic StartStart
             // dependencies between parents and their children, we only need the
             // pruned dependencies for the "from" set of nodes (prune=true).
-            const fromPrims = this.primitiveDependencyTargets(node, true);
+            const fromPrims = this.primitiveDependencyTargets(node, true)
+                .filter(isInDom);
 
             const succs = this.neighbors(node, DependencyType.FinishStart, "successors")
                 .concat(this.neighbors(node, DependencyType.FinishStartHard, "successors"));
@@ -566,7 +576,8 @@ export class ExecutionPlanImpl implements ExecutionPlan {
             // because nodes can have custom deployedWhen functions. So ensure
             // we get the complete (non-pruned) set of nodes for the "to"
             // nodes (prune=false).
-            const toPrims = flatten(succs.map((s) => this.primitiveDependencyTargets(s, false)));
+            const toPrims = flatten(succs.map((s) => this.primitiveDependencyTargets(s, false)))
+                .filter(isInDom);
 
             for (const from of fromPrims) {
                 for (const to of toPrims) {
