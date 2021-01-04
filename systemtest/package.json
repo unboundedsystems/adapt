@@ -1,6 +1,6 @@
 {
   "name": "@adpt/systemtest",
-  "version": "0.4.0-next.9",
+  "version": "0.4.0-next.10",
   "description": "AdaptJS System Tests",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -26,10 +26,10 @@
     "node": ">=10.0.0"
   },
   "devDependencies": {
-    "@adpt/cli": "0.4.0-next.9",
-    "@adpt/cloud": "0.4.0-next.9",
-    "@adpt/testutils": "0.4.0-next.9",
-    "@adpt/utils": "0.4.0-next.9",
+    "@adpt/cli": "0.4.0-next.10",
+    "@adpt/cloud": "0.4.0-next.10",
+    "@adpt/testutils": "0.4.0-next.10",
+    "@adpt/utils": "0.4.0-next.10",
     "@types/chai": "4.2.14",
     "@types/chai-as-promised": "7.1.3",
     "@types/dockerode": "3.2.1",

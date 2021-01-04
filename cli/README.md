@@ -143,7 +143,7 @@ OPTIONS
   --source       Show the source of each configuration item's value
 ```
 
-_See code: [dist/src/commands/config/list.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/config/list.js)_
+_See code: [dist/src/commands/config/list.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/config/list.js)_
 
 ## `adapt config:set NAME VALUE`
 
@@ -167,7 +167,7 @@ EXAMPLE
        $ adapt config:set upgradeChannel next
 ```
 
-_See code: [dist/src/commands/config/set.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/config/set.js)_
+_See code: [dist/src/commands/config/set.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/config/set.js)_
 
 ## `adapt deploy:destroy DEPLOYID`
 
@@ -202,7 +202,7 @@ EXAMPLE
        $ adapt deploy:destroy myproj-dev-abcd
 ```
 
-_See code: [dist/src/commands/deploy/destroy.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/deploy/destroy.js)_
+_See code: [dist/src/commands/deploy/destroy.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/deploy/destroy.js)_
 
 ## `adapt deploy:list`
 
@@ -230,7 +230,7 @@ EXAMPLE
        $ adapt deploy:list
 ```
 
-_See code: [dist/src/commands/deploy/list.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/deploy/list.js)_
+_See code: [dist/src/commands/deploy/list.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/deploy/list.js)_
 
 ## `adapt deploy:run [STACKNAME]`
 
@@ -274,7 +274,7 @@ EXAMPLES
        $ adapt deploy:run --rootFile somefile.tsx dev
 ```
 
-_See code: [dist/src/commands/deploy/run.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/deploy/run.js)_
+_See code: [dist/src/commands/deploy/run.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/deploy/run.js)_
 
 ## `adapt deploy:status DEPLOYID`
 
@@ -309,7 +309,7 @@ EXAMPLES
        $ adapt deploy:status --rootFile somefile.tsx myproj-dev-abcd
 ```
 
-_See code: [dist/src/commands/deploy/status.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/deploy/status.js)_
+_See code: [dist/src/commands/deploy/status.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/deploy/status.js)_
 
 ## `adapt deploy:update DEPLOYID [STACKNAME]`
 
@@ -345,7 +345,7 @@ EXAMPLES
        $ adapt deploy:update --rootFile somefile.tsx myproj-dev-abcd dev
 ```
 
-_See code: [dist/src/commands/deploy/update.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/deploy/update.js)_
+_See code: [dist/src/commands/deploy/update.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/deploy/update.js)_
 
 ## `adapt help [COMMAND]`
 
@@ -399,5 +399,5 @@ EXAMPLE
        $ adapt project:new blank myproj
 ```
 
-_See code: [dist/src/commands/project/new.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.9/dist/src/commands/project/new.js)_
+_See code: [dist/src/commands/project/new.js](https://github.com/unboundedsystems/adapt/blob/v0.4.0-next.10/dist/src/commands/project/new.js)_
 <!-- commandsstop -->
