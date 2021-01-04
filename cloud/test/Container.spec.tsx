@@ -22,6 +22,7 @@ import Adapt, {
 } from "@adpt/core";
 import {
     mochaTmpdir,
+    TODO_platform,
 } from "@adpt/testutils";
 import fs from "fs-extra";
 import path from "path";
@@ -77,6 +78,9 @@ describe("Container component", () => {
     }
 
     it("Should build with local style and have status", async function () {
+        // TODO: This test errors without output on Windows and needs fixed
+        TODO_platform(this, "win32");
+
         this.timeout("60s");
 
         const root =

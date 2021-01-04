@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-import { createPackageRegistry, ensureError, PackageRegistry } from "@adpt/utils";
+import { createPackageRegistry, ensureError, PackageRegistry, posixPath } from "@adpt/utils";
 import callsites = require("callsites");
 import stringify from "json-stable-stringify";
-import os from "os";
 import * as path from "path";
 import URN = require("urn-lib");
 import { inspect } from "util";
@@ -377,11 +376,6 @@ export function reanimate(mummy: MummyJson): Promise<any> {
 
 export function findMummy(obj: any): MummyJson {
     return registry().findMummy(obj);
-}
-
-function posixPath(p: string) {
-    if (os.platform() !== "win32") return p;
-    return path.posix.join(...p.split(path.sep));
 }
 
 // Exported for testing

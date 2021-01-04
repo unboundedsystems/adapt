@@ -15,6 +15,7 @@
  */
 
 import { mochaTmpdir, repoVersions } from "@adpt/testutils";
+import { posixPath } from "@adpt/utils";
 import { expect } from "chai";
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -57,7 +58,7 @@ describe("Project basic tests", function () {
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("test");
         expect(p.manifest.version).equal("1.0.0");
-        expect(p.manifest._resolved).equal(projDir);
+        expect(p.manifest._resolved).equal(posixPath(projDir));
         expect(p.manifest.dependencies.typescript).equal("^3.0.3");
     });
 
@@ -96,7 +97,7 @@ describe("Project basic tests", function () {
         expect(p).to.be.an("object");
         expect(p.manifest.name).equal("test-tar");
         expect(p.manifest.version).equal("1.0.1");
-        expect(p.manifest._resolved).equal(tgzFile);
+        expect(p.manifest._resolved).equal(posixPath(tgzFile));
         expect(p.manifest.dependencies.typescript).equal("^3.0.0");
     });
 

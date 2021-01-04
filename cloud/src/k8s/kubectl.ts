@@ -232,7 +232,7 @@ export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlD
 
         if ((result.exitCode === 1)
             && (result.stderr.length === 0)
-            && (result.stdout.startsWith("diff -u"))) {
+            && (result.stdout.startsWith("diff "))) {
             return {
                 diff: result.stdout,
                 errs: "",

@@ -22,7 +22,7 @@
     "url": "https://gitlab.com/unboundedsystems/adapt/issues"
   },
   "engines": {
-    "node": ">=10.0.0"
+    "node": ">=10.17.0"
   },
   "keywords": [
     "adapt",
@@ -64,13 +64,15 @@
     "cli-ux": "5.5.1",
     "conf": "6.2.4",
     "copy": "0.3.2",
+    "cross-env": "7.0.2",
     "debug": "4.3.1",
     "decamelize": "4.0.0",
-    "execa": "4.1.0",
+    "execa": "5.0.0",
     "fs-extra": "9.0.1",
     "lodash": "4.17.20",
     "node-fetch": "2.6.1",
     "npm-package-arg": "8.1.0",
+    "npm-run-path": "4.0.1",
     "p-defer": "3.0.0",
     "pacote": "9.5.12",
     "parse-duration": "0.4.4",
@@ -128,6 +130,7 @@
     "dirname": "adapt",
     "hooks": {
       "init": [
+        "./dist/src/init",
         "./dist/src/config/init",
         "./dist/src/upgrade/init"
       ]

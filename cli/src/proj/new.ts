@@ -16,6 +16,7 @@
 
 import {
     ensureError,
+    findPackageDirs,
     InternalError,
     isObject,
     MaybeArray,
@@ -30,12 +31,15 @@ import execa from "execa";
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import pkgArg from "npm-package-arg";
+import npmRunPath from "npm-run-path";
 import pacote from "pacote";
 import path from "path";
 import { SemVer } from "semver";
 import escape from "shell-escape";
 
 const debugNew = db("adapt:project:new");
+
+const cliRoot = findPackageDirs(__dirname).root;
 
 export const adaptVersionLabelPrefix = "adapt-v";
 
@@ -308,7 +312,7 @@ async function copyFiles(config: StarterConfig, log: LogString,
             // Turn directories into a globstar
             if ((await fileType(path.join(starterDir, f))) === "DIR") f = f + "/**";
 
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 copy(f, dest, opts, (err) => err ? reject(err) : resolve());
             });
         }
@@ -382,6 +386,19 @@ export async function updateVersions(config: StarterConfig, log: LogString,
     }
 }
 
+// TODO: These regexps may not work on some OSes that support multiple
+// languages. Windows in particular does definitely translate its error messages.
+const notFoundRe = process.platform === "win32" ?
+    /'(.*)' is not recognized as an internal or external command/ :
+    /sh: 1: (.*): not found/;
+
+function extractNotFoundCmd(err: any) {
+    if (!err.stderr) return undefined;
+
+    const m = err.stderr.match(notFoundRe);
+    return m ? m[1] : undefined;
+}
+
 async function runScripts(config: StarterConfig, log: LogString,
     starterDir: string, dest: string, args: string[]) {
 
@@ -398,12 +415,20 @@ async function runScripts(config: StarterConfig, log: LogString,
     try {
         const env = {
             ADAPT_STARTER_DIR: starterDir,
+            PATH: npmRunPath({ cwd: cliRoot }), // Ensure bin is in path for cross-env
         };
         const ret = await execa(cmd, { all: true, cwd: dest, env, shell: true });
         debugNew(`Init script stdout:\n${ret.stdout}\nInit script stderr:\n${ret.stderr}`);
 
     } catch (err) {
-        throw new UserError(`Error running init script:\n${err.shortMessage}\n${err.all}\n`);
+        let msg: string;
+        if ("all" in err) { // Is an execa error
+            const nfCommand = extractNotFoundCmd(err);
+            msg = nfCommand ? `'${nfCommand}' not found` : `${err.shortMessage}\n${err.all}`;
+        } else {
+            msg = err.toString();
+        }
+        throw new UserError(`Error running init script:\n${msg}\n`);
     }
 }
 

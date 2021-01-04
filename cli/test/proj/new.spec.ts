@@ -295,7 +295,7 @@ describe("Project new updateVersions", () => {
             await expect(updateVersions({ adaptDir: "deploy" }, nullLogger,
                 process.cwd(), mkVer("1.0.0")))
                 .to.be.rejectedWith(`Invalid package.json file ` +
-                    `'${process.cwd()}/deploy/package.json': file must ` +
+                    `'${path.join(process.cwd(), "deploy", "package.json")}': file must ` +
                     `contain a single object`, `Failed with invalid value ${val}`);
         }
     });

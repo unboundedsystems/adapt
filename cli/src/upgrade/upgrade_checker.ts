@@ -83,6 +83,7 @@ export class UpgradeChecker {
             stdio: [ "ignore", logFd, logFd ],
         });
         child.unref();
+        await fs.close(logFd);
     }
 
     async notifyString(options: NotifyOptions = {}) {

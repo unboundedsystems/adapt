@@ -15,7 +15,7 @@
  */
 
 import Adapt, { callInstanceMethod, FinalDomElement, Group, handle } from "@adpt/core";
-import { dockerMocha, mochaTmpdir, TODO_platform } from "@adpt/testutils";
+import { dockerMocha, mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
 import path from "path";
@@ -95,9 +95,7 @@ describe("buildKitFilesImage", function () {
         return checkDockerRun(nameTag);
     }
 
-    it("Should build an image", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build an image", async () => {
         const image = await doBuildFiles([{
             path: "foo",
             contents: "foo contents\n",
@@ -213,9 +211,7 @@ describe("BuildKitImage", function () {
         return image;
     }
 
-    it("Should build a registry image with an imageTag", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build a registry image with an imageTag", async () => {
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -235,9 +231,7 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(`${regHost}/bki-test:simple`);
     });
 
-    it("Should build a registry image without an imageTag", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build a registry image without an imageTag", async () => {
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS2
@@ -257,9 +251,7 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(undefined);
     });
 
-    it("Should build a registry image with a unique tag", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build a registry image with a unique tag", async () => {
         await fs.writeFile("Dockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS3
@@ -285,9 +277,7 @@ describe("BuildKitImage", function () {
         should(image2.id).equal(image.id);
     });
 
-    it("Should build using alternate file name", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build using alternate file name", async () => {
         await fs.writeFile("notadockerfile", `
             FROM ${busyboxImage}
             CMD echo SUCCESS1
@@ -307,9 +297,7 @@ describe("BuildKitImage", function () {
         should(image.nameTag).equal(`${regHost}/bki-test:simple`);
     });
 
-    it("Should build a registry image with files", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should build a registry image with files", async () => {
         const props: BuildKitImageProps = {
             dockerfile: `
                 FROM ${busyboxImage}
@@ -431,9 +419,7 @@ describe("BuildKitImage", function () {
         should(finalInfos).be.Array().of.length(0);
     }
 
-    it("Should push a built image to second registry with same pathTag", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should push a built image to second registry with same pathTag", async () => {
         const output: BuildKitOutputRegistry = {
             ...storage(),
             imageName: "bki-test",
@@ -447,9 +433,7 @@ describe("BuildKitImage", function () {
         await checkBasicTest(dom, opts);
     });
 
-    it("Should push a built image to second registry with new pathTag", async function () {
-        TODO_platform(this, "win32");
-
+    it("Should push a built image to second registry with new pathTag", async () => {
         const output: BuildKitOutputRegistry = {
             ...storage(),
             imageName: "bki-test",

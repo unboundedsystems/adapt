@@ -19,6 +19,8 @@ import { MaybeArray, readJson5, toArray, waitForNoThrow } from "@adpt/utils";
 import db from "debug";
 import dedent from "dedent";
 import fs from "fs-extra";
+import path from "path";
+import which from "which";
 import { userConfigSchema } from "../../src/config/config";
 import { createState } from "../../src/config/load";
 import { hasSecurityFixes, UpgradeChecker, UpgradeCheckerConfig } from "../../src/upgrade/upgrade_checker";
@@ -117,15 +119,25 @@ function uaRegex(options: UaOptions = {}) {
         docker === "both" ? ` Docker/${dockerVerRegex}\\+${dockerVerRegex}` :
         "";
     const devRe = dev ? ` Dev/${dev}` : "";
-    const re = `^${name}/1.0.0 Linux/[^ ]+-x64 Node/${nodeVerRegex}${devRe}${dockerRe}$`;
+    const platform = process.platform === "win32" ? "Windows_NT" : "Linux"; // Only Windows runs tests without Docker
+    const re = `^${name}/1.0.0 ${platform}/[^ ]+-x64 Node/${nodeVerRegex}${devRe}${dockerRe}$`;
     return RegExp(re);
 }
 
-// Both git and the docker cli are in /usr/bin in our node-testimg container.
-const pathNoGitOrDocker = process.env.PATH!
-    .split(":")
-    .filter((d) => d !== "/usr/bin")
-    .join(":");
+function removeExesFromPath(exes: string[]): string {
+    const pathSet = new Set(process.env.PATH!.split(path.delimiter));
+
+    for (const exe of exes) {
+        const absExes = which.sync(exe, { all: true, nothrow: true });
+        if (!absExes) continue;
+        for (const absExe of absExes) {
+            pathSet.delete(path.dirname(absExe));
+        }
+    }
+    return [...pathSet].join(path.delimiter);
+}
+
+const pathNoGitOrDocker = removeExesFromPath(["docker", "git"]);
 
 function expressSaveRequests(fixture: mochaExpress.ExpressFixture, route: string, response: any) {
     const headerList: mochaExpress.Request[] = [];
@@ -227,7 +239,10 @@ describe("UpgradeChecker", function () {
     });
 
     testDebugOutput
-    .env({ PATH: pathNoGitOrDocker })
+    .env({
+        PATH: pathNoGitOrDocker,
+        Path: pathNoGitOrDocker,  // Ugh. Windows.
+    })
     .it("Should send headers without Dev and Docker", async () => {
         const origState = await readStateJson();
         expect(origState.installed).to.be.a("number");
@@ -242,8 +257,10 @@ describe("UpgradeChecker", function () {
         expect(req.query["x-installed"]).to.equal(origState.installed.toString());
     });
 
+    const badDockerHost = process.platform === "win32" ? "npipe:///badhost" : "unix:///dev/null";
+
     testDebugOutput
-    .env({ DOCKER_HOST: "unix:///dev/null" })
+    .env({ DOCKER_HOST: badDockerHost })
     .it("Should send headers with Dev and Docker client only", async () => {
         const origState = await readStateJson();
         expect(origState.installed).to.be.a("number");

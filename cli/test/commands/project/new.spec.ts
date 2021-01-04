@@ -18,6 +18,7 @@ import { mochaTmpdir, repoVersions } from "@adpt/testutils";
 import { grep, repoDirs } from "@adpt/utils";
 import execa from "execa";
 import fs from "fs-extra";
+import os from "os";
 import path from "path";
 import { clitest, expect } from "../../common/fancy";
 
@@ -433,13 +434,13 @@ describe("project:new scripts", () => {
     .do(async () => {
         await fs.ensureDir("./starter");
         await fs.writeJson("./starter/adapt_starter.json", {
-            init: "echo newfile > newfile",
+            init: "echo newfile> newfile",
         });
     })
     .command(["project:new", "./starter", "project"])
     .it("Should run script in project directory", async () => {
         const files = {
-            newfile: "newfile\n"
+            newfile: `newfile${os.EOL}`
         };
         await checkFiles(files, "project");
     });
@@ -449,16 +450,14 @@ describe("project:new scripts", () => {
         await fs.ensureDir("./starter");
         await fs.writeJson("./starter/adapt_starter.json", {
             // tslint:disable-next-line: no-invalid-template-strings
-            init: "${ADAPT_STARTER_DIR}/setup.sh",
+            init: "cross-env-shell bash ${ADAPT_STARTER_DIR}/setup.sh",
         });
         await fs.writeFile("./starter/setup.sh",
-            `#!/bin/sh
-            echo Setup done > setup_done
+            `echo Setup done > setup_done
             `);
-        await fs.chmod("./starter/setup.sh", "0777");
     })
     .command(["project:new", "./starter", "project"])
-    .it("Should provide starter environment variable", async () => {
+    .it("Should provide starter environment variable and cross-env", async () => {
         const files = {
             setup_done: "Setup done\n"
         };
@@ -477,8 +476,7 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed with exit code 127: badcommand\n` +
-            `/bin/sh: 1: badcommand: not found\n`);
+            `'badcommand' not found\n`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error on bad command");
@@ -486,8 +484,14 @@ describe("project:new scripts", () => {
     basicTestChain
     .do(async () => {
         await fs.ensureDir("./starter");
+        await fs.writeFile("./starter/init.js", `
+            console.log("To stdout");
+            console.error("To stderr");
+            process.exit(2);
+        `);
         await fs.writeJson("./starter/adapt_starter.json", {
-            init: "echo To stdout ; echo To stderr 1>&2; false",
+            // tslint:disable-next-line: no-invalid-template-strings
+            init: "cross-env-shell node ${ADAPT_STARTER_DIR}/init.js",
         });
     })
     .command(["project:new", "./starter", "project"])
@@ -495,14 +499,15 @@ describe("project:new scripts", () => {
         expect(err.message).equals(
             `Unable to use './starter' as a starter: ` +
             `Error running init script:\n` +
-            `Command failed with exit code 1: echo To stdout ; echo To stderr 1>&2; false\n` +
+            `Command failed with exit code 2: cross-env-shell node \${ADAPT_STARTER_DIR}/init.js\n` +
             `To stdout\n` +
             `To stderr\n`);
         expect((err as any).oclif.exit).equals(2);
     })
     .it("Should error on non-zero exit code");
 
-    async function createArgsStarter() {
+    async function createArgsStarter(crossEnv = true) {
+        const prefix = crossEnv ? "cross-env-shell bash " : "";
         await fs.ensureDir("./starter");
         // A little script that just outputs its args
         await fs.writeFile("./starter/init.sh",
@@ -518,7 +523,7 @@ describe("project:new scripts", () => {
         await fs.chmod("./starter/init.sh", "0777");
         await fs.writeJson("./starter/adapt_starter.json", {
             // tslint:disable-next-line: no-invalid-template-strings
-            init: "${ADAPT_STARTER_DIR}/init.sh",
+            init: prefix + "${ADAPT_STARTER_DIR}/init.sh",
         });
     }
 
@@ -538,18 +543,22 @@ describe("project:new scripts", () => {
         expect(output).equals("arg1\narg2\n");
     });
 
-    const specialArgs = [
-        `arg one`,
-        ` "arg2'`,
-        ` ; arg3 | `,
-        ` \\ arg4`,
-    ];
+    // Argument parsing on Windows is a mess, so only run this test on POSIX
+    if (process.platform !== "win32") {
 
-    basicTestChain
-    .do(createArgsStarter)
-    .command(["project:new", "./starter", "project", ...specialArgs])
-    .it("Should handle args with special chars", async () => {
-        const output = (await fs.readFile("./project/output")).toString();
-        expect(output).equals(specialArgs.join("\n") + "\n");
-    });
+        const specialArgs = [
+            `arg one`,
+            ` "arg2'`,
+            ` ; arg3 | `,
+            ` \\ arg4`,
+        ];
+
+        basicTestChain
+        .do(() => createArgsStarter(false))
+        .command(["project:new", "./starter", "project", ...specialArgs])
+        .it("Should handle args with special chars", async () => {
+            const output = (await fs.readFile("./project/output")).toString();
+            expect(output).equals(specialArgs.join("\n") + "\n");
+        });
+    }
 });
