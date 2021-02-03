@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ export type ResourceProps = { key: string } & (
     ResourceDaemonSet |
     ResourcePod |
     ResourceService |
+    ResourceServiceAccount |
     ResourceConfigMap |
     ResourceSecret |
     ResourceCR
@@ -139,6 +140,14 @@ export interface ResourcePod extends ResourceBase {
 export interface ResourceService extends ResourceBase {
     kind: "Service";
     spec: ServiceSpec;
+}
+
+/** @public */
+export interface ResourceServiceAccount extends ResourceBase {
+    kind: "ServiceAccount";
+    automountServiceAccountToken?: boolean;
+    imagePullSecrets?: { name: string }[];
+    secrets?: ObjectReference[];
 }
 
 /** @public */
@@ -277,4 +286,53 @@ export interface PodTemplateSpec {
      */
     // tslint:enable: max-line-length
     spec: PodSpec;
+}
+
+/**
+ * ObjectReference from k8s API
+ *
+ * @public
+ */
+export interface ObjectReference {
+    /**
+     * If referring to a piece of an object instead of an entire object,
+     * this string should contain a valid JSON/Go field access statement,
+     * such as desiredState.manifest.containers[2].
+     *
+     * For example, if the object reference is to a container within a pod,
+     * this would take on a value like: "spec.containers\{name\}" (where "name"
+     * refers to the name of the container that triggered the event) or if no
+     * container name is specified "spec.containers[2]"
+     * (container with index 2 in this pod).
+     * This syntax is chosen only to have some well-defined way of referencing a
+     * part of an object.
+     */
+    fieldPath: string;
+    /**
+     * Name of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names}
+     *
+     */
+    name: string;
+    /**
+     * Namespace of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/}
+     */
+    namespace: string;
+    // tslint:disable: max-line-length
+    /**
+     * Specific resourceVersion to which this reference is made, if any.
+     *
+     * More info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency}
+     */
+    // tslint:enable: max-line-length
+    resourceVersion: string;
+    /**
+     * UID of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids}
+     */
+    uid: string;
 }
