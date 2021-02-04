@@ -20,6 +20,7 @@
   * @public
   */
 export * from "./ClusterRole";
+export * from "./ClusterRoleBinding";
 export * from "./ConfigMap";
 export * from "./Container";
 export * from "./DaemonSet";

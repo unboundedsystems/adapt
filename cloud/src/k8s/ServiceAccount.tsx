@@ -126,4 +126,9 @@ export const serviceAccountResourceInfo = {
     }
 };
 
+/** @public */
+export function isServiceAccountProps(p: ResourceProps): p is ResourceProps & ResourceServiceAccount {
+    return (p.kind === "ServiceAccount");
+}
+
 registerResourceKind(serviceAccountResourceInfo);

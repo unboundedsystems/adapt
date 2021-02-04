@@ -51,6 +51,7 @@ export interface Metadata {
 /** @public */
 export type ResourceProps = { key: string } & (
     ResourceClusterRole |
+    ResourceClusterRoleBinding |
     ResourceDaemonSet |
     ResourcePod |
     ResourceService |
@@ -187,6 +188,51 @@ export interface ResourceClusterRole extends ResourceBase {
     kind: "ClusterRole";
     aggregationRule?: AggregationRule;
     rules?: PolicyRule[];
+}
+
+/**
+ * RoleRef for {@link k8s.ResourceClusterRoleBinding}
+ *
+ * @public
+ */
+export interface RoleRef {
+    /** apiGroup is the group for the resource being referenced */
+    apiGroup: string;
+    /** kind is the type of resource being referenced */
+    kind: string;
+    /** Name is the name of resource being referenced */
+    name: string;
+}
+
+/**
+ * Subject for {@link k8s.ResourceClusterRoleBinding}
+ *
+ * @public
+ */
+export interface Subject {
+    /** apiGroup is the group for the object being referenced */
+    apiGroup: string;
+    /** kind is the type of object being referenced */
+    kind: string;
+    /**
+     * Name of the object being referenced.
+     */
+    name: string;
+    /**
+     * Namespace of the referenced object.
+     *
+     * If the object kind is non-namespace, such as "User" or "Group", and this value
+     * is not empty the Authorizer should report an error.
+     */
+    namespace?: string;
+}
+
+/** @public */
+export interface ResourceClusterRoleBinding extends ResourceBase {
+    apiVersion: "rbac.authorization.k8s.io/v1";
+    kind: "ClusterRoleBinding";
+    roleRef: RoleRef;
+    subjects: Subject[];
 }
 
 /** @public */

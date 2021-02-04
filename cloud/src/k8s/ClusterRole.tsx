@@ -113,4 +113,9 @@ export const clusterRoleResourceInfo = {
     }
 };
 
+/** @public */
+export function isClusterRoleProps(props: ResourceProps): props is ResourceProps & ResourceClusterRole {
+    return props.kind === "ClusterRole";
+}
+
 registerResourceKind(clusterRoleResourceInfo);
