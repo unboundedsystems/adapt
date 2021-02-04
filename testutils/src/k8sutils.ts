@@ -16,7 +16,6 @@
 
 import { sleep } from "@adpt/utils";
 import { filter } from "lodash";
-import * as util from "util";
 
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
@@ -78,7 +77,7 @@ export interface ClientOptions {
 
 export interface GetOptions extends ClientOptions {
     deployID?: string;
-    namespaces?: string[];
+    namespaces?: (typeof globalNS | string)[];
     onlyAdapt?: boolean;
 }
 const getDefaults = {
@@ -87,9 +86,11 @@ const getDefaults = {
     onlyAdapt: true,
 };
 
+export const globalNS = Symbol();
+
 export interface DeleteOptions extends ClientOptions {
     deployID?: string;
-    namespaces?: string[];
+    namespaces?: (typeof globalNS | string)[];
     onlyAdapt?: boolean;
     waitTimeMs?: number;
 }
@@ -106,7 +107,10 @@ export async function getAll(apiName: string, options: GetOptions) {
     const client = await clientFromOptions(opts);
 
     for (const ns of opts.namespaces) {
-        const response = await client.namespaces(ns)[apiName].get();
+        const response =
+            (ns === globalNS)
+                ? await client[apiName].get()
+                : await client.namespaces(ns)[apiName].get();
         if (response.statusCode !== 200) {
             throw new Error(`k8s client returned status ${response.statusCode}`);
         }
@@ -129,11 +133,9 @@ export async function getAll(apiName: string, options: GetOptions) {
     return resources;
 }
 
-export function getNS(resource: any): string {
+export function getNS(resource: any): string | typeof globalNS {
     const ns = resource && resource.metadata && resource.metadata.namespace;
-    if (typeof ns !== "string") {
-        throw new Error(`Resource object has no namespace: ${util.inspect(resource)}`);
-    }
+    if (typeof ns !== "string") return globalNS;
     return ns;
 }
 
@@ -148,7 +150,9 @@ export async function deleteAll(apiName: string, options: DeleteOptions) {
     if (resources.length === 0) return;
 
     for (const r of resources) {
-        await client.namespaces(getNS(r))[apiName](r.metadata.name).delete();
+        const ns = getNS(r);
+        if (ns === globalNS) await client[apiName](r.metadata.name).delete();
+        else await client.namespaces(ns)[apiName](r.metadata.name).delete();
     }
 
     do {
