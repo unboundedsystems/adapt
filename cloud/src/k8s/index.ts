@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
   *
   * @public
   */
+export * from "./ClusterRole";
 export * from "./ConfigMap";
 export * from "./Container";
 export * from "./DaemonSet";
