@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
   *
   * @public
   */
+export * from "./ClusterRole";
+export * from "./ClusterRoleBinding";
 export * from "./ConfigMap";
 export * from "./Container";
 export * from "./DaemonSet";
@@ -27,6 +29,7 @@ export * from "./Resource"; //This must be before Pod and Service, but why?
 export * from "./Pod";
 export * from "./Secret";
 export * from "./Service";
+export * from "./ServiceAccount";
 export * from "./ServiceDeployment";
 export * from "./common";
 export * from "./utils";

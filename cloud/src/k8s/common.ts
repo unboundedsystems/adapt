@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,9 +50,12 @@ export interface Metadata {
 
 /** @public */
 export type ResourceProps = { key: string } & (
+    ResourceClusterRole |
+    ResourceClusterRoleBinding |
     ResourceDaemonSet |
     ResourcePod |
     ResourceService |
+    ResourceServiceAccount |
     ResourceConfigMap |
     ResourceSecret |
     ResourceCR
@@ -122,6 +125,116 @@ export interface ResourceBase {
     metadata?: Metadata;
 }
 
+/**
+ * @public
+ */
+export interface PolicyRule {
+    /**
+     * APIGroups is the name of the APIGroup that contains the resources.
+     *
+     * If multiple API groups are specified, any action requested against one
+     * of the enumerated resources in any API group will be allowed.
+     */
+    apiGroups?: string[];
+    /**
+     * NonResourceURLs is a set of partial urls that a user should have access to.
+     *
+     * *s are allowed, but only as the full, final step in the path.
+     * Since non-resource URLs are not namespaced, this field is only applicable
+     * for ClusterRoles referenced from a ClusterRoleBinding.
+     * Rules can either apply to API resources (such as "pods" or "secrets") or
+     * non-resource URL paths (such as "/api"), but not both.
+     */
+    nonResourceURLs?: string[];
+    /**
+     * ResourceNames is an optional white list of names that the rule applies to.
+     *
+     * An empty set means that everything is allowed.
+     */
+    resourceNames?: string[];
+    /**
+     * Resources is a list of resources this rule applies to.
+     *
+     * ResourceAll represents all resources.
+     */
+    resources: string[];
+    /**
+     * Verbs is a list of Verbs that apply to ALL the ResourceKinds and
+     * AttributeRestrictions contained in this rule.
+     *
+     * VerbAll represents all kinds.
+     */
+    verbs: string[];
+}
+
+/**
+ * AggregationRule for {@link k8s.ClusterRole}
+ *
+ * @public
+ */
+export interface AggregationRule {
+    /**
+     * ClusterRoleSelectors holds a list of selectors which will be used to
+     * find ClusterRoles and create the rules.
+     *
+     * If any of the selectors match, then the ClusterRole's permissions will be added
+     */
+    clusterRoleSelector: LabelSelector;
+}
+
+/** @public */
+export interface ResourceClusterRole extends ResourceBase {
+    apiVersion: "rbac.authorization.k8s.io/v1";
+    kind: "ClusterRole";
+    aggregationRule?: AggregationRule;
+    rules?: PolicyRule[];
+}
+
+/**
+ * RoleRef for {@link k8s.ResourceClusterRoleBinding}
+ *
+ * @public
+ */
+export interface RoleRef {
+    /** apiGroup is the group for the resource being referenced */
+    apiGroup: string;
+    /** kind is the type of resource being referenced */
+    kind: string;
+    /** Name is the name of resource being referenced */
+    name: string;
+}
+
+/**
+ * Subject for {@link k8s.ResourceClusterRoleBinding}
+ *
+ * @public
+ */
+export interface Subject {
+    /** apiGroup is the group for the object being referenced */
+    apiGroup: string;
+    /** kind is the type of object being referenced */
+    kind: string;
+    /**
+     * Name of the object being referenced.
+     */
+    name: string;
+    /**
+     * Namespace of the referenced object.
+     *
+     * If the object kind is non-namespace, such as "User" or "Group", and this value
+     * is not empty the Authorizer should report an error.
+     */
+    namespace?: string;
+}
+
+/** @public */
+export interface ResourceClusterRoleBinding extends ResourceBase {
+    apiVersion: "rbac.authorization.k8s.io/v1";
+    kind: "ClusterRoleBinding";
+    roleRef: RoleRef;
+    subjects: Subject[];
+}
+
 /** @public */
 export interface ResourceDaemonSet extends ResourceBase {
     apiVersion: "apps/v1";
@@ -139,6 +252,14 @@ export interface ResourcePod extends ResourceBase {
 export interface ResourceService extends ResourceBase {
     kind: "Service";
     spec: ServiceSpec;
+}
+
+/** @public */
+export interface ResourceServiceAccount extends ResourceBase {
+    kind: "ServiceAccount";
+    automountServiceAccountToken?: boolean;
+    imagePullSecrets?: { name: string }[];
+    secrets?: ObjectReference[];
 }
 
 /** @public */
@@ -277,4 +398,53 @@ export interface PodTemplateSpec {
      */
     // tslint:enable: max-line-length
     spec: PodSpec;
+}
+
+/**
+ * ObjectReference from k8s API
+ *
+ * @public
+ */
+export interface ObjectReference {
+    /**
+     * If referring to a piece of an object instead of an entire object,
+     * this string should contain a valid JSON/Go field access statement,
+     * such as desiredState.manifest.containers[2].
+     *
+     * For example, if the object reference is to a container within a pod,
+     * this would take on a value like: "spec.containers\{name\}" (where "name"
+     * refers to the name of the container that triggered the event) or if no
+     * container name is specified "spec.containers[2]"
+     * (container with index 2 in this pod).
+     * This syntax is chosen only to have some well-defined way of referencing a
+     * part of an object.
+     */
+    fieldPath: string;
+    /**
+     * Name of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names}
+     *
+     */
+    name: string;
+    /**
+     * Namespace of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/}
+     */
+    namespace: string;
+    // tslint:disable: max-line-length
+    /**
+     * Specific resourceVersion to which this reference is made, if any.
+     *
+     * More info: {@link https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency}
+     */
+    // tslint:enable: max-line-length
+    resourceVersion: string;
+    /**
+     * UID of the referent.
+     *
+     * More info: {@link https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids}
+     */
+    uid: string;
 }
