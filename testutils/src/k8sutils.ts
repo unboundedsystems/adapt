@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,10 @@
 
 import { sleep } from "@adpt/utils";
 import { filter } from "lodash";
-
 // tslint:disable-next-line:no-var-requires
 const k8s = require("kubernetes-client");
+// tslint:disable-next-line: variable-name no-submodule-imports no-var-requires
+const Request = require("kubernetes-client/backends/request");
 
 export interface AnyObj {
     [key: string]: any;
@@ -40,14 +41,14 @@ export interface K8sConfig {
 }
 
 export async function getClient(clientConfig: K8sConfig): Promise<KubeClient> {
-    const client = new k8s.Client({ config: clientConfig });
+    const client = new k8s.Client({ backend: new Request(clientConfig) });
     await client.loadSpec();
     if (client.api == null) throw new Error(`k8s client api is null`);
     return client;
 }
 
 export function getK8sConfig(kubeConfig: KubeConfig): K8sConfig {
-    return k8s.config.fromKubeconfig(kubeConfig);
+    return Request.config.fromKubeconfig(kubeConfig);
 }
 
 function getClientObj(client: KubeClient, apiPrefix: string) {
