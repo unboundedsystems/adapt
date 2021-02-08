@@ -16,21 +16,14 @@
 
 import Adapt, {
     AdaptElement,
-    AdaptMountedElement,
-    AnyProps,
     BuildData,
     gql,
     Handle,
-    isHandle,
-    isMountedElement,
     ObserveForStatus,
     SFCBuildProps,
     SFCDeclProps,
-    useBuildHelpers,
-    useState
-} from "@adpt/core";
+    useBuildHelpers} from "@adpt/core";
 import { notNull, removeUndef } from "@adpt/utils";
-import * as ld from "lodash";
 import { isClusterRoleProps } from "./ClusterRole";
 import {
     ClusterInfo,
@@ -45,6 +38,7 @@ import { K8sObserver } from "./k8s_observer";
 import { Manifest, registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { Resource } from "./Resource";
 import { isServiceAccountProps } from "./ServiceAccount";
+import { useResource, useResources } from "./utils";
 
 /**
  * Props for the {@link k8s.ServiceAccount} resource
@@ -64,70 +58,6 @@ interface ClusterRoleBindingProps {
 const defaultProps = {
     metadata: {}
 };
-
-function isNotReady<ValT, NotReadyT>(x: ValT | NotReadyT, nr: NotReadyT): x is NotReadyT {
-    return ld.isEqual(x, nr);
-}
-
-function useResources<ValT, NotReadyT>({
-        initial,
-        notReady,
-        kinds,
-        thisResourceName,
-        propName,
-    }: {
-        initial: ValT[],
-        notReady: NotReadyT,
-        kinds: string[],
-        thisResourceName: string,
-        propName: string,
-    }): [
-        (ValT | NotReadyT)[],
-        (props: (ValT | Handle)[], f: (e: AdaptMountedElement, props: ResourceProps) => Promise<ValT> | ValT) => void
-    ] {
-    const [value, updateState] = useState<(ValT | NotReadyT)[]>(initial);
-    return [
-        value,
-        (props: (ValT | Handle)[], f: (e: AdaptMountedElement, props: ResourceProps) => Promise<ValT> | ValT) => {
-            updateState(async () => {
-                return Promise.all(props.map(async (prop) => {
-                    if (!isHandle(prop)) return prop;
-                    if (!prop.target) return notReady;
-                    if (!isMountedElement(prop.target)) return notReady;
-
-                    if (prop.target.componentType !== Resource) {
-                        throw new Error(`${thisResourceName} cannot handle ${propName} of type ${prop.target.componentType.name}`);
-                    }
-                    const targetProps: ResourceProps = prop.target.props as AnyProps as ResourceProps;
-                    if (!kinds.includes(targetProps.kind)) {
-                        throw new Error(`${thisResourceName} cannot handle ${propName} of kind ${targetProps.kind}`);
-                    }
-                    return f(prop.target, targetProps);
-                }));
-            });
-        }
-    ];
-}
-
-function useResource<ValT, NotReadyT>(opts: {
-        initial: ValT | NotReadyT,
-        notReady: NotReadyT,
-        kinds: string[],
-        thisResourceName: string,
-        propName: string,
-    }): [
-        ValT | NotReadyT,
-        (prop: ValT | Handle, f: (e: AdaptMountedElement, props: ResourceProps) => Promise<ValT> | ValT) => void
-    ] {
-    const [vals, update] = useResources<ValT, NotReadyT>({
-        ...opts,
-        initial: isNotReady(opts.initial, opts.notReady) ? [] : [opts.initial],
-    });
-    return [
-        vals[0],
-        (prop, f) => update([prop], f)
-    ];
-}
 
 /**
  * k8s ClusterRoleBinding resource
