@@ -49,7 +49,8 @@ import {
     podResourceInfo,
     resourceElementToName,
     ResourcePod,
-    Secret
+    Secret,
+    ServiceAccount
 } from "../../src/k8s";
 import { labelKey } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
@@ -274,6 +275,40 @@ describe("k8s Pod Component Tests", () => {
         should(volumeMounts[0].mountPath).equal("/secret0");
     });
 
+    it("Should resolve serviceAccount correctly", async () => {
+        const podHandle = handle();
+        const serviceAccountHandle = handle();
+        const orig = <Group>
+            <ServiceAccount handle={serviceAccountHandle} config={dummyConfig} />
+            <Pod
+              key="test"
+              handle={podHandle}
+              config={dummyConfig}
+              serviceAccountName={serviceAccountHandle}
+            >
+                <K8sContainer
+                    name="container"
+                    image="node:latest"
+                />
+            </Pod>
+        </Group>;
+
+        should(orig).not.Undefined();
+        const deployID = "foo";
+        const { contents: dom } = await Adapt.build(orig, null, { deployID });
+        if (dom == null) throw should(dom).not.Null();
+
+        const podTarget = podHandle.target;
+        if (podTarget == undefined) throw should(podTarget).not.Undefined();
+        const serviceAccountTarget = serviceAccountHandle.target;
+        if (serviceAccountTarget == undefined) throw should(serviceAccountTarget).not.Undefined();
+
+        const props = podTarget.props as ResourcePod & BuiltinProps;
+        should(props.kind).equal("Pod");
+        const podSpec = props.spec;
+        should(podSpec).not.Undefined();
+        should(podSpec.serviceAccountName).equal(resourceElementToName(serviceAccountTarget, deployID));
+    });
 });
 
 async function waitForDeployed(mountedOrig: AdaptMountedElement, dom: AdaptMountedElement, deployID: string) {

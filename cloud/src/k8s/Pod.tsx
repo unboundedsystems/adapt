@@ -33,7 +33,6 @@ import Adapt, {
 } from "@adpt/core";
 import { InternalError, Omit, removeUndef } from "@adpt/utils";
 import ld from "lodash";
-import { isArray } from "util";
 import {
     ClusterInfo,
     computeNamespaceFromMetadata,
@@ -47,6 +46,7 @@ import { ContainerSpec, isK8sContainerElement, K8sContainer, K8sContainerProps }
 import { K8sObserver } from "./k8s_observer";
 import { registerResourceKind, resourceElementToName, resourceIdToName } from "./manifest_support";
 import { isResource, Resource } from "./Resource";
+import { isServiceAccountProps } from "./ServiceAccount";
 
 /** @public */
 export interface NodeSelectorRequirement {
@@ -842,7 +842,7 @@ export interface PodProps extends WithChildren {
      * ServiceAccountName is the name of the ServiceAccount to use to run this pod.
      * More info: {@link https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/}
      */
-    serviceAccountName?: string;
+    serviceAccountName?: string | Handle;
 
     /**
      * If true the pod's hostname will be configured as the pod's FQDN, rather than the leaf name (the default).
@@ -935,7 +935,10 @@ function containerSpecProps(props: K8sContainerProps & BuiltinProps) {
 }
 
 /** @internal */
-export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[] | undefined) {
+export function makePodManifest(props: PodProps & BuiltinProps, data: {
+    volumes?: Volume[];
+    serviceAccountName?: string;
+}) {
     const { key, handle, isTemplate, metadata, config, children, volumes: origVolumes, ...propsLL } = props;
     const containers = ld.compact(
         childrenToArray(props.children)
@@ -948,7 +951,10 @@ export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[
         }))
             .map(defaultize)
             .map(removeUndef),
-        volumes
+        ...removeUndef({
+            serviceAccountName: data.serviceAccountName,
+        }),
+        volumes: data.volumes,
     };
 
     return {
@@ -960,6 +966,10 @@ export function makePodManifest(props: PodProps & BuiltinProps, volumes: Volume[
 
 interface ResolvedVolumes {
     volumes?: Volume[];
+}
+
+interface ResolvedServiceAccountName {
+    serviceAccountName?: string;
 }
 
 function resolveMappedVolumeHandle(vol: Volume, deployID: string, toResolve: { [key: string]: { field: string } }) {
@@ -1026,12 +1036,29 @@ function resolveVolumeHandles(volumes: Volume[] | undefined, deployID: string) {
     };
 }
 
+function resolveServiceAccountName(serviceAccountName: string | Handle | undefined, deployID: string) {
+    if (serviceAccountName === undefined) return undefined;
+    if (!isHandle(serviceAccountName)) return { serviceAccountName };
+    const target = serviceAccountName.target;
+    //A bogus name makes the pod undeployable so it watis for the service account to be ready
+    if (!isMountedElement(target)) {
+        return { serviceAccountName: `bogusServiceAccountName` };
+    }
+    if (!isResource(target)) {
+        throw new Error("Cannot have non-resource element as Pod serviceAccountName");
+    }
+    if (!isServiceAccountProps(target.props)) {
+        throw new Error(`Cannot have resource of type ${target.props.kind} as Pod serviceAccountName`);
+    }
+    return { serviceAccountName: resourceElementToName(target, deployID) };
+}
+
 /**
  * Component for Kubernetes Pods
  *
  * @public
  */
-export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
+export class Pod extends DeferredComponent<PodProps, ResolvedVolumes & ResolvedServiceAccountName> {
     static defaultProps = {
         isTemplate: false,
         metadata: {},
@@ -1048,7 +1075,10 @@ export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
     initialState() { return {}; }
 
     build(helpers: BuildHelpers) {
-        this.setState(() => resolveVolumeHandles(this.props.volumes, helpers.deployID));
+        this.setState(() => ({
+            ...resolveVolumeHandles(this.props.volumes, helpers.deployID),
+            ...resolveServiceAccountName(this.props.serviceAccountName, helpers.deployID)
+        }));
         const { key } = this.props;
         if (!key) throw new InternalError("key is null");
         const children = childrenToArray(this.props.children);
@@ -1062,7 +1092,7 @@ export class Pod extends DeferredComponent<PodProps, ResolvedVolumes> {
             throw new BuildNotImplemented(`Duplicate names within a pod: ${dupNames.join(", ")}`);
         }
 
-        const manifest = makePodManifest(this.props as PodProps & BuiltinProps, this.state.volumes);
+        const manifest = makePodManifest(this.props as PodProps & BuiltinProps, this.state);
         return (<Resource
             key={key}
             // tslint:disable-next-line: no-object-literal-type-assertion
@@ -1112,7 +1142,7 @@ function isReady(status: any) {
     if (status.phase !== "Running") return false;
     const conditions = status.conditions;
     if (!conditions) return false;
-    if (!isArray(conditions)) return false;
+    if (!Array.isArray(conditions)) return false;
     if (conditions.filter((c: any) => (c.type === "Ready") && (c.status === "True")).length !== 0) return true;
     return false;
 }
