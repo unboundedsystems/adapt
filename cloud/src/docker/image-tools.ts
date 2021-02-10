@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Unbounded Systems, LLC
+ * Copyright 2020-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 import { fetchToCache } from "@adpt/utils";
-import execa from "execa";
 import path from "path";
-import { cmdId, debug, debugOut, streamToDebug } from "./cli";
+import { exec } from "./cli";
 import { ImageIdString, ImageNameString, NameTagString } from "./types";
 
 const craneVersion = "v0.2.1";
@@ -63,23 +62,7 @@ async function cranePath() {
 /** @internal */
 export async function execCrane(args: string[]) {
     const crane = await cranePath();
-
-    const cmdDebug =
-        debugOut.enabled ? debugOut.extend((cmdId()).toString()) :
-            debug.enabled ? debug :
-                null;
-    if (cmdDebug) cmdDebug(`Running: ${crane} ${args.join(" ")}`);
-    try {
-        const ret = execa(crane, args, { all: true });
-        if (debugOut.enabled && cmdDebug) {
-            streamToDebug(ret.stdout, cmdDebug);
-            streamToDebug(ret.stderr, cmdDebug);
-        }
-        return await ret;
-    } catch (e) {
-        if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
-        throw e;
-    }
+    return exec(crane, args);
 }
 
 const copyDigestRe = /digest: +(sha\d+:[0-9a-f]+) /m;

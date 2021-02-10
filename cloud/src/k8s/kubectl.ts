@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { fetchToCache, withTmpDir } from "@adpt/utils";
-import execa = require("execa");
+import { debugExec, fetchToCache, withTmpDir } from "@adpt/utils";
+import db from "debug";
+import execa from "execa";
 import { writeFile } from "fs-extra";
 import * as ld from "lodash";
 import * as os from "os";
@@ -26,6 +27,12 @@ import { isExecaError } from "../common";
 import { Environment, mergeEnvSimple } from "../env";
 import { Kubeconfig } from "./common";
 import { Manifest } from "./manifest_support";
+
+export const debug = db("adapt:cloud:k8s");
+// Enable with DEBUG=adapt:cloud:k8s:out*
+export const debugOut = db("adapt:cloud:k8s:out");
+
+const exec = debugExec(debug, debugOut);
 
 function kubectlPlatform(platform: string) {
     switch (platform) {
@@ -65,23 +72,28 @@ interface KubectlOptions {
     /** path to kubeconfig */
     kubeconfig?: string;
     env?: Environment;
+    printFailure?: boolean;
+    reject?: boolean;
 }
-const kubectlDefaults = {};
+const kubectlDefaults = {
+    printFailure: true,
+    reject: true,
+};
 
 export async function kubectl(args: string[], options: KubectlOptions) {
     const kubectlPath = await getKubectl();
-    const opts = { ...kubectlDefaults, ...options };
+    const { kubeconfig, env, printFailure, reject } = { ...kubectlDefaults, ...options };
     const actualArgs = [];
 
-    const kubeconfigLoc = opts.kubeconfig;
-    if (kubeconfigLoc) actualArgs.push("--kubeconfig", kubeconfigLoc);
+    if (kubeconfig) actualArgs.push("--kubeconfig", kubeconfig);
 
     actualArgs.push(...args);
-    let execaOptions: execa.Options = { all: true };
-    if (options.env !== undefined) {
-        execaOptions = { ...execaOptions, env: mergeEnvSimple(options.env) };
-    }
-    return execa(kubectlPath, actualArgs, execaOptions);
+
+    return exec(kubectlPath, actualArgs, {
+        env: mergeEnvSimple(env),
+        printFailure,
+        reject,
+    });
 }
 
 async function getKubeconfigPath(tmpDir: string, config: Kubeconfig | string) {
@@ -115,7 +127,6 @@ export async function kubectlGet(options: KubectlGetOptions) {
             result = await kubectl(args, { kubeconfig: configPath });
         } catch (e) {
             if (isExecaError(e) && e.all) {
-                e.message = `${e.shortMessage}\n${e.all}`;
                 if (e.exitCode !== 0) {
                     if (e.all.match(/Error from server \(NotFound\)/)) return undefined;
                 }
@@ -133,17 +144,6 @@ export interface KubectlDiffOptions {
 }
 
 const diffDefaults = {};
-
-async function doExeca(f: () => Promise<execa.ExecaReturnValue<string>>):
-    Promise<execa.ExecaError<string> | execa.ExecaReturnValue<string>> {
-    try {
-        return await f();
-    } catch (e) {
-        if (!isExecaError(e)) throw e;
-        if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
-        return e;
-    }
-}
 
 const lastApplied = "kubectl.kubernetes.io/last-applied-configuration";
 
@@ -170,17 +170,21 @@ export async function kubectlDiff(options: KubectlDiffOptions): Promise<KubectlD
 
         const args = ["diff", "-f", manifestLoc];
         let result: execa.ExecaError | execa.ExecaReturnValue<string> =
-            await doExeca(() => kubectl(args, {
+            await kubectl(args, {
                 env: diffEnv,
                 kubeconfig: configPath,
-            }));
+                printFailure: false,
+                reject: false,
+            });
 
         const serverInternalErrorRegex = new RegExp("^Error from server \\(InternalError\\)");
         if ((result.exitCode !== 0) && serverInternalErrorRegex.test(result.stderr)) {
             // Some k8s clusters, GKE included, do not support API-server dry-run for all resources,
             // which kubectl diff uses so fallback to using the old style client side diff algorithm that kubectl uses.
-            result = await doExeca(
-                () => kubectl(["get", "-o", "json", "-f", manifestLoc], { kubeconfig: configPath }));
+            result = await kubectl(["get", "-o", "json", "-f", manifestLoc], {
+                kubeconfig: configPath,
+                reject: false,
+            });
             if (result.exitCode === 0) {
                 const srvManifest = JSON.parse(result.stdout);
                 if (!srvManifest.annotations || !srvManifest.annotations[lastApplied]) {
@@ -272,12 +276,7 @@ export async function kubectlOpManifest(op: "create" | "apply" | "delete", optio
         if (op !== "delete" && dryRun) args.push("--dry-run");
         if (op === "delete" && dryRun) throw new Error("Cannot dry-run delete");
         if (op !== "create") args.push(`--wait=${opts.wait}`);
-        try {
-            return await kubectl(args, { kubeconfig: configPath });
-        } catch (e) {
-            if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
-            throw e;
-        }
+        return kubectl(args, { kubeconfig: configPath });
     });
 }
 
