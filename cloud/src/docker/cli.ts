@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-import { ensureError, FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
+import { debugExec, ensureError, FIXME_NeedsProperType, InternalError, withTmpDir } from "@adpt/utils";
 import db from "debug";
-import execa, { ExecaReturnValue, Options as ExecaOptions } from "execa";
+import { ExecaReturnValue, Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import ld from "lodash";
 import os from "os";
 import * as path from "path";
 import randomstring from "randomstring";
 import shellwords from "shellwords-ts";
-import { Readable } from "stream";
 import { OmitT, WithPartialT } from "type-ops";
 import { isExecaError } from "../common";
 import { Config, ContainerStatus, RestartPolicy } from "../Container";
@@ -46,15 +45,7 @@ export const debug = db("adapt:cloud:docker");
 // Enable with DEBUG=adapt:cloud:docker:out*
 export const debugOut = db("adapt:cloud:docker:out");
 
-let _cmdId = 0;
-export const cmdId = () => ++_cmdId;
-
-// Should move to utils
-export function streamToDebug(s: Readable, d: db.IDebugger, prefix?: string) {
-    prefix = prefix ? `[${prefix}] ` : "";
-    s.on("data", (chunk) => d(prefix + chunk.toString()));
-    s.on("error", (err) => debug(prefix, err));
-}
+export const exec = debugExec(debug, debugOut);
 
 export const pickGlobals = (opts: DockerGlobalOptions): DockerGlobalOptions =>
     ld.pick(opts, "dockerHost");
@@ -168,25 +159,14 @@ export async function execDocker(argsIn: string[], options: ExecDockerOptions): 
         env,
     };
 
-    const cmdDebug =
-        debugOut.enabled ? debugOut.extend((cmdId()).toString()) :
-            debug.enabled ? debug :
-                null;
-    if (cmdDebug) cmdDebug(`Running: ${"docker " + args.join(" ")}`);
     try {
-        const ret = execa("docker", args, execaOpts);
-        if (debugOut.enabled && cmdDebug) {
-            streamToDebug(ret.stdout, cmdDebug);
-            streamToDebug(ret.stderr, cmdDebug);
-        }
-        return await ret;
+        return await exec("docker", args, execaOpts);
     } catch (e) {
         if (e.all) {
             if (e.all.includes("buildkit not supported by daemon")) {
                 buildKitUnsupported.set(options.dockerHost, true);
                 return execDocker(argsIn, options);
             }
-            e.message = `${e.shortMessage}\n${e.all}`;
         }
         throw e;
     }
@@ -242,7 +222,6 @@ export async function dockerBuild(
 
     const cmdRet = await execDocker(args, opts);
     const { stdout, stderr } = cmdRet;
-    if (debug.enabled) debugBuild(cmdRet);
 
     const id = await idFromBuild(stdout, stderr, opts);
     if (!id) throw new Error("Could not extract image sha\n" + stdout + "\n\n" + stderr);
@@ -285,22 +264,6 @@ async function idFromBuild(stdout: string, stderr: string, opts: DockerGlobalOpt
         return match[1];
     }
     return null;
-}
-
-function debugBuild(cmdRet: execa.ExecaReturnValue<string>) {
-    const steps: string[] = [];
-    let cur = "";
-    cmdRet.stdout.split("\n").forEach((l) => {
-        if (l.startsWith("Step")) {
-            if (cur) steps.push(cur);
-            cur = l;
-        } else if (l.startsWith(" ---> ")) {
-            cur += l;
-        }
-    });
-    if (cur) steps.push(cur);
-    const cached = cur.includes("Using cache");
-    debug(`docker ${cmdRet.command}:\n  Cached: ${cached}\n  ${steps.join("\n  ")}`);
 }
 
 /**

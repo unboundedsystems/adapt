@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 export * from "./ci_report";
 export * from "./common_types";
 export * from "./crypto";
+export * from "./debug_exec";
 export * from "./diff_objects";
 export * from "./dispatcher";
 export * from "./ensure_error";

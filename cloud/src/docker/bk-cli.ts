@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Unbounded Systems, LLC
+ * Copyright 2020-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 import { ensureError, fetchToCache, InternalError, withTmpDir } from "@adpt/utils";
-import execa, { Options as ExecaOptions } from "execa";
+import { Options as ExecaOptions } from "execa";
 import fs from "fs-extra";
 import { flatten, pick } from "lodash";
 import path from "path";
 import { Environment, mergeEnvPairs, mergeEnvSimple } from "../env";
 import { BuildKitBuildOptions, BuildKitGlobalOptions, BuildKitOutput, ImageStorage, isBuildKitOutputRegistry } from "./bk-types";
-import { cmdId, createTag, debug, debugOut, streamToDebug, writeFiles } from "./cli";
+import { createTag, exec, writeFiles } from "./cli";
 import { ImageRefRegistry, isImageRefRegistryWithId, mutableImageRef, MutableImageRef, WithId } from "./image-ref";
 import { registryDelete, registryImageId, registryTag } from "./image-tools";
 import { adaptDockerDeployIDKey } from "./labels";
@@ -224,22 +224,7 @@ export async function execBuildKit(args: string[], options: ExecBuildKitOptions)
     };
     const buildctl = await buildctlPath();
 
-    const cmdDebug =
-        debugOut.enabled ? debugOut.extend((cmdId()).toString()) :
-            debug.enabled ? debug :
-                null;
-    if (cmdDebug) cmdDebug(`Running: ${buildctl} ${args.join(" ")}`);
-    try {
-        const ret = execa(buildctl, args, execaOpts);
-        if (debugOut.enabled && cmdDebug) {
-            streamToDebug(ret.stdout, cmdDebug);
-            streamToDebug(ret.stderr, cmdDebug);
-        }
-        return await ret;
-    } catch (e) {
-        if (e.all) e.message = `${e.shortMessage}\n${e.all}`;
-        throw e;
-    }
+    return exec(buildctl, args, execaOpts);
 }
 
 /*

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Unbounded Systems, LLC
+ * Copyright 2020-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { debugExec } from "@adpt/utils";
 import db from "debug";
 import execa from "execa";
 import { isExecaError } from "../common";
@@ -21,6 +22,10 @@ import { EnvSimple } from "../env";
 import { Manifest } from "../k8s/manifest_support";
 
 const debug = db("adapt:cloud:gcloud");
+// Enable with DEBUG=adapt:cloud:gcloud:out*
+export const debugOut = db("adapt:cloud:gcloud:out");
+
+export const exec = debugExec(debug, debugOut);
 
 export interface GCloudGlobalOpts {
     configuration?: string;
@@ -130,23 +135,10 @@ export async function execGCloud(
     globalOpts: GCloudGlobalOpts,
     options: execa.Options = {}) {
 
-    const execaOpts = {
-        all: true,
-        ...options,
-    };
-
     const fullArgs = [ "--quiet", ...args ];
     if (globalOpts.configuration) {
         fullArgs.unshift(`--configuration=${globalOpts.configuration}`);
     }
 
-    debug(`Running: gcloud ${fullArgs.join(" ")}`);
-    try {
-        const ret = execa("gcloud", fullArgs, execaOpts);
-        return await ret;
-    } catch (e) {
-        if (isExecaError(e) && e.all) e.message = `${e.shortMessage}\n${e.all}`;
-        debug(`Failed: gcloud ${fullArgs.join(" ")}: ${e.message}`);
-        throw e;
-    }
+    return exec("gcloud", fullArgs, options);
 }
