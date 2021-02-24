@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { debugExec, fetchToCache, withTmpDir } from "@adpt/utils";
+import { debugExec, fetchToCache, notNull, withTmpDir } from "@adpt/utils";
 import db from "debug";
 import execa from "execa";
 import { writeFile } from "fs-extra";
@@ -111,17 +111,19 @@ export interface KubectlGetOptions {
     kind: string;
     /** Name of object to get */
     name: string;
+    /** Namespace of object to get */
+    namespace?: string;
 }
 const getManifestDefaults = {};
 
 /** @internal */
 export async function kubectlGet(options: KubectlGetOptions) {
     const opts = { ...getManifestDefaults, ...options };
-    const { kubeconfig, kind, name } = opts;
+    const { kubeconfig, kind, name, namespace } = opts;
     return withTmpDir(async (tmpDir) => {
         const configPath = kubeconfig && await getKubeconfigPath(tmpDir, kubeconfig);
 
-        const args = ["get", "-o", "json", kind, name];
+        const args = ["get", "-o", "json", namespace ? `--namespace=${namespace}` : null, kind, name].filter(notNull);
         let result: execa.ExecaReturnValue<string>;
         try {
             result = await kubectl(args, { kubeconfig: configPath });

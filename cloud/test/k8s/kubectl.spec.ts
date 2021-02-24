@@ -34,6 +34,14 @@ describe("kubectl utility function tests", function () {
     let kubeconfig: Kubeconfig;
     let client: k8sutils.KubeClient;
     const deployID = makeDeployId("kubectl");
+    const testNamespace = "utility-function-test";
+    const testNamespaceManifest: Manifest = {
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: {
+            name: testNamespace,
+        }
+    };
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
@@ -45,14 +53,24 @@ describe("kubectl utility function tests", function () {
     before(async function () {
         this.timeout("10s");
         await getKubectl();
+        await kubectlOpManifest("create", {
+            kubeconfig,
+            manifest: testNamespaceManifest,
+        });
     });
 
     afterEach(async function () {
         this.timeout(20 * 1000);
         if (client) {
-            await deleteAll("pods", { client, deployID });
-            await deleteAll("services", { client, deployID });
+            const namespaces = [ "default", testNamespace];
+            await deleteAll("pods", { client, deployID, namespaces });
+            await deleteAll("services", { client, deployID, namespaces });
         }
+    });
+
+    after(async function () {
+        this.timeout("1s");
+        await kubectlOpManifest("delete", { kubeconfig, manifest: testNamespaceManifest });
     });
 
     const origManifest: Manifest = {
@@ -74,20 +92,28 @@ describe("kubectl utility function tests", function () {
         }
     };
 
-    async function createOrigResource() {
+    async function createOrigResource({ namespace }: { namespace?: string } = {}) {
+        const manifest = {
+            ...origManifest,
+            metadata: {
+                ...origManifest.metadata,
+                namespace: namespace || origManifest.metadata.namespace,
+            }
+        };
         const result = await kubectlOpManifest("create", {
             kubeconfig,
-            manifest: origManifest
+            manifest,
         });
         should(result.stderr).empty();
         should(result.stdout).match(/created/);
         should(result.exitCode).equal(0);
 
-        const pods = await getAll("pods", { client, deployID });
+        const pods = await getAll("pods", { client, deployID, namespaces: [ namespace ? namespace : "default"] });
         should(pods).be.ok();
         should(pods).length(1);
         should(pods[0]).be.ok();
         should(pods[0].metadata.name).equal(origManifest.metadata.name);
+        return manifest;
     }
 
     it("should create object by manifest and get by name", async () => {
@@ -96,6 +122,21 @@ describe("kubectl utility function tests", function () {
             kubeconfig,
             name: origManifest.metadata.name,
             kind: origManifest.kind,
+        });
+        should(result).be.ok();
+        should(result.metadata).be.ok();
+        should(result.kind).equal(origManifest.kind);
+        should(result.metadata.name).equal(origManifest.metadata.name);
+        should(result.status).be.ok();
+    });
+
+    it("should create object by manifest and get by name and namespace", async () => {
+        const manifest = await createOrigResource({ namespace: testNamespace });
+        const result = await kubectlGet({
+            kubeconfig,
+            name: manifest.metadata.name,
+            namespace: manifest.metadata.namespace,
+            kind: manifest.kind,
         });
         should(result).be.ok();
         should(result.metadata).be.ok();

@@ -108,11 +108,12 @@ export class Resource extends Action<ResourceProps> {
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
-        const name = manifest.metadata.name;
+        const { name, namespace } = manifest.metadata;
         const kind = manifest.kind;
         const oldManifest = await kubectlGet({
             kubeconfig,
             name,
+            namespace,
             kind
         });
 
@@ -158,11 +159,12 @@ export class Resource extends Action<ResourceProps> {
         const kubeconfig = this.props.config.kubeconfig;
         const deployID = ctx.buildData.deployID;
         const manifest = this.manifest(deployID);
-        const name = manifest.metadata.name;
+        const { name, namespace } = manifest.metadata;
         const kind = manifest.kind;
         const info = await kubectlGet({
             kubeconfig,
             name,
+            namespace,
             kind
         });
         let deleted = false;

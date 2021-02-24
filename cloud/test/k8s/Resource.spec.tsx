@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ import {
     Resource,
     resourceElementToName,
 } from "../../src/k8s";
-import { deployIDToLabel, labelKey } from "../../src/k8s/manifest_support";
+import { kubectlOpManifest } from "../../src/k8s/kubectl";
+import { deployIDToLabel, labelKey, Manifest } from "../../src/k8s/manifest_support";
 import { mkInstance } from "../run_minikube";
 import { act, checkNoActions, doBuild, randomName } from "../testlib";
 import { forceK8sObserverSchemaLoad, K8sTestStatusType } from "./testlib";
@@ -64,6 +65,14 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
     let clusterInfo: ClusterInfo;
     let client: k8sutils.KubeClient;
     let deployID: string | undefined;
+    const testNamespace = "utility-function-test";
+    const testNamespaceManifest: Manifest = {
+        apiVersion: "v1",
+        kind: "Namespace",
+        metadata: {
+            name: testNamespace,
+        }
+    };
 
     before(async function () {
         this.timeout(mkInstance.setupTimeoutMs);
@@ -71,6 +80,10 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
         clusterInfo = { kubeconfig: await mkInstance.kubeconfig as Kubeconfig };
         client = await mkInstance.client;
         forceK8sObserverSchemaLoad();
+        await kubectlOpManifest("create", {
+            kubeconfig: clusterInfo.kubeconfig,
+            manifest: testNamespaceManifest,
+        });
     });
 
     beforeEach(async () => {
@@ -93,11 +106,21 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
         }
     });
 
-    function createPodDom(name: string) {
+    after(async () => {
+        await kubectlOpManifest("delete", {
+            kubeconfig: clusterInfo.kubeconfig,
+            manifest: testNamespaceManifest,
+        });
+    });
+
+    function createPodDom(name: string, namespace?: string) {
         return (
             <Resource key={name}
                 config={clusterInfo}
                 kind="Pod"
+                metadata={{
+                    namespace,
+                }}
                 spec={{
                     containers: [{
                         name: "container",
@@ -109,9 +132,9 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
         );
     }
 
-    async function createPod(name: string) {
+    async function createPod(name: string, namespace?: string) {
         if (!deployID) throw new Error(`Missing deployID?`);
-        const resElem = createPodDom(name);
+        const resElem = createPodDom(name, namespace);
 
         const { mountedOrig, dom } = await doBuild(resElem, { deployID });
         if (!isMountedElement(dom)) {
@@ -132,7 +155,7 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
 
         await act(actions);
 
-        const pods = await getAll("pods", { client, deployID });
+        const pods = await getAll("pods", { client, deployID, namespaces: ["default", testNamespace] });
         should(pods).length(1);
         should(pods[0].metadata.name)
             .equal(resourceElementToName(dom, options.deployID));
@@ -230,6 +253,35 @@ describe("k8s Resource Tests (Resource, Pod)", function () {
     it("Should delete pod", async () => {
         if (!deployID) throw new Error(`Missing deployID?`);
         const oldDom = await createPod("test");
+
+        const { dom } = await doBuild(<Group />, { deployID });
+        await plugin.start(options);
+        const obs = await plugin.observe(oldDom, dom);
+        const actions = plugin.analyze(oldDom, dom, obs);
+        should(actions.length).equal(1);
+        should(actions[0].type).equal(ChangeType.delete);
+        should(actions[0].detail).startWith("Deleting Pod");
+        should(actions[0].changes).have.length(1);
+        should(actions[0].changes[0].type).equal(ChangeType.delete);
+        should(actions[0].changes[0].detail).startWith("Deleting Pod");
+        should(actions[0].changes[0].element.componentName).equal("Resource");
+        should(actions[0].changes[0].element.props.key).equal("test");
+
+        await act(actions);
+
+        await sleep(6); // Sleep longer than termination grace period
+        const pods = await getAll("pods", { client, deployID });
+        if (pods.length !== 0) {
+            should(pods.length).equal(1);
+            should(pods[0].metadata.deletionGracePeriod).not.Undefined();
+        }
+
+        await plugin.finish();
+    });
+
+    it("Should delete pod in alternate namespace", async () => {
+        if (!deployID) throw new Error(`Missing deployID?`);
+        const oldDom = await createPod("test", testNamespace);
 
         const { dom } = await doBuild(<Group />, { deployID });
         await plugin.start(options);
