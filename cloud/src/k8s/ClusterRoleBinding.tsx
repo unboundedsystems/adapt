@@ -134,9 +134,9 @@ export const clusterRoleBindingResourceInfo = {
     deployedWhen: () => true as const,
     statusQuery: async (props: ResourcePropsWithConfig, observe: ObserveForStatus, buildData: BuildData) => {
         const obs: any = await observe(K8sObserver, gql`
-            query ($name: String!, $kubeconfig: JSON!, $namespace: String!) {
+            query ($name: String!, $kubeconfig: JSON!) {
                 withKubeconfig(kubeconfig: $kubeconfig) {
-                    readRbacAuthorizationV1ClusterRoleBinding(name: $name, namespace: $namespace) @all(depth: 100)
+                    readRbacAuthorizationV1ClusterRoleBinding(name: $name) @all(depth: 100)
                 }
             }`,
             {

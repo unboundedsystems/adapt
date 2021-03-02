@@ -222,7 +222,9 @@ describe("k8s ClusterRoleBinding operation tests", function () {
         }
     });
 
-    it("Should create handle-based ClusterRoleBinding", async () => {
+    async function createClusterRoleBinding({
+        timeoutInMs,
+    }: { timeoutInMs?: number }) {
         const cr = handle();
         const sa = handle();
         const orig = <Group>
@@ -241,7 +243,7 @@ describe("k8s ClusterRoleBinding operation tests", function () {
             />
         </Group>;
         const { dom } = await mockDeploy.deploy(orig, {
-            timeoutInMs: this.timeout() ? timeout : undefined,
+            timeoutInMs,
         });
         should(dom).not.Null();
 
@@ -268,5 +270,26 @@ describe("k8s ClusterRoleBinding operation tests", function () {
             kind: sa.target.props.kind,
             name: resourceElementToName(sa.target, mockDeploy.deployID)
         }]);
+    }
+
+    it("Should create handle-based ClusterRoleBinding", async () => {
+        await createClusterRoleBinding({ timeoutInMs: this.timeout() ? timeout : undefined });
+    });
+
+    it("Should delete handle-based ClusterRoleBinding", async () => {
+        await createClusterRoleBinding({ timeoutInMs: this.timeout() ? timeout : undefined });
+
+        const { dom } = await mockDeploy.deploy(null, {
+            timeoutInMs: this.timeout() ? timeout : undefined,
+        });
+        should(dom).Null();
+
+        const crbs = await getAll("clusterrolebindings", {
+            client,
+            deployID: mockDeploy.deployID,
+            namespaces: [ k8sutils.globalNS ],
+            apiPrefix: "apis/rbac.authorization.k8s.io/v1"
+        });
+        should(crbs).length(0);
     });
 });
