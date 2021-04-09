@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ describe("RegistryDockerImage", function () {
     interface BasicDom {
         buildOpts?: DockerBuildOptions;
         dockerfile?: string;
-        registryUrl?: string;
+        registryPrefix?: string;
         newTag?: string;
     }
     const defaultBuildOpts = {
@@ -84,7 +84,7 @@ describe("RegistryDockerImage", function () {
             FROM ${smallDockerImage}
             CMD sleep 10000
             `,
-        registryUrl: "localhost:5000",
+        registryPrefix: "localhost:5000",
     });
 
     async function deployBasicTest(options: BasicDom = {}) {
@@ -107,7 +107,7 @@ describe("RegistryDockerImage", function () {
                     <RegistryDockerImage
                         handle={iReg}
                         imageSrc={iSrc}
-                        registryUrl={opts.registryUrl}
+                        registryPrefix={opts.registryPrefix}
                         {...imageOpts}
                     />
                 </Sequence>
@@ -168,7 +168,7 @@ describe("RegistryDockerImage", function () {
     });
 
     it("Should push a built image to registry with full URL", async () => {
-        const { dom } = await deployBasicTest({ registryUrl: "http://localhost:5000"});
+        const { dom } = await deployBasicTest({ registryPrefix: "http://localhost:5000"});
         await checkBasicTest(dom);
     });
 
@@ -204,7 +204,7 @@ describe("RegistryDockerImage", function () {
                 <MockDockerImage handle={iSrc} />
                 <RegistryDockerImage
                         imageSrc={iSrc}
-                        registryUrl={registry}
+                        registryPrefix={registry}
                         {...imageOpts}
                 />
             </Group>;

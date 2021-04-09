@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,13 +39,15 @@ export interface RegistryDockerImageProps {
      */
     imageSrc: Handle<DockerPushableImageInstance>;
     /**
-     * URL or string for the registry where the image should be pushed and pulled
+     * Registry and path where the image should be pushed and pulled
      *
      * @remarks
-     * If this parameter is a string, registryUrl will be used for both push and pull
+     * If this parameter is a string, registryPrefix will be used for both push and pull
      *
-     * If registryUrl is of the form `{ external: string, internal: string }`, docker images wil be
+     * If registryPrefix is of the form `{ external: string, internal: string }`, docker images wil be
      * pushed to `external` and image strings will refer to `internal`.
+     *
+     * Registry prefixes can be of the form `domain/path/elements`, for example `gcr.io/myproject`.
      *
      * Note(manishv)
      * This is a bit of a hack to allow one hostname or IP address to push images from outside
@@ -63,7 +65,7 @@ export interface RegistryDockerImageProps {
      * is best if you can arrange to have the same URL or registry string work for all access regardless
      * of which network the registry, Adapt host, and ultimate container running environment is uses.
      */
-    registryUrl: string | DockerSplitRegistryInfo;
+    registryPrefix: string | DockerSplitRegistryInfo;
 
     /**
      * Path and tag to be used for the image in the new registry in
@@ -91,7 +93,7 @@ export interface RegistryDockerImageProps {
 
 interface State {
     image?: ImageRefRegistry;
-    registryUrl?: DockerSplitRegistryInfo;
+    registryPrefix?: DockerSplitRegistryInfo;
 }
 
 function buildNameTag(url: string, pathTag: string | undefined): NameTagString | undefined {
@@ -99,13 +101,13 @@ function buildNameTag(url: string, pathTag: string | undefined): NameTagString |
     return ir.nameTag;
 }
 
-function urlToRegistryString(registryUrl: string): RegistryString {
+function urlToRegistryString(registryPrefix: string): RegistryString {
     let ret: string;
-    if (registryUrl.startsWith("http")) {
-        const parsed = new URL(registryUrl);
+    if (registryPrefix.startsWith("http")) {
+        const parsed = new URL(registryPrefix);
         ret = parsed.host + parsed.pathname;
     } else {
-        ret = registryUrl;
+        ret = registryPrefix;
     }
     if (ret.endsWith("/")) ret = ret.slice(0, -1);
     return ret;
@@ -158,7 +160,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     constructor(props: RegistryDockerImageProps) {
         super(props);
 
-        this.registry = normalizeRegistryUrl(props.registryUrl);
+        this.registry = normalizeRegistryUrl(props.registryPrefix);
     }
 
     /**
@@ -175,7 +177,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     image() {
         const srcImage = callInstanceMethod<ImageRef | undefined>(this.props.imageSrc, undefined, "latestImage");
         const latestImg = this.latestImage();
-        const latestReg = this.latestRegistryUrl_ || this.state.registryUrl;
+        const latestReg = this.latestRegistryUrl_ || this.state.registryPrefix;
         if (!srcImage || !latestImg || !latestReg) return undefined;
         if (srcImage.id === latestImg.id &&
             this.currentNameTag(srcImage.pathTag) === latestImg.nameTag &&
@@ -225,7 +227,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
         this.latestRegistryUrl_ = this.registry;
         this.setState({
             image: this.latestImage_,
-            registryUrl: this.latestRegistryUrl_,
+            registryPrefix: this.latestRegistryUrl_,
         });
     }
 

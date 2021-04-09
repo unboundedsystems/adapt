@@ -324,7 +324,7 @@ describe("BuildKitImage", function () {
         buildOpts?: BuildKitBuildOptions;
         dockerfile?: string;
         output?: BuildKitOutputRegistry;
-        registryUrl: string;
+        registryPrefix: string;
         newPathTag?: string;
     }
     const defaultBasicDom = () => {
@@ -364,7 +364,7 @@ describe("BuildKitImage", function () {
                 <RegistryDockerImage
                     handle={iReg}
                     imageSrc={iSrc}
-                    registryUrl={opts.registryUrl}
+                    registryPrefix={opts.registryPrefix}
                     {...imageOpts}
                 />
                 <DockerContainer autoRemove={true} image={iReg} stopSignal="SIGKILL" />
@@ -404,7 +404,7 @@ describe("BuildKitImage", function () {
         let pathTag = opts.newPathTag || srcImageInfo.pathTag;
         if (!pathTag) throw should(pathTag).be.ok();
         if (!pathTag.includes(":")) pathTag += ":latest";
-        should(regImageInfo.nameTag).equal(`${options.registryUrl}/${pathTag}`);
+        should(regImageInfo.nameTag).equal(`${options.registryPrefix}/${pathTag}`);
         should(regImageInfo.id).equal(ctrInfo.Image);
         should(regImageInfo.digest).equal(srcImageInfo.digest);
 
@@ -427,7 +427,7 @@ describe("BuildKitImage", function () {
         };
         const opts = {
             output,
-            registryUrl: reg2Host,
+            registryPrefix: reg2Host,
         };
         const { dom } = await deployBasicTest(opts);
         await checkBasicTest(dom, opts);
@@ -442,7 +442,7 @@ describe("BuildKitImage", function () {
         const opts = {
             output,
             newPathTag: "new/repo/image:secondtag",
-            registryUrl: reg2Host,
+            registryPrefix: reg2Host,
         };
         const { dom } = await deployBasicTest(opts);
         await checkBasicTest(dom, opts);

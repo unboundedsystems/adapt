@@ -55,28 +55,28 @@ describe("makeClusterInfo Tests", () => {
     });
 
     it("Should return kubeconfig from  literal object", async () => {
-        const registryUrl = "foo";
-        const info = await makeClusterInfo({ kubeconfig, registryUrl });
-        should(info).eql({ kubeconfig, registryUrl });
+        const registryPrefix = "foo";
+        const info = await makeClusterInfo({ kubeconfig, registryPrefix });
+        should(info).eql({ kubeconfig, registryPrefix });
     });
 
     it("Should return kubeconfig from JSON", async () => {
         const kubeconfigJSON = JSON.stringify(kubeconfig);
         const info = await makeClusterInfo({ kubeconfig: kubeconfigJSON });
-        should(info).eql({ kubeconfig, registryUrl: undefined });
+        should(info).eql({ kubeconfig, registryPrefix: undefined });
     });
 
     it("Should return kubeconfig from YAML", async () => {
         const kubeconfigYAML = yaml.safeDump(kubeconfig);
         const info = await makeClusterInfo({ kubeconfig: kubeconfigYAML });
-        should(info).eql({ kubeconfig, registryUrl: undefined });
+        should(info).eql({ kubeconfig, registryPrefix: undefined });
     });
 
     it("Should return kubeconfig from path", async () => {
         await fs.writeFile("conf.json", JSON.stringify(kubeconfig));
         const loc = path.join(process.cwd(), "conf.json");
         const info = await makeClusterInfo({ kubeconfig: loc });
-        should(info).eql({ kubeconfig, registryUrl: undefined });
+        should(info).eql({ kubeconfig, registryPrefix: undefined });
     });
 
     it("Should return kubeconfig from KUBECONFIG", async function () {
@@ -86,6 +86,6 @@ describe("makeClusterInfo Tests", () => {
         const loc = path.join(process.cwd(), "conf.json");
         process.env.KUBECONFIG = loc;
         const info = await makeClusterInfo({});
-        should(info).eql({ kubeconfig, registryUrl: undefined });
+        should(info).eql({ kubeconfig, registryPrefix: undefined });
     });
 });

@@ -264,7 +264,7 @@ describe("k8s ServiceDeployment tests", function () {
                     //FIXME(manishv) This is technically wrong,
                     //but I know earlier state loop turns will ensure registryInternal !== pending
                     //by the time we get here and need to deploy this component
-                    registryUrl: registryInternal,
+                    registryPrefix: registryInternal,
                     ...clusterInfo
                 }}>
                     <Container name="foo" image={testImg} />

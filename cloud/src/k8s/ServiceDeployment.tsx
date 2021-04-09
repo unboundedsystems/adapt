@@ -76,11 +76,15 @@ function mapContainer<T extends AllowableComponentProps>(absEl: AdaptElement<Abs
     const { handle: _h, ...absProps } = absEl.props;
     let registryImage: AdaptElement | undefined;
     let image = absProps.image;
-    if (config.registryUrl !== undefined) {
+    if (config.registryPrefix !== undefined) {
         //FIXME(manishv) when RegistryDockerImage can push arbitrary string images, remove this
         if (!ld.isString(image)) {
             const regImg = handle<DockerImageInstance>();
-            registryImage = <RegistryDockerImage handle={regImg} registryUrl={config.registryUrl} imageSrc={image} />;
+            registryImage = <RegistryDockerImage
+                handle={regImg}
+                registryPrefix={config.registryPrefix}
+                imageSrc={image}
+            />;
             image = regImg;
         } else {
             //FIXME(manishv) when helpers gives a way to warn, warn that string images aren't supported
