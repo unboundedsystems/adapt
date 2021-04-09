@@ -15,13 +15,12 @@
  */
 
 import { callFirstInstanceWithMethod, callInstanceMethod, ChangeType, DependsOnMethod, Handle, isHandle } from "@adpt/core";
-import { InternalError, MaybePromise } from "@adpt/utils";
+import { MaybePromise } from "@adpt/utils";
 import { isEqual } from "lodash";
 import { URL } from "url";
-import { isString } from "util";
 import { Action } from "../action";
 import { DockerImageInstance, DockerPushableImageInstance } from "./DockerImage";
-import { ImageRef, ImageRefRegistry, mutableImageRef } from "./image-ref";
+import { imageRef, ImageRef, ImageRefRegistry } from "./image-ref";
 import { DockerSplitRegistryInfo, NameTagString, RegistryString } from "./types";
 
 /**
@@ -96,12 +95,8 @@ interface State {
 }
 
 function buildNameTag(url: string, pathTag: string | undefined): NameTagString | undefined {
-    if (pathTag === undefined) return undefined;
-    const ref = mutableImageRef();
-    ref.pathTag = pathTag;  // defaults tag to 'latest' if not present
-    ref.domain = url;
-    if (!ref.registryTag) throw new InternalError(`Image reference '${ref.ref}' does not have a registryTag`);
-    return ref.registryTag;
+    const ir = imageRef([url.replace(/\/$/, ""), pathTag].join("/"), true);
+    return ir.nameTag;
 }
 
 function urlToRegistryString(registryUrl: string): RegistryString {
@@ -117,11 +112,33 @@ function urlToRegistryString(registryUrl: string): RegistryString {
 }
 
 function normalizeRegistryUrl(url: string | DockerSplitRegistryInfo) {
-    if (isString(url)) url = { external: url, internal: url };
+    if (typeof url === "string") {
+        const urlString = urlToRegistryString(url);
+        url = { external: urlString, internal: urlString };
+    }
     return {
         external: urlToRegistryString(url.external),
         internal: urlToRegistryString(url.internal)
     };
+}
+
+function extractBasePathTag(imageHandle: string | Handle<DockerImageInstance>): string | undefined {
+    let pathTag: string | undefined;
+    if (typeof imageHandle === "string") {
+        pathTag = imageHandle;
+    } else {
+        const ref = callInstanceMethod<ImageRef | undefined>(
+            imageHandle,
+            undefined,
+            "latestImage"
+        );
+        if (ref === undefined) return undefined;
+        pathTag = ref.tag ? ref.pathTag : ref.path;
+    }
+
+    if (pathTag === undefined) return undefined;
+    const pathTagSplit = pathTag.split("/");
+    return pathTagSplit[pathTagSplit.length - 1];
 }
 
 /**
@@ -195,10 +212,11 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     /** @internal */
     async action(op: ChangeType): Promise<void> {
         if (op === ChangeType.delete || op === ChangeType.none) return;
+        const ref = this.currentNameTag(this.getNewPathTag() ? undefined : extractBasePathTag(this.props.imageSrc));
         const info = await callInstanceMethod<MaybePromise<ImageRefRegistry | undefined>>(
             this.props.imageSrc,
             undefined,
-            "pushTo", this.registry.external, this.getNewPathTag());
+            "pushTo", { ref });
         if (info === undefined) {
             throw new Error(`Image source component did not push image to registry`);
         }
@@ -212,7 +230,8 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     }
 
     private currentNameTag(pathTag: string | undefined): NameTagString | undefined {
-        return buildNameTag(this.registry.internal, this.getNewPathTag() || pathTag);
+        if (pathTag === undefined) return buildNameTag(this.registry.internal, this.getNewPathTag());
+        return buildNameTag(this.registry.internal, extractBasePathTag(pathTag));
     }
 
     private getNewPathTag() {

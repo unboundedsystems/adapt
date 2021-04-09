@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,20 +47,12 @@ export interface DockerImageInstance {
     /**
      * Pushes the image returned by `latestImage` to a Docker registry.
      * @remarks
-     * If `newPathTag` is not provided, the image's existing pathTag will be
-     * used when pushing to the given registry. It is an error in that case if
-     * there is no path or tag associated with the `latestImage` image.
-     *
-     * If `newPathTag` is provided in `path:tag` format, the image will have
-     * that path and tag in the given registry. If the `:tag` portion is
-     * omitted, the tag `default` will be used.
-     *
      * If there is no latest image available (`latestImage` returns
      * undefined), then `pushTo` will return undefined. Otherwise, if the
      * push was successful, returns an {@link docker.ImageRefRegistry} that contains
      * the complete nameTag, including registry portion.
      */
-    pushTo?(registryUrl: string, newPathTag?: string): MaybePromise<ImageRefRegistry | undefined>;
+    pushTo?({ ref }: { ref: string }): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**
@@ -73,7 +65,7 @@ export interface DockerPushableImageInstance extends DockerImageInstance {
     /**
      * {@inheritdoc docker.DockerImageInstance.pushTo}
      */
-    pushTo(registryUrl: string, newPathTag?: string): MaybePromise<ImageRefRegistry | undefined>;
+    pushTo({ ref }: { ref: string }): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**

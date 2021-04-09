@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2020 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import Adapt, { callInstanceMethod, FinalDomElement, Group, handle, Sequence } from "@adpt/core";
+import Adapt, { callInstanceMethod, FinalDomElement, Group, handle, Sequence, useImperativeMethods } from "@adpt/core";
 import { mochaTmpdir } from "@adpt/testutils";
 import execa from "execa";
 import fs from "fs-extra";
@@ -36,7 +36,7 @@ import {
 import {
     dockerInspect
 } from "../../src/docker/cli";
-import { ImageRef } from "../../src/docker/image-ref";
+import { imageRef, ImageRef } from "../../src/docker/image-ref";
 
 describe("RegistryDockerImage", function () {
     let mockDeploy: MockDeploy;
@@ -181,4 +181,51 @@ describe("RegistryDockerImage", function () {
         const { dom } = await deployBasicTest(opts);
         await checkBasicTest(dom, opts);
     });
+
+    async function checkWithMockImage(srcRef: string, expectedRef: string, registry: string) {
+        const [ iSrc ] = [ handle() ];
+        const imageOpts: Partial<RegistryDockerImageProps> = {};
+
+        let destRef: string | undefined;
+        function MockDockerImage() {
+            useImperativeMethods(() => ({
+                latestImage: () => imageRef(srcRef),
+                pushTo: ({ ref }: { ref: string }) => {
+                    destRef = ref;
+                    const ret = imageRef(ref, true);
+                    return imageRef(ret);
+                }
+            }));
+            return null;
+        }
+
+        const orig =
+            <Group>
+                <MockDockerImage handle={iSrc} />
+                <RegistryDockerImage
+                        imageSrc={iSrc}
+                        registryUrl={registry}
+                        {...imageOpts}
+                />
+            </Group>;
+
+        await mockDeploy.deploy(orig);
+        should(destRef).eql(expectedRef);
+    }
+
+    it("Should allow registry with path", async () => {
+        const registry = "test.adaptjs.org/foo/bar";
+        const data = [
+            { srcRef: "some/path/basename", expected: `${registry}/basename:latest` },
+            { srcRef: "some/path/basename:tag", expected: `${registry}/basename:tag` },
+            { srcRef: "foo.com/basename", expected: `${registry}/basename:latest` },
+            { srcRef: "basename", expected: `${registry}/basename:latest` },
+            { srcRef: "basename:tag", expected: `${registry}/basename:tag` },
+            { srcRef: "basename-r:tag", expected: `${registry}/basename-r:tag`, registry: registry + "/"},
+        ];
+        for (const i of data) {
+            await checkWithMockImage(i.srcRef, i.expected, i.registry ?? registry);
+        }
+    });
+
 });

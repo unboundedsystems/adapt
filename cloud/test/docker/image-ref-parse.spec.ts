@@ -15,7 +15,7 @@
  */
 
 import should from "should";
-import { ImagePart, match, parseReference } from "../../src/docker/image-ref-parse";
+import { ImagePart, match, parseFamiliar, parseReference } from "../../src/docker/image-ref-parse";
 
 const imageSha1 = "sha256:6858809bf669cc5da7cb6af83d0fae838284d12e1be0182f92f6bd96559873e3";
 
@@ -39,6 +39,24 @@ describe("Image ref parsing", () => {
             digest: undefined,
         });
         should(parseReference(`test.ref.com:543212/one/two:some.tag@${imageSha1}`)).eql({
+            name: "test.ref.com:543212/one/two",
+            tag: "some.tag",
+            digest: imageSha1,
+        });
+    });
+
+    it("Should parse and normalize references", () => {
+        should(parseFamiliar("test/one/two")).eql({
+            name: "docker.io/test/one/two",
+            tag: "latest",
+            digest: undefined,
+        });
+        should(parseFamiliar("test.ref.com/one/two:some.tag")).eql({
+            name: "test.ref.com/one/two",
+            tag: "some.tag",
+            digest: undefined,
+        });
+        should(parseFamiliar(`test.ref.com:543212/one/two:some.tag@${imageSha1}`)).eql({
             name: "test.ref.com:543212/one/two",
             tag: "some.tag",
             digest: imageSha1,

@@ -152,7 +152,7 @@ export const defaultTag = "latest";
 
 export function parseFamiliar(input: string): ParsedReference {
     const ref = parseReference(input);
-    const tag = (!ref.tag && !ref.digest) ? defaultTag : undefined;
+    const tag = ref.tag ?? (ref.digest == null ? defaultTag : undefined);
 
     let domain: string;
     let remainder: string;
