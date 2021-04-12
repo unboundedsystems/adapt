@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -178,6 +178,6 @@ export class ServiceDeployment<T extends AllowableComponentProps> extends Deferr
     build(helpers: BuildHelpers) {
         const mappedChildren = ld.flatten(childrenToArray(this.props.children).map((c) =>
             mapChild(c, this.props, helpers)));
-        return <Group>{mappedChildren}</Group>;
+        return <Group key={this.props.key}>{mappedChildren}</Group>;
     }
 }
