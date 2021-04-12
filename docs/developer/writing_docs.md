@@ -10,7 +10,7 @@ title: "Adapt Developer: Writing Docs"
 Adapt documentation source content is stored alongside the Adapt source code in the [`adapt` repo](https://gitlab.com/unboundedsystems/adapt), primarily in [Markdown](https://en.wikipedia.org/wiki/Markdown) files.
 Those source Markdown files, along with automatically generated API documentation files, are pushed to the [`adapt-web` repo](https://gitlab.com/unboundedsystems/adapt-web) for publishing.
 
-The `adapt-web` repo uses [Docusaurus](https://docusaurus.io/) to transform the source Markdown files into a React-based website, which is then hosted by Netlify at [https://adaptjs.org](https://adaptjs.org).
+The `adapt-web` repo uses [Docusaurus v1](https://v1.docusaurus.io/) to transform the source Markdown files into a React-based website, which is then hosted by Netlify at [https://adaptjs.org](https://adaptjs.org).
 
 ## Setting up
 
@@ -84,7 +84,7 @@ If you don't see the changes you expect, try killing (`Ctrl-C`) the local server
 ## Markdown document tips
 
 - Docusaurus uses [GitHub flavored markdown](https://guides.github.com/features/mastering-markdown/), as implemented by the [Remarkable](https://github.com/jonschlinkert/remarkable) markdown parser.
-- All markdown docs should have a [YAML-based front matter header](https://docusaurus.io/docs/en/doc-markdown#markdown-headers) that contains at least `id` and `title`.
+- All markdown docs should have a [YAML-based front matter header](https://v1.docusaurus.io/docs/en/doc-markdown#markdown-headers) that contains at least `id` and `title`.
 
     Example:
 
@@ -124,7 +124,7 @@ If you don't see the changes you expect, try killing (`Ctrl-C`) the local server
 - Images and other assets go in `docs/assets`
 
     To keep them organized, please place them in a subdirectory within `docs/assets` that matches the relative path to the markdown file within `docs`.
-- For more info, see the [Docusaurus docs](https://docusaurus.io/docs/en/doc-markdown).
+- For more info, see the [Docusaurus docs](https://v1.docusaurus.io/docs/en/doc-markdown).
 
 ## adapt-web repo structure
 
