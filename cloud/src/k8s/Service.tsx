@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ export interface ServiceSpec {
      * does not support the feature.
      *
      * For more information, see the
-     * {@link https://v1-16.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/ |
+     * {@link https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/ |
      * Kubernetes documentation}.
      */
     loadBalancerSourceRanges?: string[];
