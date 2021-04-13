@@ -17,6 +17,7 @@
 import { Component } from "@adpt/core";
 import { MaybePromise } from "@adpt/utils";
 import { ImageRef, ImageRefRegistry } from "./image-ref";
+import { NameTagString } from "./types";
 
 // tslint:disable: member-ordering
 /**
@@ -46,13 +47,16 @@ export interface DockerImageInstance {
 
     /**
      * Pushes the image returned by `latestImage` to a Docker registry.
+     *
+     * @param ref - A docker domain, path components, and tag to which this image should be pushed
+     *
      * @remarks
      * If there is no latest image available (`latestImage` returns
      * undefined), then `pushTo` will return undefined. Otherwise, if the
      * push was successful, returns an {@link docker.ImageRefRegistry} that contains
      * the complete nameTag, including registry portion.
      */
-    pushTo?({ ref }: { ref: string }): MaybePromise<ImageRefRegistry | undefined>;
+    pushTo?({ ref }: { ref: NameTagString }): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**
@@ -65,7 +69,7 @@ export interface DockerPushableImageInstance extends DockerImageInstance {
     /**
      * {@inheritdoc docker.DockerImageInstance.pushTo}
      */
-    pushTo({ ref }: { ref: string }): MaybePromise<ImageRefRegistry | undefined>;
+    pushTo({ ref }: { ref: NameTagString }): MaybePromise<ImageRefRegistry | undefined>;
 }
 
 /**

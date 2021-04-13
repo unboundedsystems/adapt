@@ -48,6 +48,7 @@ export interface RegistryDockerImageProps {
      * pushed to `external` and image strings will refer to `internal`.
      *
      * Registry prefixes can be of the form `domain/path/elements`, for example `gcr.io/myproject`.
+     * However, the registryPrefix should not include the final name, use newPathTag instead.
      *
      * Note(manishv)
      * This is a bit of a hack to allow one hostname or IP address to push images from outside
@@ -65,15 +66,20 @@ export interface RegistryDockerImageProps {
      * is best if you can arrange to have the same URL or registry string work for all access regardless
      * of which network the registry, Adapt host, and ultimate container running environment is uses.
      */
-    registryPrefix: string | DockerSplitRegistryInfo;
+    registryPrefix: RegistryString | DockerSplitRegistryInfo;
 
     /**
      * Path and tag to be used for the image in the new registry in
      * `path:tag` or `path` format.
      * @remarks
-     * If omitted, the path and tag from the source image is used. The
-     * newPathTag should not include the registry hostname/port prefix. If the
-     * `:tag` portion of `path:tag` is omitted, the tag `latest` will be used.
+     * The entire path and tag are blindly concatenated to the domain and path
+     * in registryPrefix to form the full ref that will be used to push the
+     * image.
+     *
+     * If omitted, the last component of the path and the tag from the source
+     * image is used. The newPathTag should not include the registry
+     * hostname/port prefix. If the `:tag` portion of `path:tag` is omitted,
+     * the tag `latest` will be used.
      */
     newPathTag?: string;
 
