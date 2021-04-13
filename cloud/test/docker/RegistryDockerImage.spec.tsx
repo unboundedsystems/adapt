@@ -193,7 +193,7 @@ describe("RegistryDockerImage", function () {
                 pushTo: ({ ref }: { ref: string }) => {
                     destRef = ref;
                     const ret = imageRef(ref, true);
-                    return imageRef(ret);
+                    return ret;
                 }
             }));
             return null;
