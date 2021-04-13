@@ -186,7 +186,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
         const latestReg = this.latestRegistryUrl_ || this.state.registryPrefix;
         if (!srcImage || !latestImg || !latestReg) return undefined;
         if (srcImage.id === latestImg.id &&
-            this.currentNameTag(srcImage.pathTag) === latestImg.nameTag &&
+            this.currentNameTag() === latestImg.nameTag &&
             isEqual(this.registry, latestReg)) {
             return latestImg;
         }
@@ -220,7 +220,7 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
     /** @internal */
     async action(op: ChangeType): Promise<void> {
         if (op === ChangeType.delete || op === ChangeType.none) return;
-        const ref = this.currentNameTag(this.getNewPathTag() ? undefined : extractBasePathTag(this.props.imageSrc));
+        const ref = this.currentNameTag();
         const info = await callInstanceMethod<MaybePromise<ImageRefRegistry | undefined>>(
             this.props.imageSrc,
             undefined,
@@ -237,9 +237,10 @@ export class RegistryDockerImage extends Action<RegistryDockerImageProps, State>
         });
     }
 
-    private currentNameTag(pathTag: string | undefined): NameTagString | undefined {
-        if (pathTag === undefined) return buildNameTag(this.registry.internal, this.getNewPathTag());
-        return buildNameTag(this.registry.internal, extractBasePathTag(pathTag));
+    private currentNameTag(): NameTagString | undefined {
+        const newPathTag = this.getNewPathTag();
+        if (newPathTag !== undefined) return buildNameTag(this.registry.internal, newPathTag);
+        return buildNameTag(this.registry.internal, extractBasePathTag(this.props.imageSrc));
     }
 
     private getNewPathTag() {
