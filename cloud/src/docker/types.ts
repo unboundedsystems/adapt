@@ -312,8 +312,8 @@ export interface DockerContainerProps extends DockerGlobalOptions,
  * @beta
  */
 export interface DockerSplitRegistryInfo {
-    external: string;
-    internal: string;
+    external: RegistryString;
+    internal: RegistryString;
 }
 
 /**

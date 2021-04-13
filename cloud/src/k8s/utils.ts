@@ -53,10 +53,10 @@ export interface MakeClusterInfoOptions {
      * URL to the docker registry that this cluster uses to pull private images.
      *
      * @remarks
-     * This is identical to the `registryUrl` field in {@link k8s.ClusterInfo}.  It will
+     * This is identical to the `registryPrefix` field in {@link k8s.ClusterInfo}.  It will
      * be returned verbatim in the resulting {@link k8s.ClusterInfo} object.
      */
-    registryUrl?: string | DockerSplitRegistryInfo;
+    registryPrefix?: string | DockerSplitRegistryInfo;
 }
 
 async function getKubeconfigFromPath(path: string | undefined): Promise<Kubeconfig> {
@@ -117,7 +117,7 @@ async function getKubeconfig(configStr: string): Promise<Kubeconfig> {
  * @remarks
  *
  * This function will take a set of options and generate a {@link k8s.ClusterInfo}
- * object that contains the kubeconfig, registryUrl for private images, and any other
+ * object that contains the kubeconfig, registryPrefix for private images, and any other
  * relevant information for the cluster
  *
  * See {@link k8s.MakeClusterInfoOptions} for information on how the information
@@ -128,15 +128,15 @@ async function getKubeconfig(configStr: string): Promise<Kubeconfig> {
  * @public
  */
 export async function makeClusterInfo(options: MakeClusterInfoOptions): Promise<ClusterInfo> {
-    const registryUrl = options.registryUrl;
+    const registryPrefix = options.registryPrefix;
     if (options.kubeconfig === undefined) {
-        return { kubeconfig: await getKubeconfigFromPath(process.env.KUBECONFIG), registryUrl };
+        return { kubeconfig: await getKubeconfigFromPath(process.env.KUBECONFIG), registryPrefix };
     }
     if (ld.isString(options.kubeconfig)) {
-        return { kubeconfig: await getKubeconfig(options.kubeconfig), registryUrl };
+        return { kubeconfig: await getKubeconfig(options.kubeconfig), registryPrefix };
     }
     if (ld.isObject(options.kubeconfig)) {
-        return { kubeconfig: options.kubeconfig, registryUrl };
+        return { kubeconfig: options.kubeconfig, registryPrefix };
     }
     throw new Error(`Illegal kubeconfig option in ${util.inspect(options)}`);
 }

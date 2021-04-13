@@ -80,13 +80,13 @@ export interface ClusterInfo {
     /** Javascript object formed by parsing a valid kubeconfig file */
     kubeconfig: Kubeconfig;
     /**
-     * URL or string to which Docker images used by the cluster in `kubeconfig` should be pushed and pulled
+     * Registry to which Docker images used by the cluster in `kubeconfig` should be pushed and pulled
      *
      * @remarks
-     * If `registryUrl` is a string, it is assumed that the cluster can pull from the same string
+     * If `registryPrefix` is a string, it is assumed that the cluster can pull from the same string
      * that outsiders can push to.
      *
-     * If `registryUrl` is of the form `{ external: string, internal: string }` then the `external`
+     * If `registryPrefix` is of the form `{ external: string, internal: string }` then the `external`
      * string will be used to push images, and the `internal` string will be used to pull images.
      *
      * Note(manishv)
@@ -104,8 +104,9 @@ export interface ClusterInfo {
      * Once network scopes are fully supported, this interface will change to whatever is appropriate.  It
      * is best if you can arrange to have the same URL or registry string work for all access regardless
      * of which network the registry, Adapt host, and ultimate container running environment uses.
+     *
      */
-    registryUrl?: string | DockerSplitRegistryInfo;
+    registryPrefix?: string | DockerSplitRegistryInfo;
 }
 
 /** @public */

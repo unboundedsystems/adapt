@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,11 +76,15 @@ function mapContainer<T extends AllowableComponentProps>(absEl: AdaptElement<Abs
     const { handle: _h, ...absProps } = absEl.props;
     let registryImage: AdaptElement | undefined;
     let image = absProps.image;
-    if (config.registryUrl !== undefined) {
+    if (config.registryPrefix !== undefined) {
         //FIXME(manishv) when RegistryDockerImage can push arbitrary string images, remove this
         if (!ld.isString(image)) {
             const regImg = handle<DockerImageInstance>();
-            registryImage = <RegistryDockerImage handle={regImg} registryUrl={config.registryUrl} imageSrc={image} />;
+            registryImage = <RegistryDockerImage
+                handle={regImg}
+                registryPrefix={config.registryPrefix}
+                imageSrc={image}
+            />;
             image = regImg;
         } else {
             //FIXME(manishv) when helpers gives a way to warn, warn that string images aren't supported
@@ -174,6 +178,6 @@ export class ServiceDeployment<T extends AllowableComponentProps> extends Deferr
     build(helpers: BuildHelpers) {
         const mappedChildren = ld.flatten(childrenToArray(this.props.children).map((c) =>
             mapChild(c, this.props, helpers)));
-        return <Group>{mappedChildren}</Group>;
+        return <Group key={this.props.key}>{mappedChildren}</Group>;
     }
 }

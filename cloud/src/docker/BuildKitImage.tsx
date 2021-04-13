@@ -165,23 +165,12 @@ export class BuildKitImage
         return this.image_;
     }
 
-    async pushTo(registryUrl: string, newPathTag?: string): Promise<undefined | WithId<ImageRefRegistry>> {
+    async pushTo({ ref }: { ref: string }): Promise<undefined | WithId<ImageRefRegistry>> {
         const source = this.latestImage();
         if (!source) return undefined;
 
-        newPathTag = newPathTag || source.pathTag;
-        if (!newPathTag) {
-            throw new Error(`Unable to push image to registry: path and tag ` +
-                `not set for image '${source.ref}' and new path and tag not ` +
-                `provided. Either set a tag on this image with 'output.imageTag' ` +
-                `or 'output.uniqueTag' or use a new path and tag, probably ` +
-                `via the 'newPathTag' prop on RegistryDockerImage.`);
-        }
-        const dest = mutableImageRef({
-            id: source.id,
-        });
-        dest.pathTag = newPathTag;
-        dest.domain = registryUrl;
+        const dest = mutableImageRef(ref, true);
+        dest.id = source.id;
         const destRef = dest.registryTag;
         if (!destRef) {
             throw new InternalError(`Unable to push image to registry: ` +

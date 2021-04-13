@@ -331,7 +331,7 @@ export const makeCloudRunName = makeResourceName(/[^a-z-]/g, 63);
 export type CloudRunAdapterProps =
     SFCDeclProps<Omit<CloudRunProps, "image"> & {
         image: Handle,
-        registryUrl: string
+        registryPrefix: string
     } & Partial<BuiltinProps>, typeof CloudRun.defaultProps>;
 
 /**
@@ -358,7 +358,7 @@ export function CloudRunAdapter(propsIn: CloudRunAdapterProps) {
     return <Sequence>
         <RegistryDockerImage handle={regImage}
             imageSrc={props.image}
-            registryUrl={props.registryUrl} />
+            registryPrefix={props.registryPrefix} />
         {crElem}
     </Sequence>;
 }
