@@ -162,7 +162,7 @@ import { Postgres, TestPostgres } from "@adpt/cloud/postgres";
 
 
 export async function clusterInfo() {
-    return makeClusterInfo({ registryUrl: process.env.KUBE_DOCKER_REPO || undefined });
+    return makeClusterInfo({ registryPrefix: process.env.KUBE_DOCKER_REPO || undefined });
 }
 
 /*
