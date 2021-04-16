@@ -178,6 +178,20 @@ describe("LocalNodeImage tests", function () {
         const { id, tag } = await basicTest();
         should(tag).match(/^tsservice:[a-z]{8}$/);
         should(uniq(imageIds)).eql([id]);
+        const output = await checkDockerRun(id, "node", "--version");
+        should(output).startWith("v14");
+    });
+
+    it("Should build and run docker image with different node version", async () => {
+        const { id } = await basicTest({ nodeVersion: 12 });
+        const output = await checkDockerRun(id, "node", "--version");
+        should(output).startWith("v12");
+    });
+
+    it("Should build and run docker image with different base image", async () => {
+        const { id } = await basicTest({ baseImage: "node:15-buster-slim" });
+        const output = await checkDockerRun(id, "node", "--version");
+        should(output).startWith("v15");
     });
 
     it("Should use custom name and base tag", async () => {

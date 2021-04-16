@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import Adapt, {
 import fs from "fs-extra";
 import { isArray, isString } from "lodash";
 import path from "path";
-import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps } from "../docker";
+import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps, NameTagString } from "../docker";
 import { Environment, mergeEnvPairs } from "../env";
 
 /**
@@ -72,9 +72,10 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
                     [];
         const runCommands =
             scripts.map((s) => `RUN ${opts.packageManager} run ${s}`).join("\n");
+        const { baseImage, nodeVersion } = opts;
         return {
             dockerfile: `
-                    FROM node:10-stretch-slim
+                    FROM ${baseImage ?? `node:${nodeVersion}-stretch-slim`}
                     ENV TINI_VERSION v0.18.0
                     ADD https://github.com/krallin/tini/releases/download/\${TINI_VERSION}/tini /tini
                     ENTRYPOINT ["/tini", "--"]
@@ -104,6 +105,23 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
  */
 export interface NodeImageBuildOptions extends DockerBuildOptions {
     /**
+     * Base Docker image used to build {@link nodejs.LocalNodeImage}.
+     *
+     * @defaultValue "node:14-stretch-slim"
+     */
+    baseImage?: NameTagString;
+    /**
+     * Node version used to build {@link nodejs.LocalNodeImage}.
+     *
+     * @defaultValue 14
+     *
+     * @remarks
+     * If baseImage is specified, this option is ignored and baseImage
+     * is used instead.  Otherwise, `node:${nodeVersion}-stretch-slim` is
+     * used as the baseImage.
+     */
+    nodeVersion?: number | string;
+    /**
      * Package manager to use in build steps in the generated Dockerfile
      * that builds {@link nodejs.LocalNodeImage}.
      */
@@ -126,6 +144,7 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
 
 const defaultContainerBuildOptions = {
     imageName: "node-service",
+    nodeVersion: 14,
     packageManager: "npm",
     uniqueTag: true,
     buildArgs: {}
