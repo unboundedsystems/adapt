@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Unbounded Systems, LLC
+ * Copyright 2020-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -145,10 +145,20 @@ export interface CloudRunProps {
 }
 
 /**
+ * Instance methods for the {@link gcloud.CloudRun} component.
+ *
+ * @public
+ */
+export interface CloudRunInstance {
+    /** Returns the https URL for the Cloud Run service. */
+    url(): Promise<string | undefined>;
+}
+
+/**
  * Primitive Component for GCP Cloud Run deployments
  * @public
  */
-export class CloudRun extends Action<CloudRunProps> {
+export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance {
 
     static defaultProps = {
         trafficPct: 100,
@@ -252,6 +262,11 @@ export class CloudRun extends Action<CloudRunProps> {
             return waiting(`Waiting for CloudRun deployment to be created`);
         }
         return isReady(statObj);
+    }
+
+    async url(): Promise<string | undefined> {
+        const statObj: any = await cloudRunDescribe(this.config(this.deployInfo.deployID));
+        return statObj?.status?.url;
     }
 
     private mountedElement(): AdaptMountedElement<CloudRunProps> {
