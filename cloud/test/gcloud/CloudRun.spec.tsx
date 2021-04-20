@@ -162,6 +162,9 @@ describeGCloud("CloudRun operation tests", function (gOpts) {
             .find((cond: any) => (cond.status === "True" && cond.type === "Ready"));
         should(ready).not.Undefined();
 
+        const url = mountedOrig.instance.url();
+        should(url).match(/^https:\/\/cloud-run-gen-name.*run\.app$/);
+
         await deploy.deploy(null);
         const info2 = await getCloudRunInfo(name, region, gOpts);
         should(info2).Undefined();
