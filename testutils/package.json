@@ -1,6 +1,6 @@
 {
   "name": "@adpt/testutils",
-  "version": "0.4.0-next.14",
+  "version": "0.4.0-next.15",
   "description": "AdaptJS Test Utilities Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -27,7 +27,7 @@
     "node": ">=10.17.0"
   },
   "dependencies": {
-    "@adpt/utils": "0.4.0-next.14",
+    "@adpt/utils": "0.4.0-next.15",
     "aws-sdk": "2.799.0",
     "callsites": "3.1.0",
     "commander": "6.2.0",
