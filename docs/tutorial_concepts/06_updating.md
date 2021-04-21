@@ -12,7 +12,7 @@ But for this tutorial, we'll skip ahead and just copy in some already-written co
 <!-- doctest command -->
 
 ```console
-curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v2/tutorial-concepts.tar.gz | tar -zxvf - --strip=1 -C ..
+curl https://gitlab.com/adpt/tutorial-concepts/-/archive/v3/tutorial-concepts.tar.gz | tar -zxvf - --strip=1 -C ..
 ```
 
 The command above:
