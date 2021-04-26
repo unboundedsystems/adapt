@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Unbounded Systems, LLC
+ * Copyright 2019-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,7 +146,8 @@ describe("LocalNodeImage tests", function () {
     const imgName = (options?: NodeImageBuildOptions | undefined) =>
         ` '${(options && options.imageName) || "tsservice"}'`;
 
-    async function basicTest(options?: NodeImageBuildOptions) {
+    async function basicTest(optionsIn?: NodeImageBuildOptions & { outputCheck?: boolean }) {
+        const { outputCheck =  true, ...options } = optionsIn || {};
         const orig = <TypescriptProject srcDir="./testproj" options={options} />;
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
@@ -166,10 +167,10 @@ describe("LocalNodeImage tests", function () {
         should(id).match(/^sha256:[a-f0-9]{64}$/);
 
         let output = await checkDockerRun(id);
-        should(output).equal("SUCCESS");
+        if (outputCheck) should(output).equal("SUCCESS");
 
         output = await checkDockerRun(tag);
-        should(output).equal("SUCCESS");
+        if (outputCheck) should(output).equal("SUCCESS");
 
         return { id, tag };
     }
@@ -222,5 +223,27 @@ describe("LocalNodeImage tests", function () {
         });
         const output = await checkDockerRun(id, "/test-var.sh");
         should(output).equal(testVarValue);
+    });
+
+    it("Should allow a custom command string", async () => {
+        const testVarValue = "This is a test";
+        const { id } = await basicTest({
+            cmd: "node --version",
+            buildArgs: { TEST_VAR: testVarValue },
+            outputCheck: false,
+        });
+        const output = await checkDockerRun(id);
+        should(output).startWith("v14");
+    });
+
+    it("Should allow a custom command array", async () => {
+        const testVarValue = "This is a test";
+        const { id } = await basicTest({
+            cmd: ["node", "--version"],
+            buildArgs: { TEST_VAR: testVarValue },
+            outputCheck: false,
+        });
+        const output = await checkDockerRun(id);
+        should(output).startWith("v14");
     });
 });

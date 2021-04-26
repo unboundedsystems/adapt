@@ -72,7 +72,11 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
                     [];
         const runCommands =
             scripts.map((s) => `RUN ${opts.packageManager} run ${s}`).join("\n");
-        const { baseImage, nodeVersion } = opts;
+        const { baseImage, nodeVersion, cmd } = opts;
+        const cmdString = isArray(cmd)
+            ? `[${cmd.map((c) => `"${c}"`).join(",")}]`
+            : (cmd ?? `["node", "${main}"]`);
+
         return {
             dockerfile: `
                     FROM ${baseImage ?? `node:${nodeVersion}-stretch-slim`}
@@ -84,7 +88,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
                     ADD . /app
                     RUN ${opts.packageManager} install && chmod +x /tini
                     ${runCommands}
-                    CMD ["node", "${main}"]
+                    CMD ${cmdString}
                 `,
             contextDir: srcDir,
             options: opts,
@@ -111,6 +115,28 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
      */
     baseImage?: NameTagString;
     /**
+     * Environment variables that should be present during docker build
+     *
+     * @remarks
+     * This adds an `ARG <varName>` line to the Dockerfile for every variable in env, and sets the
+     * variable in the environment before running `docker build`.
+     */
+    buildArgs?: Environment;
+    /**
+     * Default command to run in container
+     *
+     * @remarks
+     *
+     * If this is a string, the Dockerfile used to build the image will use
+     * shell form for the command, i.e., `CMD <cmd value>`.  If this
+     * is an array of string, exec form will be used instead, i.e.,
+     * `CMD ["cmd[0]", "cmd[1]", "cmd[2]", ...]`.
+     *
+     * If `cmd` is not specified, the default command of `node` with
+     * the value of `main` from the top-level package.json will be used.
+     */
+    cmd?: string | string[];
+    /**
      * Node version used to build {@link nodejs.LocalNodeImage}.
      *
      * @defaultValue 14
@@ -124,6 +150,8 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
     /**
      * Package manager to use in build steps in the generated Dockerfile
      * that builds {@link nodejs.LocalNodeImage}.
+     *
+     * @defaultValue "npm"
      */
     packageManager?: "npm" | "yarn" | string;
     /**
@@ -132,14 +160,6 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
      * that should be run during the image build.
      */
     runNpmScripts?: string | string[];
-    /**
-     * Environment variables that should be present during docker build
-     *
-     * @remarks
-     * This adds an `ARG <varName>` line to the Dockerfile for every variable in env, and sets the
-     * variable in the environment before running `docker build`.
-     */
-    buildArgs?: Environment;
 }
 
 const defaultContainerBuildOptions = {
