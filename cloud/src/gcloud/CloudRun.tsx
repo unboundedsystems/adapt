@@ -155,10 +155,20 @@ export interface CloudRunInstance {
 }
 
 /**
+ * State for the {@link gcloud.CloudRun} component.
+ *
+ * @public
+ */
+export interface CloudRunState {
+    /** URL for the service the last time it was queried (may not be current). */
+    url?: string;
+}
+
+/**
  * Primitive Component for GCP Cloud Run deployments
  * @public
  */
-export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance {
+export class CloudRun extends Action<CloudRunProps, CloudRunState> implements CloudRunInstance {
 
     static defaultProps = {
         trafficPct: 100,
@@ -195,7 +205,7 @@ export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance 
         const config = this.config(deployID);
         const name = config.name;
 
-        const oldManifest = await cloudRunDescribe(config);
+        const oldManifest = await this.describe();
 
         switch (op) {
             case ChangeType.create:
@@ -226,7 +236,7 @@ export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance 
     async action(op: ChangeType, ctx: ActionContext): Promise<void> {
         const deployID = ctx.buildData.deployID;
         const config = this.config(deployID);
-        const info = await cloudRunDescribe(config);
+        const info = await this.describe();
         let deleted = false;
 
         if (isDeleting(info)) {
@@ -253,7 +263,7 @@ export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance 
     }
 
     deployedWhen = async (goalStatus: GoalStatus) => {
-        const statObj = await cloudRunDescribe(this.config(this.deployInfo.deployID));
+        const statObj = await this.describe();
         if (goalStatus === DeployStatus.Destroyed) {
             if (statObj === undefined) return true;
             return waiting(`Waiting for CloudRun deployment to be destroyed`);
@@ -265,9 +275,11 @@ export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance 
     }
 
     async url(): Promise<string | undefined> {
-        const statObj: any = await cloudRunDescribe(this.config(this.deployInfo.deployID));
+        const statObj: any = await this.describe();
         return statObj?.status?.url;
     }
+
+    initialState() { return {}; }
 
     private mountedElement(): AdaptMountedElement<CloudRunProps> {
         const hand = this.props.handle;
@@ -298,6 +310,13 @@ export class CloudRun extends Action<CloudRunProps> implements CloudRunInstance 
             }
         };
         return this.config_;
+    }
+
+    private async describe() {
+        const statObj: any = await cloudRunDescribe(this.config(this.deployInfo.deployID));
+        const url: string | undefined = statObj?.status?.url;
+        this.setState({ url });
+        return statObj;
     }
 }
 
