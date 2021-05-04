@@ -120,6 +120,52 @@ describe("DOM CSS Build Tests", () => {
         });
     });
 
+    function Iterate({ count }: { count: number }) {
+        const [cur, setCur] = Adapt.useState(count);
+        if (cur > 1) setCur(cur - 1);
+        return null;
+    }
+
+    class Terminal extends Adapt.PrimitiveComponent<Adapt.AnyProps> {}
+
+    it("Should match later rules even across state updates", async () => {
+        const count = 10;
+        const orig = <Adapt.Group>
+            <Iterate count={count} />
+            <Empty key="first" id={1} />
+            <Empty key="second" id={2} />
+        </Adapt.Group>;
+        const action = (propsIn: Adapt.AnyProps, _info: Adapt.StyleBuildInfo) => {
+            const { handle, ...props } = propsIn;
+            return <Terminal {...props} />;
+        };
+        const fakes = [fake(action), fake(action), fake(action)];
+        const styles =
+            <Adapt.Style>
+                {Empty} {Adapt.rule(fakes[0])}
+                {Empty}[key="first"] {Adapt.rule(fakes[1])}
+                {Empty}[key="second"] {Adapt.rule(fakes[2])}
+            </Adapt.Style>;
+
+        const { contents: dom } = await Adapt.build(orig, styles);
+        if (dom == null) {
+            should(dom).not.Null();
+            return;
+        }
+        checkChildComponents(dom, Terminal, Terminal);
+        const expectedChildren = deepFilterElemsToPublic([
+            <Terminal key="first" id={1} />,
+            <Terminal key="second" id={2} />
+        ]);
+        should(deepFilterElemsToPublic(dom.props.children)).eql(expectedChildren);
+
+        fakes[0].callCount.should.equal(0, "Failed for fake[0]");
+        fakes[1].callCount.should.equal(count, "Failed for fake[1]");
+        fakes[1].firstCall.args[0].id.should.equal(1, "Failed for fake[1]");
+        fakes[2].callCount.should.equal(count, "Failed for fake[2]");
+        fakes[2].firstCall.args[0].id.should.equal(2, "Failed for fake[1]");
+    });
+
     it("Should clear matches on every build iteration", async () => {
         let countGte = 0;
         let countGroup = 0;

@@ -356,7 +356,8 @@ function findOverride(styles: css.StyleList, path: DomPath, options: BuildOption
     const element = path[path.length - 1];
     const reg = options.matchInfoReg;
 
-    for (const style of styles.reverse()) {
+    for (let i = styles.length - 1; i >= 0; i--) {
+        const style = styles[i];
         if (css.canMatch(reg, element) &&
             !css.ruleHasMatched(reg, element, style) &&
             style.match(path)) {
