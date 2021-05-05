@@ -10,7 +10,7 @@ See below for installation information.
 ## NodeJS with npm
 
 You'll need to have [NodeJS](https://nodejs.org) installed.
-Adapt requires at least NodeJS version 10.17 and is currently tested on NodeJS versions 10 (LTS), 12 (LTS), and 14 (LTS).
+Adapt requires at least NodeJS version 10.17 and is currently tested on NodeJS versions 12 (LTS), and 14 (LTS).  Note that while NodeJS 10 may work, it is no longer tested, and bug fixes for older untested versions may not be fixed.
 
 Note that the default version of NodeJS that is installed by your system's package manager (apt, yum, etc.) may be an older version of NodeJS.
 

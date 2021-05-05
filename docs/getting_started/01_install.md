@@ -11,7 +11,7 @@ To install and use Adapt, you must have Node.js and git installed:
 
 | Requirement | Installation Instructions |
 | --- | --- |
-| [Node.js](https://nodejs.org) (versions supported: 10, 12, 14) | [Installing Node and npm](../user/install/requirements.md#nodejs-with-npm) |
+| [Node.js](https://nodejs.org) (versions supported: 12, 14) | [Installing Node and npm](../user/install/requirements.md#nodejs-with-npm) |
 | [Git](https://git-scm.com) | [Installing Git](../user/install/requirements.md#git) |
 
 Additionally, this Getting Started Guide also requires [Docker](https://docker.com).

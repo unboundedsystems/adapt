@@ -6,7 +6,7 @@ variables:
   ADAPT_RUN_LONG_TESTS: 1
   ADAPT_TEST_HEAPDUMP: 1
   # Be explicit about the default Node version for jobs that don't specify
-  ADAPT_TEST_NODE_VERSION: "10"
+  ADAPT_TEST_NODE_VERSION: "12"
   # This is for certs to be shared between docker client and dind. Must match
   # a volume mount path in gitlab runner's config.toml.
   DOCKER_TLS_CERTDIR: "/certs"
@@ -104,41 +104,6 @@ build:
       bash -o pipefail -c './bin/make ${MAKE_TARGETS} \
         |& tee >(ts > "${ADAPT_BUILD_LOGDIR}/test${ADAPT_TEST_NODE_VERSION}_make_output.log")'
   dependencies: ["build"]
-
-test-cli:10:
-  <<: *job_common
-  <<: *node_version_test_job
-  variables:
-    ADAPT_TEST_NODE_VERSION: "10"
-    MAKE_TARGETS: "cli-coverage"
-
-test-cloud:10:
-  <<: *job_common
-  <<: *node_version_test_job
-  variables:
-    ADAPT_TEST_NODE_VERSION: "10"
-    MAKE_TARGETS: "cloud-coverage"
-
-test-core:10:
-  <<: *job_common
-  <<: *node_version_test_job
-  variables:
-    ADAPT_TEST_NODE_VERSION: "10"
-    MAKE_TARGETS: "core-coverage"
-
-test-systemtest:10:
-  <<: *job_common
-  <<: *node_version_test_job
-  variables:
-    ADAPT_TEST_NODE_VERSION: "10"
-    MAKE_TARGETS: "systemtest-coverage"
-
-test-other:10:
-  <<: *job_common
-  <<: *node_version_test_job
-  variables:
-    ADAPT_TEST_NODE_VERSION: "10"
-    MAKE_TARGETS: "dom-parser-coverage testutils-coverage utils-coverage"
 
 test-cli:12:
   <<: *job_common
