@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -424,8 +424,9 @@ export async function globalAdd(pkg: string, prefixDir: string) {
     const args = [ "install", ...registryOpts(), "-g", "-C", prefixDir, pkg ];
     const { stdout, stderr } = await execa("npm", args, { all: true });
     if (stderr !== "") {
-        if (!/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr)) {
-            const cmd = "npm install " + args.join(" ");
+        if (!/^npm WARN deprecated mkdirp@0.5.[0-9]+: Legacy versions of mkdirp are no longer supported. Please update to mkdirp 1\.x\. \(Note that the API surface has changed to use Promises in 1\.x\.\)$/.test(stderr) &&
+            !/^npm WARN deprecated uuid@3.4.[0-9]+: Please upgrade  to version 7 or higher\.  Older versions may use Math\.random\(\) in certain circumstances, which is known to be problematic\.  See https:\/\/v8\.dev\/blog\/math-random for details\.$/.test(stderr)) {
+            const cmd = "npm " + args.join(" ");
             // tslint:disable-next-line: no-console
             console.log(`Error installing ${pkg} - command: '${cmd}'\n` +
                 `STDOUT:\n${stdout}\nSTDERR:\n${stderr}\n`);
