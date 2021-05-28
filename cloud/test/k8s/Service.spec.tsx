@@ -146,6 +146,52 @@ describe("k8s Service Component Tests", () => {
         should(domXml).eql(expected);
     });
 
+    it("Should allow metadata override", async () => {
+        const absDom =
+            <abs.NetworkService port={8080} />;
+        const style =
+            <Style>
+                {abs.NetworkService} {rule<abs.NetworkServiceProps>((props) => (
+                    <Service {...k8sServiceProps(props)} config={dummyConfig} metadata={{namespace: "foo"}} />
+                ))}
+            </Style>;
+        const result = await Adapt.build(absDom, style);
+        const dom = result.contents;
+        if (dom == null) {
+            should(dom).not.be.Null();
+            return;
+        }
+        should(result.messages).have.length(0);
+
+        const domXml = Adapt.serializeDom(dom);
+        const expected =
+`<Adapt>
+  <Resource kind="Service">
+    <__props__>
+      <prop name="config">{}</prop>
+      <prop name="key">"NetworkService"</prop>
+      <prop name="metadata">{
+        namespace: "foo",
+      }</prop>
+      <prop name="spec">{
+        sessionAffinity: "None",
+        type: "ClusterIP",
+        ports: [
+          {
+            port: 8080,
+            targetPort: 8080,
+            protocol: "TCP",
+          },
+        ],
+        selector: undefined,
+      }</prop>
+    </__props__>
+  </Resource>
+</Adapt>
+`;
+        should(domXml).eql(expected);
+    });
+
     it("Should resolve handle selectors", async () => {
         const hand = handle();
         const root = <Group>

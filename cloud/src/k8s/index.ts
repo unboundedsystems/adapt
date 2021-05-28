@@ -35,6 +35,7 @@ export * from "./common";
 export * from "./utils";
 
 export {
+    deployIDToLabel,
     resourceElementToName,
     registerResourceKind
 } from "./manifest_support";

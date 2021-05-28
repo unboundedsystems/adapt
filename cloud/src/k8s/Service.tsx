@@ -49,6 +49,7 @@ import {
     computeNamespaceFromMetadata,
     isLabelSelector,
     LabelSelector,
+    Metadata,
     ResourceBase,
     ResourceProps,
     ResourcePropsWithConfig,
@@ -62,6 +63,7 @@ import { Resource } from "./Resource";
 export interface ServiceProps extends ServiceSpec {
     /** Legal configuration loaded from kubeconfig */
     config: ClusterInfo;
+    metadata?: Metadata;
     selector?: Handle | EndpointSelector;
 }
 
@@ -334,6 +336,7 @@ interface EndpointSelector {
 }
 
 const defaultProps = {
+    metadata: {},
     sessionAffinity: "None",
     type: "ClusterIP",
 };
@@ -518,7 +521,7 @@ interface MakeManifestOptions {
 }
 
 function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: MakeManifestOptions): ResourceService {
-    const { config, key, handle, ...spec } = props;
+    const { config, key, handle, metadata, ...spec } = props;
 
     // Explicit default for ports.protocol
     if (spec.ports) {
@@ -534,7 +537,7 @@ function makeSvcManifest(props: ServiceProps & Partial<BuiltinProps>, options: M
 
     return {
         kind: "Service",
-        metadata: {},
+        metadata: metadata ?? {},
         spec: { ...spec, selector: isHandle(spec.selector) ? options.endpointSelector : spec.selector },
         config,
     };
