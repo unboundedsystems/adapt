@@ -98,7 +98,7 @@
     "@usys/fork-require": "1.0.9-unb3",
     "async-lock": "1.2.4",
     "callsites": "3.1.0",
-    "css-what": "4.0.0",
+    "css-what": "5.0.1",
     "debug": "4.3.1",
     "flush-write-stream": "2.0.0",
     "graphlib": "2.1.8",
