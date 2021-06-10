@@ -36,7 +36,7 @@ import * as AdaptDontUse from "../exports";
 // tslint:disable-next-line:variable-name prefer-const
 let Adapt: never;
 
-import { MessageLogger, Omit, TaskObserver, TaskState, UserError } from "@adpt/utils";
+import { MessageLogger, Omit, TaskObserver, TaskState } from "@adpt/utils";
 import { EPPrimitiveDependencies } from "../deploy";
 import { createPluginManager } from "../deploy/plugin_support";
 import { isBuildOutputError, isBuildOutputPartial, ProcessStateUpdates } from "../dom";
@@ -49,6 +49,7 @@ import {
 import { Deployment } from "../server/deployment";
 import { DeployOpID } from "../server/deployment_data";
 import { HistoryEntry, HistoryStatus, isStatusComplete } from "../server/history";
+import { resolveStack } from "../stack";
 import { createStateStore, StateStore } from "../state";
 import { Status } from "../status";
 import { AdaptContext, projectExec } from "../ts";
@@ -188,11 +189,6 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         // This is the inner context's copy of Adapt
         const inAdapt = ctx.Adapt;
 
-        const stacks = ctx.adaptStacks;
-        if (!stacks) throw new InternalError(`No stacks found`);
-        const stack = stacks.get(stackName);
-        if (!stack) throw new UserError(`Adapt stack '${stackName}' not found`);
-
         let mountedElements: AdaptMountedElement[] = [];
         let mountedOrig: AdaptMountedElement | null = null;
         let newDom: FinalDomElement | null = null;
@@ -200,8 +196,8 @@ export async function build(options: FullBuildOptions): Promise<BuildResults> {
         let processStateUpdates: ProcessStateUpdates = () => Promise.resolve({ stateChanged: false });
 
         let needsData: ExecutedQueries = {};
-        const root = await stack.root;
-        const style = await stack.style;
+
+        const { root, style } = await resolveStack(stackName, ctx);
         if (root != null) {
             const observeManager = inAdapt.internal.makeObserverManagerDeployment(observerObservations);
 
