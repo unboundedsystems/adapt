@@ -29,7 +29,7 @@ import { File } from "./types";
 export const pickBuildKitGlobals = (opts: BuildKitGlobalOptions): BuildKitGlobalOptions =>
     pick(opts, "buildKitHost");
 
-const buildKitVersion = "v0.7.2";
+const buildKitVersion = "v0.8.3";
 
 function buildKitPlatform() {
     switch (process.platform) {
