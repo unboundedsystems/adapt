@@ -59,6 +59,7 @@ describe("LocalNodeImage tests", function () {
     before(async function () {
         this.timeout(2 * 60 * 1000);
         await createProject();
+        await createWorkspaceProject();
         pluginDir = path.join(process.cwd(), "plugins");
     });
 
@@ -133,8 +134,19 @@ describe("LocalNodeImage tests", function () {
         main();
     `;
 
+    const numWorkspaces = 4; // Must be at least 1 and less than 10
+    const pkgJsonWorkspaces = {
+        name: "testprojectworkspaces",
+        private: true,
+        version: "0.0.1",
+        scripts: {
+            build: "yarn workspaces run build",
+        },
+        workspaces: [ "workspace1", "workspace2", "**/workspace[3-9]" ],
+    };
+
     async function createProject() {
-        await writePackage("./testproj", {
+        await writePackage("./testProj", {
             pkgJson,
             files: {
                 "index.ts": indexTs,
@@ -143,12 +155,32 @@ describe("LocalNodeImage tests", function () {
         });
     }
 
+    async function createWorkspaceProject() {
+        await writePackage("./testProjWorkspaces", {
+            pkgJson: pkgJsonWorkspaces,
+        });
+        for (let i = 1; i <= numWorkspaces; i++) {
+            const ws = `workspace${i}`;
+            const name = `testproject-${ws}`;
+            await writePackage(`./testProjWorkspaces/${ws}`, {
+                pkgJson: { ...pkgJson, name },
+                files: {
+                    "index.ts": i === 1 ? indexTs : indexTs.replace("SUCCESS", `SUCCESS${i}`),
+                    "tsconfig.json": tsConfig,
+                }
+            });
+        }
+    }
+
     const imgName = (options?: NodeImageBuildOptions | undefined) =>
         ` '${(options && options.imageName) || "tsservice"}'`;
 
-    async function basicTest(optionsIn?: NodeImageBuildOptions & { outputCheck?: boolean }) {
-        const { outputCheck =  true, ...options } = optionsIn || {};
-        const orig = <TypescriptProject srcDir="./testproj" options={options} />;
+    async function basicTest(optionsIn?: NodeImageBuildOptions & {
+        project?: "testProj" | "testProjWorkspaces",
+        outputCheck?: boolean
+    }) {
+        const { outputCheck =  true, project = "testProj", ...options } = optionsIn || {};
+        const orig = <TypescriptProject srcDir={`./${project}`} options={options} />;
         const { dom } = await mockDeploy.deploy(orig);
         if (dom == null) throw should(dom).not.be.Null();
 
@@ -245,5 +277,24 @@ describe("LocalNodeImage tests", function () {
         });
         const output = await checkDockerRun(id);
         should(output).startWith("v14");
+    });
+
+    it("Should use yarn as package manager", async () => {
+        const { id } = await basicTest({ packageManager: "yarn" });
+        const output = await checkDockerRun(id, "node", "--version");
+        should(output).startWith("v14");
+    });
+
+    it("Should allow yarn workspaces", async () => {
+        const { id } = await basicTest({
+            cmd: ["node", "/app/workspace1/dist/index.js"],
+            packageManager: "yarn",
+            project: "testProjWorkspaces",
+        });
+
+        for (let i = 2; i <= numWorkspaces; i++) {
+            const output = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
+            should(output).equal(`SUCCESS${i}`);
+        }
     });
 });

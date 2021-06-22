@@ -21,7 +21,8 @@ import Adapt, {
     useState,
 } from "@adpt/core";
 import fs from "fs-extra";
-import { isArray, isString } from "lodash";
+import glob from "glob-promise";
+import ld, { isArray, isString } from "lodash";
 import path from "path";
 import { DockerBuildOptions, LocalDockerImage, LocalDockerImageProps, NameTagString } from "../docker";
 import { Environment, mergeEnvPairs } from "../env";
@@ -45,6 +46,33 @@ function argLines(env: Environment) {
     return lines.join("\n");
 }
 
+async function collectPackageManagerFiles(dir: string): Promise<string[]> {
+    if (!await fs.pathExists(dir)) return [];
+
+    const pkgJsonPath = path.join(dir, "package.json");
+    if (!await fs.pathExists(pkgJsonPath)) return [];
+
+    const ret = ["package.json"];
+    if (await fs.pathExists(path.join(dir, "yarn.lock"))) ret.push("yarn.lock");
+    if (await fs.pathExists(path.join(dir, "package-lock.json"))) ret.push("package-lock.json");
+    if (await fs.pathExists(path.join(dir, "npm-shrinkwrap.json"))) ret.push("npm-shrinkwrap.json");
+
+    const pkgInfo = await fs.readJson(pkgJsonPath);
+    const workspacesGlobs = pkgInfo?.workspaces ?? [];
+    if (!Array.isArray(workspacesGlobs)) return ret;
+    const workspaces = ld.uniq(ld.flatten(await Promise.all(workspacesGlobs
+        .map((w) => isString(w) ? glob(w, { cwd: dir }) : []))));
+
+    const workspaceFileCollections =
+        await Promise.all(workspaces.sort().map(async (w) =>
+            // Note that the join below explicitly uses "/"" since the OS path sep may not be valid in Dockerfile
+            (await collectPackageManagerFiles(path.join(dir, w))).map((f) => [w, f].join("/"))));
+    const workspaceFiles = ld.flatten(workspaceFileCollections);
+    ret.push(...workspaceFiles);
+
+    return ret;
+}
+
 /**
  * Locally builds a docker image for a {@link https://www.nodejs.org | Node.js} program.
  *
@@ -64,6 +92,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
         const srcDir = path.resolve(props.srcDir);
         if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
         const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
+        const pkgMgrFiles = await collectPackageManagerFiles(srcDir);
         const main = pkgInfo.main ? pkgInfo.main : "index.js";
         const runNpmScripts = opts.runNpmScripts;
         const scripts =
@@ -77,18 +106,25 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
             ? `[${cmd.map((c) => `"${c}"`).join(",")}]`
             : (cmd ?? `["node", "${main}"]`);
 
+        // Note that we collect files needed for npm or yarn install of node_modules and copy them
+        // first, then we install node_modules, and then copy the source code.  This should result in a
+        // much smaller set of top-layers that are likely to change, resulting in faster incremental
+        // builds, pushes, and updates.  The large node_modules install layer only need be rebuilt and
+        // repushed when package.json or yarn.lock/package-lock.json files change, not on every source code
+        // change and rebuild.
         return {
             dockerfile: `
                     FROM ${baseImage ?? `node:${nodeVersion}-stretch-slim`}
                     ENV TINI_VERSION v0.18.0
                     ADD https://github.com/krallin/tini/releases/download/\${TINI_VERSION}/tini /tini
                     ENTRYPOINT ["/tini", "--"]
-                    ${argLines(opts.buildArgs)}
                     WORKDIR /app
-                    ADD . /app
+                    COPY [${pkgMgrFiles.map((f) => `"${f}"`).join(", ")}, "/app"]
+                    ${argLines(opts.buildArgs)}
                     RUN ${opts.packageManager} install && chmod +x /tini
-                    ${runCommands}
                     CMD ${cmdString}
+                    ADD . /app
+                    ${runCommands}
                 `,
             contextDir: srcDir,
             options: opts,
