@@ -25,8 +25,9 @@ const templatePackageJson = {
 
 export interface PkgJson {
     name: string;
+    private?: boolean;
     dependencies?: { [name: string]: string };
-    [key: string]: string | object | undefined;
+    [key: string]: string | boolean | object | undefined;
 }
 
 export interface Package {

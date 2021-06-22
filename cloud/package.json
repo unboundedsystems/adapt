@@ -71,6 +71,8 @@
     "diff": "5.0.0",
     "execa": "5.0.0",
     "fetchu": "2.0.1",
+    "glob": "^7.1.7",
+    "glob-promise": "^4.2.0",
     "graphql": "14.7.0",
     "graphql-tools": "4.0.8",
     "graphql-type-json": "0.3.2",
