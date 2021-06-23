@@ -65,6 +65,7 @@
   "dependencies": {
     "@adpt/core": "0.4.0-next.22",
     "@adpt/utils": "0.4.0-next.22",
+    "@balena/dockerignore": "^1.0.2",
     "@types/node-fetch": "2.5.7",
     "aws-sdk": "2.799.0",
     "debug": "4.3.1",
