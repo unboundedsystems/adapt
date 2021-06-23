@@ -134,7 +134,7 @@ describe("LocalNodeImage tests", function () {
         main();
     `;
 
-    const numWorkspaces = 4; // Must be at least 1 and less than 10
+    const numWorkspaces = 5; // Must be at least 1 and less than 10
     const pkgJsonWorkspaces = {
         name: "testprojectworkspaces",
         private: true,
@@ -158,6 +158,9 @@ describe("LocalNodeImage tests", function () {
     async function createWorkspaceProject() {
         await writePackage("./testProjWorkspaces", {
             pkgJson: pkgJsonWorkspaces,
+            files: {
+                ".dockerignore": "workspace5"
+            }
         });
         for (let i = 1; i <= numWorkspaces; i++) {
             const ws = `workspace${i}`;
@@ -293,6 +296,7 @@ describe("LocalNodeImage tests", function () {
         });
 
         for (let i = 2; i <= numWorkspaces; i++) {
+            if (i === 5) continue; //This is in .dockerignore, so skip it
             const output = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
             should(output).equal(`SUCCESS${i}`);
         }

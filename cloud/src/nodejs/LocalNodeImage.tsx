@@ -20,6 +20,7 @@ import Adapt, {
     useMethodFrom,
     useState,
 } from "@adpt/core";
+import dockerignore from "@balena/dockerignore";
 import fs from "fs-extra";
 import glob from "glob-promise";
 import ld, { isArray, isString } from "lodash";
@@ -73,6 +74,11 @@ async function collectPackageManagerFiles(dir: string): Promise<string[]> {
     return ret;
 }
 
+async function filterDockerIgnore(ignoreFile: string, paths: string[]) {
+    const ig = dockerignore().add(ignoreFile.split("\n"));
+    return ig.filter(paths);
+}
+
 /**
  * Locally builds a docker image for a {@link https://www.nodejs.org | Node.js} program.
  *
@@ -91,8 +97,12 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
     setImgProps(async () => {
         const srcDir = path.resolve(props.srcDir);
         if (!(await fs.pathExists(srcDir))) throw new Error(`Source directory ${srcDir} not found`);
+        const dockerignorePath = path.join(srcDir, ".dockerignore");
+        const dockerignoreFile = (await fs.pathExists(dockerignorePath))
+            ? (await fs.readFile(dockerignorePath)).toString()
+            : "";
         const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
-        const pkgMgrFiles = await collectPackageManagerFiles(srcDir);
+        const pkgMgrFiles = await filterDockerIgnore(dockerignoreFile, await collectPackageManagerFiles(srcDir));
         const main = pkgInfo.main ? pkgInfo.main : "index.js";
         const runNpmScripts = opts.runNpmScripts;
         const scripts =
