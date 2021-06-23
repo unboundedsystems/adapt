@@ -1,6 +1,6 @@
 {
   "name": "@adpt/cloud",
-  "version": "0.4.0-next.22",
+  "version": "0.4.0-next.23",
   "description": "AdaptJS cloud component library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -63,8 +63,8 @@
     "test": "mocha"
   },
   "dependencies": {
-    "@adpt/core": "0.4.0-next.22",
-    "@adpt/utils": "0.4.0-next.22",
+    "@adpt/core": "0.4.0-next.23",
+    "@adpt/utils": "0.4.0-next.23",
     "@balena/dockerignore": "^1.0.2",
     "@types/node-fetch": "2.5.7",
     "aws-sdk": "2.799.0",
@@ -92,7 +92,7 @@
     "yup": "0.31.0"
   },
   "devDependencies": {
-    "@adpt/testutils": "0.4.0-next.22",
+    "@adpt/testutils": "0.4.0-next.23",
     "@types/debug": "4.1.5",
     "@types/diff": "4.0.2",
     "@types/dockerode": "3.2.1",
