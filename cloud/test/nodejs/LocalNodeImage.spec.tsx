@@ -165,10 +165,23 @@ describe("LocalNodeImage tests", function () {
         for (let i = 1; i <= numWorkspaces; i++) {
             const ws = `workspace${i}`;
             const name = `testproject-${ws}`;
+            const dependencies = (i === 3) ? { "is-regexp": "^2.1.0" } : undefined;
+            const indexContents = (() => {
+                switch (i) {
+                    case 1: return indexTs;
+                    case 3: return `import isRegexp = require("is-regexp");\nconsole.log(isRegexp(/foo/))`;
+                    default: return indexTs.replace("SUCCESS", `SUCCESS${i}`);
+                }
+            })();
+
             await writePackage(`./testProjWorkspaces/${ws}`, {
-                pkgJson: { ...pkgJson, name },
+                pkgJson: {
+                    ...pkgJson,
+                    name,
+                    dependencies,
+                },
                 files: {
-                    "index.ts": i === 1 ? indexTs : indexTs.replace("SUCCESS", `SUCCESS${i}`),
+                    "index.ts": indexContents,
                     "tsconfig.json": tsConfig,
                 }
             });
@@ -296,9 +309,17 @@ describe("LocalNodeImage tests", function () {
         });
 
         for (let i = 2; i <= numWorkspaces; i++) {
-            if (i === 5) continue; //This is in .dockerignore, so skip it
-            const output = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
-            should(output).equal(`SUCCESS${i}`);
+            switch (i) {
+                case 3:
+                    const reVal = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
+                    should(reVal).equal(`true`);
+                    break;
+                case 5: continue; //This is in .dockerignore, so skip it
+                default:
+                    const output = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
+                    should(output).equal(`SUCCESS${i}`);
+                    break;
+            }
         }
     });
 });

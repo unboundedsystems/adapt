@@ -65,10 +65,10 @@ async function collectPackageManagerFiles(dir: string): Promise<string[]> {
         .map((w) => isString(w) ? glob(w, { cwd: dir }) : []))));
 
     const workspaceFileCollections =
-        await Promise.all(workspaces.sort().map(async (w) =>
+        await Promise.all(workspaces.map(async (w) =>
             // Note that the join below explicitly uses "/"" since the OS path sep may not be valid in Dockerfile
             (await collectPackageManagerFiles(path.join(dir, w))).map((f) => [w, f].join("/"))));
-    const workspaceFiles = ld.flatten(workspaceFileCollections);
+    const workspaceFiles = ld.uniq(ld.flatten(workspaceFileCollections)).sort();
     ret.push(...workspaceFiles);
 
     return ret;
@@ -77,6 +77,15 @@ async function collectPackageManagerFiles(dir: string): Promise<string[]> {
 async function filterDockerIgnore(ignoreFile: string, paths: string[]) {
     const ig = dockerignore().add(ignoreFile.split("\n"));
     return ig.filter(paths);
+}
+
+function generateCopyCommands(basePath: string, paths: string[]) {
+    if (paths.length === 0) return "";
+    return paths.map((p) => {
+        const dirname = path.dirname(p);
+        const dest = `${basePath}${dirname === "." ? "" : `/${dirname}`}`;
+        return `COPY ["${p}", "${dest}/"]`;
+    }).join("\n") + "\n";
 }
 
 /**
@@ -103,6 +112,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
             : "";
         const pkgInfo = await fs.readJson(path.join(srcDir, "package.json"));
         const pkgMgrFiles = await filterDockerIgnore(dockerignoreFile, await collectPackageManagerFiles(srcDir));
+        const copyPkgMgrFiles = generateCopyCommands("/app", pkgMgrFiles);
         const main = pkgInfo.main ? pkgInfo.main : "index.js";
         const runNpmScripts = opts.runNpmScripts;
         const scripts =
@@ -129,7 +139,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
                     ADD https://github.com/krallin/tini/releases/download/\${TINI_VERSION}/tini /tini
                     ENTRYPOINT ["/tini", "--"]
                     WORKDIR /app
-                    COPY [${pkgMgrFiles.map((f) => `"${f}"`).join(", ")}, "/app"]
+                    ${copyPkgMgrFiles}
                     ${argLines(opts.buildArgs)}
                     RUN ${opts.packageManager} install && chmod +x /tini
                     CMD ${cmdString}
