@@ -125,6 +125,7 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
         const cmdString = isArray(cmd)
             ? `[${cmd.map((c) => `"${c}"`).join(",")}]`
             : (cmd ?? `["node", "${main}"]`);
+        const pkgMgrInstallOptions = opts.packageManager === "yarn" ? " --prefer-offline" : "";
 
         // Note that we collect files needed for npm or yarn install of node_modules and copy them
         // first, then we install node_modules, and then copy the source code.  This should result in a
@@ -139,11 +140,13 @@ export function LocalNodeImage(props: LocalNodeImageProps) {
                     ADD https://github.com/krallin/tini/releases/download/\${TINI_VERSION}/tini /tini
                     ENTRYPOINT ["/tini", "--"]
                     WORKDIR /app
-                    ${copyPkgMgrFiles}
                     ${argLines(opts.buildArgs)}
-                    RUN ${opts.packageManager} install && chmod +x /tini
+                    RUN chmod +x /tini
+                    ${opts.optimizedImage ? copyPkgMgrFiles : ""}
+                    ${opts.optimizedImage ? `RUN ${opts.packageManager} install` : ""}
                     CMD ${cmdString}
                     ADD . /app
+                    RUN ${opts.packageManager} install${pkgMgrInstallOptions}
                     ${runCommands}
                 `,
             contextDir: srcDir,
@@ -204,6 +207,28 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
      */
     nodeVersion?: number | string;
     /**
+     * Build an image that allows for better layer caching of node_modules
+     *
+     * Copies all `package.json`, `yarn.lock`, `package-log.json`, and `npm-shrinkwrap.json`
+     * files, then installs node_modules, then copies all the source files, and
+     * reruns install.  This allows the first install of node_modules to be its
+     * own cacheable layer that does not need to be rebuilt when the source code
+     * changes, only when one of the aforementioned files changes.
+     *
+     * There are certain caveats to using this option.  First, if `baseImage` or
+     * nodeVersion runs npm version 7 or later (nodeVersion \>= 15), or you are
+     * using yarn, any lifecycle scripts you have cannot fail if the full source
+     * directory is not present.  Neither yarn nor npm have a way to
+     * install node_modules, run the lifecycle scripts for dependencies, but
+     * skip these scripts for the main package.  As a result, the preinstall
+     * run will run the lifecycle scripts without the full source present.
+     * It appears that npm versions prior to 7 don't run the lifecycle scripts
+     * for the main package, so this should not be an issue.  Caveat emptor.
+     *
+     * @defaultValue false
+     */
+    optimizedImage?: boolean;
+    /**
      * Package manager to use in build steps in the generated Dockerfile
      * that builds {@link nodejs.LocalNodeImage}.
      *
@@ -221,6 +246,7 @@ export interface NodeImageBuildOptions extends DockerBuildOptions {
 const defaultContainerBuildOptions = {
     imageName: "node-service",
     nodeVersion: 14,
+    optimizedImage: false,
     packageManager: "npm",
     uniqueTag: true,
     buildArgs: {}

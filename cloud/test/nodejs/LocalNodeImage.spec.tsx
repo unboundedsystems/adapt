@@ -113,7 +113,8 @@ describe("LocalNodeImage tests", function () {
         main: "dist/index.js",
         scripts: {
             "build": "tsc && npm run build-test-var",
-            "build-test-var": `printf '#!/usr/bin/env bash'"\\necho \${TEST_VAR}\\n" > /test-var.sh && chmod 755 /test-var.sh`
+            "build-test-var": `printf '#!/usr/bin/env bash'"\\necho \${TEST_VAR}\\n" > /test-var.sh && chmod 755 /test-var.sh`,
+            "prepublish": "if [ -r index.ts ]; then touch prepared; fi",
         },
         devDependencies: {
             typescript: "3.2.x"
@@ -141,6 +142,7 @@ describe("LocalNodeImage tests", function () {
         version: "0.0.1",
         scripts: {
             build: "yarn workspaces run build",
+            prepare: "if [ -r workspace1/index.ts ]; then touch prepared; fi",
         },
         workspaces: [ "workspace1", "workspace2", "**/workspace[3-9]" ],
     };
@@ -219,6 +221,11 @@ describe("LocalNodeImage tests", function () {
 
         output = await checkDockerRun(tag);
         if (outputCheck) should(output).equal("SUCCESS");
+
+        const npmVersion = await checkDockerRun(id, "npm", "--version");
+        if (options.packageManager === "yarn" || npmVersion.startsWith("7.")) {
+            await checkDockerRun(id, "test", "-r", "prepared");
+        }
 
         return { id, tag };
     }
@@ -301,9 +308,38 @@ describe("LocalNodeImage tests", function () {
         should(output).startWith("v14");
     });
 
+    it("Should do optimized image build", async () => {
+        const { id } = await basicTest({ packageManager: "yarn", optimizedImage: true });
+        const output = await checkDockerRun(id, "node", "--version");
+        should(output).startWith("v14");
+    });
+
     it("Should allow yarn workspaces", async () => {
         const { id } = await basicTest({
             cmd: ["node", "/app/workspace1/dist/index.js"],
+            packageManager: "yarn",
+            project: "testProjWorkspaces",
+        });
+
+        for (let i = 2; i <= numWorkspaces; i++) {
+            switch (i) {
+                case 3:
+                    const reVal = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
+                    should(reVal).equal(`true`);
+                    break;
+                case 5: continue; //This is in .dockerignore, so skip it
+                default:
+                    const output = await checkDockerRun(id, "node", `/app/workspace${i}/dist/index.js`);
+                    should(output).equal(`SUCCESS${i}`);
+                    break;
+            }
+        }
+    });
+
+    it("Should do optimized workspace build", async () => {
+        const { id } = await basicTest({
+            cmd: ["node", "/app/workspace1/dist/index.js"],
+            optimizedImage: true,
             packageManager: "yarn",
             project: "testProjWorkspaces",
         });
