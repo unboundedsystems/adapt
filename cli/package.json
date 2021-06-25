@@ -1,6 +1,6 @@
 {
   "name": "@adpt/cli",
-  "version": "0.4.0-next.24",
+  "version": "0.4.0-next.25",
   "description": "AdaptJS command line interface",
   "license": "Apache-2.0",
   "homepage": "https://github.com/unboundedsystems/adapt#readme",
@@ -50,8 +50,8 @@
     "adapt": "./bin/run"
   },
   "dependencies": {
-    "@adpt/core": "0.4.0-next.24",
-    "@adpt/utils": "0.4.0-next.24",
+    "@adpt/core": "0.4.0-next.25",
+    "@adpt/utils": "0.4.0-next.25",
     "@oclif/command": "1.8.0",
     "@oclif/config": "1.17.0",
     "@oclif/parser": "3.8.5",
@@ -89,8 +89,8 @@
     "which": "2.0.2"
   },
   "devDependencies": {
-    "@adpt/cloud": "0.4.0-next.24",
-    "@adpt/testutils": "0.4.0-next.24",
+    "@adpt/cloud": "0.4.0-next.25",
+    "@adpt/testutils": "0.4.0-next.25",
     "@oclif/dev-cli": "1.24.2",
     "@oclif/test": "1.2.7",
     "@types/chai": "4.2.14",
