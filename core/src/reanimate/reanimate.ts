@@ -122,12 +122,6 @@ export class MummyRegistry {
         obj = parent && parent[mummy.name];
         trace(debugReanimate, `Exports lookup returned:`, obj);
 
-        // NOTE(mark): I think we can remove namespace, as long as this error
-        // never triggers.
-        if (mummy.namespace !== "" && obj != null) {
-            throw new Error(`**** Used non-default namespace to successfully find ${mummyJson}`);
-        }
-
         if (obj === undefined) {
             throw new Error(`Unable to reanimate ${mummyJson}`);
         }

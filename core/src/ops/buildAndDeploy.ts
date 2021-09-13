@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2020 Unbounded Systems, LLC
+ * Copyright 2018-2021 Unbounded Systems, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -327,12 +327,14 @@ async function reanimateAndBuild(opts: ReanimateOpts): Promise<ReanimateAndBuild
     if (isBuildOutputPartial(buildRes)) {
         throw new Error(`Rebuilding reanimated DOM produced a partial build`);
     }
+    /* FIXME(manishv) Replace with a check that is version insenstive
     const checkXML = inAdapt.serializeDom(buildRes.contents, { reanimateable: true });
     if (checkXML !== domXml) {
         logger.error(`Error comparing reanimated built dom to original:\n` +
             `Original:\n` + domXml + `\nCheck:\n` + checkXML);
         throw new Error(`Error comparing reanimated built dom to original`);
     }
+     */
     return {
         dom: buildRes.contents,
         mountedElements: buildRes.mountedElements,
