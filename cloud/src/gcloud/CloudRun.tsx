@@ -172,7 +172,7 @@ export class CloudRun extends Action<CloudRunProps, CloudRunState> implements Cl
 
     static defaultProps = {
         trafficPct: 100,
-        memory: "128M",
+        memory: "128Mi",
         cpu: 1,
         allowUnauthenticated: false
     };
