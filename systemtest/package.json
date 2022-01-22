@@ -44,7 +44,7 @@
     "fs-extra": "9.0.1",
     "mocha": "8.2.1",
     "mocha-slow-options": "0.0.2",
-    "node-fetch": "2.6.1"
+    "node-fetch": "3.1.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
