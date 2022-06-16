@@ -96,3 +96,7 @@ Chat with us on our [Gitter channel](https://gitter.im/UnboundedSystems/Adapt) a
 ### Adapt developer docs
 - [Setup](developer/setup.md)
 - [Writing Docs](developer/writing_docs.md)
+
+## Sponsors
+[<img style="margin-left: 0; vertical-align: middle; display: inline-block" alt="Adaptable.io" src="https://adaptable.io/img/color%20lockup.svg" width="100px">](https://adaptable.io) - the easiest way to deploy your app. [Deploy an app now](https://adaptable.io)!
+
