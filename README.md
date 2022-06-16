@@ -91,3 +91,6 @@ We'd love to hear about your experience with Adapt!
 Join us on our [Gitter channel](https://gitter.im/UnboundedSystems/Adapt) to ask questions or to give us your feedback and suggestions.
 
 If you've found a bug, you can also [file an issue](https://gitlab.com/unboundedsystems/adapt/issues).
+
+## Sponsors
+[<img alt="Adaptable.io" src="https://adaptable.io/img/color%20lockup.svg" width="100px">](https://adaptable.io) - the easiest way to deploy your app. [Deploy an app now](https://adaptable.io)!
