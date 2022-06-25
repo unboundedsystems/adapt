@@ -46,7 +46,7 @@
     "json-stable-stringify": "1.0.1",
     "json5-with-undefined": "2.1.301",
     "lodash": "4.17.20",
-    "node-fetch": "2.6.1",
+    "node-fetch": "2.6.7",
     "npm-run-path": "4.0.1",
     "p-defer": "3.0.0",
     "tar": "6.0.5",
