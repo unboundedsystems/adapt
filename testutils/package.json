@@ -39,7 +39,7 @@
     "js-yaml": "3.14.0",
     "kubernetes-client": "9.0.0",
     "lodash": "4.17.20",
-    "moment": "2.24.0",
+    "moment": "2.29.4",
     "numeral": "2.0.6",
     "p-defer": "3.0.0",
     "randomstring": "1.1.5",
